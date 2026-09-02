@@ -47,7 +47,7 @@ test-watch: ## Run Vitest in watch mode
 test-e2e: ## Run Playwright end-to-end tests against a running stack
 	npm run test:e2e
 
-check: lint typecheck test build ## Full quality gate: lint + typecheck + test + build
+check: format-check lint typecheck test build ## Full quality gate: format + lint + typecheck + test + build
 
 ## --- Docker Compose ---------------------------------------------------------
 

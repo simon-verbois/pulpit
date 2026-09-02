@@ -83,14 +83,6 @@ fi
 echo "Creating release ${tag} from branch ${branch}."
 
 printf '%s\n' "$tag" > VERSION
-sed -i -E "0,/^version = \"[^\"]+\"/s//version = \"${tag}\"/" Cargo.toml
-cargo check --workspace
-
-manifest_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
-if [[ "$manifest_version" != "$tag" ]]; then
-  echo "Failed to update Cargo workspace version to ${tag}." >&2
-  exit 1
-fi
 
 git add -A
 git commit -m "Release ${tag}"
