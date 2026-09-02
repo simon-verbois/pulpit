@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Pulpit product mark: a rounded brand-color badge around the "cil-layers"
+    icon from CoreUI Icons (https://github.com/coreui/coreui-icons),
+    licensed CC BY 4.0 (icon artwork). Recolored white on a solid brand-blue
+    background; no other changes to the icon geometry. See docs/UX.md
+    "Product mark" and README.md "Credits".
+  -->
+  <rect width="512" height="512" rx="96" fill="#06c" />
+  <g transform="translate(76.8,76.8) scale(0.7)">
+    <path
+      fill="#ffffff"
+      d="m487.938 162.108-224-128a16 16 0 0 0-15.876 0l-224 128a16 16 0 0 0 .382 28l224 120a16 16 0 0 0 15.112 0l224-120a16 16 0 0 0 .382-28M256 277.849 65.039 175.548 256 66.428l190.961 109.12Z"
+    />
+    <path
+      fill="#ffffff"
+      d="M263.711 394.02 480 275.061v-36.522L256 361.74 32 238.539v36.522L248.289 394.02a16 16 0 0 0 15.422 0"
+    />
+    <path
+      fill="#ffffff"
+      d="m32 362.667 216.471 115.451a16 16 0 0 0 15.058 0L480 362.667V326.4L256 445.867 32 326.4Z"
+    />
+  </g>
+</svg>

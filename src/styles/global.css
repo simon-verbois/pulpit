@@ -1,0 +1,64 @@
+/* Small layout glue only - PatternFly owns component styling (ADR 0002). */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+/* A plain CSS glow behind the login card, in place of PatternFly's bundled
+   PF-Bkg-Generic-*.svg background art (that asset has an opaque rect + a
+   gaussian-blurred shape baked into the SVG itself, which produced both a
+   hard-edged box and visible color banding at the small clamped size a
+   login page uses it at - see docs/UX.md "Theming"). A gradient we control
+   directly has neither problem and works identically in both themes. */
+.pulpit-login-page .pf-v6-c-login {
+  background-image: radial-gradient(
+    ellipse 60rem 45rem at 100% 100%,
+    color-mix(in srgb, var(--pf-t--global--color--brand--default) 35%, transparent) 0%,
+    color-mix(in srgb, var(--pf-t--global--color--brand--default) 12%, transparent) 50%,
+    transparent 100%
+  );
+  background-repeat: no-repeat;
+}
+
+/* PatternFly's SearchInput (text-input-group.css) only sets outline-offset
+   on its <input>, never outline-color/style - it deliberately relies on the
+   browser's native focus outline, drawn *inside* the input's own border via
+   a negative offset. That native ring follows the viewer's OS/browser
+   accent color (observed as an unwanted orange on a real click, on top of
+   PatternFly's own already-correct blue hover/focus border) - drop it
+   entirely rather than try to recolor it, since the surrounding border
+   already shows focus/hover state on its own. */
+.pf-v6-c-text-input-group__text-input:focus,
+.pf-v6-c-text-input-group__text-input:focus-visible {
+  outline: none;
+}
+
+/* PatternFly's .pf-v6-c-masthead__content is `display: flex` with no
+   justify-content set (VERIFIED in masthead.css), so its children - our
+   Tasks/Help/theme/user actions (src/app/layout/AppLayout.tsx) - render
+   left-aligned inside the space PatternFly's masthead grid already gives it
+   (which does span to the far edge). This is the one declaration missing to
+   actually push them there. */
+.pulpit-masthead-actions {
+  justify-content: flex-end;
+}
+
+/* The "PulpIT" wordmark next to the product mark (src/app/layout/AppLayout.tsx).
+   PatternFly's global anchor reset (base.css) puts a dashed underline under
+   any bare <a> by default, including MastheadLogo's - overridden inline on
+   the link itself; this class is the actual look: PatternFly's heading font
+   (already loaded via base.css, no new font asset) at a deliberately bolder
+   weight/size than the masthead's plain nav-item text, so the wordmark reads
+   as a logotype rather than another link. */
+.pulpit-brand-text {
+  font-family: var(--pf-t--global--font--family--heading);
+  font-size: var(--pf-t--global--font--size--heading--sm);
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+  letter-spacing: 0.02em;
+}
