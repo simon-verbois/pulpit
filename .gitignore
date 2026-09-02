@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Test / coverage artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.auth/
+
+# Env files (never commit real secrets)
+.env
+.env.*
+!.env.example
+
+# Local Pulp/Pulpit data (bind-mount fallback only; named volumes are the default)
+.data/
+
+# Fetched OpenAPI schema (npm run api:fetch) - regenerated from a live Pulp
+# instance; see ADR 0004 on whether to check this in later.
+/src/api/schemas/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS junk
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# TypeScript build info
+*.tsbuildinfo
+
+# pulpit-core (Python backend) - build/dev artifacts
+pulpit-core/.venv/
+pulpit-core/**/__pycache__/
+pulpit-core/.pytest_cache/
+pulpit-core/*.egg-info/
+
