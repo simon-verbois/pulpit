@@ -1,0 +1,168 @@
+# Same-origin reverse proxy for Pulpit + Pulp (ADR 0005).
+# ${PULP_UPSTREAM} is substituted by the base nginx image's entrypoint
+# (envsubst-on-templates) from the container environment - see the
+# pulpit service's `environment` in compose.yml.
+server {
+    listen 8080;
+    server_name _;
+
+    # VERIFIED: a bare `proxy_pass http://pulp:80` resolves "pulp" to an IP
+    # once (at config load / first use) and keeps using it - if the `pulp`
+    # container is later recreated (e.g. after an env var change) without
+    # also restarting `pulpit`, nginx keeps proxying to the now-dead old IP
+    # and every request 502s even though Pulp itself is healthy. Using a
+    # variable in proxy_pass, together with a resolver pointed at Docker's
+    # embedded DNS (127.0.0.11 on any Compose-created network), forces nginx
+    # to re-resolve the hostname instead of caching it for the worker's
+    # lifetime.
+    resolver 127.0.0.11 valid=10s;
+
+    # RPM package uploads and container image layers can be large;
+    # let each location's own limits apply rather than nginx's small default.
+    client_max_body_size 0;
+
+    location /pulp/api/ {
+        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        proxy_pass $pulp_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # VERIFIED: pulpcore's DRF BasicAuthentication sends
+        # "WWW-Authenticate: Basic" on every 401, which makes browsers pop up
+        # their native credential prompt on top of Pulpit's own login page
+        # (docs/AUTHENTICATION.md) - Pulpit never relies on that prompt (it
+        # sends Basic auth itself, once, from its own login form), so it's
+        # hidden here rather than fighting the browser for control of the 401.
+        proxy_hide_header WWW-Authenticate;
+    }
+
+    location /pulp/content/ {
+        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        proxy_pass $pulp_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Container registry (pulp_container). Registry clients push/pull large,
+    # chunked image layers, so buffering/timeouts are relaxed here. VERIFIED
+    # against a real `podman pull` end-to-end (see docs/DEPLOYMENT.md).
+    location /v2/ {
+        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        proxy_pass $pulp_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    # pulp_container's "atomic" signature extension API (podman/docker
+    # clients probe this for image signatures on every pull, even when none
+    # exist) - VERIFIED live this was missing too, same symptom as the two
+    # blocks below: silently served Pulpit's own index.html instead of
+    # Pulp's real (empty-signatures) JSON response, which broke a real
+    # `podman pull` with a confusing "decoding signature list: invalid
+    # character '<'" error instead of an obvious routing failure.
+    location /extensions/v2/ {
+        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        proxy_pass $pulp_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # pulp_container's own content-serving app (blob/manifest downloads) -
+    # `/v2/.../blobs/...` above 302-redirects here with a signed, expiring
+    # URL, a *separate* path prefix from the generic `/pulp/content/` used
+    # by RPM/Ansible. VERIFIED live this was missing entirely, the exact
+    # same class of gap as the `/pulp_ansible/` one below: without this
+    # block a real `podman pull` "succeeded" in following the redirect but
+    # silently received Pulpit's own index.html (a 200, wrong content) from
+    # the SPA fallback instead of the real blob, which surfaced downstream
+    # as a confusing "digest does not match" error, not an obvious routing
+    # failure.
+    location /pulp/container/ {
+        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        proxy_pass $pulp_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    # pulp_ansible's own Galaxy-v3-compatible API (per-distribution content
+    # browsing, namespace management, cross-repository collection search -
+    # see docs/PULP_API.md "Ansible endpoints"). VERIFIED live this was
+    # missing entirely: without this block, GET requests here silently fell
+    # through to the SPA fallback below (nginx's `try_files` served
+    # Pulpit's own index.html with a 200, not Pulp's real JSON - a search
+    # request "succeeded" while actually hitting the wrong app) and POST
+    # requests 405'd (a static-file location doesn't accept POST) - both
+    # looked like generic frontend bugs until checked at the network level.
+    location /pulp_ansible/ {
+        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        proxy_pass $pulp_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # pulpit-core's authenticated module API (ADR 0006, docs/signing.md).
+    # Same-origin, same trust boundary as /pulp/api/ above - the browser
+    # sends whatever cookie/Basic-auth it already has, and pulpit-core
+    # itself re-validates it against Pulp (app/core/auth.py) rather than
+    # inventing a second identity source.
+    location /pulpit-core/api/ {
+        set $pulpit_core_upstream http://${PULPIT_CORE_UPSTREAM}:8000;
+        # The frontend already requests paths under /pulpit-core/api/v1/...
+        # (src/api/client/pulpitCore/httpClient.ts's API_BASE_PATH) - strip
+        # only the /pulpit-core prefix and pass the rest through unchanged.
+        # BUG FOUND LIVE: an earlier version of this rewrite also prepended
+        # /api/v1/, producing /api/v1/v1/... (doubled), which matched no
+        # FastAPI route and 404'd every single pulpit-core API call.
+        rewrite ^/pulpit-core(/.*)$ $1 break;
+        proxy_pass $pulpit_core_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Public signing-key distribution (task section 7) - deliberately NOT
+    # under /pulpit-core/api/ and NOT authenticated: DNF/rpm clients fetch
+    # this directly via a repository's plain `gpgkey=` URL, the same way
+    # they'd fetch a key from any other static HTTPS location.
+    location /keys/ {
+        set $pulpit_core_upstream http://${PULPIT_CORE_UPSTREAM}:8000;
+        proxy_pass $pulpit_core_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Legacy pulp-ui (bundled in the Pulp all-in-one image) is intentionally
+    # not exposed here - Pulpit replaces its management use case (ADR 0005).
+    location /ui/ {
+        return 404;
+    }
+
+    # Pulpit static SPA, with SPA fallback (kept last so it never shadows
+    # the Pulp routes above).
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

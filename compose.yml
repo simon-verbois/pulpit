@@ -1,0 +1,230 @@
+# Local development / reference deployment topology (docs/DEPLOYMENT.md).
+# Only `pulpit` is published to the host as the single public entry point
+# (ADR 0005); `pulp`'s port is published too, but only as a convenience for
+# the fast frontend-iteration workflow (docs/DEVELOPMENT.md Mode A), not as
+# a second public entry point in normal use.
+#
+# pulpit-core / pulpit-worker (ADR 0006, docs/signing.md) are Pulpit's own
+# backend, introduced specifically for the signing module (and future
+# pulpit-core modules) - see docs/ARCHITECTURE.md for why this is no longer
+# a "frontend-only" stack. Neither is published to the host; both are only
+# reachable through the `pulpit` nginx proxy, same as `pulp`.
+
+services:
+  # Optional for pulpcore (VERIFIED - see docs/DEPLOYMENT.md "Redis"): only
+  # used for HTTP response caching (CACHE_ENABLED) here, not for task queuing
+  # (this pulpcore version's default task worker is Postgres-based, not
+  # Redis/RQ). A plain cache - no persistence, no auth, internal network only.
+  # Not used by pulpit-core (docs/adr/0006-pulpit-core-backend.md "Job
+  # system") - pulpit-core's jobs live in its own Postgres database instead.
+  redis:
+    image: docker.io/library/redis:8-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  pulp:
+    image: docker.io/pulp/pulp:stable
+    environment:
+      # Fails fast with a clear error if not set - see .env.example.
+      PULP_SECRET_KEY: ${PULP_SECRET_KEY:?PULP_SECRET_KEY is required. Copy .env.example to .env and set it (openssl rand -hex 32) - see docs/DEPLOYMENT.md.}
+      # Optional. If set, the post_start hook below sets the "admin" user's
+      # password to this value on every start. If unset, the admin account
+      # is left untouched - see .env.example and docs/DEPLOYMENT.md.
+      # Also the credential pulpit-core/pulpit-worker use to call Pulp's API
+      # on their own behalf (docs/signing.md) - leave unset and the signing
+      # module simply can't reach Pulp yet, surfaced in its own job errors,
+      # not a hard failure of the rest of the stack.
+      PULP_ADMIN_PASSWORD: ${PULP_ADMIN_PASSWORD:-}
+      # Django's CSRF protection checks the request's Origin header against
+      # this list (VERIFIED - see docs/DEPLOYMENT.md "CSRF_TRUSTED_ORIGINS").
+      # Without it, any session-cookie-authenticated mutation (logout,
+      # creating a repository, etc.) from the browser fails with 403.
+      # Must be a JSON array, not a bare string - dynaconf (which pulpcore's
+      # settings are built on) otherwise iterates it character-by-character.
+      PULP_CSRF_TRUSTED_ORIGINS: '["${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}"]'
+      # Enables pulpcore's Redis-backed HTTP response cache (VERIFIED -
+      # docs/DEPLOYMENT.md "Redis"). Without CACHE_ENABLED, pulpcore never
+      # even tries to connect to Redis - it isn't required for tasks/workers.
+      PULP_CACHE_ENABLED: "true"
+      PULP_REDIS_HOST: redis
+      PULP_REDIS_PORT: "6379"
+      # pulp_container's registry API (/v2/...) uses Docker/OCI token-based
+      # auth by default, which needs a TOKEN_SERVER URL plus a signing
+      # keypair to be configured (VERIFIED - see docs/DEPLOYMENT.md
+      # "Container registry authentication"). Generating and securely
+      # mounting that keypair is real, security-sensitive Pulp-side
+      # configuration beyond this bootstrap's scope, so this dev stack
+      # instead disables token auth entirely - a first-class, officially
+      # supported pulp_container setting (used throughout its own
+      # functional test suite for the same reason), not a workaround.
+      # Falls back to the same session/Basic auth already used everywhere
+      # else in this app. Do not carry this into a production deployment.
+      PULP_TOKEN_AUTH_DISABLED: "true"
+    ports:
+      # Dev-only convenience port (docs/DEVELOPMENT.md Mode A) - bound to
+      # loopback only so it's never reachable from outside this host, unlike
+      # `pulpit`'s port below, which is the one actual public entry point.
+      - "127.0.0.1:${PULP_HTTP_PORT:-8180}:80"
+    volumes:
+      - pulp_etc:/etc/pulp
+      - pulp_var_lib_pulp:/var/lib/pulp
+      - pulp_var_lib_pgsql:/var/lib/pgsql
+      - pulp_var_lib_containers:/var/lib/containers
+      - ./docker/pulp/init-admin-password.sh:/usr/local/bin/pulpit-init-admin-password.sh:ro
+      # Shared with pulpit-worker (docs/signing.md "Shared volume
+      # permissions" - VERIFIED pulpcore-worker runs as uid/gid 700 inside
+      # this image). `pulp`'s own worker process reads these to actually
+      # execute signing - Pulpit's frontend/pulpit-core API never mount
+      # either (task section 2: "preferably NO private GPG key access").
+      - pulpit_signing_gnupghome:/var/lib/pulpit-signing/gnupg
+      - pulpit_signing_scripts:/var/lib/pulpit-signing/scripts:ro
+    # Runs after the container's own init (s6-overlay) has started it - does
+    # not replace or interfere with the image's entrypoint. See the script
+    # itself and docs/DEPLOYMENT.md.
+    post_start:
+      - command: ["/bin/sh", "/usr/local/bin/pulpit-init-admin-password.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/pulp/api/v3/status/"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Scoped Docker API access so pulpit-worker can automatically finish the
+  # one manual Pulp step (registering a signing service - docs/signing.md
+  # "Automating the manual Pulp step") instead of always requiring an
+  # administrator to run a printed command. Deliberately NOT the raw Docker
+  # socket: tecnativa/docker-socket-proxy only forwards the specific API
+  # categories enabled below (container listing + exec), refusing every
+  # other Docker API call (image builds, volume/network management, other
+  # containers' logs, etc.) - a real reduction from "root on the host" to
+  # "can list containers and exec into one identified by a label", not a
+  # cosmetic one. Internal network only, never published. A deployment that
+  # isn't Docker at all leaves PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST unset
+  # and this service is simply unused - the manual command keeps working
+  # exactly as before (see app/adapters/pulp/executor.py).
+  docker-socket-proxy:
+    image: docker.io/tecnativa/docker-socket-proxy:latest
+    environment:
+      CONTAINERS: "1"
+      EXEC: "1"
+      POST: "1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  # pulpit-core's own database (ADR 0006) - separate from Pulp's, never
+  # shared: Pulp remains authoritative for its own data (docs/ARCHITECTURE.md
+  # "No database, no application backend" - now scoped to "no *Pulp* data",
+  # see the updated wording there). Internal only, no published port.
+  pulpit-core-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: pulpit_core
+      POSTGRES_PASSWORD: ${PULPIT_CORE_DB_PASSWORD:?PULPIT_CORE_DB_PASSWORD is required. Copy .env.example to .env and set it (openssl rand -hex 32).}
+      POSTGRES_DB: pulpit_core
+    volumes:
+      - pulpit_core_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "pulpit_core"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # pulpit-core's API process (ADR 0006, docs/signing.md). No GPG/signing
+  # volume access at all - see pulpit-core/Dockerfile and
+  # app/modules/signing/gpg_local.py.
+  pulpit-core:
+    build:
+      context: ./pulpit-core
+      dockerfile: Dockerfile
+    environment:
+      PULPIT_CORE_DATABASE_URL: postgresql+psycopg://pulpit_core:${PULPIT_CORE_DB_PASSWORD:?PULPIT_CORE_DB_PASSWORD is required.}@pulpit-core-db:5432/pulpit_core
+      PULPIT_CORE_PULP_BASE_URL: http://pulp:80
+      PULPIT_CORE_PULP_SERVICE_USERNAME: admin
+      PULPIT_CORE_PULP_SERVICE_PASSWORD: ${PULP_ADMIN_PASSWORD:-}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      pulpit-core-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # pulpit-core's privileged sibling (task sections 1/2/15): the only
+  # process in the stack with the GNUPGHOME volume mounted. Runs the job
+  # queue (key generation/rotation/repository signing actions) and the
+  # rotation-check scheduler - see pulpit-core/worker/main.py.
+  pulpit-worker:
+    build:
+      context: ./pulpit-core
+      dockerfile: worker/Dockerfile
+    environment:
+      PULPIT_CORE_DATABASE_URL: postgresql+psycopg://pulpit_core:${PULPIT_CORE_DB_PASSWORD:?PULPIT_CORE_DB_PASSWORD is required.}@pulpit-core-db:5432/pulpit_core
+      PULPIT_CORE_PULP_BASE_URL: http://pulp:80
+      PULPIT_CORE_PULP_SERVICE_USERNAME: admin
+      PULPIT_CORE_PULP_SERVICE_PASSWORD: ${PULP_ADMIN_PASSWORD:-}
+      # Set (only here, not on pulpit-core - see app/adapters/pulp/
+      # executor.py) so the worker can automatically finish registering a
+      # Pulp signing service via docker-socket-proxy above, instead of
+      # requiring an administrator to run the printed command by hand. The
+      # label matches Compose's own automatic `com.docker.compose.service`
+      # label - VERIFIED present on the `pulp` container as started by this
+      # same compose.yml, no extra label needed on the `pulp` service itself.
+      PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST: tcp://docker-socket-proxy:2375
+      PULPIT_CORE_PULP_EXECUTOR_CONTAINER_LABEL: com.docker.compose.service=pulp
+    volumes:
+      - pulpit_signing_gnupghome:/var/lib/pulpit-signing/gnupg
+      - pulpit_signing_scripts:/var/lib/pulpit-signing/scripts
+    depends_on:
+      pulpit-core-db:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
+    restart: unless-stopped
+
+  pulpit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PULP_UPSTREAM: pulp
+      PULPIT_CORE_UPSTREAM: pulpit-core
+    ports:
+      - "${PULPIT_HTTP_PORT:-8080}:8080"
+    depends_on:
+      pulp:
+        condition: service_healthy
+      pulpit-core:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pulp_etc:
+  pulp_var_lib_pulp:
+  pulp_var_lib_pgsql:
+  pulp_var_lib_containers:
+  pulpit_core_pgdata:
+  # Never mounted into `pulpit` (the frontend/nginx container) or into
+  # `pulpit-core` (the API process) - only `pulpit-worker` and `pulp` itself
+  # (docs/signing.md "Shared volume permissions").
+  pulpit_signing_gnupghome:
+  pulpit_signing_scripts:
