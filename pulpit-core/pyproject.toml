@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pulpit-core"
+version = "0.1.0"
+description = "Pulpit's extensible backend component: generic job/event infrastructure plus feature modules (signing, and future automation modules)."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<0.116",
+  "uvicorn[standard]>=0.34,<0.35",
+  "sqlalchemy>=2.0,<2.1",
+  "alembic>=1.14,<1.15",
+  "psycopg[binary]>=3.2,<3.3",
+  "pydantic>=2.9,<3",
+  "pydantic-settings>=2.6,<3",
+  "httpx>=0.27,<0.28",
+  # Only ever imported by pulpit-worker (app/adapters/pulp/executor.py) -
+  # see that module's docstring. Shared here rather than a second
+  # pyproject because it's a plain library dependency with no capability of
+  # its own; the worker image is the only one with DOCKER_HOST reachable.
+  "docker>=7.1,<8",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.24,<0.25",
+  "respx>=0.21,<0.22",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*", "worker*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
