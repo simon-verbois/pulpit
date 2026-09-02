@@ -161,6 +161,35 @@ Do not run migrations automatically from the frontend or from application code �
 explicit, human-invoked operational command (`make pulp-migrate`), never something Pulpit's JS
 triggers.
 
+## Known harmless startup warnings
+
+`docker compose up` on a fresh stack prints several warnings that come from vendor base images,
+not from Pulpit's own code, and are not fixable from this repository:
+
+- `redis-1 | WARNING Memory overcommit must be enabled!` — Redis checks the host's
+  `vm.overcommit_memory` sysctl unconditionally at startup and always prints this if it isn't `1`,
+  regardless of configuration. `redis` here has no persistence at all
+  (`command: redis-server --save "" --appendonly no` - see "Redis" above), so nothing ever triggers
+  the background-save fork this warning is actually about. Set `vm.overcommit_memory = 1` on the
+  Docker host (`/etc/sysctl.conf`, then `sysctl vm.overcommit_memory=1` or reboot) if you want the
+  message gone entirely; it's optional here.
+- `redis-1 | WARNING: Redis does not require authentication...` — expected; see "Redis" above
+  (internal Compose network only, never published to the host).
+- `pulp-1 | egrep: warning: egrep is obsolescent`, an RPM macro warning about `%add_sysuser`, and
+  an `s6-chown: fatal:` line about `/var/lib/pgsql/16/backups` — all emitted by the
+  `pulp/pulp:stable` image's own init scripts/RPM macros during first boot, not by anything in
+  `compose.yml` or Pulpit's code. The stack still starts and becomes healthy; these come from
+  upstream and aren't something Pulpit can patch short of forking that image.
+- `docker-socket-proxy-1 | [WARNING] missing timeouts for backend 'docker-events'` — that backend
+  is shipped by the `tecnativa/docker-socket-proxy` image's own `haproxy.cfg.template` with
+  `timeout server 0` (intentionally unbounded, since `/events` is a long-lived streaming
+  connection) - not configurable via this service's environment variables.
+- `docker-socket-proxy-1 | [WARNING] HAProxy was started as root...` — the same image runs HAProxy
+  as root with no option to drop privileges or chroot; there is no supported way to change this
+  without replacing the image. Its actual security boundary is the scoped API allowlist
+  (`CONTAINERS`/`EXEC`/`POST` only - see the service's own comment in `compose.yml`), not the
+  container's internal user.
+
 ## Container registry authentication: `TOKEN_AUTH_DISABLED`
 
 **RESOLVED for this dev stack** (previously a known limitation — `GET /v2/` returned a `500`,

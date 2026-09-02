@@ -19,6 +19,12 @@ services:
   # system") - pulpit-core's jobs live in its own Postgres database instead.
   redis:
     image: docker.io/library/redis:8-alpine
+    # No RDB/AOF persistence - matches the "cache data, safe to lose" design
+    # above: nothing here ever calls BGSAVE, so there's no snapshot for a
+    # missing `vm.overcommit_memory=1` host sysctl to actually break (see
+    # docs/DEPLOYMENT.md "Redis" for the startup warning about it, which
+    # Redis prints unconditionally and isn't silenced by this).
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -199,6 +205,16 @@ services:
         condition: service_healthy
       docker-socket-proxy:
         condition: service_started
+      # Without this, pulpit-worker starts as soon as pulpit-core-db is
+      # healthy (much faster than Pulp's own migrations/startup) and its
+      # first scheduled jobs (content_size.refresh,
+      # signing.check_pulp_bootstrap) hit Pulp's API before anything is even
+      # listening - guaranteed "Connection refused" errors on every fresh
+      # `docker compose up`, not just a rare race. Waiting on `pulp`'s own
+      # healthcheck (which already has a 60s start_period for this) means
+      # the worker's first job run finds a ready Pulp instead.
+      pulp:
+        condition: service_healthy
     restart: unless-stopped
 
   pulpit:
