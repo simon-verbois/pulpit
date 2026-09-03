@@ -17,10 +17,11 @@ misleadingly).
 
 ## Status
 
-RPM, Containers, Ansible, and Access are real, fully wired feature sets backed by the live Pulp
-API (repositories, sync, content browsing, distributions, users/groups/roles/permissions, and more
-per area). Only the enterprise-hardening area (Milestone 6) remains a routed placeholder. See
-[`docs/ROADMAP.md`](docs/ROADMAP.md) for exactly what's built vs. planned.
+RPM, Containers, Ansible, Access, and Administration (signing services, content guards, repository
+signing, tasks/auditability) are real, fully wired feature sets backed by the live Pulp API
+(repositories, sync, content browsing, distributions, users/groups/roles/permissions, and more per
+area). The only work still open is production deployment hardening docs (TLS, secrets management,
+security headers). See [`docs/ROADMAP.md`](docs/ROADMAP.md) for exactly what's built vs. planned.
 
 ## Architecture
 
@@ -155,10 +156,9 @@ pulpit/
 
 ## Current limitations
 
-- Content guards UI (Milestone 6) isn't built yet; it remains a routed placeholder
-  ([`docs/ROADMAP.md`](docs/ROADMAP.md)). Repository/package signing key management is now
-  implemented via `pulpit-core` — see [`docs/signing.md`](docs/signing.md) for what it does and
-  does not cover (e.g. no bulk re-signing of already-synced packages).
+- Repository/package signing key management is implemented via `pulpit-core` — see
+  [`docs/signing.md`](docs/signing.md) for what it does and does not cover (e.g. no progress
+  reporting for an in-flight repository re-sign job, and a job isn't restart-safe mid-batch).
 - The OpenAPI type-generation pipeline (`make api-fetch` / `make api-generate`) is implemented but
   generates an unfiltered combined schema; per-plugin schema splitting is not yet verified.
 - The container registry (`/v2/`) works end-to-end in this reference stack, including a real
