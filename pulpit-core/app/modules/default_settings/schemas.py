@@ -24,6 +24,7 @@ class DefaultSettingsRead(BaseModel):
     proxy_url: str
     proxy_username: str
     proxy_password_is_set: bool
+    proxy_tls_validation: bool
     updated_at: datetime
 
 
@@ -38,6 +39,7 @@ class DefaultSettingsUpdate(BaseModel):
     proxy_url: str | None = None
     proxy_username: str | None = None
     proxy_password: str | None = None
+    proxy_tls_validation: bool | None = None
 
 
 class ProxyCredentials(BaseModel):

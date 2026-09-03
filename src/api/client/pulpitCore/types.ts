@@ -109,6 +109,12 @@ export interface DefaultSettings {
   proxy_url: string;
   proxy_username: string;
   proxy_password_is_set: boolean;
+  /** Mirrors Remote.tls_validation exactly (true means validate) - Pulp has
+   * only one tls_validation flag per Remote, shared by the origin server
+   * AND the proxy connection, never two separate ones. There is no
+   * Pulp-side way to skip validation for only the proxy while still
+   * validating the origin (or vice versa). */
+  proxy_tls_validation: boolean;
   updated_at: string;
 }
 
@@ -119,6 +125,7 @@ export interface DefaultSettingsUpdate {
    * value to replace it - see DefaultSettingsUpdate's docstring in
    * pulpit-core/app/modules/default_settings/schemas.py. */
   proxy_password?: string;
+  proxy_tls_validation?: boolean;
 }
 
 /** The real, decrypted default proxy - deliberately a separate type/request
@@ -129,4 +136,24 @@ export interface DefaultProxyCredentials {
   proxy_url: string;
   proxy_username: string;
   proxy_password: string | null;
+}
+
+export type TrustedCaCertificateStatus = "pending" | "applied" | "failed";
+
+// Mirrors pulpit-core/app/modules/trusted_ca/schemas.py. Unlike the proxy
+// password above, `pem` IS returned here - a CA certificate is public
+// material by definition, nothing to keep write-only.
+export interface TrustedCaCertificate {
+  id: string;
+  name: string;
+  pem: string;
+  status: TrustedCaCertificateStatus;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrustedCaCertificateCreate {
+  name: string;
+  pem: string;
 }

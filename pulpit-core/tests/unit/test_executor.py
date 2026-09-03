@@ -64,6 +64,33 @@ def test_run_pulpcore_manager_execs_into_found_container(monkeypatch):
     )
 
 
+def test_run_shell_execs_sh_dash_c_with_the_script(monkeypatch):
+    import docker
+
+    fake_container = MagicMock()
+    fake_container.exec_run.return_value = (0, (b"ok\n", b""))
+    fake_client = MagicMock()
+    fake_client.containers.list.return_value = [fake_container]
+    monkeypatch.setattr(docker, "DockerClient", lambda base_url: fake_client)
+
+    executor = DockerExecExecutor(docker_host="tcp://x:2375", container_label="com.docker.compose.service=pulp")
+    result = executor.run_shell("update-ca-trust")
+
+    assert result.ok
+    called_args = fake_container.exec_run.call_args[0][0]
+    assert called_args == ["sh", "-c", "update-ca-trust"]
+
+
+def test_run_shell_raises_unavailable_when_no_container_found(monkeypatch):
+    import docker
+
+    monkeypatch.setattr(docker, "DockerClient", lambda base_url: MagicMock(containers=MagicMock(list=lambda **_: [])))
+    executor = DockerExecExecutor(docker_host="tcp://x:2375", container_label="com.docker.compose.service=pulp")
+
+    with pytest.raises(ExecutorUnavailableError):
+        executor.run_shell("update-ca-trust")
+
+
 def test_attempt_automatic_registration_passes_the_shared_gnupg_home():
     """BUG FOUND LIVE (docs/signing.md): the args sent to the executor must
     include --home pointing at the shared GNUPGHOME - without it,

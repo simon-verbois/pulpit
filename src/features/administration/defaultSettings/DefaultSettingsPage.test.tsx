@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS = {
   proxy_url: "",
   proxy_username: "",
   proxy_password_is_set: false,
+  proxy_tls_validation: true,
   updated_at: "2026-01-01T00:00:00Z",
 };
 
@@ -89,5 +90,34 @@ describe("DefaultSettingsPage", () => {
     expect(
       await screen.findByText(/Currently set - leave blank to keep it/i),
     ).toBeInTheDocument();
+  });
+
+  it("unchecked by default, and saves proxy_tls_validation: false when checked", async () => {
+    let lastPatchBody: Record<string, unknown> = {};
+    mockSettings();
+    server.use(
+      http.patch(SETTINGS_URL, async ({ request }) => {
+        lastPatchBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...DEFAULT_SETTINGS, ...lastPatchBody });
+      }),
+    );
+
+    renderApp(<DefaultSettingsPage />);
+
+    const skipTls = await screen.findByLabelText("Skip TLS certificate validation");
+    expect(skipTls).not.toBeChecked();
+
+    fireEvent.click(skipTls);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(lastPatchBody.proxy_tls_validation).toBe(false));
+  });
+
+  it("shows checked when the stored default already skips TLS validation", async () => {
+    mockSettings({ proxy_tls_validation: false });
+
+    renderApp(<DefaultSettingsPage />);
+
+    expect(await screen.findByLabelText("Skip TLS certificate validation")).toBeChecked();
   });
 });

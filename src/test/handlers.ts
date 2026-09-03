@@ -2255,9 +2255,15 @@ const pulpitCoreHandlers = [
       proxy_url: "",
       proxy_username: "",
       proxy_password_is_set: false,
+      proxy_tls_validation: true,
       updated_at: "2026-01-01T00:00:00Z",
     }),
   ),
+
+  // Empty by default - DefaultSettingsPage's Trusted CA certificates
+  // section calls this unconditionally on mount. Tests exercising it
+  // override this with `server.use(...)`.
+  http.get("/pulpit-core/api/v1/trusted_ca/certificates", () => HttpResponse.json([])),
 ];
 
 export const handlers = [

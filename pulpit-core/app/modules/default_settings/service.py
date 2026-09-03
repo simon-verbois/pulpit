@@ -28,5 +28,7 @@ def update_settings(db: Session, row: DefaultSettings, changes: dict) -> Default
     if "proxy_password" in changes and changes["proxy_password"] is not None:
         password = changes["proxy_password"]
         row.proxy_password_encrypted = encrypt_secret(password) if password != "" else None
+    if "proxy_tls_validation" in changes and changes["proxy_tls_validation"] is not None:
+        row.proxy_tls_validation = changes["proxy_tls_validation"]
     db.flush()
     return row

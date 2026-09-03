@@ -42,6 +42,7 @@ from app.modules.signing.models import (  # noqa: F401
     SigningRotation,
     SigningSettings,
 )
+from app.modules.trusted_ca.models import TrustedCaCertificate  # noqa: F401
 
 _engine = create_engine(get_settings().database_url, future=True)
 _TestSession = sessionmaker(bind=_engine, future=True)

@@ -14,7 +14,9 @@ import {
 const SETTINGS_URL = "/pulpit-core/api/v1/default_settings/settings";
 const CREDENTIALS_URL = "/pulpit-core/api/v1/default_settings/proxy-credentials";
 
-function mockInstanceDefaultProxy() {
+function mockInstanceDefaultProxy({
+  proxyTlsValidation = true,
+}: { proxyTlsValidation?: boolean } = {}) {
   server.use(
     http.get(SETTINGS_URL, () =>
       HttpResponse.json({
@@ -22,6 +24,7 @@ function mockInstanceDefaultProxy() {
         proxy_url: "http://default-proxy.example.com:3128",
         proxy_username: "default-user",
         proxy_password_is_set: true,
+        proxy_tls_validation: proxyTlsValidation,
         updated_at: "2026-01-01T00:00:00Z",
       }),
     ),
@@ -112,5 +115,27 @@ describe("RemoteConnectionSettingsFields", () => {
     expect(await screen.findByLabelText("Proxy URL")).toHaveValue(
       "http://default-proxy.example.com:3128",
     );
+  });
+
+  it("applies the default's TLS validation preference and locks the checkbox", async () => {
+    mockInstanceDefaultProxy({ proxyTlsValidation: false });
+
+    renderApp(<Harness />);
+
+    const tlsCheckbox = await screen.findByLabelText(
+      "Validate TLS certificates (origin server and proxy)",
+    );
+    await waitFor(() => expect(tlsCheckbox).not.toBeChecked());
+    expect(tlsCheckbox).toBeDisabled();
+    expect(
+      screen.getByText(/Set by the instance default proxy above/i),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      const captured = JSON.parse(
+        screen.getByTestId("captured").textContent ?? "{}",
+      ) as RemoteConnectionSettings;
+      expect(captured.tls_validation).toBe(false);
+    });
   });
 });

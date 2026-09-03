@@ -2,7 +2,9 @@ import { useState } from "react";
 import {
   Alert,
   Button,
+  Checkbox,
   Content,
+  Divider,
   Form,
   FormGroup,
   FormHelperText,
@@ -21,6 +23,7 @@ import { PulpApiError } from "../../../api/errors/PulpApiError";
 import type { DefaultSettings } from "../../../api/client/pulpitCore/types";
 import { useDefaultSettingsQuery } from "./useDefaultSettingsQuery";
 import { useUpdateDefaultSettingsMutation } from "./useUpdateDefaultSettingsMutation";
+import { TrustedCaCertificatesSection } from "./TrustedCaCertificatesSection";
 
 export function DefaultSettingsPage() {
   const settingsQuery = useDefaultSettingsQuery();
@@ -41,7 +44,19 @@ export function DefaultSettingsPage() {
             onRetry={() => settingsQuery.refetch()}
           />
         ) : null}
-        {settingsQuery.data ? <ProxySettingsForm settings={settingsQuery.data} /> : null}
+        {settingsQuery.data ? (
+          <Stack hasGutter>
+            <StackItem>
+              <ProxySettingsForm settings={settingsQuery.data} />
+            </StackItem>
+            <StackItem>
+              <Divider />
+            </StackItem>
+            <StackItem>
+              <TrustedCaCertificatesSection />
+            </StackItem>
+          </Stack>
+        ) : null}
       </PageSection>
     </>
   );
@@ -55,6 +70,9 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
   // pulpit-core/app/modules/default_settings/schemas.py); blank on submit
   // means "leave unchanged", not "clear" (see handleSave).
   const [proxyPassword, setProxyPassword] = useState("");
+  const [skipTlsValidation, setSkipTlsValidation] = useState(
+    !settings.proxy_tls_validation,
+  );
 
   const passwordHint = settings.proxy_password_is_set
     ? "Currently set - leave blank to keep it, or type a new value to replace it."
@@ -66,6 +84,7 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
         proxy_url: proxyUrl,
         proxy_username: proxyUsername,
         proxy_password: proxyPassword || undefined,
+        proxy_tls_validation: !skipTlsValidation,
       },
       // Blank the field back out rather than leaving whatever was just
       // typed sitting there - the hint below it is the only thing that
@@ -126,6 +145,24 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
                 </HelperText>
               </FormHelperText>
             ) : null}
+          </FormGroup>
+          <FormGroup fieldId="default-settings-proxy-skip-tls-validation">
+            <Checkbox
+              id="default-settings-proxy-skip-tls-validation"
+              label="Skip TLS certificate validation"
+              isChecked={skipTlsValidation}
+              onChange={(_event, checked) => setSkipTlsValidation(checked)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant={skipTlsValidation ? "warning" : undefined}>
+                  Pulp has one TLS-validation setting per Remote, shared by the proxy and
+                  the origin server - there is no way to skip it for only the proxy.
+                  Enabling this also skips certificate validation for the remote's own URL
+                  once applied.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
           </FormGroup>
         </Form>
       </StackItem>

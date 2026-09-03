@@ -88,15 +88,21 @@ export function RemoteConnectionSettingsFields({
   // no-op even though `value`'s object identity still changes on every
   // parent re-render.
   useEffect(() => {
-    if (!useInstanceDefault || !proxyCredentialsQuery.data) {
+    if (
+      !useInstanceDefault ||
+      !proxyCredentialsQuery.data ||
+      !defaultSettingsQuery.data
+    ) {
       return;
     }
     const credentials = proxyCredentialsQuery.data;
     const resolvedPassword = credentials.proxy_password ?? "";
+    const resolvedTlsValidation = defaultSettingsQuery.data.proxy_tls_validation;
     if (
       value.proxy_url === credentials.proxy_url &&
       value.proxy_username === credentials.proxy_username &&
-      value.proxy_password === resolvedPassword
+      value.proxy_password === resolvedPassword &&
+      value.tls_validation === resolvedTlsValidation
     ) {
       return;
     }
@@ -105,8 +111,19 @@ export function RemoteConnectionSettingsFields({
       proxy_url: credentials.proxy_url,
       proxy_username: credentials.proxy_username,
       proxy_password: resolvedPassword,
+      // Pulp has one tls_validation flag per Remote, shared by the proxy
+      // and the origin server - applying "the default proxy" necessarily
+      // also applies its TLS preference, there is no narrower field to set
+      // instead (DefaultSettings.proxy_tls_validation's own doc comment).
+      tls_validation: resolvedTlsValidation,
     });
-  }, [useInstanceDefault, proxyCredentialsQuery.data, value, onChange]);
+  }, [
+    useInstanceDefault,
+    proxyCredentialsQuery.data,
+    defaultSettingsQuery.data,
+    value,
+    onChange,
+  ]);
 
   // Surfaces the automatic default rather than leaving it invisible inside
   // a collapsed section - only once, so manually collapsing it afterward
@@ -155,8 +172,8 @@ export function RemoteConnectionSettingsFields({
               <HelperText>
                 <HelperTextItem>
                   Configured in Administration &gt; Default Settings (
-                  {defaultSettingsQuery.data?.proxy_url}). Uncheck to set a different
-                  proxy for this remote only.
+                  {defaultSettingsQuery.data?.proxy_url}), including its TLS validation
+                  preference below. Uncheck to set a different proxy for this remote only.
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -240,10 +257,22 @@ export function RemoteConnectionSettingsFields({
       <FormGroup fieldId={`${idPrefix}-tls-validation`}>
         <Checkbox
           id={`${idPrefix}-tls-validation`}
-          label="Validate TLS certificates"
+          label="Validate TLS certificates (origin server and proxy)"
           isChecked={value.tls_validation ?? true}
+          isDisabled={hasDefaultProxy && useInstanceDefault}
           onChange={(_event, checked) => onChange({ ...value, tls_validation: checked })}
         />
+        {hasDefaultProxy && useInstanceDefault ? (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>
+                Set by the instance default proxy above - uncheck{" "}
+                <strong>Use the instance default proxy</strong> to control this separately
+                for this remote.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        ) : null}
       </FormGroup>
     </ExpandableSection>
   );
