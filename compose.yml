@@ -1,21 +1,22 @@
-# Reference deployment topology (docs/DEPLOYMENT.md): `pulpit` below pulls
-# the published `simonverbois/pulpit` image from Docker Hub (built and
-# pushed by the release workflow, .forgejo/workflows/release.yml) rather
-# than building from local source - this is the file an end user deploying
-# Pulpit actually runs. To test unreleased local changes instead, use
-# compose-dev.yml (docs/DEVELOPMENT.md "Mode B"), which is otherwise
+# Reference deployment topology (docs/DEPLOYMENT.md): `pulpit`,
+# `pulpit-core`, and `pulpit-worker` below all pull their published
+# `simonverbois/*` images from Docker Hub (built and pushed together, from
+# the same tag, by the release workflow - .forgejo/workflows/release.yml)
+# rather than building from local source - this is the file an end user
+# deploying Pulpit actually runs. To test unreleased local changes instead,
+# use compose-dev.yml (docs/DEVELOPMENT.md "Mode B"), which is otherwise
 # identical.
 #
-# Only `pulpit` is published to the host as the single public entry point
-# (ADR 0005); `pulp`'s port is published too, but only as a convenience for
-# the fast frontend-iteration workflow (docs/DEVELOPMENT.md Mode A), not as
-# a second public entry point in normal use.
+# Only `pulpit`'s *port* is published to the host, as the single public
+# entry point (ADR 0005); `pulp`'s port is published too, but only as a
+# convenience for the fast frontend-iteration workflow (docs/DEVELOPMENT.md
+# Mode A), not as a second public entry point in normal use.
 #
 # pulpit-core / pulpit-worker (ADR 0006, docs/signing.md) are Pulpit's own
 # backend, introduced specifically for the signing module (and future
 # pulpit-core modules) - see docs/ARCHITECTURE.md for why this is no longer
-# a "frontend-only" stack. Neither is published to the host; both are only
-# reachable through the `pulpit` nginx proxy, same as `pulp`.
+# a "frontend-only" stack. Neither has a port published to the host; both
+# are only reachable through the `pulpit` nginx proxy, same as `pulp`.
 
 services:
   # Optional for pulpcore (VERIFIED - see docs/DEPLOYMENT.md "Redis"): only
@@ -157,9 +158,10 @@ services:
   # volume access at all - see pulpit-core/Dockerfile and
   # app/modules/signing/gpg_local.py.
   pulpit-core:
-    build:
-      context: ./pulpit-core
-      dockerfile: Dockerfile
+    # Published by the release workflow (.forgejo/workflows/release.yml) -
+    # see this file's header comment. Use compose-dev.yml instead to build
+    # from local source.
+    image: docker.io/simonverbois/pulpit-core:${PULPIT_IMAGE_TAG:-latest}
     environment:
       PULPIT_CORE_DATABASE_URL: postgresql+psycopg://pulpit_core:${PULPIT_CORE_DB_PASSWORD:?PULPIT_CORE_DB_PASSWORD is required.}@pulpit-core-db:5432/pulpit_core
       PULPIT_CORE_PULP_BASE_URL: http://pulp:80
@@ -194,9 +196,10 @@ services:
   # queue (key generation/rotation/repository signing actions) and the
   # rotation-check scheduler - see pulpit-core/worker/main.py.
   pulpit-worker:
-    build:
-      context: ./pulpit-core
-      dockerfile: worker/Dockerfile
+    # Published by the release workflow (.forgejo/workflows/release.yml) -
+    # see this file's header comment. Use compose-dev.yml instead to build
+    # from local source.
+    image: docker.io/simonverbois/pulpit-worker:${PULPIT_IMAGE_TAG:-latest}
     environment:
       PULPIT_CORE_DATABASE_URL: postgresql+psycopg://pulpit_core:${PULPIT_CORE_DB_PASSWORD:?PULPIT_CORE_DB_PASSWORD is required.}@pulpit-core-db:5432/pulpit_core
       PULPIT_CORE_PULP_BASE_URL: http://pulp:80

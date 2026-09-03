@@ -1,8 +1,8 @@
 # Local development stack (docs/DEVELOPMENT.md "Mode B") - identical to
-# compose.yml except `pulpit` below builds from local source instead of
-# pulling the published `simonverbois/pulpit` image, so it always reflects
-# whatever is currently checked out. Use this file (not compose.yml) to test
-# unreleased frontend/pulpit-core/pulpit-worker changes end to end:
+# compose.yml except `pulpit`/`pulpit-core`/`pulpit-worker` below all build
+# from local source instead of pulling their published `simonverbois/*`
+# images, so they always reflect whatever is currently checked out. Use
+# this file (not compose.yml) to test unreleased changes end to end:
 #
 #   docker compose -f compose-dev.yml up -d --build
 #
@@ -157,6 +157,8 @@ services:
   # volume access at all - see pulpit-core/Dockerfile and
   # app/modules/signing/gpg_local.py.
   pulpit-core:
+    # Built from local source (unlike compose.yml's published-image
+    # `pulpit-core`, see this file's header comment).
     build:
       context: ./pulpit-core
       dockerfile: Dockerfile
@@ -194,6 +196,8 @@ services:
   # queue (key generation/rotation/repository signing actions) and the
   # rotation-check scheduler - see pulpit-core/worker/main.py.
   pulpit-worker:
+    # Built from local source (unlike compose.yml's published-image
+    # `pulpit-worker`, see this file's header comment).
     build:
       context: ./pulpit-core
       dockerfile: worker/Dockerfile

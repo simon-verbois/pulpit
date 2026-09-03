@@ -7,11 +7,12 @@
 
 ## Two Compose files
 
-`compose.yml` is the reference _deployment_ file: its `pulpit` service pulls the published
-`simonverbois/pulpit` image from Docker Hub (built by the release workflow), same as a real user
-deploying Pulpit would. `compose-dev.yml` is otherwise identical but builds `pulpit` from local
-source instead — use it, not `compose.yml`, for everything below so you're actually testing your
-changes. Both files define `pulp`/`redis`/`pulpit-core`/`pulpit-worker` identically.
+`compose.yml` is the reference _deployment_ file: its `pulpit`, `pulpit-core`, and `pulpit-worker`
+services all pull their published `simonverbois/*` images from Docker Hub (built together, from
+the same tag, by the release workflow), same as a real user deploying Pulpit would.
+`compose-dev.yml` is otherwise identical but builds all three from local source instead — use it,
+not `compose.yml`, for everything below so you're actually testing your changes. Both files define
+`pulp`/`redis`/`pulpit-core-db`/`docker-socket-proxy` identically.
 
 ## Two development modes
 

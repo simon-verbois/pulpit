@@ -2,11 +2,12 @@
 
 Pulpit ships as a static-asset container image (nginx + built JS/CSS, no Node runtime — ADR 0001)
 that must be deployed alongside a Pulp instance behind one same-origin reverse proxy (ADR 0005).
-This document covers the local Compose reference topology, using `compose.yml`, whose `pulpit`
-service pulls the published `simonverbois/pulpit` image from Docker Hub (built and pushed by
-`.forgejo/workflows/release.yml`); a hardened production topology is future work
-(`docs/ROADMAP.md` Milestone 6). To deploy unreleased local changes instead, use `compose-dev.yml`
-(`docs/DEVELOPMENT.md` "Mode B"), which builds `pulpit` from source but is otherwise identical.
+This document covers the local Compose reference topology, using `compose.yml`, whose `pulpit`,
+`pulpit-core`, and `pulpit-worker` services all pull their published `simonverbois/*` images from
+Docker Hub (built and pushed together, from the same tag, by `.forgejo/workflows/release.yml`); a
+hardened production topology is future work (`docs/ROADMAP.md` Milestone 6). To deploy unreleased
+local changes instead, use `compose-dev.yml` (`docs/DEVELOPMENT.md` "Mode B"), which builds all
+three from source but is otherwise identical.
 
 ## Reference topology (local Compose)
 
