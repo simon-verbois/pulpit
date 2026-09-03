@@ -29,7 +29,7 @@ export function CollectionVersionsPage() {
   const collectionVersionsQuery = useCollectionVersionsQuery({
     limit: pagination.limit,
     offset: pagination.offset,
-    name: search || undefined,
+    name__icontains: search || undefined,
   });
   const deprecationsQuery = useCollectionDeprecationsQuery();
 

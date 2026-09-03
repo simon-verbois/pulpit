@@ -8,7 +8,7 @@ export interface ListCollectionVersionsParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
   offset: number;
-  name?: string;
+  name__icontains?: string;
   namespace?: string;
   repository_version?: string;
 }

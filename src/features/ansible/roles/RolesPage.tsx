@@ -21,7 +21,7 @@ export function RolesPage() {
   const rolesQuery = useAnsibleRolesQuery({
     limit: pagination.limit,
     offset: pagination.offset,
-    name: search || undefined,
+    name__icontains: search || undefined,
   });
 
   return (

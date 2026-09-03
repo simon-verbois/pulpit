@@ -8,7 +8,7 @@ export interface ListContainerTagsParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
   offset: number;
-  name?: string;
+  name__icontains?: string;
   repository_version?: string;
 }
 

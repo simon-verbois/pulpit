@@ -21,7 +21,7 @@ export function TagsPage() {
   const tagsQuery = useContainerTagsQuery({
     limit: pagination.limit,
     offset: pagination.offset,
-    name: search || undefined,
+    name__icontains: search || undefined,
   });
 
   return (
