@@ -57,7 +57,7 @@ export function ObjectAccessTab({
     })),
   ]);
 
-  const handleRevoke = (row: AccessRow) => {
+  const handleRemove = (row: AccessRow) => {
     removeMutation.mutate({
       objectHref,
       data: {
@@ -109,8 +109,8 @@ export function ObjectAccessTab({
                   <Label isCompact>{row.kind === "user" ? "User" : "Group"}</Label>
                 </Td>
                 <Td dataLabel="Actions" isActionCell>
-                  <Button variant="link" isDanger onClick={() => handleRevoke(row)}>
-                    Revoke
+                  <Button variant="link" isDanger onClick={() => handleRemove(row)}>
+                    Remove
                   </Button>
                 </Td>
               </Tr>

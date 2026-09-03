@@ -67,7 +67,7 @@ describe("ObjectAccessTab", () => {
     await screen.findByText("alice");
 
     const aliceRow = screen.getByRole("row", { name: /alice/ });
-    fireEvent.click(within(aliceRow).getByRole("button", { name: "Revoke" }));
+    fireEvent.click(within(aliceRow).getByRole("button", { name: "Remove" }));
 
     await waitFor(() => expect(screen.queryByText("alice")).not.toBeInTheDocument());
     expect(screen.getByText("bob")).toBeInTheDocument();

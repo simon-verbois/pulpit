@@ -103,8 +103,8 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     await expect(accessRow).toBeVisible();
     await expect(accessRow.getByText("rpm.rpmrepository_viewer")).toBeVisible();
 
-    // Revoke just this one - the auto-granted owner row for admin survives.
-    await accessRow.getByRole("button", { name: "Revoke" }).click();
+    // Remove just this one - the auto-granted owner row for admin survives.
+    await accessRow.getByRole("button", { name: "Remove" }).click();
     await expect(accessRow).not.toBeVisible();
     await expect(page.getByText("rpm.rpmrepository_owner")).toBeVisible();
 
