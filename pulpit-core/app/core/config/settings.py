@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     )
     log_level: str = "INFO"
 
+    # --- Secrets at rest (app/core/crypto.py) ---------------------------------
+    # A Fernet key (Fernet.generate_key()), NOT a free-form passphrase -
+    # encrypts values pulpit-core itself must store and later decrypt
+    # (currently just default_settings.proxy_password_encrypted). Distinct
+    # from Pulp's own PULP_SECRET_KEY (compose.yml) - never shared across
+    # the two systems' trust boundaries (ADR 0006). Empty by default so a
+    # deployment that never uses an encrypted-at-rest field doesn't need to
+    # set it; app/core/crypto.py raises a clear error the moment one
+    # actually is.
+    secret_key: str = ""
+
     # --- Job worker ---------------------------------------------------------
     job_poll_interval_seconds: float = 2.0
     job_max_attempts: int = 3

@@ -98,3 +98,35 @@ export interface RepositoryContentSize {
   size_bytes: number;
   updated_at: string;
 }
+
+// Mirrors pulpit-core/app/modules/default_settings/schemas.py.
+// proxy_password is deliberately absent here too - GET never echoes it
+// back (VERIFIED, same write-only handling as Pulp's own Remote.
+// proxy_password - see RemoteConnectionSettingsFields.tsx), only whether
+// one is set.
+export interface DefaultSettings {
+  id: string;
+  proxy_url: string;
+  proxy_username: string;
+  proxy_password_is_set: boolean;
+  updated_at: string;
+}
+
+export interface DefaultSettingsUpdate {
+  proxy_url?: string;
+  proxy_username?: string;
+  /** Omit to leave unchanged, "" to clear the stored password, any other
+   * value to replace it - see DefaultSettingsUpdate's docstring in
+   * pulpit-core/app/modules/default_settings/schemas.py. */
+  proxy_password?: string;
+}
+
+/** The real, decrypted default proxy - deliberately a separate type/request
+ * from DefaultSettings above. Fetched only at the moment
+ * RemoteConnectionSettingsFields.tsx actually needs to apply the default
+ * proxy to a Remote, never by the Default Settings page itself. */
+export interface DefaultProxyCredentials {
+  proxy_url: string;
+  proxy_username: string;
+  proxy_password: string | null;
+}

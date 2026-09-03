@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Checkbox,
+  Content,
   ExpandableSection,
   FormGroup,
   FormHelperText,
@@ -8,6 +10,10 @@ import {
   HelperTextItem,
   TextInput,
 } from "@patternfly/react-core";
+
+import { getDefaultProxyCredentials } from "../api/client/pulpitCore/defaultSettings";
+import { useDefaultSettingsQuery } from "../features/administration/defaultSettings/useDefaultSettingsQuery";
+import { defaultProxyCredentialsKey } from "../features/administration/defaultSettings/queryKeys";
 
 /** Standard pulpcore Remote connection fields - not specific to any one
  * plugin, hence living in src/components rather than a feature folder (see
@@ -44,7 +50,9 @@ interface RemoteConnectionSettingsFieldsProps {
 }
 
 /** Shared by every plugin's Create/Edit remote modal - proxy/origin auth
- * settings. Collapsed by default since most remotes don't need them. */
+ * settings. Collapsed by default since most remotes don't need them, unless
+ * an instance default proxy (Administration > Default Settings) auto-opens
+ * it below. */
 export function RemoteConnectionSettingsFields({
   idPrefix,
   value,
@@ -52,6 +60,76 @@ export function RemoteConnectionSettingsFields({
   hiddenFields,
 }: RemoteConnectionSettingsFieldsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  // Editing an existing remote is signaled by hiddenFields being present
+  // (see its own doc comment) - a fresh Create modal never has one.
+  const isEditing = hiddenFields !== undefined;
+
+  const defaultSettingsQuery = useDefaultSettingsQuery();
+  const hasDefaultProxy = Boolean(defaultSettingsQuery.data?.proxy_url);
+
+  // Automatic for a brand-new remote (task: "the full automatic version"),
+  // manual/override by default when editing one that may already have its
+  // own deliberately-different proxy - never silently replaced just by
+  // opening Edit.
+  const [useInstanceDefault, setUseInstanceDefault] = useState(!isEditing);
+
+  const proxyCredentialsQuery = useQuery({
+    queryKey: defaultProxyCredentialsKey,
+    queryFn: getDefaultProxyCredentials,
+    enabled: hasDefaultProxy && useInstanceDefault,
+  });
+
+  // Applies the real (decrypted) default proxy into the parent's connection
+  // settings once it's available - the only place the actual password value
+  // exists, transiently, in this form's state; never rendered in a text
+  // field (below, the manual fields are hidden entirely while this is on).
+  // The equality check makes this idempotent instead of an infinite loop:
+  // once `value` matches `proxyCredentialsQuery.data`, the effect is a
+  // no-op even though `value`'s object identity still changes on every
+  // parent re-render.
+  useEffect(() => {
+    if (!useInstanceDefault || !proxyCredentialsQuery.data) {
+      return;
+    }
+    const credentials = proxyCredentialsQuery.data;
+    const resolvedPassword = credentials.proxy_password ?? "";
+    if (
+      value.proxy_url === credentials.proxy_url &&
+      value.proxy_username === credentials.proxy_username &&
+      value.proxy_password === resolvedPassword
+    ) {
+      return;
+    }
+    onChange({
+      ...value,
+      proxy_url: credentials.proxy_url,
+      proxy_username: credentials.proxy_username,
+      proxy_password: resolvedPassword,
+    });
+  }, [useInstanceDefault, proxyCredentialsQuery.data, value, onChange]);
+
+  // Surfaces the automatic default rather than leaving it invisible inside
+  // a collapsed section - only once, so manually collapsing it afterward
+  // (e.g. once the user has seen it) sticks.
+  const hasAutoExpandedRef = useRef(false);
+  useEffect(() => {
+    if (!isEditing && hasDefaultProxy && !hasAutoExpandedRef.current) {
+      hasAutoExpandedRef.current = true;
+      setIsExpanded(true);
+    }
+  }, [isEditing, hasDefaultProxy]);
+
+  const queryClient = useQueryClient();
+  const handleUseInstanceDefaultChange = (checked: boolean) => {
+    setUseInstanceDefault(checked);
+    if (!checked) {
+      return;
+    }
+    // Ensures a fresh fetch even if the toggle was already flipped once
+    // this session - a stale cached password would otherwise silently get
+    // reapplied instead of whatever's actually configured right now.
+    void queryClient.invalidateQueries({ queryKey: defaultProxyCredentialsKey });
+  };
 
   return (
     <ExpandableSection
@@ -61,47 +139,75 @@ export function RemoteConnectionSettingsFields({
       isExpanded={isExpanded}
       onToggle={(_event, expanded) => setIsExpanded(expanded)}
     >
-      <FormGroup label="Proxy URL" fieldId={`${idPrefix}-proxy-url`}>
-        <TextInput
-          id={`${idPrefix}-proxy-url`}
-          placeholder="http://proxy.example.com:3128"
-          value={value.proxy_url ?? ""}
-          onChange={(_event, v) => onChange({ ...value, proxy_url: v })}
-        />
-      </FormGroup>
-      <FormGroup label="Proxy username" fieldId={`${idPrefix}-proxy-username`}>
-        <TextInput
-          id={`${idPrefix}-proxy-username`}
-          value={value.proxy_username ?? ""}
-          onChange={(_event, v) => onChange({ ...value, proxy_username: v })}
-        />
-        {hiddenFieldHint(hiddenFields, "proxy_username") ? (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                {hiddenFieldHint(hiddenFields, "proxy_username")}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        ) : null}
-      </FormGroup>
-      <FormGroup label="Proxy password" fieldId={`${idPrefix}-proxy-password`}>
-        <TextInput
-          id={`${idPrefix}-proxy-password`}
-          type="password"
-          value={value.proxy_password ?? ""}
-          onChange={(_event, v) => onChange({ ...value, proxy_password: v })}
-        />
-        {hiddenFieldHint(hiddenFields, "proxy_password") ? (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                {hiddenFieldHint(hiddenFields, "proxy_password")}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        ) : null}
-      </FormGroup>
+      <Content component="h4" style={{ marginBlockStart: 0 }}>
+        Proxy
+      </Content>
+      {hasDefaultProxy ? (
+        <FormGroup fieldId={`${idPrefix}-use-instance-default-proxy`}>
+          <Checkbox
+            id={`${idPrefix}-use-instance-default-proxy`}
+            label="Use the instance default proxy"
+            isChecked={useInstanceDefault}
+            onChange={(_event, checked) => handleUseInstanceDefaultChange(checked)}
+          />
+          {useInstanceDefault ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Configured in Administration &gt; Default Settings (
+                  {defaultSettingsQuery.data?.proxy_url}). Uncheck to set a different
+                  proxy for this remote only.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
+        </FormGroup>
+      ) : null}
+      {hasDefaultProxy && useInstanceDefault ? null : (
+        <>
+          <FormGroup label="Proxy URL" fieldId={`${idPrefix}-proxy-url`}>
+            <TextInput
+              id={`${idPrefix}-proxy-url`}
+              placeholder="http://proxy.example.com:3128"
+              value={value.proxy_url ?? ""}
+              onChange={(_event, v) => onChange({ ...value, proxy_url: v })}
+            />
+          </FormGroup>
+          <FormGroup label="Proxy username" fieldId={`${idPrefix}-proxy-username`}>
+            <TextInput
+              id={`${idPrefix}-proxy-username`}
+              value={value.proxy_username ?? ""}
+              onChange={(_event, v) => onChange({ ...value, proxy_username: v })}
+            />
+            {hiddenFieldHint(hiddenFields, "proxy_username") ? (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    {hiddenFieldHint(hiddenFields, "proxy_username")}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            ) : null}
+          </FormGroup>
+          <FormGroup label="Proxy password" fieldId={`${idPrefix}-proxy-password`}>
+            <TextInput
+              id={`${idPrefix}-proxy-password`}
+              type="password"
+              value={value.proxy_password ?? ""}
+              onChange={(_event, v) => onChange({ ...value, proxy_password: v })}
+            />
+            {hiddenFieldHint(hiddenFields, "proxy_password") ? (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    {hiddenFieldHint(hiddenFields, "proxy_password")}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            ) : null}
+          </FormGroup>
+        </>
+      )}
       <FormGroup label="Origin server username" fieldId={`${idPrefix}-username`}>
         <TextInput
           id={`${idPrefix}-username`}

@@ -14,6 +14,13 @@ os.environ.setdefault(
     "PULPIT_CORE_DATABASE_URL",
     "postgresql+psycopg://pulpit_core:pulpit_core@localhost:15432/pulpit_core",
 )
+# A real Fernet key (app/core/crypto.py) - test-only, never used outside
+# this process. Needed by anything that round-trips default_settings'
+# encrypted proxy password.
+os.environ.setdefault(
+    "PULPIT_CORE_SECRET_KEY",
+    "jmmWNIM3cBAfr3tAb-0Vf8Uu2SlAm3fu1-91LslWQeg=",
+)
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -27,6 +34,7 @@ from app.modules.content_size.models import (  # noqa: F401
     ComponentContentSize,
     RepositoryContentSize,
 )
+from app.modules.default_settings.models import DefaultSettings  # noqa: F401
 from app.modules.registry import register_all
 from app.modules.signing.models import (  # noqa: F401
     SigningKey,

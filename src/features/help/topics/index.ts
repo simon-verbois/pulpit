@@ -33,6 +33,7 @@ import { AdministrationSystemStatusTopic } from "./administration/SystemStatus";
 import { AdministrationRepositorySigningTopic } from "./administration/RepositorySigning";
 import { AdministrationPulpSigningServicesTopic } from "./administration/PulpSigningServices";
 import { AdministrationContentGuardsTopic } from "./administration/ContentGuards";
+import { AdministrationDefaultSettingsTopic } from "./administration/DefaultSettings";
 
 export interface HelpPage {
   id: string;
@@ -226,6 +227,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         label: "Content guards",
         path: "/admin/content-guards",
         Component: AdministrationContentGuardsTopic,
+      },
+      {
+        id: "default-settings",
+        label: "Default Settings",
+        path: "/admin/default-settings",
+        Component: AdministrationDefaultSettingsTopic,
       },
     ],
   },

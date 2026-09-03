@@ -9,6 +9,7 @@ import { StatusPage } from "../features/administration/StatusPage";
 import { SigningPage } from "../features/administration/signing/SigningPage";
 import { RepositorySigningPage } from "../features/administration/repositorySigning/RepositorySigningPage";
 import { ContentGuardsPage } from "../features/administration/contentGuards/ContentGuardsPage";
+import { DefaultSettingsPage } from "../features/administration/defaultSettings/DefaultSettingsPage";
 import { UsersPage } from "../features/access/users/UsersPage";
 import { UserDetailPage } from "../features/access/users/UserDetailPage";
 import { GroupsPage } from "../features/access/groups/GroupsPage";
@@ -83,6 +84,7 @@ export const router = createBrowserRouter([
           { path: "admin/repository-signing", element: <RepositorySigningPage /> },
           { path: "admin/signing", element: <SigningPage /> },
           { path: "admin/content-guards", element: <ContentGuardsPage /> },
+          { path: "admin/default-settings", element: <DefaultSettingsPage /> },
         ],
       },
     ],

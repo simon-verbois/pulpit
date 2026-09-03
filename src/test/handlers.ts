@@ -2243,6 +2243,21 @@ const pulpitCoreHandlers = [
   http.get("/pulpit-core/api/v1/content_size/repository-sizes", () =>
     HttpResponse.json([]),
   ),
+
+  // No instance default proxy configured - every Create/Edit Remote modal
+  // calls this unconditionally on mount (RemoteConnectionSettingsFields),
+  // so this keeps every existing remote test's plain (no "use instance
+  // default" toggle) fields unchanged. Tests exercising the default-proxy
+  // behavior override this with `server.use(...)`.
+  http.get("/pulpit-core/api/v1/default_settings/settings", () =>
+    HttpResponse.json({
+      id: "00000000-0000-0000-0000-000000000000",
+      proxy_url: "",
+      proxy_username: "",
+      proxy_password_is_set: false,
+      updated_at: "2026-01-01T00:00:00Z",
+    }),
+  ),
 ];
 
 export const handlers = [

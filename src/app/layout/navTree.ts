@@ -87,5 +87,6 @@ export const NAV_TREE: NavNode[] = [
     item("Repository Signing", "/admin/repository-signing"),
     item("Pulp Signing Services", "/admin/signing"),
     item("Content guards", "/admin/content-guards"),
+    item("Default Settings", "/admin/default-settings"),
   ]),
 ];

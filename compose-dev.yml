@@ -165,6 +165,13 @@ services:
       PULPIT_CORE_PULP_BASE_URL: http://pulp:80
       PULPIT_CORE_PULP_SERVICE_USERNAME: admin
       PULPIT_CORE_PULP_SERVICE_PASSWORD: ${PULP_ADMIN_PASSWORD:-}
+      # Optional (app/core/crypto.py) - encrypts secrets pulpit-core itself
+      # stores at rest (currently just Default Settings' proxy password).
+      # Leave unset and everything else keeps working; only setting a proxy
+      # password fails with a clear 503 until this is set. Generate one
+      # with: python3 -c "from cryptography.fernet import Fernet;
+      # print(Fernet.generate_key().decode())"
+      PULPIT_CORE_SECRET_KEY: ${PULPIT_CORE_SECRET_KEY:-}
     healthcheck:
       test:
         [

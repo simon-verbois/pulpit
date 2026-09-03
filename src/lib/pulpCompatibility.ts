@@ -17,11 +17,7 @@ export const VERIFIED_VERSIONS: Record<string, string> = {
 };
 
 export type CompatibilityStatus =
-  | "matches"
-  | "newer"
-  | "older"
-  | "unverified"
-  | "not_implemented";
+  "matches" | "newer" | "older" | "unverified" | "not_implemented";
 
 function majorMinor(version: string): [number, number] | null {
   const match = /^(\d+)\.(\d+)/.exec(version);

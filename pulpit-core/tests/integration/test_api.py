@@ -80,6 +80,127 @@ def test_patch_settings_rejects_path_traversal_in_filename(client):
     assert response.status_code == 422
 
 
+def test_default_settings_requires_auth(db):
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/api/v1/default_settings/settings")
+    finally:
+        main_module.app.dependency_overrides.clear()
+    assert response.status_code == 401
+
+
+def test_get_default_settings_returns_empty_defaults(client):
+    response = client.get("/api/v1/default_settings/settings")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proxy_url"] == ""
+    assert body["proxy_username"] == ""
+    assert body["proxy_password_is_set"] is False
+
+
+def test_patch_default_settings_updates_proxy_url(client):
+    response = client.patch(
+        "/api/v1/default_settings/settings",
+        json={"proxy_url": "http://proxy.example.com:3128"},
+    )
+    assert response.status_code == 200
+    assert response.json()["proxy_url"] == "http://proxy.example.com:3128"
+
+
+def test_patch_default_settings_proxy_password_is_write_only(client):
+    response = client.patch(
+        "/api/v1/default_settings/settings", json={"proxy_password": "s3cret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proxy_password_is_set"] is True
+    assert "s3cret" not in str(body)
+
+    # A follow-up GET must never echo it back either.
+    response = client.get("/api/v1/default_settings/settings")
+    assert "s3cret" not in str(response.json())
+
+
+def test_patch_default_settings_empty_proxy_password_clears_it(client):
+    client.patch("/api/v1/default_settings/settings", json={"proxy_password": "s3cret"})
+    response = client.patch("/api/v1/default_settings/settings", json={"proxy_password": ""})
+    assert response.status_code == 200
+    assert response.json()["proxy_password_is_set"] is False
+
+
+def test_patch_default_settings_omitted_proxy_password_leaves_it_unchanged(client):
+    client.patch("/api/v1/default_settings/settings", json={"proxy_password": "s3cret"})
+    response = client.patch(
+        "/api/v1/default_settings/settings", json={"proxy_url": "http://proxy:3128"}
+    )
+    assert response.status_code == 200
+    assert response.json()["proxy_password_is_set"] is True
+
+
+def test_patch_default_settings_proxy_password_without_secret_key_is_503(client, monkeypatch):
+    from app.core import crypto
+
+    crypto._fernet.cache_clear()
+    monkeypatch.setenv("PULPIT_CORE_SECRET_KEY", "")
+    crypto.get_settings.cache_clear()
+    try:
+        response = client.patch(
+            "/api/v1/default_settings/settings", json={"proxy_password": "s3cret"}
+        )
+        assert response.status_code == 503
+    finally:
+        crypto._fernet.cache_clear()
+        crypto.get_settings.cache_clear()
+
+    # Every other field still updates fine with no key configured.
+    response = client.patch(
+        "/api/v1/default_settings/settings", json={"proxy_url": "http://proxy:3128"}
+    )
+    assert response.status_code == 200
+
+
+def test_proxy_credentials_requires_auth(db):
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get(
+            "/api/v1/default_settings/proxy-credentials"
+        )
+    finally:
+        main_module.app.dependency_overrides.clear()
+    assert response.status_code == 401
+
+
+def test_proxy_credentials_returns_the_decrypted_password(client):
+    client.patch(
+        "/api/v1/default_settings/settings",
+        json={
+            "proxy_url": "http://proxy.example.com:3128",
+            "proxy_username": "svc-proxy",
+            "proxy_password": "s3cret",
+        },
+    )
+    response = client.get("/api/v1/default_settings/proxy-credentials")
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {
+        "proxy_url": "http://proxy.example.com:3128",
+        "proxy_username": "svc-proxy",
+        "proxy_password": "s3cret",
+    }
+
+
+def test_proxy_credentials_password_is_null_when_unset(client):
+    response = client.get("/api/v1/default_settings/proxy-credentials")
+    assert response.status_code == 200
+    assert response.json()["proxy_password"] is None
+
+
 def test_generate_key_returns_queued_job(client):
     response = client.post("/api/v1/signing/keys/generate", json={})
     assert response.status_code == 202
