@@ -49,7 +49,14 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
   const ActiveContent = activePage.Component;
 
   return (
-    <>
+    // Unlike NotificationDrawer (TasksDrawer.tsx), DrawerHead/DrawerPanelBody
+    // don't get their own fixed-header/scrolling-body layout for free - both
+    // sit inside the *same* overflow:auto flex column
+    // (.pf-v6-c-drawer__panel-main), so without this wrapper the whole
+    // thing, heading included, scrolls together. Giving this wrapper the
+    // full height and moving the scrolling here (not on DrawerPanelBody's
+    // ancestor) keeps DrawerHead pinned, matching the sticky nav below it.
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <DrawerHead>
         {/* A real heading (not just styled text) so screen-reader users
             navigating by headings land on it too - the Tasks drawer's
@@ -61,7 +68,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
           <DrawerCloseButton onClose={onClose} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody>
+      <DrawerPanelBody style={{ flex: "1 1 auto", overflowY: "auto" }}>
         <Flex spaceItems={{ default: "spaceItemsLg" }}>
           <FlexItem
             style={{
@@ -139,6 +146,6 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
           </FlexItem>
         </Flex>
       </DrawerPanelBody>
-    </>
+    </div>
   );
 }
