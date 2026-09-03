@@ -29,7 +29,6 @@ import { AccessGroupsTopic } from "./access/Groups";
 import { AccessRolesTopic } from "./access/Roles";
 
 import { AdministrationOverviewTopic } from "./administration/Overview";
-import { AdministrationSystemStatusTopic } from "./administration/SystemStatus";
 import { AdministrationRepositorySigningTopic } from "./administration/RepositorySigning";
 import { AdministrationPulpSigningServicesTopic } from "./administration/PulpSigningServices";
 import { AdministrationContentGuardsTopic } from "./administration/ContentGuards";
@@ -204,12 +203,6 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     pathPrefix: "/admin",
     pages: [
       { id: "overview", label: "Overview", Component: AdministrationOverviewTopic },
-      {
-        id: "status",
-        label: "System status",
-        path: "/admin/status",
-        Component: AdministrationSystemStatusTopic,
-      },
       {
         id: "repository-signing",
         label: "Repository Signing",

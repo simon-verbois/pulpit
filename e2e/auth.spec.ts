@@ -28,7 +28,7 @@ test("the API never triggers the browser's native Basic-auth prompt", async ({
 });
 
 test("an unauthenticated visitor is redirected to /login", async ({ page }) => {
-  await page.goto("/admin/status");
+  await page.goto("/admin/repository-signing");
   await expect(page).toHaveURL(/\/login\?next=/);
   await expect(page.getByRole("heading", { name: "Log in to PulpIT" })).toBeVisible();
 });
@@ -58,6 +58,6 @@ test("logging in as admin reaches the app, and logging out returns to /login", a
   await expect(page).toHaveURL(/\/login/);
 
   // The session is really gone, not just a client-side redirect.
-  await page.goto("/admin/status");
+  await page.goto("/admin/repository-signing");
   await expect(page).toHaveURL(/\/login\?next=/);
 });

@@ -27,10 +27,10 @@ const ROUTES = [
   "/access/users",
   "/access/groups",
   "/access/roles",
-  "/admin/status",
   "/admin/repository-signing",
   "/admin/signing",
   "/admin/content-guards",
+  "/admin/default-settings",
 ];
 
 async function scan(page: Page, path: string) {

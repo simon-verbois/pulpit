@@ -117,10 +117,11 @@ function SizeCell({
  * Renders only the fields Pulp's /status/ response actually included -
  * never a fabricated value (docs/ARCHITECTURE.md, docs/PULP_API.md).
  *
- * `repositoryCounts` and `componentSizesQuery` are optional and
- * Overview-only (docs/UX.md) - System status omits both, so neither column
- * appears there at all; they're about content inventory, not infrastructure
- * health. Unlike `repositoryCounts` (one query per plugin), size is a single
+ * `repositoryCounts` and `componentSizesQuery` are optional - OverviewPage
+ * (this component's only caller) always supplies both, but neither is about
+ * infrastructure health (what `status` itself covers), so both stay
+ * optional rather than required. Unlike `repositoryCounts` (one query per
+ * plugin), size is a single
  * query for every component at once - pulpit-core precomputes it (an hourly
  * background job, see docs/UX.md "per-plugin storage-size breakdown"), so
  * there's nothing plugin-specific to gate this query on.

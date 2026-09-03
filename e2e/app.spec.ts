@@ -15,10 +15,10 @@ test("primary navigation reaches the major sections", async ({ page }) => {
   // "Administration" and "Access" are collapsible NavExpandable groups
   // (docs/UX.md) - their items aren't in the accessibility tree until expanded.
   await nav.getByRole("button", { name: "Administration" }).click();
-  await nav.getByRole("link", { name: "System status" }).click();
-  await expect(page).toHaveURL(/\/admin\/status$/);
+  await nav.getByRole("link", { name: "Content guards" }).click();
+  await expect(page).toHaveURL(/\/admin\/content-guards$/);
   await expect(
-    page.getByRole("heading", { name: "System status", level: 1 }),
+    page.getByRole("heading", { name: "Content guards", level: 1 }),
   ).toBeVisible();
 
   await nav.getByRole("link", { name: "Tasks" }).click();
@@ -58,11 +58,11 @@ test("clicking elsewhere in the app closes an open Tasks or Help panel", async (
   await expect(helpHeading).not.toBeVisible();
 });
 
-test("System status page reaches the real Pulp status endpoint", async ({ page }) => {
+test("Overview page reaches the real Pulp status endpoint", async ({ page }) => {
   const response = await page.request.get("/pulp/api/v3/status/");
   expect(response.ok()).toBeTruthy();
 
-  await page.goto("/admin/status");
+  await page.goto("/");
   // Every Pulp status response reports at least the core component's version.
   await expect(page.getByText("core")).toBeVisible();
   // VERIFIED live: this dev instance's pulpcore/pulp_rpm/pulp_ansible/

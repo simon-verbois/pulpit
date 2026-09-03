@@ -436,5 +436,5 @@ by the same `status.versions` list:
   would just 404 - failing open (every group shown) while status is loading or unavailable.
 - `src/lib/pulpCompatibility.ts` compares each reported component's version (major.minor) against
   the version Pulpit's own milestones were last VERIFIED against, surfaced as a "Compatibility"
-  column on the System status page. A static, hand-maintained baseline - there's no live
+  column on the Overview page. A static, hand-maintained baseline - there's no live
   compatibility-matrix endpoint to fetch instead.

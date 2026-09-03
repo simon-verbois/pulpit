@@ -5,7 +5,6 @@ import { RequireAuth } from "./layout/RequireAuth";
 import { LoginPage } from "../features/auth/LoginPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { TasksPage } from "../features/tasks/TasksPage";
-import { StatusPage } from "../features/administration/StatusPage";
 import { SigningPage } from "../features/administration/signing/SigningPage";
 import { RepositorySigningPage } from "../features/administration/repositorySigning/RepositorySigningPage";
 import { ContentGuardsPage } from "../features/administration/contentGuards/ContentGuardsPage";
@@ -80,7 +79,6 @@ export const router = createBrowserRouter([
           { path: "access/groups/:name", element: <GroupDetailPage /> },
           { path: "access/roles", element: <RolesPage /> },
 
-          { path: "admin/status", element: <StatusPage /> },
           { path: "admin/repository-signing", element: <RepositorySigningPage /> },
           { path: "admin/signing", element: <SigningPage /> },
           { path: "admin/content-guards", element: <ContentGuardsPage /> },

@@ -20,7 +20,7 @@ Access
     Users, Groups, Roles
 
 Administration
-    System status, Repository Signing, Pulp Signing Services, Content guards
+    Repository Signing, Pulp Signing Services, Content guards, Default Settings
 ```
 
 "Repository Signing" (pulpit-core, ADR 0006/`docs/signing.md`) manages the GPG key used to sign
@@ -113,14 +113,14 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
 - List pages: toolbar (search/filter) + table + pagination, not a grid of cards.
 - Detail pages: tabs (e.g. Overview | Packages | Versions | Distribution | Permissions for an RPM
   repository), not one long scroll.
-- Cards are used sparingly — e.g. the small `Gallery` of compact stat tiles on Overview/System
-  status (`src/components/PulpStatusSummary.tsx`: Database, Redis, workers, storage...) — not as
+- Cards are used sparingly — e.g. the small `Gallery` of compact stat tiles on Overview
+  (`src/components/PulpStatusSummary.tsx`: Database, Redis, workers, storage...) — not as
   the default container for every piece of content. Longer lists (e.g. the component/version
   table on that same page) use a compact `Table`, not a card per row.
-- Overview-only (not System status): the component/version table gains a fourth "Repositories"
-  column (`PulpStatusSummary`'s optional `repositoryCounts` prop, populated only by
-  `OverviewPage.tsx` via `src/features/overview/useRepositoryCounts.ts` - `StatusPage.tsx` omits
-  the prop entirely, so the column doesn't render there at all). Each cell is either a link to
+- The component/version table on Overview gains a fourth "Repositories" column
+  (`PulpStatusSummary`'s optional `repositoryCounts` prop, populated by `OverviewPage.tsx` via
+  `src/features/overview/useRepositoryCounts.ts` - `PulpStatusSummary` itself stays generic and
+  simply omits the column whenever a caller doesn't pass the prop). Each cell is either a link to
   that plugin's own Repositories page showing its count (RPM/Ansible/Container, gated on
   `deriveCapabilities`; a count-only request, `limit: 1`, only `.count` from the response
   envelope is read), or a plain "—" for every component Pulpit has no Repositories page for (deb,

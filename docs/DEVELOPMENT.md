@@ -7,7 +7,7 @@
 
 ## Two Compose files
 
-`compose.yml` is the reference *deployment* file: its `pulpit` service pulls the published
+`compose.yml` is the reference _deployment_ file: its `pulpit` service pulls the published
 `simonverbois/pulpit` image from Docker Hub (built by the release workflow), same as a real user
 deploying Pulpit would. `compose-dev.yml` is otherwise identical but builds `pulpit` from local
 source instead — use it, not `compose.yml`, for everything below so you're actually testing your
@@ -103,13 +103,13 @@ endpoint).
 public endpoint directly to isolate "is this a Pulp problem or an nginx routing problem" (see
 `docs/DEPLOYMENT.md` acceptance checks).
 
-| Symptom                                      | Check                                                                                                                                    |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Symptom                                      | Check                                                                                                                                                       |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `502` on `/pulp/api/v3/status/`              | `make pulp-status`; `make pulp-migrations` (pending migrations are a known cause — see `docs/DEPLOYMENT.md`); `docker compose -f compose-dev.yml logs pulp` |
-| A plugin (e.g. pulp_container) seems missing | `make pulp-versions` — confirm it's actually reported by the status endpoint before assuming a bug                                       |
-| UI loads but API calls get `401`             | Check you're actually authenticated against Pulp for this session/request — see `docs/AUTHENTICATION.md`                                 |
+| A plugin (e.g. pulp_container) seems missing | `make pulp-versions` — confirm it's actually reported by the status endpoint before assuming a bug                                                          |
+| UI loads but API calls get `401`             | Check you're actually authenticated against Pulp for this session/request — see `docs/AUTHENTICATION.md`                                                    |
 | `404`/`502` on `/v2/` or `/pulp/content/`    | nginx routing issue, not expected — check `docker/nginx/pulpit.conf.template` and `docker compose -f compose-dev.yml logs pulpit`                           |
-| `/ui/` returns something other than `404`    | nginx routing regression — it must not expose pulp-ui (ADR 0005)                                                                         |
+| `/ui/` returns something other than `404`    | nginx routing regression — it must not expose pulp-ui (ADR 0005)                                                                                            |
 
 ## Project structure
 
