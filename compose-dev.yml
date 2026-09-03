@@ -1,10 +1,10 @@
-# Reference deployment topology (docs/DEPLOYMENT.md): `pulpit` below pulls
-# the published `simonverbois/pulpit` image from Docker Hub (built and
-# pushed by the release workflow, .forgejo/workflows/release.yml) rather
-# than building from local source - this is the file an end user deploying
-# Pulpit actually runs. To test unreleased local changes instead, use
-# compose-dev.yml (docs/DEVELOPMENT.md "Mode B"), which is otherwise
-# identical.
+# Local development stack (docs/DEVELOPMENT.md "Mode B") - identical to
+# compose.yml except `pulpit` below builds from local source instead of
+# pulling the published `simonverbois/pulpit` image, so it always reflects
+# whatever is currently checked out. Use this file (not compose.yml) to test
+# unreleased frontend/pulpit-core/pulpit-worker changes end to end:
+#
+#   docker compose -f compose-dev.yml up -d --build
 #
 # Only `pulpit` is published to the host as the single public entry point
 # (ADR 0005); `pulp`'s port is published too, but only as a convenience for
@@ -225,10 +225,13 @@ services:
     restart: unless-stopped
 
   pulpit:
-    # Published by the release workflow (.forgejo/workflows/release.yml) -
-    # see this file's header comment. Use compose-dev.yml instead to build
-    # from local source.
-    image: docker.io/simonverbois/pulpit:${PULPIT_IMAGE_TAG:-latest}
+    # Built from local source (unlike compose.yml's published-image
+    # `pulpit`, see this file's header comment) - always reflects whatever
+    # is currently checked out, including the VERSION file's content
+    # (vite.config.ts bakes it into the build, shown in AppFooter).
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       PULP_UPSTREAM: pulp
       PULPIT_CORE_UPSTREAM: pulpit-core

@@ -51,17 +51,22 @@ check: format-check lint typecheck test build ## Full quality gate: format + lin
 
 ## --- Docker Compose ---------------------------------------------------------
 
-compose-up: ## Start the full Pulp + Pulpit stack
-	docker compose up -d --build
+# compose-dev.yml (not compose.yml) - it builds `pulpit` from local source
+# instead of pulling the published image, see that file's header comment
+# and docs/DEVELOPMENT.md "Mode B".
+COMPOSE_DEV := docker compose -f compose-dev.yml
+
+compose-up: ## Start the full Pulp + Pulpit stack, built from local source
+	$(COMPOSE_DEV) up -d --build
 
 compose-down: ## Stop the stack (volumes are preserved)
-	docker compose down
+	$(COMPOSE_DEV) down
 
 compose-build: ## Rebuild the Pulpit image
-	docker compose build pulpit
+	$(COMPOSE_DEV) build pulpit
 
 compose-logs: ## Tail logs for all services
-	docker compose logs -f
+	$(COMPOSE_DEV) logs -f
 
 ## --- Pulp operations --------------------------------------------------------
 
@@ -72,17 +77,17 @@ pulp-versions: ## Show component versions reported by the status endpoint
 	curl -sf http://localhost:$(PULPIT_HTTP_PORT)/pulp/api/v3/status/ | python3 -c "import json,sys; [print(v['component'], v['version']) for v in json.load(sys.stdin).get('versions', [])]"
 
 pulp-migrations: ## Show pending Django migrations inside the pulp container
-	docker compose exec pulp pulpcore-manager showmigrations
+	$(COMPOSE_DEV) exec pulp pulpcore-manager showmigrations
 
 pulp-migrate: ## Apply pending Django migrations (see docs/DEPLOYMENT.md known issue)
-	docker compose exec pulp pulpcore-manager migrate --noinput
+	$(COMPOSE_DEV) exec pulp pulpcore-manager migrate --noinput
 
 pulp-reset-admin: ## Reset the local Pulp admin password
-	docker compose exec pulp pulpcore-manager reset-admin-password
+	$(COMPOSE_DEV) exec pulp pulpcore-manager reset-admin-password
 
 pulp-reset-hard: ## DESTRUCTIVE: wipe all local Pulp data and restart clean
-	docker compose down -v
-	docker compose up -d --build
+	$(COMPOSE_DEV) down -v
+	$(COMPOSE_DEV) up -d --build
 
 ## --- API type generation ----------------------------------------------------
 
@@ -101,13 +106,13 @@ pulpit-core-test: ## Run pulpit-core's pytest suite (needs PULPIT_CORE_DATABASE_
 	cd pulpit-core && . .venv/bin/activate && pytest
 
 pulpit-core-migrate: ## Apply pulpit-core's own Alembic migrations inside the running container
-	docker compose exec pulpit-core alembic upgrade head
+	$(COMPOSE_DEV) exec pulpit-core alembic upgrade head
 
 pulpit-core-logs: ## Tail pulpit-core (API) logs
-	docker compose logs -f pulpit-core
+	$(COMPOSE_DEV) logs -f pulpit-core
 
 pulpit-worker-logs: ## Tail pulpit-worker (jobs/rotation scheduler) logs
-	docker compose logs -f pulpit-worker
+	$(COMPOSE_DEV) logs -f pulpit-worker
 
 pulpit-signing-exec: ## Run a pulpcore-manager command shown by the Signing GUI (usage: make pulpit-signing-exec CMD="add-signing-service ...")
-	docker compose exec pulp pulpcore-manager $(CMD)
+	$(COMPOSE_DEV) exec pulp pulpcore-manager $(CMD)

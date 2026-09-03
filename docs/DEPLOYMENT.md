@@ -2,8 +2,11 @@
 
 Pulpit ships as a static-asset container image (nginx + built JS/CSS, no Node runtime — ADR 0001)
 that must be deployed alongside a Pulp instance behind one same-origin reverse proxy (ADR 0005).
-This document covers the local Compose reference topology; a hardened production topology is
-future work (`docs/ROADMAP.md` Milestone 6).
+This document covers the local Compose reference topology, using `compose.yml`, whose `pulpit`
+service pulls the published `simonverbois/pulpit` image from Docker Hub (built and pushed by
+`.forgejo/workflows/release.yml`); a hardened production topology is future work
+(`docs/ROADMAP.md` Milestone 6). To deploy unreleased local changes instead, use `compose-dev.yml`
+(`docs/DEVELOPMENT.md` "Mode B"), which builds `pulpit` from source but is otherwise identical.
 
 ## Reference topology (local Compose)
 
@@ -36,7 +39,7 @@ cp .env.example .env
 # generate real secrets, then paste them into .env
 openssl rand -hex 32   # -> PULP_SECRET_KEY
 openssl rand -hex 32   # -> PULPIT_CORE_DB_PASSWORD (ADR 0006)
-docker compose up -d --build
+docker compose up -d
 docker compose ps
 ```
 
