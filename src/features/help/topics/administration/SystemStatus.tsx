@@ -44,8 +44,8 @@ export function AdministrationSystemStatusTopic() {
         version. The <strong>Compatibility</strong> column compares that version against
         the version PulpIT's own features were last verified against —{" "}
         <strong>Matches verified</strong> (green), <strong>Newer</strong> (blue) or{" "}
-        <strong>Older</strong> (orange) than verified, or <strong>Not verified</strong>{" "}
-        (grey) for a plugin PulpIT has no baseline for at all. This is a hint, not an
+        <strong>Older</strong> (orange) than verified, or <strong>Not implemented</strong>{" "}
+        (grey) for a plugin PulpIT has no UI for at all. This is a hint, not an
         enforcement — PulpIT doesn't block or hide features based on it.
       </Content>
       <Content component="p">

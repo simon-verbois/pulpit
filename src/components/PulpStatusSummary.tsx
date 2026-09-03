@@ -47,6 +47,7 @@ const COMPATIBILITY_COLOR: Record<
   newer: "blue",
   older: "orange",
   unverified: "grey",
+  not_implemented: "grey",
 };
 
 function CompatibilityCell({
@@ -61,9 +62,11 @@ function CompatibilityCell({
   const text =
     status === "matches"
       ? `Matches verified ${baseline}`
-      : status === "unverified"
-        ? "Not verified"
-        : `${status === "newer" ? "Newer" : "Older"} than verified ${baseline}`;
+      : status === "not_implemented"
+        ? "Not implemented"
+        : status === "unverified"
+          ? "Not verified"
+          : `${status === "newer" ? "Newer" : "Older"} than verified ${baseline}`;
   return (
     <Label color={COMPATIBILITY_COLOR[status]} isCompact>
       {text}

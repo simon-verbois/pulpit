@@ -16,7 +16,12 @@ export const VERIFIED_VERSIONS: Record<string, string> = {
   container: "2.29.0",
 };
 
-export type CompatibilityStatus = "matches" | "newer" | "older" | "unverified";
+export type CompatibilityStatus =
+  | "matches"
+  | "newer"
+  | "older"
+  | "unverified"
+  | "not_implemented";
 
 function majorMinor(version: string): [number, number] | null {
   const match = /^(\d+)\.(\d+)/.exec(version);
@@ -28,14 +33,17 @@ function majorMinor(version: string): [number, number] | null {
 
 /** Compares an installed component version against Pulpit's verified
  * baseline for it, if one exists. Never throws on an unparseable version -
- * falls back to "unverified" rather than guessing. */
+ * falls back to "unverified" rather than guessing. A component Pulpit has
+ * no UI for at all (no baseline entry) is "not_implemented", distinct from
+ * "unverified" (Pulpit does have a UI for it, but couldn't parse the
+ * reported version). */
 export function compatibilityStatus(
   component: string,
   installedVersion: string,
 ): CompatibilityStatus {
   const baseline = VERIFIED_VERSIONS[component];
   if (!baseline) {
-    return "unverified";
+    return "not_implemented";
   }
   const installed = majorMinor(installedVersion);
   const verified = majorMinor(baseline);
