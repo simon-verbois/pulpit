@@ -22,7 +22,8 @@ playwright/.auth/
 .data/
 
 # Fetched OpenAPI schema (npm run api:fetch) - regenerated from a live Pulp
-# instance; see ADR 0004 on whether to check this in later.
+# instance. Deliberately gitignored, unlike its output src/api/generated/
+# (which IS checked in) - see ADR 0004.
 /src/api/schemas/
 
 # Logs

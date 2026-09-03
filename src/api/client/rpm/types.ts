@@ -2,6 +2,14 @@
 // 3.38.5 instance (fetched from /pulp/api/v3/docs/api.json - see
 // docs/PULP_API.md and the pulp-api skill). Only the fields Pulpit's UI
 // actually reads/writes are modeled here.
+//
+// Each response/write type below has a paired `AssertFieldsExist` check
+// (bottom of file) against the generated schema in src/api/generated/rpm/
+// (ADR 0004) - a compile error there means this hand-written type has
+// drifted from what Pulp's live schema actually has, not a runtime bug.
+
+import type { components } from "../../generated/rpm/schema";
+import type { AssertFieldsExist } from "../schemaDriftCheck";
 
 /** Pulp's standard limit/offset pagination envelope. */
 export interface PulpPage<T> {
@@ -299,3 +307,142 @@ export interface RpmAlternateContentSourceUpdate {
   remote?: string;
   paths?: string[];
 }
+
+// --- Schema drift checks (see schemaDriftCheck.ts) --------------------------
+//
+// One entry per hand-written type above, each checked against its matching
+// generated schema component. A compile error on a `true` below - "Type
+// 'true' is not assignable to type 'never'" - names (via the property key)
+// exactly which hand-written type has a field the live schema no longer
+// has; re-verify that one type, not the others.
+type _RpmSchemaDriftChecks = {
+  RpmRepository: AssertFieldsExist<
+    components["schemas"]["rpm.RpmRepositoryResponse"],
+    RpmRepository
+  >;
+  RpmRepositoryCreate: AssertFieldsExist<
+    components["schemas"]["rpm.RpmRepository"],
+    RpmRepositoryCreate
+  >;
+  RpmRepositoryUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedrpm.RpmRepository"],
+    RpmRepositoryUpdate
+  >;
+  RpmRemote: AssertFieldsExist<components["schemas"]["rpm.RpmRemoteResponse"], RpmRemote>;
+  RpmRemoteCreate: AssertFieldsExist<
+    components["schemas"]["rpm.RpmRemote"],
+    RpmRemoteCreate
+  >;
+  RpmRemoteUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedrpm.RpmRemote"],
+    RpmRemoteUpdate
+  >;
+  RpmUlnRemote: AssertFieldsExist<
+    components["schemas"]["rpm.UlnRemoteResponse"],
+    RpmUlnRemote
+  >;
+  RpmUlnRemoteCreate: AssertFieldsExist<
+    components["schemas"]["rpm.UlnRemote"],
+    RpmUlnRemoteCreate
+  >;
+  RpmDistribution: AssertFieldsExist<
+    components["schemas"]["rpm.RpmDistributionResponse"],
+    RpmDistribution
+  >;
+  RpmDistributionCreate: AssertFieldsExist<
+    components["schemas"]["rpm.RpmDistribution"],
+    RpmDistributionCreate
+  >;
+  ContentSummary: AssertFieldsExist<
+    components["schemas"]["ContentSummaryResponse"],
+    ContentSummary
+  >;
+  RepositoryVersion: AssertFieldsExist<
+    components["schemas"]["RepositoryVersionResponse"],
+    RepositoryVersion
+  >;
+  RpmPackage: AssertFieldsExist<components["schemas"]["rpm.PackageResponse"], RpmPackage>;
+  RpmAdvisory: AssertFieldsExist<
+    components["schemas"]["rpm.UpdateRecordResponse"],
+    RpmAdvisory
+  >;
+  RpmPackageGroup: AssertFieldsExist<
+    components["schemas"]["rpm.PackageGroupResponse"],
+    RpmPackageGroup
+  >;
+  RpmPackageCategory: AssertFieldsExist<
+    components["schemas"]["rpm.PackageCategoryResponse"],
+    RpmPackageCategory
+  >;
+  RpmPackageEnvironment: AssertFieldsExist<
+    components["schemas"]["rpm.PackageEnvironmentResponse"],
+    RpmPackageEnvironment
+  >;
+  RpmPackageLangpacks: AssertFieldsExist<
+    components["schemas"]["rpm.PackageLangpacksResponse"],
+    RpmPackageLangpacks
+  >;
+  RpmModulemd: AssertFieldsExist<
+    components["schemas"]["rpm.ModulemdResponse"],
+    RpmModulemd
+  >;
+  RpmModulemdDefaults: AssertFieldsExist<
+    components["schemas"]["rpm.ModulemdDefaultsResponse"],
+    RpmModulemdDefaults
+  >;
+  RpmModulemdObsolete: AssertFieldsExist<
+    components["schemas"]["rpm.ModulemdObsoleteResponse"],
+    RpmModulemdObsolete
+  >;
+  RpmDistributionTree: AssertFieldsExist<
+    components["schemas"]["rpm.DistributionTreeResponse"],
+    RpmDistributionTree
+  >;
+  RpmRepoMetadataFile: AssertFieldsExist<
+    components["schemas"]["rpm.RepoMetadataFileResponse"],
+    RpmRepoMetadataFile
+  >;
+  RpmAlternateContentSource: AssertFieldsExist<
+    components["schemas"]["rpm.RpmAlternateContentSourceResponse"],
+    RpmAlternateContentSource
+  >;
+  RpmAlternateContentSourceCreate: AssertFieldsExist<
+    components["schemas"]["rpm.RpmAlternateContentSource"],
+    RpmAlternateContentSourceCreate
+  >;
+  RpmAlternateContentSourceUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedrpm.RpmAlternateContentSource"],
+    RpmAlternateContentSourceUpdate
+  >;
+};
+// Type-only checkpoint (not exported, not read anywhere else) - its only
+// purpose is for the object literal below to fail to compile on drift.
+const _rpmSchemaDriftChecks: _RpmSchemaDriftChecks = {
+  RpmRepository: true,
+  RpmRepositoryCreate: true,
+  RpmRepositoryUpdate: true,
+  RpmRemote: true,
+  RpmRemoteCreate: true,
+  RpmRemoteUpdate: true,
+  RpmUlnRemote: true,
+  RpmUlnRemoteCreate: true,
+  RpmDistribution: true,
+  RpmDistributionCreate: true,
+  ContentSummary: true,
+  RepositoryVersion: true,
+  RpmPackage: true,
+  RpmAdvisory: true,
+  RpmPackageGroup: true,
+  RpmPackageCategory: true,
+  RpmPackageEnvironment: true,
+  RpmPackageLangpacks: true,
+  RpmModulemd: true,
+  RpmModulemdDefaults: true,
+  RpmModulemdObsolete: true,
+  RpmDistributionTree: true,
+  RpmRepoMetadataFile: true,
+  RpmAlternateContentSource: true,
+  RpmAlternateContentSourceCreate: true,
+  RpmAlternateContentSourceUpdate: true,
+};
+void _rpmSchemaDriftChecks;

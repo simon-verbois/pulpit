@@ -4,6 +4,14 @@
 // pulpcore-core (not plugin-specific) and every mutation here is
 // synchronous (VERIFIED live: 200/201/204, never a task) - Django auth-model
 // CRUD, not a content-processing pipeline.
+//
+// Each response/write type below has a paired `AssertFieldsExist` check
+// (bottom of file) against the generated schema in src/api/generated/core/
+// (ADR 0004) - a compile error there means this hand-written type has
+// drifted from what Pulp's live schema actually has, not a runtime bug.
+
+import type { components } from "../../generated/core/schema";
+import type { AssertFieldsExist } from "../schemaDriftCheck";
 
 export interface PulpPage<T> {
   count: number;
@@ -140,3 +148,58 @@ export interface ObjectRolesResponse {
 export interface MyPermissionsResponse {
   permissions: string[];
 }
+
+// --- Schema drift checks (see schemaDriftCheck.ts) --------------------------
+type _AccessSchemaDriftChecks = {
+  User: AssertFieldsExist<components["schemas"]["UserResponse"], User>;
+  UserCreate: AssertFieldsExist<components["schemas"]["User"], UserCreate>;
+  UserUpdate: AssertFieldsExist<components["schemas"]["PatchedUser"], UserUpdate>;
+  Group: AssertFieldsExist<components["schemas"]["GroupResponse"], Group>;
+  GroupCreate: AssertFieldsExist<components["schemas"]["Group"], GroupCreate>;
+  GroupUser: AssertFieldsExist<components["schemas"]["GroupUserResponse"], GroupUser>;
+  Role: AssertFieldsExist<components["schemas"]["RoleResponse"], Role>;
+  RoleCreate: AssertFieldsExist<components["schemas"]["Role"], RoleCreate>;
+  RoleUpdate: AssertFieldsExist<components["schemas"]["PatchedRole"], RoleUpdate>;
+  RoleAssignment: AssertFieldsExist<
+    components["schemas"]["UserRoleResponse"],
+    RoleAssignment
+  >;
+  RoleAssignmentCreate: AssertFieldsExist<
+    components["schemas"]["UserRole"],
+    RoleAssignmentCreate
+  >;
+  ObjectRoleChange: AssertFieldsExist<
+    components["schemas"]["NestedRole"],
+    ObjectRoleChange
+  >;
+  ObjectRoleAssignment: AssertFieldsExist<
+    components["schemas"]["NestedRoleResponse"],
+    ObjectRoleAssignment
+  >;
+  ObjectRolesResponse: AssertFieldsExist<
+    components["schemas"]["ObjectRolesResponse"],
+    ObjectRolesResponse
+  >;
+  MyPermissionsResponse: AssertFieldsExist<
+    components["schemas"]["MyPermissionsResponse"],
+    MyPermissionsResponse
+  >;
+};
+const _accessSchemaDriftChecks: _AccessSchemaDriftChecks = {
+  User: true,
+  UserCreate: true,
+  UserUpdate: true,
+  Group: true,
+  GroupCreate: true,
+  GroupUser: true,
+  Role: true,
+  RoleCreate: true,
+  RoleUpdate: true,
+  RoleAssignment: true,
+  RoleAssignmentCreate: true,
+  ObjectRoleChange: true,
+  ObjectRoleAssignment: true,
+  ObjectRolesResponse: true,
+  MyPermissionsResponse: true,
+};
+void _accessSchemaDriftChecks;

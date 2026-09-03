@@ -31,10 +31,12 @@ filtering support in particular varies by Pulp version):
 
 - `/pulp/api/v3/docs/api.json` — combined OpenAPI schema.
 - `/pulp/api/v3/docs/` — human-readable API docs.
-- Per-component filtering: **VERIFIED** on this instance (pulpcore 3.116.0), `?component=<name>`
-  (e.g. `?component=rpm`) on `api.json` scopes the schema to one plugin. Confirm the exact
-  parameter and behavior against the live instance's docs/schema before depending on it elsewhere;
-  do not assume it works identically across pulpcore versions.
+- Per-component filtering: **VERIFIED** on this instance (pulpcore 3.116.0, re-confirmed on
+  3.116.1), `?component=<name>` (e.g. `?component=rpm`) on `api.json` scopes the schema to one
+  plugin - `scripts/api/fetch-schema.mjs` actually relies on this now (one fetch per component),
+  not just a documented possibility. Confirm the exact parameter and behavior against the live
+  instance's docs/schema if pointing this at a different pulpcore version; do not assume it works
+  identically across versions.
 
 **Known issue (not a Pulpit bug, upstream/Pulp-side): `/pulp/api/v3/docs/` (Pulp's own bundled
 ReDoc page, linked from Pulpit's masthead "Help") is severely laggy on the "stable" all-in-one
@@ -53,10 +55,11 @@ need updating every milestone, and duplicates something Pulp already provides) -
 to Pulp's own full docs page as-is; this is left here as a verified diagnostic for the future, not
 a TODO.
 
-`npm run api:fetch` should hit whichever of the above is confirmed to work against the configured
-dev Pulp instance and write the schema(s) to a local, gitignored-or-checked-in-by-decision
-location for `npm run api:generate` (`openapi-typescript`) to consume into
-`src/api/generated/{core,rpm,container,ansible}/`.
+`npm run api:fetch` fetches all four component-scoped schemas (`?component=core|rpm|container|
+ansible`) into `src/api/schemas/*.json` (gitignored, purely intermediate); `npm run api:generate`
+runs `openapi-typescript` against each into its own checked-in
+`src/api/generated/{core,rpm,container,ansible}/schema.d.ts` (see ADR 0004 and that directory's
+own README for what's actually committed and why).
 
 ## Generated types -> adapters -> query hooks
 

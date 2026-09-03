@@ -3,8 +3,18 @@
 // see docs/PULP_API.md). Only the fields Pulpit's UI actually reads/writes are
 // modeled here. Re-exports PulpPage from the RPM types module rather than
 // duplicating it - it's a generic Pulp envelope, not RPM-specific.
+//
+// Each response/write type below has a paired `AssertFieldsExist` check
+// (bottom of file) against the generated schema in src/api/generated/ansible/
+// (ADR 0004) - a compile error there means this hand-written type has
+// drifted from what Pulp's live schema actually has, not a runtime bug.
 export type { PulpPage, RemotePolicy, HiddenRemoteField } from "../rpm/types";
 import type { RemotePolicy, HiddenRemoteField } from "../rpm/types";
+import type { components } from "../../generated/ansible/schema";
+// SigningService is generic pulpcore, not ansible-specific - filtered out
+// of the ansible-scoped schema, so its drift check needs core's instead.
+import type { components as CoreComponents } from "../../generated/core/schema";
+import type { AssertFieldsExist } from "../schemaDriftCheck";
 
 /** VERIFIED live: the Galaxy-v3 cross-repository search endpoint
  * (search.ts) uses this `meta`/`links`/`data` pagination envelope, NOT
@@ -297,3 +307,150 @@ export interface CrossRepoSearchResult {
   is_deprecated: boolean;
   is_signed: boolean;
 }
+
+// --- Schema drift checks (see schemaDriftCheck.ts) --------------------------
+type _AnsibleSchemaDriftChecks = {
+  AnsibleRepository: AssertFieldsExist<
+    components["schemas"]["ansible.AnsibleRepositoryResponse"],
+    AnsibleRepository
+  >;
+  AnsibleRepositoryCreate: AssertFieldsExist<
+    components["schemas"]["ansible.AnsibleRepository"],
+    AnsibleRepositoryCreate
+  >;
+  AnsibleRepositoryUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedansible.AnsibleRepository"],
+    AnsibleRepositoryUpdate
+  >;
+  CollectionRemote: AssertFieldsExist<
+    components["schemas"]["ansible.CollectionRemoteResponse"],
+    CollectionRemote
+  >;
+  CollectionRemoteCreate: AssertFieldsExist<
+    components["schemas"]["ansible.CollectionRemote"],
+    CollectionRemoteCreate
+  >;
+  CollectionRemoteUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedansible.CollectionRemote"],
+    CollectionRemoteUpdate
+  >;
+  GitRemote: AssertFieldsExist<
+    components["schemas"]["ansible.GitRemoteResponse"],
+    GitRemote
+  >;
+  GitRemoteCreate: AssertFieldsExist<
+    components["schemas"]["ansible.GitRemote"],
+    GitRemoteCreate
+  >;
+  GitRemoteUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedansible.GitRemote"],
+    GitRemoteUpdate
+  >;
+  RoleRemote: AssertFieldsExist<
+    components["schemas"]["ansible.RoleRemoteResponse"],
+    RoleRemote
+  >;
+  RoleRemoteCreate: AssertFieldsExist<
+    components["schemas"]["ansible.RoleRemote"],
+    RoleRemoteCreate
+  >;
+  RoleRemoteUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedansible.RoleRemote"],
+    RoleRemoteUpdate
+  >;
+  AnsibleDistribution: AssertFieldsExist<
+    components["schemas"]["ansible.AnsibleDistributionResponse"],
+    AnsibleDistribution
+  >;
+  AnsibleDistributionCreate: AssertFieldsExist<
+    components["schemas"]["ansible.AnsibleDistribution"],
+    AnsibleDistributionCreate
+  >;
+  ContentSummary: AssertFieldsExist<
+    components["schemas"]["ContentSummaryResponse"],
+    ContentSummary
+  >;
+  RepositoryVersion: AssertFieldsExist<
+    components["schemas"]["RepositoryVersionResponse"],
+    RepositoryVersion
+  >;
+  CollectionVersion: AssertFieldsExist<
+    components["schemas"]["ansible.CollectionVersionResponse"],
+    CollectionVersion
+  >;
+  AnsibleRole: AssertFieldsExist<
+    components["schemas"]["ansible.RoleResponse"],
+    AnsibleRole
+  >;
+  AnsibleRoleCreate: AssertFieldsExist<
+    components["schemas"]["ansible.Role"],
+    AnsibleRoleCreate
+  >;
+  GalaxyNamespaceLink: AssertFieldsExist<
+    components["schemas"]["NamespaceLinkResponse"],
+    GalaxyNamespaceLink
+  >;
+  GalaxyNamespace: AssertFieldsExist<
+    components["schemas"]["ansible.AnsibleNamespaceMetadataResponse"],
+    GalaxyNamespace
+  >;
+  GalaxyNamespaceCreate: AssertFieldsExist<
+    components["schemas"]["ansible.AnsibleNamespaceMetadata"],
+    GalaxyNamespaceCreate
+  >;
+  GalaxyNamespaceUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedansible.AnsibleNamespaceMetadata"],
+    GalaxyNamespaceUpdate
+  >;
+  CollectionVersionSignature: AssertFieldsExist<
+    components["schemas"]["ansible.CollectionVersionSignatureResponse"],
+    CollectionVersionSignature
+  >;
+  CollectionVersionMark: AssertFieldsExist<
+    components["schemas"]["ansible.CollectionVersionMarkResponse"],
+    CollectionVersionMark
+  >;
+  CollectionDeprecation: AssertFieldsExist<
+    components["schemas"]["ansible.AnsibleCollectionDeprecatedResponse"],
+    CollectionDeprecation
+  >;
+  SigningService: AssertFieldsExist<
+    CoreComponents["schemas"]["SigningServiceResponse"],
+    SigningService
+  >;
+  CrossRepoSearchResult: AssertFieldsExist<
+    components["schemas"]["CollectionVersionSearchListResponse"],
+    CrossRepoSearchResult
+  >;
+};
+const _ansibleSchemaDriftChecks: _AnsibleSchemaDriftChecks = {
+  AnsibleRepository: true,
+  AnsibleRepositoryCreate: true,
+  AnsibleRepositoryUpdate: true,
+  CollectionRemote: true,
+  CollectionRemoteCreate: true,
+  CollectionRemoteUpdate: true,
+  GitRemote: true,
+  GitRemoteCreate: true,
+  GitRemoteUpdate: true,
+  RoleRemote: true,
+  RoleRemoteCreate: true,
+  RoleRemoteUpdate: true,
+  AnsibleDistribution: true,
+  AnsibleDistributionCreate: true,
+  ContentSummary: true,
+  RepositoryVersion: true,
+  CollectionVersion: true,
+  AnsibleRole: true,
+  AnsibleRoleCreate: true,
+  GalaxyNamespaceLink: true,
+  GalaxyNamespace: true,
+  GalaxyNamespaceCreate: true,
+  GalaxyNamespaceUpdate: true,
+  CollectionVersionSignature: true,
+  CollectionVersionMark: true,
+  CollectionDeprecation: true,
+  SigningService: true,
+  CrossRepoSearchResult: true,
+};
+void _ansibleSchemaDriftChecks;

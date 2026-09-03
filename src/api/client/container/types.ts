@@ -3,6 +3,15 @@
 // see docs/PULP_API.md "Container endpoints"). Only the fields Pulpit's UI
 // actually reads/writes are modeled here. Reuses RPM's `PulpPage`/`RemotePolicy`
 // shape conventions - see src/api/client/rpm/types.ts.
+//
+// Each response/write type below has a paired `AssertFieldsExist` check
+// (bottom of file) against the generated schema in
+// src/api/generated/container/ (ADR 0004) - a compile error there means
+// this hand-written type has drifted from what Pulp's live schema actually
+// has, not a runtime bug.
+
+import type { components } from "../../generated/container/schema";
+import type { AssertFieldsExist } from "../schemaDriftCheck";
 
 export interface PulpPage<T> {
   count: number;
@@ -175,3 +184,75 @@ export interface ContainerPushRepository {
   latest_version_href: string;
   pulp_created: string;
 }
+
+// --- Schema drift checks (see schemaDriftCheck.ts) --------------------------
+type _ContainerSchemaDriftChecks = {
+  ContainerRemote: AssertFieldsExist<
+    components["schemas"]["container.ContainerRemoteResponse"],
+    ContainerRemote
+  >;
+  ContainerRemoteCreate: AssertFieldsExist<
+    components["schemas"]["container.ContainerRemote"],
+    ContainerRemoteCreate
+  >;
+  ContainerRemoteUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedcontainer.ContainerRemote"],
+    ContainerRemoteUpdate
+  >;
+  ContainerRepository: AssertFieldsExist<
+    components["schemas"]["container.ContainerRepositoryResponse"],
+    ContainerRepository
+  >;
+  ContainerRepositoryCreate: AssertFieldsExist<
+    components["schemas"]["container.ContainerRepository"],
+    ContainerRepositoryCreate
+  >;
+  ContainerRepositoryUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedcontainer.ContainerRepository"],
+    ContainerRepositoryUpdate
+  >;
+  ContentSummary: AssertFieldsExist<
+    components["schemas"]["ContentSummaryResponse"],
+    ContentSummary
+  >;
+  RepositoryVersion: AssertFieldsExist<
+    components["schemas"]["RepositoryVersionResponse"],
+    RepositoryVersion
+  >;
+  ContainerDistribution: AssertFieldsExist<
+    components["schemas"]["container.ContainerDistributionResponse"],
+    ContainerDistribution
+  >;
+  ContainerDistributionCreate: AssertFieldsExist<
+    components["schemas"]["container.ContainerDistribution"],
+    ContainerDistributionCreate
+  >;
+  ContainerTag: AssertFieldsExist<
+    components["schemas"]["container.TagResponse"],
+    ContainerTag
+  >;
+  ContainerManifest: AssertFieldsExist<
+    components["schemas"]["container.ManifestResponse"],
+    ContainerManifest
+  >;
+  ContainerPushRepository: AssertFieldsExist<
+    components["schemas"]["container.ContainerPushRepositoryResponse"],
+    ContainerPushRepository
+  >;
+};
+const _containerSchemaDriftChecks: _ContainerSchemaDriftChecks = {
+  ContainerRemote: true,
+  ContainerRemoteCreate: true,
+  ContainerRemoteUpdate: true,
+  ContainerRepository: true,
+  ContainerRepositoryCreate: true,
+  ContainerRepositoryUpdate: true,
+  ContentSummary: true,
+  RepositoryVersion: true,
+  ContainerDistribution: true,
+  ContainerDistributionCreate: true,
+  ContainerTag: true,
+  ContainerManifest: true,
+  ContainerPushRepository: true,
+};
+void _containerSchemaDriftChecks;
