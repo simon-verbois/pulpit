@@ -99,9 +99,15 @@ project's dev Compose stack) rather than assuming:
 - Unrelated to this migration, but found while reading `rpm.RpmRemoteResponse`/
   `ansible.CollectionRemoteResponse`/`container.ContainerRemoteResponse` etc. directly: every
   Remote type already has native `ca_cert`/`client_cert`/`client_key` fields ("A PEM encoded CA
-  certificate used to validate the server certificate presented by the remote server") - not yet
-  exposed anywhere in this app's UI. Worth a separate look before extending any custom
-  container-side CA-trust mechanism further.
+  certificate used to validate the server certificate presented by the remote server"). **Acted
+  on**: VERIFIED live in pulpcore's own `DownloaderFactory` (`ca_cert` builds one `SSLContext`
+  per Remote's aiohttp session, trusted in addition to the system CA bundle, shared by the proxy
+  and origin server exactly like `tls_validation`) that this is a strict superset of what the old
+  `trusted_ca` module's docker-exec/`update-ca-trust` mechanism achieved for this app's one actual
+  use case (trusting a corporate TLS-inspecting proxy) - that module has been removed and replaced
+  by `DefaultSettings.proxy_ca_cert`, applied per-Remote the same way `proxy_tls_validation`
+  already was. `client_cert`/`client_key` (mTLS) remain unexposed - out of scope, no current
+  use case for them in this app.
 
 ## Alternatives considered
 

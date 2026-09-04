@@ -38,6 +38,18 @@ class DefaultSettings(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # while still validating the origin (or vice versa); the frontend says
     # so wherever this is surfaced.
     proxy_tls_validation: Mapped[bool] = mapped_column(Boolean, default=True)
+    # A PEM encoded CA certificate applied to every new Remote's own
+    # `ca_cert` field (per-remote override always available, same as
+    # proxy_tls_validation above) - Pulp's aiohttp downloader builds one
+    # SSLContext per Remote from this field and trusts it IN ADDITION to
+    # the system's own CA bundle (pulpcore's
+    # DownloaderFactory._make_aiohttp_session_from_remote calls
+    # `sslcontext.load_default_certs()` even when `ca_cert` is set), so this
+    # is a strictly additive per-Remote trust anchor - not a replacement for
+    # any container-wide trust store. Public material, stored as plain PEM
+    # text with no encryption, same reasoning as trusted_ca's old
+    # TrustedCaCertificate.pem (now removed - this column replaces it).
+    proxy_ca_cert: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     @property
     def proxy_password_is_set(self) -> bool:

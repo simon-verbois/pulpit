@@ -29,4 +29,5 @@ def read_proxy_credentials(db: Session = Depends(get_db)) -> ProxyCredentials:
             if row.proxy_password_encrypted is not None
             else None
         ),
+        proxy_ca_cert=row.proxy_ca_cert,
     )

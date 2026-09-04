@@ -100,6 +100,7 @@ def test_get_default_settings_returns_empty_defaults(client):
     assert body["proxy_username"] == ""
     assert body["proxy_password_is_set"] is False
     assert body["proxy_tls_validation"] is True
+    assert body["proxy_ca_cert"] is None
 
 
 def test_patch_default_settings_updates_proxy_tls_validation(client):
@@ -207,6 +208,7 @@ def test_proxy_credentials_returns_the_decrypted_password(client):
         "proxy_url": "http://proxy.example.com:3128",
         "proxy_username": "svc-proxy",
         "proxy_password": "s3cret",
+        "proxy_ca_cert": None,
     }
 
 
@@ -219,77 +221,38 @@ def test_proxy_credentials_password_is_null_when_unset(client):
 _TEST_PEM = "-----BEGIN CERTIFICATE-----\nMIIC...fake...==\n-----END CERTIFICATE-----\n"
 
 
-def test_trusted_ca_certificates_requires_auth(db):
-    def _override_db():
-        yield db
-
-    main_module.app.dependency_overrides[get_db] = _override_db
-    try:
-        response = TestClient(main_module.app).get("/api/v1/trusted_ca/certificates")
-    finally:
-        main_module.app.dependency_overrides.clear()
-    assert response.status_code == 401
-
-
-def test_list_trusted_ca_certificates_starts_empty(client):
-    response = client.get("/api/v1/trusted_ca/certificates")
+def test_patch_default_settings_updates_proxy_ca_cert(client):
+    response = client.patch(
+        "/api/v1/default_settings/settings", json={"proxy_ca_cert": _TEST_PEM}
+    )
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["proxy_ca_cert"] == _TEST_PEM.strip()
+
+    credentials = client.get("/api/v1/default_settings/proxy-credentials").json()
+    assert credentials["proxy_ca_cert"] == _TEST_PEM.strip()
 
 
-def test_create_trusted_ca_certificate_returns_a_queued_job(client):
-    response = client.post(
-        "/api/v1/trusted_ca/certificates", json={"name": "corp-proxy", "pem": _TEST_PEM}
-    )
-    assert response.status_code == 202
-    body = response.json()
-    assert body["job_type"] == "trusted_ca.sync"
-    assert body["status"] == "queued"
-
-    listed = client.get("/api/v1/trusted_ca/certificates").json()
-    assert len(listed) == 1
-    assert listed[0]["name"] == "corp-proxy"
-    assert listed[0]["pem"] == _TEST_PEM.strip()  # schemas.py trims surrounding whitespace
-    assert listed[0]["status"] == "pending"
-
-
-def test_create_trusted_ca_certificate_rejects_duplicate_name(client):
-    client.post("/api/v1/trusted_ca/certificates", json={"name": "corp-proxy", "pem": _TEST_PEM})
-    response = client.post(
-        "/api/v1/trusted_ca/certificates", json={"name": "corp-proxy", "pem": _TEST_PEM}
-    )
-    assert response.status_code == 409
-
-
-def test_create_trusted_ca_certificate_rejects_a_bad_name(client):
-    response = client.post(
-        "/api/v1/trusted_ca/certificates", json={"name": "corp proxy!", "pem": _TEST_PEM}
+def test_patch_default_settings_rejects_non_pem_ca_cert(client):
+    response = client.patch(
+        "/api/v1/default_settings/settings", json={"proxy_ca_cert": "not a cert"}
     )
     assert response.status_code == 422
 
 
-def test_create_trusted_ca_certificate_rejects_non_pem_content(client):
-    response = client.post(
-        "/api/v1/trusted_ca/certificates", json={"name": "corp-proxy", "pem": "not a cert"}
+def test_patch_default_settings_empty_proxy_ca_cert_clears_it(client):
+    client.patch("/api/v1/default_settings/settings", json={"proxy_ca_cert": _TEST_PEM})
+    response = client.patch("/api/v1/default_settings/settings", json={"proxy_ca_cert": ""})
+    assert response.status_code == 200
+    assert response.json()["proxy_ca_cert"] is None
+
+
+def test_patch_default_settings_omitted_proxy_ca_cert_leaves_it_unchanged(client):
+    client.patch("/api/v1/default_settings/settings", json={"proxy_ca_cert": _TEST_PEM})
+    response = client.patch(
+        "/api/v1/default_settings/settings", json={"proxy_url": "http://proxy:3128"}
     )
-    assert response.status_code == 422
-
-
-def test_delete_trusted_ca_certificate(client):
-    client.post("/api/v1/trusted_ca/certificates", json={"name": "corp-proxy", "pem": _TEST_PEM})
-    listed = client.get("/api/v1/trusted_ca/certificates").json()
-    certificate_id = listed[0]["id"]
-
-    response = client.delete(f"/api/v1/trusted_ca/certificates/{certificate_id}")
-    assert response.status_code == 204
-    assert client.get("/api/v1/trusted_ca/certificates").json() == []
-
-
-def test_delete_unknown_trusted_ca_certificate_is_404(client):
-    response = client.delete(
-        "/api/v1/trusted_ca/certificates/00000000-0000-0000-0000-000000000000"
-    )
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert response.json()["proxy_ca_cert"] == _TEST_PEM.strip()
 
 
 def test_generate_key_returns_queued_job(client):

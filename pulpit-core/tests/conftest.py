@@ -42,7 +42,6 @@ from app.modules.signing.models import (  # noqa: F401
     SigningRotation,
     SigningSettings,
 )
-from app.modules.trusted_ca.models import TrustedCaCertificate  # noqa: F401
 
 _engine = create_engine(get_settings().database_url, future=True)
 _TestSession = sessionmaker(bind=_engine, future=True)
@@ -61,9 +60,13 @@ def _schema():
 
 @pytest.fixture(autouse=True)
 def _clean_tables():
+    # TRUNCATE is Postgres-only - SQLite (embedded mode, docs/DEPLOYMENT.md)
+    # has no such statement at all. Plain DELETE FROM works identically on
+    # both and is just as fast at this test suite's data volumes (a handful
+    # of rows per table, never a real production-sized table).
     with _engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
-            conn.execute(text(f'TRUNCATE TABLE "{table.name}" CASCADE'))
+            conn.execute(text(f'DELETE FROM "{table.name}"'))
     yield
 
 
