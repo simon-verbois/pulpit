@@ -1,6 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
 const REPOSITORY_URL = "https://github.com/simon-verbois/pulpit";
+const CHANGELOG_URL = `${REPOSITORY_URL}/blob/main/CHANGELOG.md`;
 const LICENSE_URL = `${REPOSITORY_URL}/blob/main/LICENSE`;
 // The release workflow tags the public mirror with the exact VERSION value
 // (.forgejo/workflows/release.yml "Verify release version") - this always
@@ -41,6 +42,15 @@ export function AppFooter() {
           style={{ pointerEvents: "auto" }}
         >
           {__APP_VERSION__}
+        </a>{" "}
+        —{" "}
+        <a
+          href={CHANGELOG_URL}
+          target="_blank"
+          rel="noreferrer"
+          style={{ pointerEvents: "auto" }}
+        >
+          Changelog
         </a>{" "}
         —{" "}
         <a

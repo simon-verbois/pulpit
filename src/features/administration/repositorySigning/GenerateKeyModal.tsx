@@ -242,7 +242,7 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
                   <StackItem>
                     <Grid hasGutter>
                       <GridItem span={3}>
-                        <FormGroup label="Key validity (days)" fieldId="validity-days">
+                        <FormGroup label="Default key validity" fieldId="validity-days">
                           <NumberInput
                             id="validity-days"
                             isDisabled={
@@ -270,13 +270,17 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
                               })
                             }
                           />
+                          <FormHelperText>
+                            <HelperText>
+                              <HelperTextItem>
+                                Days. For future keys - not the one above.
+                              </HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
                         </FormGroup>
                       </GridItem>
                       <GridItem span={3}>
-                        <FormGroup
-                          label="Generate replacement (days before expiry)"
-                          fieldId="generate-before"
-                        >
+                        <FormGroup label="Generate replacement" fieldId="generate-before">
                           <NumberInput
                             id="generate-before"
                             isDisabled={
@@ -308,13 +312,15 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
                               })
                             }
                           />
+                          <FormHelperText>
+                            <HelperText>
+                              <HelperTextItem>Days before expiry.</HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
                         </FormGroup>
                       </GridItem>
                       <GridItem span={3}>
-                        <FormGroup
-                          label="Publish replacement (days before expiry)"
-                          fieldId="activate-before"
-                        >
+                        <FormGroup label="Publish replacement" fieldId="activate-before">
                           <NumberInput
                             id="activate-before"
                             isDisabled={
@@ -346,13 +352,15 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
                               })
                             }
                           />
+                          <FormHelperText>
+                            <HelperText>
+                              <HelperTextItem>Days before expiry.</HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
                         </FormGroup>
                       </GridItem>
                       <GridItem span={3}>
-                        <FormGroup
-                          label="Old public key retention (days)"
-                          fieldId="retention-days"
-                        >
+                        <FormGroup label="Old public key retention" fieldId="retention-days">
                           <NumberInput
                             id="retention-days"
                             value={settings.key_retention_days}
@@ -379,6 +387,11 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
                               })
                             }
                           />
+                          <FormHelperText>
+                            <HelperText>
+                              <HelperTextItem>Days.</HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
                         </FormGroup>
                       </GridItem>
                     </Grid>
