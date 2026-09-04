@@ -102,6 +102,7 @@ export function EditUserModal({ user, onClose }: { user: User; onClose: () => vo
             <TextInput
               id="user-edit-email"
               type="email"
+              autoComplete="off"
               value={email}
               onChange={(_event, value) => setEmail(value)}
             />
@@ -110,6 +111,7 @@ export function EditUserModal({ user, onClose }: { user: User; onClose: () => vo
             <TextInput
               id="user-edit-password"
               type="password"
+              autoComplete="new-password"
               value={newPassword}
               onChange={(_event, value) => setNewPassword(value)}
             />

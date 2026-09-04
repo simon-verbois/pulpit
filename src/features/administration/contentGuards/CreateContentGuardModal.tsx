@@ -162,6 +162,7 @@ export function CreateContentGuardModal({ onClose }: { onClose: () => void }) {
                 <TextInput
                   id="content-guard-header-value"
                   isRequired
+                  autoComplete="off"
                   value={headerValue}
                   onChange={(_event, value) => setHeaderValue(value)}
                 />
@@ -187,6 +188,7 @@ export function CreateContentGuardModal({ onClose }: { onClose: () => void }) {
                 id="content-guard-ca-certificate"
                 isRequired
                 rows={8}
+                autoComplete="off"
                 placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
                 value={caCertificate}
                 onChange={(_event, value) => setCaCertificate(value)}

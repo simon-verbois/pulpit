@@ -61,6 +61,7 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
             <TextInput
               id="user-username"
               isRequired
+              autoComplete="off"
               value={username}
               onChange={(_event, value) => setUsername(value)}
             />
@@ -69,6 +70,7 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
             <TextInput
               id="user-password"
               type="password"
+              autoComplete="new-password"
               value={password}
               onChange={(_event, value) => setPassword(value)}
             />
@@ -77,6 +79,7 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
             <TextInput
               id="user-email"
               type="email"
+              autoComplete="off"
               value={email}
               onChange={(_event, value) => setEmail(value)}
             />

@@ -177,6 +177,7 @@ function EditContentGuardForm({
               <TextInput
                 id="content-guard-edit-header-value"
                 isRequired
+                autoComplete="off"
                 value={headerValue}
                 onChange={(_event, value) => setHeaderValue(value)}
               />
@@ -201,6 +202,7 @@ function EditContentGuardForm({
               id="content-guard-edit-ca-certificate"
               isRequired
               rows={8}
+              autoComplete="off"
               value={caCertificate}
               onChange={(_event, value) => setCaCertificate(value)}
             />
