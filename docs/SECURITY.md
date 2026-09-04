@@ -8,16 +8,20 @@ front of Pulp/pulpit-core, (3) whatever auth mechanism Pulp/the deployment enfor
 Pulpit-frontend-side data store, session store, or business logic to compromise — reducing, not
 eliminating, the attack surface.
 
-**pulpit-core/pulpit-worker (ADR 0006)** add a second, narrower surface: an API service with its
-own database, and a privileged worker holding GPG signing key material. Full detail — trust model,
-subprocess safety, key exposure boundaries, backup/recovery — lives in `docs/signing.md`
-"Security model," not duplicated here; the summary: neither the `pulpit` frontend container nor
-pulpit-core's own API process ever has private key material or the GNUPGHOME volume; only
-pulpit-worker does, and it is never reachable from the browser at all (no route to it exists in
-`docker/nginx/pulpit.conf.template`). Optionally, `pulpit-worker` can also reach a scoped
-`docker-socket-proxy` (Docker Engine API restricted to `CONTAINERS`+`EXEC`, never the raw socket)
-to automate one Pulp-side administrative command; see ADR 0006 "Alternatives considered" and
-`docs/signing.md` "Automating the manual Pulp step" for the full rationale and scope.
+**pulpit-core/pulpit-worker (ADR 0006, merged into the `pulpit` container by ADR 0007)** add a
+second, narrower surface: an API process with its own embedded database, and a privileged worker
+loop holding GPG signing key material - two separate OS processes/Unix identities sharing that one
+container, not two separate containers, but the isolation between them is unchanged. Full detail —
+trust model, subprocess safety, key exposure boundaries, backup/recovery — lives in
+`docs/signing.md` "Security model," not duplicated here; the summary: neither nginx nor
+pulpit-core's own API process (both running as the unprivileged `pulpit` user) ever has private
+key material or the GNUPGHOME volume; only the worker loop (uid/gid 700) does, and it is never
+reachable from the browser at all (no route to it exists in `deployment/docker/nginx/pulpit.conf.template`,
+and it isn't an HTTP server to begin with). Optionally, that worker loop can also reach a scoped
+`docker-socket-proxy` (Docker/Podman Engine API restricted to `CONTAINERS`+`EXEC`, never the raw
+socket - Kubernetes uses its own API directly instead, no proxy container) to automate one
+Pulp-side administrative command; see ADR 0006 "Alternatives considered" and `docs/signing.md`
+"Automating the manual Pulp step" for the full rationale and scope.
 
 ## No frontend secrets
 
@@ -61,7 +65,7 @@ to automate one Pulp-side administrative command; see ADR 0006 "Alternatives con
 - Pulpit and Pulp share one origin (ADR 0005) specifically to avoid CORS and the credential
   handling complexity cross-origin setups invite.
 - The container-registry path (`/v2/`) needs registry-appropriate body size/timeout settings
-  (`docker/nginx/pulpit.conf.template`); these are dev-reasonable defaults, explicitly flagged for
+  (`deployment/docker/nginx/pulpit.conf.template`); these are dev-reasonable defaults, explicitly flagged for
   validation against real `podman`/`docker` push/pull traffic (see `docs/DEPLOYMENT.md`).
 
 ## TLS
@@ -84,7 +88,7 @@ to automate one Pulp-side administrative command; see ADR 0006 "Alternatives con
 Production nginx config should set standard hardening headers (`X-Content-Type-Options: nosniff`,
 a reasonable `Content-Security-Policy`, `Referrer-Policy`, and HSTS **only when TLS is actually
 terminated there**). These belong in the production nginx config documented in
-`docs/DEPLOYMENT.md`, kept clearly separate from the dev config in `docker/nginx/`.
+`docs/DEPLOYMENT.md`, kept clearly separate from the dev config in `deployment/docker/nginx/`.
 
 ## Development vs. production differences
 

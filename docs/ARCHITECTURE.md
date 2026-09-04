@@ -1,24 +1,33 @@
 # Architecture
 
-Pulpit's frontend (`pulpit`) is a static single-page application with no backend of its own — see
-ADR 0001. As of ADR 0006, the wider Pulpit _project_ also includes `pulpit-core`/`pulpit-worker`, a
+Pulpit's frontend is a static single-page application with no backend of its own — see ADR 0001.
+As of ADR 0006, the wider Pulpit _project_ also includes pulpit-core/pulpit-worker, a
 narrowly-scoped backend for capabilities Pulp's API and a browser cannot host between them —
-signing key custody being the first. This document explains the shape of the whole system and
-where responsibility lives; see `docs/signing.md` for the signing module specifically.
+signing key custody being the first. Since ADR 0007, nginx (serving that SPA) + pulpit-core (the
+API) + pulpit-worker (the job queue) run as three OS processes inside one `pulpit`
+container/image, not three separate ones - see that ADR for why and how the process-level
+separation between them (the API never touches private key material) survives the merge. This
+document explains the shape of the whole system and where responsibility lives; see
+`docs/signing.md` for the signing module specifically.
 
 ## Topology
 
 ```mermaid
 flowchart TB
     Browser -->|HTTPS, same origin| Nginx
-    subgraph Pulpit Host
+    subgraph "pulpit container (ADR 0007)"
         Nginx -->|"/ (static files)"| SPA[Pulpit static assets]
         Nginx -->|"/pulp/api/*"| Pulp
         Nginx -->|"/pulp/content/*"| Pulp
         Nginx -->|"/v2/*"| Pulp
-        Nginx -->|"/pulpit-core/api/*"| PulpitCore[pulpit-core API]
+        Nginx -->|"/pulpit-core/api/*"| PulpitCore["pulpit-core API (127.0.0.1:8000)"]
         Nginx -->|"/keys/*"| PulpitCore
         Nginx -->|"/ui/*"| NotFound["404 (legacy pulp-ui hidden)"]
+        PulpitCore --> PulpitDB[(embedded SQLite)]
+        PulpitCore -.->|jobs, same DB| PulpitWorker["pulpit-worker (uid/gid 700)"]
+        PulpitWorker -->|GPG| GnuPGHome[(GNUPGHOME volume)]
+        PulpitWorker -->|"admin API calls"| Pulp
+        PulpitWorker -.->|"optional: scoped exec (Docker/Podman) or Kubernetes API (K8s)"| DockerProxy[docker-socket-proxy]
     end
     subgraph Pulp
         Pulpcore
@@ -27,36 +36,32 @@ flowchart TB
         pulp_ansible
         Pulpcore --> Postgres[(PostgreSQL, owned by Pulp)]
     end
-    subgraph "pulpit-core (ADR 0006)"
-        PulpitCore --> PulpitCoreDB[(PostgreSQL, owned by pulpit-core)]
-        PulpitCore -.->|jobs, same DB| PulpitWorker[pulpit-worker]
-        PulpitWorker -->|GPG| GnuPGHome[(GNUPGHOME volume)]
-        PulpitWorker -->|"admin API calls"| Pulp
-        PulpitWorker -.->|"optional: scoped exec"| DockerProxy[docker-socket-proxy]
-    end
     PulpitWorker -.->|"shared GNUPGHOME + scripts volumes"| Pulp
     DockerProxy -.->|"CONTAINERS + EXEC only"| Pulp
 ```
 
 Everything in this diagram runs as containers in the Compose dev environment; in production
-`pulp` is whatever Pulp deployment the operator already runs, and `pulpit`/`pulpit-core`/
-`pulpit-worker` are deployed alongside it, all fronted by the same nginx routing rules. See ADR
-0005, ADR 0006, and `docs/DEPLOYMENT.md`.
+`pulp` is whatever Pulp deployment the operator already runs, and `pulpit` is deployed alongside
+it, reached only via `PULP_UPSTREAM` (a plain `host:port`, deployment/docker/pulpit/entrypoint.sh) so Pulp
+can be a sibling container, a Kubernetes Service, or a real remote host with no image change. See
+ADR 0005, ADR 0006, ADR 0007, and `docs/DEPLOYMENT.md`.
 
-## pulpit-core and pulpit-worker (ADR 0006)
+## pulpit-core and pulpit-worker (ADR 0006, merged by ADR 0007)
 
-- **pulpit-core** is a FastAPI service with its own PostgreSQL database. It exposes a versioned,
-  authenticated module API (`/pulpit-core/api/v1/<module>/...`) plus any module's opted-in
-  unauthenticated routes (signing's public key endpoint, `/keys/...`). It validates the caller's
-  existing Pulp session the same way the frontend does (`GET /pulp/api/v3/login/`) — no separate
-  identity store.
+- **pulpit-core** is a FastAPI service backed by an embedded SQLite database by default (still
+  configurable to a real Postgres instead - `app/core/config/settings.py`). It exposes a
+  versioned, authenticated module API (`/pulpit-core/api/v1/<module>/...`) plus any module's
+  opted-in unauthenticated routes (signing's public key endpoint, `/keys/...`). It validates the
+  caller's existing Pulp session the same way the frontend does (`GET /pulp/api/v3/login/`) — no
+  separate identity store.
 - **pulpit-worker** runs the same codebase's background job queue and the signing module's
-  rotation-check scheduler. It is the only process with GPG key material's volume mounted —
-  pulpit-core's API process never has that access, by construction (`docs/signing.md`). It can
-  optionally also reach a scoped `docker-socket-proxy` (Docker Engine API restricted to
-  `CONTAINERS`+`EXEC`, never the raw socket) to automate the one Pulp-side administrative command
-  signing needs — opt-in, falls back to a manual command otherwise (`docs/signing.md` "Automating
-  the manual Pulp step", ADR 0006 "Alternatives considered").
+  rotation-check scheduler, as a separate OS process (uid/gid 700) within the same `pulpit`
+  container as pulpit-core - the only one with GPG key material's volume mounted. pulpit-core's
+  API process never has that access, by construction (`docs/signing.md`, ADR 0007's own
+  entrypoint design). It can optionally also reach a scoped `docker-socket-proxy` (Docker/Podman;
+  Kubernetes uses its own API directly instead, no proxy container) to automate the one Pulp-side
+  administrative command signing needs — opt-in, falls back to a manual command otherwise
+  (`docs/signing.md` "Automating the manual Pulp step", ADR 0006 "Alternatives considered").
 - Structure (`pulpit-core/app/`):
   ```
   app/
@@ -65,12 +70,12 @@ Everything in this diagram runs as containers in the Compose dev environment; in
       config/       # settings (env-var driven, all signing identity defaults overridable)
       database/     # SQLAlchemy session/base
       events/       # in-process pub/sub + durable events_log table
-      jobs/         # generic Postgres-backed job queue (module-agnostic)
+      jobs/         # generic job queue (module-agnostic)
     adapters/
       pulp/         # the only place that constructs a Pulp request (mirrors src/api/client/)
     modules/
       signing/      # first module - see docs/signing.md
-  worker/           # pulpit-worker's entrypoint
+  worker/           # pulpit-worker's own process entrypoint (worker/main.py)
   migrations/       # Alembic
   ```
 - A module owns its routes, models, jobs, and domain logic; it never reaches into another module's
@@ -164,19 +169,27 @@ handling").
 ## Build/runtime architecture
 
 - **Build time**: Node.js + Vite compiles TypeScript/React/PatternFly into static assets
-  (`dist/`). This is the only place Node.js runs.
-- **Runtime**: nginx serves those static assets and reverse-proxies Pulp's API/content/registry
-  paths on the same origin. There is no Node process at runtime — see the `Dockerfile`.
+  (`dist/`), and pulpit-core's own Python package is installed - see the `Dockerfile`. This is
+  the only place Node.js runs; it's never part of the runtime image.
+- **Runtime**: `deployment/docker/pulpit/entrypoint.sh` starts nginx (serving those static assets and
+  reverse-proxying Pulp's API/content/registry paths on the same origin), pulpit-core (uvicorn,
+  as the unprivileged `pulpit` user), and the pulpit-worker job-queue loop (as uid/gid 700) as
+  three separate processes in the same container - see ADR 0007.
 
-## No database, no GPG access in the `pulpit` frontend container
+## Process-level isolation inside the `pulpit` container (ADR 0007)
 
-Worth stating plainly since it's easy to accidentally reintroduce: the `pulpit` container image
-and its Compose service run **only** nginx + static files. There is no Postgres/SQLite/Redis
-service, and no GPG/signing key access, that belongs to the `pulpit` container, and there must
-never be one. All _Pulp_ persistence is Pulp's; the `pulpit-core-db` database (ADR 0006) belongs
-to `pulpit-core` alone and is never read from the frontend.
+Worth stating plainly since it's easy to accidentally erode: even though nginx, pulpit-core, and
+pulpit-worker now share one container/image, they remain three separate OS processes with
+different Unix identities, and this boundary is deliberate, not incidental:
 
-`compose.yml`'s `redis` service is not an exception to this: it's Pulp's own optional HTTP
-response cache (`PULP_CACHE_ENABLED` on the `pulp` service — see `docs/DEPLOYMENT.md` "Redis"),
-configured and consumed entirely by pulpcore. Neither Pulpit's frontend nor pulpit-core talks to
-it directly (pulpit-core's jobs are Postgres-backed — ADR 0006).
+- pulpit-core (the API, reachable from the browser via nginx) runs as the unprivileged `pulpit`
+  user and has **no** access to GNUPGHOME - the volume simply isn't mounted for it to read even
+  if it wanted to, by construction (`docs/signing.md`). Only pulpit-worker (uid/gid 700) has that
+  access.
+- pulpit-core's own database is embedded SQLite (`/var/lib/pulpit`, a dedicated volume) - never
+  Pulp's own data, which remains entirely Pulp's (its own PostgreSQL, never touched by Pulpit
+  directly).
+- `compose.yml`'s `redis` service is unrelated to any of this: it's Pulp's own optional HTTP
+  response cache (`PULP_CACHE_ENABLED` on the `pulp` service — see `docs/DEPLOYMENT.md` "Redis"),
+  configured and consumed entirely by pulpcore. Nothing in the `pulpit` container talks to it
+  directly.

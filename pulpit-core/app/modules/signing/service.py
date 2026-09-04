@@ -3,6 +3,7 @@ API routes. Anything that touches GPG or Pulp signing-service creation is a
 job (jobs.py), never called synchronously from a request handler (task
 section 12: "Long-running work must be asynchronous")."""
 
+import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -39,7 +40,19 @@ def list_keys(db: Session, *, state: KeyState | None = None) -> list[SigningKey]
     return list(db.execute(stmt).scalars())
 
 
-def get_key(db: Session, key_id) -> SigningKey | None:
+def get_key(db: Session, key_id: uuid.UUID | str) -> SigningKey | None:
+    """`key_id` is frequently a plain string here, not a `uuid.UUID` object -
+    every caller in jobs.py reads it back out of a Job's own `payload`
+    (JSON column), and JSON has no native UUID type, so it round-trips as a
+    string. BUG FOUND (against SQLite, embedded mode - docs/DEPLOYMENT.md):
+    Postgres's native `uuid` column silently accepts a well-formed string at
+    the SQL level regardless of the Python-side value's type, which is why
+    this was never noticed there; SQLAlchemy's generic, cross-dialect `Uuid`
+    type (app/core/database/base.py) is stricter and requires an actual
+    `uuid.UUID` Python object to bind a parameter - normalize here, once,
+    rather than at every call site."""
+    if isinstance(key_id, str):
+        key_id = uuid.UUID(key_id)
     return db.get(SigningKey, key_id)
 
 

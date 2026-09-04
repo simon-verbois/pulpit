@@ -2,8 +2,9 @@
 
 This document covers the signing module (`pulpit-core/app/modules/signing/`) end to end: what it
 does, how it's built, the exact Pulp mechanisms it relies on (verified against a live instance, not
-assumed), its trust model, and how to operate it. See ADR 0006 for why `pulpit-core`/
-`pulpit-worker` exist at all, and `docs/ARCHITECTURE.md` for how they fit into the wider system.
+assumed), its trust model, and how to operate it. See ADR 0006 for why pulpit-core/pulpit-worker
+exist at all, ADR 0007 for why they (and nginx) now run inside one `pulpit` container instead of
+three, and `docs/ARCHITECTURE.md` for how they fit into the wider system.
 
 ## What this module does
 
@@ -36,8 +37,9 @@ assumed), its trust model, and how to operate it. See ADR 0006 for why `pulpit-c
 
 ```
 Browser --(session cookie)--> pulpit (nginx) --(same origin)--> pulpit-core API
+                                       \_______________ same "pulpit" container (ADR 0007) ______/
                                                                        |
-                                                          Postgres-backed job queue
+                                                        embedded-SQLite-backed job queue
                                                                        |
                                                                  pulpit-worker
                                                           /             |             \
@@ -54,9 +56,10 @@ Browser --(session cookie)--> pulpit (nginx) --(same origin)--> pulpit-core API
                                                          target of the automated exec above)
 ```
 
-`pulpit-core` (the API process) never has the GPG volume mounted, never imports the GPG-executing
+pulpit-core (the API process) never has the GPG volume mounted, never imports the GPG-executing
 code (`gpg_local.py`, `rpm_resign.py`), and never has Docker exec access - see ADR 0006 and
-"Security model" below. All of that lives only in `pulpit-worker`.
+"Security model" below. All of that lives only in pulpit-worker, a separate OS process (uid/gid 700) within the same container as pulpit-core since ADR 0007 - see that ADR for how the two stay
+isolated from each other despite sharing a container/filesystem.
 
 ## Data model
 
@@ -201,10 +204,13 @@ logic depends only on the interface, never on _how_ a command reaches the Pulp s
 - **A deployment that isn't Docker at all** (the task requirement this was built to satisfy: "le
   backend ne sera pas forcément docker") simply leaves `PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST`
   unset. `build_executor()` then returns `None`, and everything falls back to exactly the manual
-  flow described below - automation is strictly additive, never a hard dependency. A Kubernetes
-  deployment would implement a `KubernetesExecExecutor` (the K8s exec API against a pod selected by
-  label) against the same interface; a bare-metal deployment might use SSH, or a tiny HTTP agent
-  process run alongside Pulp - none of that requires touching `jobs.py` or `pulp_bootstrap.py`.
+  flow described below - automation is strictly additive, never a hard dependency. **A Kubernetes
+  deployment** (`deployment/kube/`, `docs/DEPLOYMENT.md` "Kubernetes") uses exactly this seam:
+  `KubernetesExecExecutor` implements the same `PulpCommandExecutor` interface against the K8s
+  `pods/exec` API instead, selecting the `pulp` pod by the same "label, not a fixed name"
+  convention - VERIFIED end-to-end against a real cluster, not just Docker's manual-fallback path.
+  A bare-metal deployment might use SSH, or a tiny HTTP agent process run alongside Pulp - neither
+  requires touching `jobs.py` or `pulp_bootstrap.py`.
 
 Flow (`signing.check_pulp_bootstrap` job, run on a schedule and after every key/settings change):
 
@@ -236,7 +242,7 @@ to copy-paste now runs itself within a few minutes of a key needing it.
 ## Public key distribution
 
 `GET /keys/<public_key_filename>` (default `RPM-GPG-KEY-pulp`, configurable, unauthenticated,
-proxied straight through nginx — `docker/nginx/pulpit.conf.template`) serves **only the current
+proxied straight through nginx — `deployment/docker/nginx/pulpit.conf.template`) serves **only the current
 ACTIVE key's** public key. There is deliberately no old+new coexistence: publishing a key resigns
 existing content and republishes metadata under it (see above), so there is no transition window
 where a client needs to trust two keys for this repository's content at once, and the URL a
@@ -308,11 +314,12 @@ in-session (see "Known limitations" - fixed, kept as a regression test).
 
 ## Security model
 
-- **Private key material** lives only in the `pulpit_signing_gnupghome` Docker volume, mounted only
-  into `pulpit-worker` and `pulp` (see "Shared volume permissions"). It is never returned by any
-  API response, never rendered in the GUI, never logged, and never present in
-  `pulpit-core`'s own database or the `pulpit` frontend container — enforced by construction (no
-  column, no import of the GPG-executing code outside pulpit-worker) and by tests
+- **Private key material** lives only in the `pulpit_signing_gnupghome` Docker volume, mounted
+  into the `pulpit` container (readable only by pulpit-worker's own uid/gid 700 inside it, never
+  by pulpit-core/nginx running as a different identity in that same container - ADR 0007) and
+  `pulp` (see "Shared volume permissions"). It is never returned by any API response, never
+  rendered in the GUI, never logged, and never present in pulpit-core's own database — enforced by
+  construction (no column, no import of the GPG-executing code outside pulpit-worker) and by tests
   (`tests/unit/test_schemas_no_private_key.py`).
 - **Subprocess safety** (`app/modules/signing/gpg_local.py`, `rpm_resign.py`): every `gpg`/`rpmsign`
   invocation is a fixed argument list (`subprocess.run([...], shell=False)`), never a shell string.
@@ -326,14 +333,17 @@ in-session (see "Known limitations" - fixed, kept as a regression test).
   `pulpit-worker` and `pulp`, restrictive file permissions (`0700`, never world-readable), and the
   `KeyManager` abstraction (`key_manager.py`) — a future HSM/Vault/cloud-KMS backend can require no
   local private-key file at all without changing any of the module's business logic.
-- **Shared volume permissions** (`pulpit-core/worker/entrypoint.sh`): VERIFIED by inspecting a
-  running `docker.io/pulp/pulp:stable` container, `pulpcore-worker` (the process that actually
-  executes signing scripts) runs as uid/gid **700** — not root. `pulpit-worker`'s entrypoint runs
-  as root only long enough to `chown`/`chmod` the two shared volumes to `700:700` (mode `0700` for
-  the GNUPGHOME, `0755` for the scripts, which aren't secret), then drops privileges to uid/gid 700
-  itself (`setpriv --reuid=700 --regid=700`) before running the actual worker process. Both
-  containers therefore see the same numeric uid/gid on the shared volumes without either one being
-  root or the volumes being world-accessible.
+- **Shared volume permissions** (`deployment/docker/pulpit/entrypoint.sh`, ADR 0007 - previously
+  `pulpit-core/worker/entrypoint.sh`, before pulpit-worker had its own separate container/image):
+  VERIFIED by inspecting a running `docker.io/pulp/pulp:stable` container, `pulpcore-worker` (the
+  process that actually executes signing scripts) runs as uid/gid **700** — not root. The `pulpit`
+  container's entrypoint runs as root only long enough to `chown`/`chmod` the two shared volumes to
+  `700:700` (mode `0700` for the GNUPGHOME, `0755` for the scripts, which aren't secret), then
+  drops privileges to uid/gid 700 itself (`setpriv --reuid=700 --regid=700`) before running the
+  actual worker-loop process (nginx and pulpit-core, started by that same entrypoint, run as their
+  own separate, non-700 identities instead - ADR 0007). Both `pulp` and the worker loop therefore
+  see the same numeric uid/gid on the shared volumes without either one being root or the volumes
+  being world-accessible.
 - **Scoped Docker access** (`docker-socket-proxy`, "Automating the manual Pulp step" above): a real,
   audited reduction from the raw Docker socket, but still a privilege that lets pulpit-worker exec
   arbitrary commands inside the `pulp` container. It is opt-in (unset by default in a deployment

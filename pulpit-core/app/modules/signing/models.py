@@ -1,12 +1,12 @@
 import enum
+import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.config import get_settings
-from app.core.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.core.database.base import Base, TimestampMixin, UTCDateTime, UUIDPrimaryKeyMixin
 
 
 class KeyState(str, enum.Enum):
@@ -97,10 +97,10 @@ class SigningKey(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # query *filter* using the same column doesn't hit this (Postgres does
     # the comparison, not Python), which is why this went unnoticed until a
     # real key with a real expiry was actually evaluated by the scheduler.
-    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    retiring_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    activated_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    retiring_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    retired_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
 
 class PulpServicePurpose(str, enum.Enum):
@@ -140,8 +140,8 @@ class SigningPulpService(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     status: Mapped[PulpServiceStatus] = mapped_column(
         String(24), default=PulpServiceStatus.PENDING_MANUAL_SETUP
     )
-    signing_key_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("signing_keys.id"), nullable=True
+    signing_key_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("signing_keys.id"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(255))
     pulp_href: Mapped[str | None] = mapped_column(String(512), nullable=True)
@@ -158,8 +158,10 @@ class SigningRotation(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     triggered_by: Mapped[str] = mapped_column(String(32))  # "schedule" | "manual"
     phase: Mapped[str] = mapped_column(String(32))  # "generated"|"activated"|"retiring"|"retired"
-    from_key_id: Mapped[UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("signing_keys.id"), nullable=True
+    from_key_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("signing_keys.id"), nullable=True
     )
-    to_key_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("signing_keys.id"))
+    to_key_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("signing_keys.id")
+    )
     notes: Mapped[str] = mapped_column(Text, default="")

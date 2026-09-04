@@ -1,12 +1,33 @@
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 
 _engine = create_engine(get_settings().database_url, pool_pre_ping=True, future=True)
+
+if _engine.dialect.name == "sqlite":
+    # Embedded-SQLite mode (docs/DEPLOYMENT.md,
+    # docs/adr/0007-merged-pulpit-container.md): the API and the worker loop
+    # are separate OS processes (even sharing one container) that both open
+    # their own connection to the same file - SQLite's default rollback-
+    # journal mode only allows one writer at a time and fails fast
+    # ("database is locked") rather than waiting, which the worker's every-
+    # few-seconds polling would hit constantly. WAL mode allows concurrent
+    # readers alongside the one writer (this app's actual access pattern -
+    # never two writers at once in practice), and busy_timeout makes the
+    # rare genuine contention retry briefly instead of erroring immediately.
+    # No-op for Postgres (this block never runs), which handles concurrent
+    # writers natively.
+    @event.listens_for(_engine, "connect")
+    def _set_sqlite_pragmas(dbapi_connection, connection_record) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
+
 SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False, future=True)
 
 

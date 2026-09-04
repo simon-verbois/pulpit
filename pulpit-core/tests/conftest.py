@@ -1,11 +1,15 @@
 """Test infrastructure.
 
-Requires a real, disposable PostgreSQL instance (docs/TESTING.md's mocking
-policy for the main frontend applies here too: "real integration ... remains
-mandatory", and this module's models use Postgres-specific types - JSONB,
-native UUID - that a SQLite substitute couldn't exercise faithfully).
-Point PULPIT_CORE_DATABASE_URL at one (the `pulpit-core-db` Compose service,
-or any throwaway `docker run postgres:16-alpine`) before running `pytest`.
+Requires a real, disposable database (docs/TESTING.md's mocking policy for
+the main frontend applies here too: "real integration ... remains
+mandatory"). Defaults to PostgreSQL (the `pulpit-core-db` Compose service,
+or any throwaway `docker run postgres:16-alpine`) since that's this
+project's primary/CI-tested target, but every model uses only
+dialect-generic SQLAlchemy types (sqlalchemy.Uuid/JSON, never the
+Postgres-only postgresql.UUID/JSONB - VERIFIED round-trip identically on
+both) specifically so the same test suite also runs against SQLite
+(embedded mode, docs/DEPLOYMENT.md) - point PULPIT_CORE_DATABASE_URL at a
+`sqlite:///...` path to exercise that instead.
 """
 
 import os

@@ -2,11 +2,10 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Index, String
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.core.database.base import Base, TimestampMixin, UTCDateTime, UUIDPrimaryKeyMixin
 
 
 class JobStatus(str, enum.Enum):
@@ -35,8 +34,11 @@ class Job(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[JobStatus] = mapped_column(
         String(16), nullable=False, default=JobStatus.QUEUED
     )
-    payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Generic JSON, not Postgres-only JSONB - VERIFIED no JSONB-specific
+    # query features used anywhere on these columns, portable to SQLite
+    # (embedded mode, see docs/DEPLOYMENT.md).
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error: Mapped[str | None] = mapped_column(nullable=True)
     attempts: Mapped[int] = mapped_column(default=0)
     max_attempts: Mapped[int] = mapped_column(default=3)
@@ -44,9 +46,9 @@ class Job(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # SigningKey docstring for the naive-vs-aware bug this avoids; not yet
     # observed here (query *filters* on these compare in SQL, not Python -
     # see claim_next_job), but fixed for the same reason and consistency.
-    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    scheduled_at: Mapped[datetime] = mapped_column(UTCDateTime, nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     # Free-text label of who/what requested it (a Pulp username, or
     # "scheduler" for automatic rotation checks) - audit trail only, not an
     # identity/auth mechanism.

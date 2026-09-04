@@ -16,8 +16,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PULPIT_CORE_", extra="ignore")
 
     # --- Generic infrastructure -------------------------------------------------
+    # Embedded SQLite by default (docs/adr/0007-merged-pulpit-container.md) -
+    # no separate DB container/service needed. Every model uses only
+    # dialect-generic SQLAlchemy types (sqlalchemy.Uuid/JSON, never the
+    # Postgres-only postgresql.UUID/JSONB - VERIFIED round-trip identically
+    # on both) specifically so this default and a real Postgres URL both
+    # work unchanged. Never Pulp's own database either way - see ADR 0006.
     database_url: str = Field(
-        default="postgresql+psycopg://pulpit_core:pulpit_core@pulpit-core-db:5432/pulpit_core",
+        default="sqlite:////var/lib/pulpit/pulpit-core.db",
         description="pulpit-core's OWN database. Never Pulp's - see ADR 0006.",
     )
     log_level: str = "INFO"
