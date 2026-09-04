@@ -5,7 +5,7 @@ Pulpit's own calendar scheme (`YYYY.WW.PATCH` — the ISO year/week of the relea
 counter for same-week releases), tracked in [`VERSION`](VERSION) and shown in the app's own
 footer.
 
-## 2026.36.3 — 2026-09-04
+## 2026.36.4 — 2026-09-04
 
 ### Added
 
