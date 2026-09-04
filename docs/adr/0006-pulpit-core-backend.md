@@ -116,6 +116,13 @@ Browser -> Pulpit (nginx, static SPA - unchanged, still no backend of its own)
   automation degrades to exactly the original manual-command flow with no loss of function. See
   `docs/signing.md` "Automating the manual Pulp step."
 
+  **Acted on**: `KubernetesExecExecutor` (same file) implements this same interface against the
+  Kubernetes `pods/exec` API for `deployment/kube/` (`docs/DEPLOYMENT.md` "Kubernetes") - VERIFIED end-to-end
+  against a real cluster, not just designed-for. Also VERIFIED live that `DockerExecExecutor`
+  itself (and its scoped socket-proxy) work against Podman's Docker-API-compatible socket too,
+  once one real SELinux confinement gotcha is worked around (`deployment/podman/`,
+  `docs/DEPLOYMENT.md` "Podman") - the interface didn't need to change at all for either.
+
 - **Reuse Pulp's own Postgres for pulpit-core's tables**: rejected - it would make pulpit-core's
   schema Pulp's problem during upgrades/migrations and reintroduce exactly the "second system
   quietly depends on the first system's internals" coupling ADR 0001 was written to avoid. A

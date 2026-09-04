@@ -1,0 +1,41 @@
+# Non-secret configuration, mirroring compose.yml's plain `environment:`
+# values 1:1 - see that file's own comments for the reasoning behind each
+# one. Split from 00-secret.example.yaml so this file can be applied
+# and diffed freely (no real credentials in it).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pulpit-config
+data:
+  # host:port of the Pulp Service (pulp.yaml) - a plain string nginx (inside
+  # the merged pulpit image, docs/adr/0007-merged-pulpit-container.md) never
+  # interprets further, so Pulp could equally be a different Service, a
+  # different namespace (a fully-qualified Service DNS name), or a real
+  # external host, with no image change. No equivalent var is needed for
+  # pulpit-core's own API - nginx and it now run in the same Pod/container,
+  # always reachable at a fixed http://127.0.0.1:8000.
+  PULP_UPSTREAM: "pulp:80"
+  PULPIT_CORE_PULP_BASE_URL: "http://pulp:80"
+  PULPIT_CORE_PULP_SERVICE_USERNAME: "admin"
+
+  # Must be a JSON array, not a bare string (dynaconf otherwise iterates it
+  # character-by-character - VERIFIED, docs/DEPLOYMENT.md "CSRF_TRUSTED_
+  # ORIGINS"). Edit this to match wherever pulpit.yaml's Ingress/Service
+  # actually exposes the app publicly.
+  PULP_CSRF_TRUSTED_ORIGINS: '["http://localhost:8080"]'
+
+  PULP_CACHE_ENABLED: "true"
+  PULP_REDIS_HOST: "redis"
+  PULP_REDIS_PORT: "6379"
+  # See compose.yml's own comment: pulp_container's registry token auth
+  # needs a signing keypair this bootstrap doesn't generate - disabling it
+  # falls back to the same session/Basic auth used everywhere else. Do not
+  # carry this into a real production deployment.
+  PULP_TOKEN_AUTH_DISABLED: "true"
+
+  # KubernetesExecExecutor's pod-label selector (app/adapters/pulp/
+  # executor.py) - matches pulp.yaml's Deployment/Pod `app: pulp` label.
+  # The namespace itself is NOT set here - pulpit.yaml's worker loop reads
+  # it from the Kubernetes Downward API instead (whatever namespace this is
+  # actually applied into), so nothing here needs editing to match it.
+  PULPIT_CORE_PULP_EXECUTOR_KUBERNETES_POD_LABEL: "app=pulp"

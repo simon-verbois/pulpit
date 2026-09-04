@@ -1,0 +1,101 @@
+# nginx + pulpit-core + pulpit-worker merged into one container
+# (docs/adr/0007-merged-pulpit-container.md) - mirrors compose.yml's
+# `pulpit` service. The only pod meant to be reachable from outside this
+# host (hostPort below); `pulp`/`redis`/`docker-socket-proxy` are
+# reachable by pod name on the internal Podman network only. Its own
+# database is embedded SQLite (the `pulpit-data` PVC below), not a
+# separate Postgres pod - app/core/config/settings.py.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pulpit
+  labels:
+    app: pulpit
+spec:
+  # Waits for `pulp` to actually answer before starting the main
+  # container - VERIFIED live `initContainers` run and block correctly
+  # under `podman play kube`. Not strictly required (the worker loop's own
+  # scheduled jobs simply fail-and-retry on their next poll if Pulp isn't
+  # up yet - app/core/jobs), but avoids a burst of confusing "Connection
+  # refused" log lines on every fresh deploy, matching compose.yml's own
+  # `depends_on: pulp: condition: service_healthy`.
+  initContainers:
+    - name: wait-for-pulp
+      image: docker.io/pulp/pulp:stable
+      command:
+        - sh
+        - -c
+        - |
+          until curl -sf http://pulp:80/pulp/api/v3/status/ >/dev/null 2>&1; do
+            echo "waiting for pulp..."
+            sleep 5
+          done
+  containers:
+    - name: pulpit
+      image: docker.io/simonverbois/pulpit:latest
+      envFrom:
+        - configMapRef:
+            name: pulpit-config
+      env:
+        - name: PULPIT_CORE_PULP_SERVICE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pulpit-secrets
+              key: PULP_ADMIN_PASSWORD
+        - name: PULPIT_CORE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pulpit-secrets
+              key: PULPIT_CORE_SECRET_KEY
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+      volumeMounts:
+        - name: pulpit-data
+          mountPath: /var/lib/pulpit
+        - name: pulpit-signing-gnupghome
+          mountPath: /var/lib/pulpit-signing/gnupg
+        - name: pulpit-signing-scripts
+          mountPath: /var/lib/pulpit-signing/scripts
+      # Through nginx, not pulpit-core's own port directly - VERIFIED this
+      # exercises the whole proxy chain (nginx -> pulpit-core), not just
+      # one of the two.
+      readinessProbe:
+        httpGet:
+          path: /pulpit-core/api/v1/health
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 5
+      livenessProbe:
+        httpGet:
+          path: /pulpit-core/api/v1/health
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 5
+  volumes:
+    - name: pulpit-data
+      persistentVolumeClaim:
+        claimName: pulpit-data
+    # Declared in pulp.yaml - the same named Podman volume, shared between
+    # the two pods (docs/signing.md "Shared volume permissions"). Apply
+    # pulp.yaml first (./deploy.sh does) so these already exist.
+    - name: pulpit-signing-gnupghome
+      persistentVolumeClaim:
+        claimName: pulpit-signing-gnupghome
+    - name: pulpit-signing-scripts
+      persistentVolumeClaim:
+        claimName: pulpit-signing-scripts

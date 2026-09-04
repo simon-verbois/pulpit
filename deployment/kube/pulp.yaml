@@ -1,0 +1,220 @@
+# Mirrors compose.yml's `pulp` service. Single replica, single set of
+# ReadWriteOnce volumes - Pulp itself has no multi-instance story in this
+# bootstrap (same scope as the Compose deployment).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pulp-init-admin-password-script
+data:
+  # Identical to deployment/docker/pulp/init-admin-password.sh - compose.yml bind-mounts
+  # that file directly from the repo; Kubernetes has no host-path bind mount
+  # equivalent that's portable across clusters, so its content is inlined
+  # here instead and mounted as a file (see the Deployment's volumeMounts/
+  # postStart below). Keep both copies in sync if either one changes.
+  init-admin-password.sh: |
+    #!/bin/sh
+    set -eu
+
+    if [ -z "${PULP_ADMIN_PASSWORD:-}" ]; then
+      echo "pulpit-init-admin-password: PULP_ADMIN_PASSWORD not set, leaving the admin account untouched."
+      exit 0
+    fi
+
+    echo "pulpit-init-admin-password: PULP_ADMIN_PASSWORD is set, waiting for Pulp to finish initializing..."
+
+    attempt=0
+    max_attempts=30
+    until pulpcore-manager reset-admin-password --password "$PULP_ADMIN_PASSWORD" >/tmp/pulpit-init-admin-password.log 2>&1; do
+      attempt=$((attempt + 1))
+      if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "pulpit-init-admin-password: giving up after $max_attempts attempts. Last output:" >&2
+        cat /tmp/pulpit-init-admin-password.log >&2
+        exit 1
+      fi
+      sleep 5
+    done
+
+    echo "pulpit-init-admin-password: admin password set from PULP_ADMIN_PASSWORD."
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-etc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-var-lib-pulp
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-var-lib-pgsql
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-var-lib-containers
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Shared with pulpit-worker.yaml (docs/signing.md "Shared volume
+# permissions") - REQUIRES a storageClass that supports ReadWriteMany
+# (e.g. NFS, CephFS/rook-ceph, EFS on EKS, Filestore on GKE, Azure Files on
+# AKS - VERIFIED this is NOT guaranteed available on every cluster; several
+# default local-path provisioners, e.g. kind's/k3s's, are ReadWriteOnce
+# only). Uses the default storageClass below - set `storageClassName`
+# explicitly if your cluster's default doesn't support RWX.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-signing-gnupghome
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-signing-scripts
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulp
+  labels:
+    app: pulp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: pulp
+  template:
+    metadata:
+      labels:
+        app: pulp
+    spec:
+      containers:
+        - name: pulp
+          image: docker.io/pulp/pulp:stable
+          env:
+            - name: PULP_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pulpit-secrets
+                  key: PULP_SECRET_KEY
+            - name: PULP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pulpit-secrets
+                  key: PULP_ADMIN_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: pulpit-config
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: pulp-etc
+              mountPath: /etc/pulp
+            - name: pulp-var-lib-pulp
+              mountPath: /var/lib/pulp
+            - name: pulp-var-lib-pgsql
+              mountPath: /var/lib/pgsql
+            - name: pulp-var-lib-containers
+              mountPath: /var/lib/containers
+            - name: init-admin-password-script
+              mountPath: /usr/local/bin/pulpit-init-admin-password.sh
+              subPath: init-admin-password.sh
+            # VERIFIED live (docs/signing.md "Shared volume permissions"):
+            # pulpcore-worker inside this image runs as uid/gid 700 - the
+            # scripts volume is read-only from Pulp's own side, matching
+            # compose.yml's `:ro`.
+            - name: pulpit-signing-gnupghome
+              mountPath: /var/lib/pulpit-signing/gnupg
+            - name: pulpit-signing-scripts
+              mountPath: /var/lib/pulpit-signing/scripts
+              readOnly: true
+          # Runs once the container's own init (s6-overlay) has started it -
+          # same "extra step after the image's own entrypoint" semantics as
+          # compose.yml's post_start, just Kubernetes' own equivalent hook.
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/usr/local/bin/pulpit-init-admin-password.sh"]
+          readinessProbe:
+            httpGet:
+              path: /pulp/api/v3/status/
+              port: 80
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /pulp/api/v3/status/
+              port: 80
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 10
+      volumes:
+        - name: pulp-etc
+          persistentVolumeClaim:
+            claimName: pulp-etc
+        - name: pulp-var-lib-pulp
+          persistentVolumeClaim:
+            claimName: pulp-var-lib-pulp
+        - name: pulp-var-lib-pgsql
+          persistentVolumeClaim:
+            claimName: pulp-var-lib-pgsql
+        - name: pulp-var-lib-containers
+          persistentVolumeClaim:
+            claimName: pulp-var-lib-containers
+        - name: init-admin-password-script
+          configMap:
+            name: pulp-init-admin-password-script
+            defaultMode: 0755
+        - name: pulpit-signing-gnupghome
+          persistentVolumeClaim:
+            claimName: pulpit-signing-gnupghome
+        - name: pulpit-signing-scripts
+          persistentVolumeClaim:
+            claimName: pulpit-signing-scripts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pulp
+spec:
+  selector:
+    app: pulp
+  ports:
+    - port: 80
+      targetPort: 80

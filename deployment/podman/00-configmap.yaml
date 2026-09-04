@@ -1,0 +1,46 @@
+# Non-secret configuration, mirroring compose.yml's plain `environment:`
+# values 1:1 - see that file's own comments for the reasoning behind each
+# one. Split from 00-secret.example.yaml so this file can be applied and
+# diffed freely (no real credentials in it).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pulpit-config
+data:
+  # host:port of the `pulp` pod - a plain string nginx (inside the merged
+  # pulpit image, docs/adr/0007-merged-pulpit-container.md) never
+  # interprets further. Resolvable by pod name alone under `podman play
+  # kube` - VERIFIED live: Podman's own DNS registers every pod's name
+  # automatically, no Service/Ingress object needed for this.
+  PULP_UPSTREAM: "pulp:80"
+  PULPIT_CORE_PULP_BASE_URL: "http://pulp:80"
+  PULPIT_CORE_PULP_SERVICE_USERNAME: "admin"
+
+  # Must be a JSON array, not a bare string (dynaconf otherwise iterates it
+  # character-by-character - VERIFIED, docs/DEPLOYMENT.md "CSRF_TRUSTED_
+  # ORIGINS"). Edit this to match wherever `pulpit.yaml`'s hostPort
+  # actually exposes the app publicly.
+  PULP_CSRF_TRUSTED_ORIGINS: '["http://localhost:8080"]'
+
+  PULP_CACHE_ENABLED: "true"
+  PULP_REDIS_HOST: "redis"
+  PULP_REDIS_PORT: "6379"
+  # See compose.yml's own comment: pulp_container's registry token auth
+  # needs a signing keypair this bootstrap doesn't generate - disabling it
+  # falls back to the same session/Basic auth used everywhere else. Do not
+  # carry this into a real production deployment.
+  PULP_TOKEN_AUTH_DISABLED: "true"
+
+  # DockerExecExecutor (app/adapters/pulp/executor.py), NOT
+  # KubernetesExecExecutor - there is no Kubernetes API server here at all
+  # under `podman play kube` (it only interprets a subset of Kubernetes
+  # YAML client-side against the local Podman engine, VERIFIED: "Supported
+  # kinds are Pods, Deployments, DaemonSets, Jobs, and
+  # PersistentVolumeClaims" - no RBAC, no real pods/exec subresource), so
+  # this stack uses the exact same mechanism as compose.yml
+  # (docker-socket-proxy.yaml below) instead. VERIFIED live: a Pod's
+  # `metadata.labels` (pulp.yaml's `app: pulp`) become real, queryable
+  # container labels under Podman - `docker-py`'s own label filter finds
+  # them exactly like it does a Compose-created container.
+  PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST: "tcp://docker-socket-proxy:2375"
+  PULPIT_CORE_PULP_EXECUTOR_CONTAINER_LABEL: "app=pulp"

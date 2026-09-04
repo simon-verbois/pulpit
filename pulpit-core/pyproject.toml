@@ -25,6 +25,10 @@ dependencies = [
   # pyproject because it's a plain library dependency with no capability of
   # its own; the worker image is the only one with DOCKER_HOST reachable.
   "docker>=7.1,<8",
+  # Same reasoning as docker above, for KubernetesExecExecutor
+  # (app/adapters/pulp/executor.py) - only meaningful when pulpit-worker
+  # actually runs inside a Kubernetes cluster (deployment/kube/pulpit.yaml).
+  "kubernetes>=31,<32",
 ]
 
 [project.optional-dependencies]

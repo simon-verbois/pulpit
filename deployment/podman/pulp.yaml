@@ -1,0 +1,183 @@
+# Mirrors compose.yml's `pulp` service. Single instance, same image.
+#
+# No postStart-hook equivalent under `podman play kube` (VERIFIED live:
+# tried, the command never actually ran - a real, confirmed limitation, not
+# an oversight) and a separate Job pod can't reach this pod's *own*
+# internal Postgres (`/var/lib/pgsql`, bundled inside this one container,
+# never network-exposed) to run `pulpcore-manager reset-admin-password`
+# itself. `./deploy.sh` runs the same script this file bind-mounts in
+# (`../docker/pulp/init-admin-password.sh`) via `podman exec` instead, once
+# this pod is healthy - the same idea as compose.yml's `post_start` hook,
+# just orchestrated by a script instead of expressible in the YAML itself.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-etc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-var-lib-pulp
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-var-lib-pgsql
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulp-var-lib-containers
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Shared with pulpit.yaml (docs/signing.md "Shared volume permissions") -
+# plain Podman named volumes under the hood, same as every other PVC here;
+# ReadWriteMany is only meaningful on a real multi-node Kubernetes cluster
+# (deployment/kube/), not on a single Podman host, where any PVC is already usable by
+# as many local pods as reference it by name.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-signing-gnupghome
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-signing-scripts
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pulp
+  labels:
+    # Matches PULPIT_CORE_PULP_EXECUTOR_CONTAINER_LABEL in 00-configmap.yaml
+    # - VERIFIED live this Pod label becomes a real, queryable container
+    # label under Podman, exactly like Compose's own automatic
+    # `com.docker.compose.service` label did.
+    app: pulp
+spec:
+  containers:
+    - name: pulp
+      image: docker.io/pulp/pulp:stable
+      # VERIFIED live (`ausearch -m avc`, same class of denial as
+      # docker-socket-proxy.yaml's own comment): a confined container
+      # can't read a plain hostPath-mounted file either
+      # (`init-admin-password-script` below) without this - SELinux denies
+      # `container_t` opening a host file still labeled `user_tmp_t`/
+      # `default_t`, unrelated to Unix permission bits (VERIFIED the file
+      # was already world-readable and this still failed). A no-op on
+      # hosts without SELinux enforcing.
+      securityContext:
+        seLinuxOptions:
+          type: spc_t
+      envFrom:
+        - configMapRef:
+            name: pulpit-config
+      env:
+        - name: PULP_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pulpit-secrets
+              key: PULP_SECRET_KEY
+        - name: PULP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pulpit-secrets
+              key: PULP_ADMIN_PASSWORD
+      ports:
+        # Dev-only convenience port (docs/DEVELOPMENT.md Mode A), bound to
+        # loopback only - matches compose.yml's own `127.0.0.1:` binding.
+        # Remove if you don't need it.
+        - containerPort: 80
+          hostPort: 8180
+          hostIP: 127.0.0.1
+      volumeMounts:
+        - name: pulp-etc
+          mountPath: /etc/pulp
+        - name: pulp-var-lib-pulp
+          mountPath: /var/lib/pulp
+        - name: pulp-var-lib-pgsql
+          mountPath: /var/lib/pgsql
+        - name: pulp-var-lib-containers
+          mountPath: /var/lib/containers
+        - name: init-admin-password-script
+          mountPath: /usr/local/bin/pulpit-init-admin-password.sh
+          readOnly: true
+        - name: pulpit-signing-gnupghome
+          mountPath: /var/lib/pulpit-signing/gnupg
+        - name: pulpit-signing-scripts
+          mountPath: /var/lib/pulpit-signing/scripts
+          readOnly: true
+      readinessProbe:
+        httpGet:
+          path: /pulp/api/v3/status/
+          port: 80
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 10
+        failureThreshold: 10
+      livenessProbe:
+        httpGet:
+          path: /pulp/api/v3/status/
+          port: 80
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 10
+        failureThreshold: 10
+  volumes:
+    - name: pulp-etc
+      persistentVolumeClaim:
+        claimName: pulp-etc
+    - name: pulp-var-lib-pulp
+      persistentVolumeClaim:
+        claimName: pulp-var-lib-pulp
+    - name: pulp-var-lib-pgsql
+      persistentVolumeClaim:
+        claimName: pulp-var-lib-pgsql
+    - name: pulp-var-lib-containers
+      persistentVolumeClaim:
+        claimName: pulp-var-lib-containers
+    # Bind-mounted from source, same file compose.yml uses, read-only.
+    # __PULPIT_REPO_ROOT__ is substituted by ./deploy.sh at apply time
+    # (hostPath requires an absolute path, and YAML has no built-in
+    # variable interpolation) - edit this directly to an absolute path
+    # instead if you apply this file without deploy.sh.
+    - name: init-admin-password-script
+      hostPath:
+        path: __PULPIT_REPO_ROOT__/deployment/docker/pulp/init-admin-password.sh
+        type: File
+    - name: pulpit-signing-gnupghome
+      persistentVolumeClaim:
+        claimName: pulpit-signing-gnupghome
+    - name: pulpit-signing-scripts
+      persistentVolumeClaim:
+        claimName: pulpit-signing-scripts

@@ -88,6 +88,20 @@ class Settings(BaseSettings):
     # process never imports app.adapters.pulp.executor.
     pulp_executor_docker_host: str = ""
     pulp_executor_container_label: str = "com.docker.compose.service=pulp"
+    # Kubernetes equivalent (build_executor() prefers this over the Docker
+    # settings above when set - see that function's own docstring for why a
+    # deployment would only ever set one of the two). Namespace is required
+    # to enable this executor at all; the pod label selector has a sensible
+    # default matching deployment/kube/pulp.yaml's own `app: pulp` label, same
+    # "selector, not a fixed name" convention as pulp_executor_container_label
+    # (a rolling update naturally changes the pod name, never the label).
+    # VERIFIED there is no environment variable equivalent to
+    # PULP_EXECUTOR_DOCKER_HOST needed here: `config.load_incluster_config()`
+    # (executor.py) reads the ServiceAccount token/CA cert Kubernetes itself
+    # automatically mounts into every pod - the standard, idiomatic way any
+    # in-cluster client authenticates to the API server, no manual wiring.
+    pulp_executor_kubernetes_namespace: str = ""
+    pulp_executor_kubernetes_pod_label: str = "app=pulp"
 
 
 @lru_cache

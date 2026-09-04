@@ -1,0 +1,189 @@
+# nginx (static SPA + reverse proxy, ADR 0005) + pulpit-core (API,
+# ADR 0006) + pulpit-worker (job queue/signing automation,
+# docs/signing.md) merged into one container/image
+# (docs/adr/0007-merged-pulpit-container.md) - mirrors compose.yml's
+# `pulpit` service. The only workload reachable from outside the cluster
+# (Service/Ingress below); Pulp (pulp.yaml) is internal-only, same trust
+# boundary as under Compose. Its own database is embedded SQLite (the
+# `pulpit-data` PVC below), not a separate Postgres Deployment -
+# app/core/config/settings.py.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pulpit
+---
+# Deliberately a namespaced Role, not a ClusterRole - VERIFIED
+# KubernetesExecExecutor (app/adapters/pulp/executor.py, used by this Pod's
+# own worker loop) only ever calls list_namespaced_pod/
+# connect_get_namespaced_pod_exec, both scoped to the one namespace this is
+# applied into. Narrower than compose.yml's docker-socket-proxy
+# (CONTAINERS+EXEC+POST across every container Docker/Podman knows about) -
+# this can only ever see/exec into pods in this exact namespace. No
+# DOCKER_HOST-equivalent connection string needed either - authenticated
+# via this ServiceAccount's own token, the standard in-cluster auth every
+# pod already has.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pulpit-exec
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    # BUG FOUND LIVE (validated against a real kind cluster + a real
+    # ServiceAccount token, not assumed from Kubernetes' own general exec
+    # docs): the official `kubernetes` Python client's
+    # `connect_get_namespaced_pod_exec` performs the websocket upgrade as
+    # an HTTP GET, so the API server's RBAC check is against the "get"
+    # verb, not "create" (the verb `kubectl exec` itself uses, via a
+    # different SPDY-based code path). "create" is included too since it's
+    # the more commonly-documented verb and costs nothing extra.
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pulpit-exec
+subjects:
+  - kind: ServiceAccount
+    name: pulpit
+roleRef:
+  kind: Role
+  name: pulpit-exec
+  apiGroup: rbac.authorization.k8s.io
+---
+# pulpit-core's own embedded SQLite database - ReadWriteOnce is enough,
+# unlike pulp.yaml's signing PVCs below (only ever mounted by this one Pod).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulpit
+  labels:
+    app: pulpit
+spec:
+  replicas: 1
+  # A single ReadWriteOnce PVC (pulpit-data above) can't be attached to two
+  # pods at once - a rolling update would deadlock waiting for the new
+  # pod's volume while the old one still holds it.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: pulpit
+  template:
+    metadata:
+      labels:
+        app: pulpit
+    spec:
+      serviceAccountName: pulpit
+      containers:
+        - name: pulpit
+          image: docker.io/simonverbois/pulpit:latest
+          envFrom:
+            - configMapRef:
+                name: pulpit-config
+          env:
+            - name: PULPIT_CORE_PULP_SERVICE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pulpit-secrets
+                  key: PULP_ADMIN_PASSWORD
+            - name: PULPIT_CORE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pulpit-secrets
+                  key: PULPIT_CORE_SECRET_KEY
+            # The Role/RoleBinding above only grant access within this
+            # namespace anyway, but KubernetesExecExecutor needs to know
+            # which one to actually call the API with - read from the
+            # Downward API rather than hardcoded, so nothing here needs
+            # editing when this is applied into a different namespace.
+            - name: PULPIT_CORE_PULP_EXECUTOR_KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: pulpit-data
+              mountPath: /var/lib/pulpit
+            - name: pulpit-signing-gnupghome
+              mountPath: /var/lib/pulpit-signing/gnupg
+            - name: pulpit-signing-scripts
+              mountPath: /var/lib/pulpit-signing/scripts
+          # Through nginx, not pulpit-core's own port directly - VERIFIED
+          # this exercises the whole proxy chain (nginx -> pulpit-core),
+          # not just one of the two.
+          readinessProbe:
+            httpGet:
+              path: /pulpit-core/api/v1/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /pulpit-core/api/v1/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: pulpit-data
+          persistentVolumeClaim:
+            claimName: pulpit-data
+        - name: pulpit-signing-gnupghome
+          persistentVolumeClaim:
+            claimName: pulpit-signing-gnupghome
+        - name: pulpit-signing-scripts
+          persistentVolumeClaim:
+            claimName: pulpit-signing-scripts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pulpit
+spec:
+  selector:
+    app: pulpit
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# Optional - needs an Ingress controller already installed in the cluster
+# (nginx-ingress, traefik, etc.) and `host` below changed to your real
+# hostname (must also match PULP_CSRF_TRUSTED_ORIGINS in 00-configmap.yaml -
+# get this wrong and logins work but every subsequent action 403s, same
+# CSRF requirement as under Compose - docs/DEPLOYMENT.md). Skip this file
+# entirely and use `kubectl port-forward svc/pulpit 8080:8080` instead for a
+# quick local try without any Ingress controller at all.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pulpit
+spec:
+  rules:
+    - host: pulpit.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pulpit
+                port:
+                  number: 8080
