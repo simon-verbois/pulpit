@@ -360,7 +360,10 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
                         </FormGroup>
                       </GridItem>
                       <GridItem span={3}>
-                        <FormGroup label="Old public key retention" fieldId="retention-days">
+                        <FormGroup
+                          label="Old public key retention"
+                          fieldId="retention-days"
+                        >
                           <NumberInput
                             id="retention-days"
                             value={settings.key_retention_days}
