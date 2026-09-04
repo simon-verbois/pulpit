@@ -3,7 +3,7 @@ import { fromNetworkFailure, toPulpApiError } from "../../errors/PulpApiError";
 
 // Same-origin, relative-only requests (ADR 0005/0006) - pulpit-core is
 // reached through the same nginx origin as Pulp, never a separate
-// hostname/port. See docker/nginx/pulpit.conf.template ("/pulpit-core/api/").
+// hostname/port. See deployment/docker/nginx/pulpit.conf.template ("/pulpit-core/api/").
 const API_BASE_PATH = "/pulpit-core/api/v1";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);

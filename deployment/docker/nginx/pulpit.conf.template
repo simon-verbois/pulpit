@@ -1,28 +1,41 @@
-# Same-origin reverse proxy for Pulpit + Pulp (ADR 0005).
-# ${PULP_UPSTREAM} is substituted by the base nginx image's entrypoint
-# (envsubst-on-templates) from the container environment - see the
-# pulpit service's `environment` in compose.yml.
+# Same-origin reverse proxy for Pulpit + Pulp (ADR 0005). Since the merge
+# (docs/adr/0007-merged-pulpit-container.md), nginx, pulpit-core, and
+# pulpit-worker all run in this same container - only Pulp itself is a
+# separate, externally-addressable service, reached via ${PULP_UPSTREAM}
+# (a plain host:port, substituted by deployment/docker/pulpit/entrypoint.sh - never a
+# fixed Compose-network hostname, so Pulp can be a sibling container, a
+# Kubernetes Service, or a real remote host with no code change).
+# pulpit-core itself is always plain http://127.0.0.1:8000 below - no
+# variable needed, it can never be anywhere but this same container.
 server {
     listen 8080;
     server_name _;
 
     # VERIFIED: a bare `proxy_pass http://pulp:80` resolves "pulp" to an IP
     # once (at config load / first use) and keeps using it - if the `pulp`
-    # container is later recreated (e.g. after an env var change) without
-    # also restarting `pulpit`, nginx keeps proxying to the now-dead old IP
-    # and every request 502s even though Pulp itself is healthy. Using a
-    # variable in proxy_pass, together with a resolver pointed at Docker's
-    # embedded DNS (127.0.0.11 on any Compose-created network), forces nginx
-    # to re-resolve the hostname instead of caching it for the worker's
-    # lifetime.
-    resolver 127.0.0.11 valid=10s;
+    # container/pod is later recreated (e.g. after an env var change or a
+    # Kubernetes rollout) without also restarting `pulpit`, nginx keeps
+    # proxying to the now-dead old IP and every request 502s even though
+    # Pulp itself is healthy. Using a variable in proxy_pass, together with
+    # an explicit resolver, forces nginx to re-resolve the hostname instead
+    # of caching it for the worker's lifetime.
+    #
+    # ${NGINX_LOCAL_RESOLVERS} is auto-detected from /etc/resolv.conf by the
+    # base nginx image's own /docker-entrypoint.d/15-local-resolvers.envsh
+    # (opted into via NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1, Dockerfile) -
+    # deliberately NOT hardcoded to Docker's embedded-DNS address
+    # (127.0.0.11): VERIFIED live that nothing listens there under Podman
+    # (its DNS runs on the network's own bridge gateway instead, no fixed
+    # address), and Kubernetes' CoreDNS ClusterIP isn't fixed either -
+    # reading /etc/resolv.conf is what makes this portable across all three.
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
 
     # RPM package uploads and container image layers can be large;
     # let each location's own limits apply rather than nginx's small default.
     client_max_body_size 0;
 
     location /pulp/api/ {
-        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -38,7 +51,7 @@ server {
     }
 
     location /pulp/content/ {
-        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -50,7 +63,7 @@ server {
     # chunked image layers, so buffering/timeouts are relaxed here. VERIFIED
     # against a real `podman pull` end-to-end (see docs/DEPLOYMENT.md).
     location /v2/ {
-        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -69,7 +82,7 @@ server {
     # `podman pull` with a confusing "decoding signature list: invalid
     # character '<'" error instead of an obvious routing failure.
     location /extensions/v2/ {
-        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -88,7 +101,7 @@ server {
     # as a confusing "digest does not match" error, not an obvious routing
     # failure.
     location /pulp/container/ {
-        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -109,7 +122,7 @@ server {
     # requests 405'd (a static-file location doesn't accept POST) - both
     # looked like generic frontend bugs until checked at the network level.
     location /pulp_ansible/ {
-        set $pulp_upstream http://${PULP_UPSTREAM}:80;
+        set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -123,7 +136,6 @@ server {
     # itself re-validates it against Pulp (app/core/auth.py) rather than
     # inventing a second identity source.
     location /pulpit-core/api/ {
-        set $pulpit_core_upstream http://${PULPIT_CORE_UPSTREAM}:8000;
         # The frontend already requests paths under /pulpit-core/api/v1/...
         # (src/api/client/pulpitCore/httpClient.ts's API_BASE_PATH) - strip
         # only the /pulpit-core prefix and pass the rest through unchanged.
@@ -131,7 +143,7 @@ server {
         # /api/v1/, producing /api/v1/v1/... (doubled), which matched no
         # FastAPI route and 404'd every single pulpit-core API call.
         rewrite ^/pulpit-core(/.*)$ $1 break;
-        proxy_pass $pulpit_core_upstream;
+        proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -143,8 +155,7 @@ server {
     # this directly via a repository's plain `gpgkey=` URL, the same way
     # they'd fetch a key from any other static HTTPS location.
     location /keys/ {
-        set $pulpit_core_upstream http://${PULPIT_CORE_UPSTREAM}:8000;
-        proxy_pass $pulpit_core_upstream;
+        proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

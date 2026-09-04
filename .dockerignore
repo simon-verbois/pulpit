@@ -14,7 +14,13 @@ playwright/.auth
 .agents
 .claude
 .forgejo
-pulpit-core
+# pulpit-core IS part of the merged image's build context now
+# (docs/adr/0007-merged-pulpit-container.md) - only its own dev-only
+# artifacts are excluded below, not the directory itself.
+pulpit-core/.venv
+pulpit-core/**/__pycache__
+pulpit-core/**/*.pyc
+pulpit-core/.pytest_cache
 docs
 e2e
 *.md

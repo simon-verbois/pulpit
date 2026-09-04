@@ -18,6 +18,11 @@ playwright/.auth/
 .env.*
 !.env.example
 
+# Kubernetes / Podman secret manifests, same idea as .env vs .env.example
+# above
+deployment/kube/00-secret.yaml
+deployment/podman/00-secret.yaml
+
 # Local Pulp/Pulpit data (bind-mount fallback only; named volumes are the default)
 .data/
 

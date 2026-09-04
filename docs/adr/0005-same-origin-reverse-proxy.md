@@ -51,7 +51,7 @@ dev machine — see `docs/DEVELOPMENT.md`.
 ## Consequences
 
 - Deployment topology is "one nginx in front of static Pulpit + Pulp," documented concretely in
-  `docs/DEPLOYMENT.md` and implemented for local dev in `docker/nginx/pulpit.conf.template` +
+  `docs/DEPLOYMENT.md` and implemented for local dev in `deployment/docker/nginx/pulpit.conf.template` +
   `compose.yml`.
 - The `/v2/` registry path needs registry-appropriate proxy settings (larger body size limits,
   suitable timeouts/buffering for image layer transfer); these are configured with sensible

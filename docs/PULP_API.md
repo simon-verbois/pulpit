@@ -229,7 +229,7 @@ namespaces/`) is a completely different resource from the read-only, sync-derive
   (repository, content unit) pair - uploading the exact same collection tarball to a second
   repository did not add a second row for it, only the first repository that ever indexed it kept
   showing up. Don't rely on this endpoint to know every repository holding a given version.
-- **The nginx reverse proxy needed a new route**: `docker/nginx/pulpit.conf.template` only proxied
+- **The nginx reverse proxy needed a new route**: `deployment/docker/nginx/pulpit.conf.template` only proxied
   `/pulp/api/`, `/pulp/content/`, and `/v2/` to Pulp. The entire `/pulp_ansible/...` namespace
   (Galaxy namespaces, cross-repo search, and the client-facing Galaxy-v3 API) fell through to
   Pulpit's own SPA fallback instead - a GET returned Pulpit's own `index.html` with a 200 (looking

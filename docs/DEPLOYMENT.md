@@ -1,13 +1,14 @@
 # Deployment
 
-Pulpit ships as a static-asset container image (nginx + built JS/CSS, no Node runtime — ADR 0001)
-that must be deployed alongside a Pulp instance behind one same-origin reverse proxy (ADR 0005).
-This document covers the local Compose reference topology, using `compose.yml`, whose `pulpit`,
-`pulpit-core`, and `pulpit-worker` services all pull their published `simonverbois/*` images from
-Docker Hub (built and pushed together, from the same tag, by `.forgejo/workflows/release.yml`); a
-hardened production topology is future work (`docs/ROADMAP.md` Milestone 6). To deploy unreleased
-local changes instead, use `compose-dev.yml` (`docs/DEVELOPMENT.md` "Mode B"), which builds all
-three from source but is otherwise identical.
+Pulpit ships as a single container image — nginx (static JS/CSS, no Node runtime at rest — ADR 0001) + pulpit-core (API) + pulpit-worker (job queue/signing automation) merged into one process
+group (ADR 0007) — that must be deployed alongside a Pulp instance behind one same-origin reverse
+proxy (ADR 0005). This document covers the local Compose reference topology, using
+`deployment/docker/compose.yml`, whose `pulpit` service pulls its published `simonverbois/pulpit`
+image from Docker Hub (built and pushed by `.forgejo/workflows/release.yml`); a hardened
+production topology is future work (`docs/ROADMAP.md` Milestone 6). To deploy unreleased local
+changes instead, use `deployment/docker/compose-dev.yml` (`docs/DEVELOPMENT.md` "Mode B"), which
+builds it from source but is otherwise identical. Also available: Podman ("Podman" below) and
+Kubernetes ("Kubernetes" below).
 
 ## Reference topology (local Compose)
 
@@ -19,30 +20,33 @@ https://localhost:${PULPIT_HTTP_PORT}/
     /v2/...              -> Pulp container registry   (pulp container)
     /extensions/v2/...   -> Pulp registry signature API (pulp container)
     /pulp/container/...  -> Pulp container content app (pulp container)
-    /pulpit-core/api/... -> pulpit-core API            (pulpit-core container, ADR 0006)
-    /keys/...            -> pulpit-core public keys    (pulpit-core container, unauthenticated)
+    /pulpit-core/api/... -> pulpit-core API            (same pulpit container, ADR 0006/0007)
+    /keys/...            -> pulpit-core public keys    (same pulpit container, unauthenticated)
     /ui/...              -> 404 (legacy pulp-ui hidden)
 ```
 
-Only the `pulpit` service's port is published to the host; `pulp`, `pulpit-core`, and
-`pulpit-worker` are reached exclusively through that proxy (or, for `pulpit-worker`, not reached by
-the browser at all), so there is exactly one public entry point, no CORS configuration, and no
-absolute hostnames baked into the frontend.
+Only the `pulpit` service's port is published to the host; `pulp` is reached exclusively through
+that proxy, so there is exactly one public entry point, no CORS configuration, and no absolute
+hostnames baked into the frontend. pulpit-core's API and pulpit-worker's job queue (ADR 0006) run
+inside that same `pulpit` container (ADR 0007) - the API is reached through the proxy same as Pulp,
+the worker loop is never reached by the browser at all.
 
-`redis`, `pulpit-core-db`, and `pulpit-worker` sit on the internal Compose network only (no
-published port, nothing proxied to them directly) — see "Redis" and "pulpit-core / pulpit-worker
-(ADR 0006)" below.
+`redis` sits on the internal Compose network only (no published port, nothing proxied to it
+directly) — see "Redis" below.
 
 ## Bringing the stack up
 
 ```sh
 cp .env.example .env
-# generate real secrets, then paste them into .env
+# generate a real secret, then paste it into .env
 openssl rand -hex 32   # -> PULP_SECRET_KEY
-openssl rand -hex 32   # -> PULPIT_CORE_DB_PASSWORD (ADR 0006)
-docker compose up -d
-docker compose ps
+docker compose -f deployment/docker/compose.yml --env-file .env up -d
+docker compose -f deployment/docker/compose.yml --env-file .env ps
 ```
+
+(`--env-file .env` is required since `deployment/docker/compose.yml` no longer lives at the repo
+root - see that file's own header comment. `make compose-up` does the equivalent for
+`compose-dev.yml`, the local-build variant, with the right flags already baked in.)
 
 Acceptance checks (see also `make pulp-status`):
 
@@ -73,24 +77,28 @@ Named volumes are preferred over a project-local `.data/` bind mount because the
 image writes files as internal container UIDs that don't always map cleanly onto the host user;
 named volumes sidestep that. Nothing under these volumes is committed to version control.
 
-`pulpit-core` (ADR 0006) adds three more named volumes, documented in full in `docs/signing.md`
+`pulpit` (ADR 0006/0007) adds three more named volumes, documented in full in `docs/signing.md`
 ("Docker volumes" / "Backup and recovery"):
 
-- `pulpit_core_pgdata` — pulpit-core's own PostgreSQL data directory (signing settings/key
-  metadata/job history). Back this up like any other application database.
-- `pulpit_signing_gnupghome` — the GPG keyring, **including private key material**. Mounted only
-  into `pulpit-worker` and `pulp` (docs/signing.md "Shared volume permissions"), never into
-  `pulpit-core` or the `pulpit` frontend. Losing it without a backup means losing the ability to
-  sign with the current key — see docs/signing.md "Recovery after key loss."
-- `pulpit_signing_scripts` — the generic signing scripts pulpit-worker publishes for `pulp` to
-  execute. Not secret, regenerated automatically from the `pulpit-worker` image on every start.
+- `pulpit_data` — pulpit-core's own embedded SQLite database (signing settings/key
+  metadata/job history - ADR 0007). Back this up like any other application database; it's a
+  single file (`pulpit-core.db`, plus its WAL-mode sidecar files) under this volume.
+- `pulpit_signing_gnupghome` — the GPG keyring, **including private key material**. Mounted into
+  the `pulpit` container (readable only by the worker loop's own uid/gid 700 inside it,
+  docs/signing.md "Shared volume permissions") and `pulp`, never exposed to the API/nginx side of
+  that same container. Losing it without a backup means losing the ability to sign with the
+  current key — see docs/signing.md "Recovery after key loss."
+- `pulpit_signing_scripts` — the generic signing scripts the worker loop publishes for `pulp` to
+  execute. Not secret, regenerated automatically from the `pulpit` image on every start.
 
 ## Secrets
 
 `PULP_SECRET_KEY` must be set to a real generated value (`openssl rand -hex 32`) in a local,
 untracked `.env`. `compose.yml` references it as a required variable
 (`${PULP_SECRET_KEY:?...}` — Compose interpolation) so `docker compose up` fails fast with a clear
-error instead of silently starting Pulp with an empty/missing key. `PULPIT_CORE_DB_PASSWORD` (ADR 0006) is required the same way, for the same reason.
+error instead of silently starting Pulp with an empty/missing key. There is no separate database
+password to set (ADR 0007 - pulpit-core's database is embedded SQLite by default, not a
+credentialed server).
 
 ## Redis
 
@@ -106,48 +114,59 @@ the status page cosmetically say "Connected." It's a plain, unauthenticated `red
 container with no persistence (cache data, safe to lose) on the internal Compose network only —
 never published to the host.
 
-## pulpit-core / pulpit-worker (ADR 0006)
+## pulpit-core / pulpit-worker (ADR 0006, merged into `pulpit` by ADR 0007)
 
-Four more Compose services, none published to the host:
+pulpit-core (the API process) and pulpit-worker (the job-queue/rotation-scheduler loop, the only
+one with the GPG signing volume - `pulpit_signing_gnupghome` - mounted) run as two separate OS
+processes inside the same `pulpit` container/image (`deployment/docker/pulpit/entrypoint.sh`), not as
+separate Compose services - see ADR 0007 for why and how the process-level separation (API never
+touches private key material) is preserved despite sharing a container. The one other Compose
+service this pulls in:
 
-- `pulpit-core-db` — a plain `postgres:16-alpine`, pulpit-core's own database. Healthchecked
-  (`pg_isready`); `pulpit-core`/`pulpit-worker` wait for it via health-aware `depends_on`.
-- `pulpit-core` — the API process. Healthchecked (`GET /api/v1/health`); `pulpit` (the frontend
-  container) waits for it the same way before its own container is considered up.
-- `pulpit-worker` — the job-queue/rotation-scheduler process, the only one with the GPG signing
-  volume (`pulpit_signing_gnupghome`) mounted. No published port, no healthcheck endpoint (it's a
-  polling loop, not an HTTP server) — check `docker compose logs pulpit-worker` if signing jobs seem
-  stuck.
-- `docker-socket-proxy` (`tecnativa/docker-socket-proxy`) — optional, opt-in: lets `pulpit-worker`
-  automate the one Pulp-side administrative command signing needs (`add-signing-service`) instead
-  of an administrator running it by hand. Scoped to `CONTAINERS`+`EXEC` only (list/inspect/exec) —
-  never the raw Docker socket, and no other Docker API call is forwarded. Internal-network-only,
-  never published. A deployment that isn't Docker at all, or doesn't want to grant even this scoped
-  access, simply omits `PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST` and gets the fully manual flow
-  instead — see `docs/signing.md` "Automating the manual Pulp step" and ADR 0006 "Alternatives
-  considered".
+- `docker-socket-proxy` (`tecnativa/docker-socket-proxy`) — optional, opt-in: lets `pulpit`'s
+  worker loop automate the one Pulp-side administrative command signing needs
+  (`add-signing-service`) instead of an administrator running it by hand. Scoped to
+  `CONTAINERS`+`EXEC` only (list/inspect/exec) — never the raw Docker socket, and no other Docker
+  API call is forwarded. Internal-network-only, never published. A deployment that isn't Docker at
+  all, or doesn't want to grant even this scoped access, simply omits
+  `PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST` and gets the fully manual flow instead — see
+  `docs/signing.md` "Automating the manual Pulp step" and ADR 0006 "Alternatives considered".
 
-Both `pulpit-core` and `pulpit-worker` need `PULP_ADMIN_PASSWORD` set to a real value (same
-variable Pulp's own admin account uses) to authenticate their own server-to-server calls to Pulp's
-API — leave it unset and signing-related jobs fail with a clear "Pulp is currently unavailable"
-error until it's set, without affecting anything else in the stack.
+`pulpit` is healthchecked through nginx (`GET /pulpit-core/api/v1/health`, exercising the whole
+proxy chain, not just the API process alone) and needs `PULP_ADMIN_PASSWORD` set to a real value
+(same variable Pulp's own admin account uses) to authenticate its own server-to-server calls to
+Pulp's API — leave it unset and signing-related jobs fail with a clear "Pulp is currently
+unavailable" error until it's set, without affecting anything else in the stack. Check
+`docker compose logs pulpit` if signing jobs seem stuck (the worker loop has no HTTP endpoint of
+its own to healthcheck separately).
 
 Full detail on the signing module itself — key generation, rotation, automating the Pulp
 signing-service registration step, trust model, backup/recovery — lives in `docs/signing.md`.
 
 ## Known issue (fixed): nginx caches Pulp's IP, 502s after `pulp` alone is recreated
 
-**VERIFIED**: `docker/nginx/pulpit.conf.template`'s `proxy_pass` originally used a bare
+**VERIFIED**: `deployment/docker/nginx/pulpit.conf.template`'s `proxy_pass` originally used a bare
 `http://pulp:80`. nginx resolves that hostname once and keeps using the resolved IP for the
 worker process's lifetime; if `pulp` is later recreated (e.g. after changing one of its env vars,
 as happened when Redis was added) without also restarting `pulpit`, the `pulp` container gets a
 new internal IP and every request through the proxy 502s — even though hitting `pulp` directly
 (e.g. on `PULP_HTTP_PORT`) works fine, which is the tell that this is an nginx-side staleness
-issue, not a Pulp problem. Fixed by adding `resolver 127.0.0.11 valid=10s;` (Docker Compose's
-embedded DNS, available on every network it creates) and moving the upstream into a `set $pulp_upstream ...; proxy_pass $pulp_upstream;`
-pair per location — using a variable in `proxy_pass` is what makes nginx actually re-resolve
-against that resolver instead of caching indefinitely. Confirmed by force-recreating `pulp` alone
-and checking the proxy still returns `200` immediately after, with no `pulpit` restart.
+issue, not a Pulp problem. Fixed by adding an explicit `resolver` and moving the upstream into a
+`set $pulp_upstream ...; proxy_pass $pulp_upstream;` pair per location — using a variable in
+`proxy_pass` is what makes nginx actually re-resolve against that resolver instead of caching
+indefinitely. Confirmed by force-recreating `pulp` alone and checking the proxy still returns
+`200` immediately after, with no `pulpit` restart.
+
+The resolver address itself was originally hardcoded to `127.0.0.11` (Docker Compose's embedded
+DNS) - **VERIFIED live this breaks under Podman** (nothing listens on `127.0.0.11` there; its own
+DNS runs on the network's bridge gateway instead, a different address per deployment) and isn't
+fixed under Kubernetes either (CoreDNS's ClusterIP isn't a universal constant). Fixed for good by
+opting into the base `nginx` image's own `NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1` (Dockerfile), which
+reads `/etc/resolv.conf` at container start and exports `NGINX_LOCAL_RESOLVERS` - every platform
+(Docker, Podman, Kubernetes) writes its own correct nameserver(s) there, so this needs no
+per-platform override. VERIFIED live: rebuilt this image and ran it on a real user-defined Docker
+network (resolved `127.0.0.11`, as before) and a real Podman network (resolved `10.89.0.1`,
+Podman's own DNS) — `nginx -t` passes in both.
 
 ## Known operational issue: pending migrations -> 502
 
@@ -225,7 +244,7 @@ surfaced two more missing nginx routes, the same class of gap as the `/pulp_ansi
   docker clients probe on every pull even when no signatures exist. Same missing-route symptom,
   surfacing as `podman`'s "decoding signature list: invalid character '<'" (it received HTML).
 
-Both are now proxied in `docker/nginx/pulpit.conf.template`, alongside the existing `/v2/` block.
+Both are now proxied in `deployment/docker/nginx/pulpit.conf.template`, alongside the existing `/v2/` block.
 
 ## Known operational requirement: `CSRF_TRUSTED_ORIGINS`
 
@@ -272,6 +291,72 @@ remote's `proxy_username`/`proxy_password`/origin `username`/`password` back on 
 reports whether one `is_set`), the edit form shows them blank with a "currently set" hint rather
 than the actual value - leaving a field blank on save keeps whatever was set before.
 
+A corporate TLS-inspecting proxy typically presents its own certificate, signed by an internal CA
+the system trust store doesn't know about. Pulp's per-remote `tls_validation` (VERIFIED live: one
+flag shared by the proxy connection AND the origin server, no way to relax just one) and `ca_cert`
+(VERIFIED directly in pulpcore's `DownloaderFactory`: builds one `SSLContext` per remote's aiohttp
+session, trusting `ca_cert` **in addition to**, not instead of, the system's own CA bundle) are
+pulpcore's own answer to this - no container-filesystem trust-store automation needed. Pulpit's
+Administration > Default Settings page lets an administrator set both once (**Skip TLS
+certificate validation** / **Trusted CA certificate (PEM)**), auto-applied to every new Remote's
+own fields (still overridable per Remote under its own "Advanced connection settings").
+
+## Podman
+
+`deployment/podman/` runs this stack via `podman play kube` (plain Kubernetes-YAML Pod manifests
+Podman itself interprets directly, no `docker-compose`/`podman-compose` wrapper - explicit
+project choice) rather than Compose:
+
+```sh
+cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
+# edit deployment/podman/00-secret.yaml - replace every REPLACE_ME value
+
+systemctl --user start podman.socket   # rootless
+./deployment/podman/deploy.sh up
+```
+
+See `deployment/podman/README.md` for the full picture, including several real, VERIFIED-live
+differences from both Compose and a real Kubernetes cluster that shaped these manifests -
+`podman play kube` only supports a subset of Kubernetes kinds (no Ingress, no RBAC, no real
+Service objects, so `KubernetesExecExecutor` cannot work here at all -
+`DockerExecExecutor`/`docker-socket-proxy.yaml` is used instead, the same mechanism
+`compose.yml` uses), ConfigMaps/Secrets are not standalone objects the way they are on a real
+cluster, there is no `postStart` hook, and SELinux confinement blocks more than Docker's
+default does on an SELinux-enforcing host (Fedora/RHEL, Podman's own primary ecosystem) -
+root-caused with `ausearch -m avc`, not guessed: Podman's own API socket carries the SELinux
+type `container_runtime_t`, and its default policy denies a confined container
+(`container_t`) from connecting to it, or from reading a plain `hostPath`-mounted file,
+at all - deliberate anti-escape confinement, not a bug.
+
+Running the Compose files themselves under Podman (`docker compose`/`podman compose` CLI
+pointed at Podman's own Docker-API-compatible socket) was also verified to work for
+everything except `docker-socket-proxy`'s own SELinux confinement - not pursued further as
+the supported path once `deployment/podman/` was built, per explicit preference for a native
+`play kube` deployment over a Compose-wrapper one.
+
+## Kubernetes
+
+Plain manifests (no Helm) live under `deployment/kube/` - see `deployment/kube/README.md` for prerequisites (notably a
+storageClass supporting `ReadWriteMany`, needed only if you want repository signing) and the
+exact `kubectl apply` invocation. They mirror this file's own Compose topology 1:1 (one `pulpit`
+Deployment, ADR 0007), using the same published Docker Hub image.
+
+The one architectural difference: `docker-socket-proxy` has no Kubernetes equivalent, so the
+worker loop inside `pulpit` talks to the Kubernetes API directly instead
+(`KubernetesExecExecutor`, `app/adapters/pulp/executor.py`), authenticated via its own
+ServiceAccount token (the standard in-cluster auth every pod already has) and narrowly scoped by
+`deployment/kube/pulpit.yaml`'s Role to `get`/`list` on `pods` and `get`/`create` on `pods/exec`,
+namespace-only. VERIFIED end-to-end against a real cluster (`kind`), not assumed from Kubernetes'
+own exec documentation: applied the actual manifests, got a real `pulp` pod healthy (image pull,
+the `postStart` admin-password hook, and the `httpGet` readiness/liveness probes all working),
+minted a real token for the `pulpit` ServiceAccount, and successfully ran
+`pulpcore-manager --version` inside that pod through the exact RBAC this ships - while confirming
+the same token is correctly `403 Forbidden` from listing pods in a different namespace. One real
+bug this caught before it shipped: the official `kubernetes` Python client's
+`connect_get_namespaced_pod_exec` performs the exec handshake as an HTTP `GET`, so the RBAC verb
+Kubernetes actually checks is `get`, not the more commonly-documented `create` alone - the shipped
+Role grants both.
+
 ## Production (future work)
 
 Not implemented at bootstrap time. Expected differences from the dev Compose setup, to be
@@ -280,6 +365,6 @@ designed when this milestone starts (`docs/ROADMAP.md` Milestone 6):
 - TLS termination at (or in front of) the nginx layer; HSTS and other TLS-only headers enabled
   only once TLS is actually present (`docs/SECURITY.md`).
 - `PULP_SECRET_KEY` and other secrets sourced from a real secret manager, not a `.env` file.
-- No Kubernetes manifests or Helm charts at bootstrap time (explicitly out of scope per the
-  bootstrap brief); Compose remains the reference topology until a production orchestrator target
-  is chosen.
+- `deployment/kube/`'s manifests are a working baseline, not a production-hardened one: no NetworkPolicies,
+  PodDisruptionBudgets, resource requests/limits, autoscaling, or TLS on the Ingress yet (see
+  `deployment/kube/README.md` "Known gaps").

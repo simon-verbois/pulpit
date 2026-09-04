@@ -7,12 +7,12 @@
 
 ## Two Compose files
 
-`compose.yml` is the reference _deployment_ file: its `pulpit`, `pulpit-core`, and `pulpit-worker`
-services all pull their published `simonverbois/*` images from Docker Hub (built together, from
-the same tag, by the release workflow), same as a real user deploying Pulpit would.
-`compose-dev.yml` is otherwise identical but builds all three from local source instead — use it,
-not `compose.yml`, for everything below so you're actually testing your changes. Both files define
-`pulp`/`redis`/`pulpit-core-db`/`docker-socket-proxy` identically.
+`compose.yml` is the reference _deployment_ file: its `pulpit` service (nginx + pulpit-core +
+pulpit-worker merged into one image, ADR 0007) pulls its published `simonverbois/pulpit` image
+from Docker Hub, built by the release workflow, same as a real user deploying Pulpit would.
+`compose-dev.yml` is otherwise identical but builds it from local source instead — use it, not
+`compose.yml`, for everything below so you're actually testing your changes. Both files define
+`pulp`/`redis`/`docker-socket-proxy` identically.
 
 ## Two development modes
 
@@ -25,7 +25,7 @@ workflow (Mode B), where `pulp`'s port isn't published to the host at all.
 
 ```sh
 cp .env.example .env   # first time only
-docker compose -f compose-dev.yml up -d pulp
+docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d pulp
 ```
 
 Terminal 2: Vite dev server, proxying Pulp paths so the frontend still runs same-origin from the
@@ -47,7 +47,7 @@ against `compose.yml`'s published-image variant, but the topology and env vars a
 
 ```sh
 cp .env.example .env   # then set PULP_SECRET_KEY, see docs/DEPLOYMENT.md
-docker compose -f compose-dev.yml up -d --build
+docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d --build
 ```
 
 Open `http://localhost:8080/` (or `$PULPIT_HTTP_PORT`).
@@ -72,7 +72,7 @@ make api-fetch / api-generate
 
 ## Regenerating API types
 
-Requires a reachable Pulp instance (typically `docker compose -f compose-dev.yml up -d pulp`, or
+Requires a reachable Pulp instance (typically `docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d pulp`, or
 Mode A):
 
 ```sh
@@ -88,7 +88,7 @@ See ADR 0004 and `docs/PULP_API.md` for what this pipeline does and does not att
 make pulp-reset-admin
 ```
 
-Runs `docker compose -f compose-dev.yml exec pulp pulpcore-manager reset-admin-password` — a real
+Runs `docker compose -f deployment/docker/compose-dev.yml --env-file .env exec pulp pulpcore-manager reset-admin-password` — a real
 pulpcore management command, not something Pulpit invents.
 
 ## Observability / troubleshooting
@@ -96,21 +96,21 @@ pulpcore management command, not something Pulpit invents.
 **Frontend**: browser devtools console + network tab; Vite's terminal output for build/dev-server
 errors.
 
-**Pulp**: `docker compose -f compose-dev.yml logs pulp` (or `make compose-logs`), `make
+**Pulp**: `docker compose -f deployment/docker/compose-dev.yml --env-file .env logs pulp` (or `make compose-logs`), `make
 pulp-status`, `make pulp-migrations`, `make pulp-versions` (component versions from the status
 endpoint).
 
-**Proxy**: `docker compose -f compose-dev.yml logs pulpit` for nginx access/error logs; `curl` the
+**Proxy**: `docker compose -f deployment/docker/compose-dev.yml --env-file .env logs pulpit` for nginx access/error logs; `curl` the
 public endpoint directly to isolate "is this a Pulp problem or an nginx routing problem" (see
 `docs/DEPLOYMENT.md` acceptance checks).
 
-| Symptom                                      | Check                                                                                                                                                       |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `502` on `/pulp/api/v3/status/`              | `make pulp-status`; `make pulp-migrations` (pending migrations are a known cause — see `docs/DEPLOYMENT.md`); `docker compose -f compose-dev.yml logs pulp` |
-| A plugin (e.g. pulp_container) seems missing | `make pulp-versions` — confirm it's actually reported by the status endpoint before assuming a bug                                                          |
-| UI loads but API calls get `401`             | Check you're actually authenticated against Pulp for this session/request — see `docs/AUTHENTICATION.md`                                                    |
-| `404`/`502` on `/v2/` or `/pulp/content/`    | nginx routing issue, not expected — check `docker/nginx/pulpit.conf.template` and `docker compose -f compose-dev.yml logs pulpit`                           |
-| `/ui/` returns something other than `404`    | nginx routing regression — it must not expose pulp-ui (ADR 0005)                                                                                            |
+| Symptom                                      | Check                                                                                                                                                                                         |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `502` on `/pulp/api/v3/status/`              | `make pulp-status`; `make pulp-migrations` (pending migrations are a known cause — see `docs/DEPLOYMENT.md`); `docker compose -f deployment/docker/compose-dev.yml --env-file .env logs pulp` |
+| A plugin (e.g. pulp_container) seems missing | `make pulp-versions` — confirm it's actually reported by the status endpoint before assuming a bug                                                                                            |
+| UI loads but API calls get `401`             | Check you're actually authenticated against Pulp for this session/request — see `docs/AUTHENTICATION.md`                                                                                      |
+| `404`/`502` on `/v2/` or `/pulp/content/`    | nginx routing issue, not expected — check `deployment/docker/nginx/pulpit.conf.template` and `docker compose -f deployment/docker/compose-dev.yml --env-file .env logs pulpit`                |
+| `/ui/` returns something other than `404`    | nginx routing regression — it must not expose pulp-ui (ADR 0005)                                                                                                                              |
 
 ## Project structure
 

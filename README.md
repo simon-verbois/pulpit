@@ -27,29 +27,41 @@ security headers). See [`docs/ROADMAP.md`](docs/ROADMAP.md) for exactly what's b
 
 Pulpit's frontend is a **frontend-only** single-page application. It has no backend, database, or
 auth system of its own — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and ADR 0001. The
-project also includes `pulpit-core`/`pulpit-worker` (ADR 0006), a narrowly-scoped backend for
+project also includes pulpit-core/pulpit-worker (ADR 0006), a narrowly-scoped backend for
 capabilities that structurally cannot live in a browser or in Pulp's API — signing key custody and
-lifecycle being the first (see [`docs/signing.md`](docs/signing.md)).
+lifecycle being the first (see [`docs/signing.md`](docs/signing.md)). Since ADR 0007, nginx +
+pulpit-core + pulpit-worker are merged into one `pulpit` container/image, not three separate ones.
 
 ```
 Browser -> Pulpit SPA (React + TypeScript + PatternFly) -> Pulp REST API -> PostgreSQL (owned by Pulp)
                                                           -> pulpit-core API -> pulpit-worker -> GPG
 ```
 
-Pulpit, Pulp, and pulpit-core are served from one origin behind nginx (ADR 0005); the browser only
-ever calls relative URLs like `/pulp/api/v3/...` and `/pulpit-core/api/...`.
+Pulpit and Pulp are served from one origin behind nginx (ADR 0005); the browser only ever calls
+relative URLs like `/pulp/api/v3/...` and `/pulpit-core/api/...`.
 
 ## Deploying Pulpit
 
-Pulpit ships as a static-asset container image (nginx + built assets, no Node runtime at
-runtime — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)) and must be deployed alongside a Pulp
-instance behind one same-origin reverse proxy. The bundled `compose.yml` is the current reference
-deployment topology (Pulp + Pulpit + pulpit-core on one Docker host).
+Pulpit ships as a single container image (nginx + pulpit-core + pulpit-worker, no Node runtime at
+runtime — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and ADR 0007) and must be deployed
+alongside a Pulp instance behind one same-origin reverse proxy. Everything needed to deploy it
+lives under [`deployment/`](deployment/), one subdirectory per technology, each with its own
+README:
+
+- **[`deployment/docker/`](deployment/docker/README.md)** — Docker Compose, the primary,
+  most-tested reference topology.
+- **[`deployment/podman/`](deployment/podman/README.md)** — plain `podman play kube` manifests,
+  not a Compose wrapper.
+- **[`deployment/kube/`](deployment/kube/README.md)** — plain Kubernetes manifests, no Helm.
+
+All three run the same published `simonverbois/pulpit` image and were VERIFIED live — see
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the deeper technical picture and what's actually
+different about each.
 
 ### Prerequisites
 
-- Docker + Docker Compose v2
-- A reachable Pulp instance — the bundled `compose.yml` runs one for you, or point Pulpit at an
+- Docker + Docker Compose v2 (for the primary Compose path)
+- A reachable Pulp instance — the bundled Compose stack runs one for you, or point Pulpit at an
   existing Pulp deployment (see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md))
 
 ### Quick start
@@ -59,8 +71,7 @@ git clone https://github.com/simon-verbois/pulpit.git
 cd pulpit
 cp .env.example .env
 openssl rand -hex 32   # paste the result into .env as PULP_SECRET_KEY
-openssl rand -hex 32   # paste the result into .env as PULPIT_CORE_DB_PASSWORD
-docker compose up -d --build
+docker compose -f deployment/docker/compose.yml --env-file .env up -d --build
 ```
 
 Open `http://localhost:8080/` and log in. Pulp's all-in-one image creates an `admin` account with
@@ -75,8 +86,8 @@ documented list. Key points:
 
 - Any `VITE_*` variable is compiled into the public JS bundle at build time — never put a secret
   in one.
-- `PULP_SECRET_KEY` and `PULPIT_CORE_DB_PASSWORD` must be real generated secrets in a local,
-  untracked `.env` — never commit real values.
+- `PULP_SECRET_KEY` must be a real generated secret in a local, untracked `.env` — never commit a
+  real value.
 - `PULPIT_PUBLIC_ORIGIN` must match the public URL Pulpit is actually served on, or logins will
   work but every subsequent action (including logout) will 403 — see
   [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) "CSRF_TRUSTED_ORIGINS".
@@ -122,14 +133,15 @@ for exact pinned versions.
 ```
 pulpit/
 ├── docs/                  # architecture, API, auth, RBAC, UX, testing, security, roadmap, ADRs
-├── docker/nginx/          # reverse-proxy config (same-origin, ADR 0005)
-├── Dockerfile             # multi-stage: Node build -> nginx static (no Node at runtime)
-├── compose.yml            # reference Pulp + Pulpit(+pulpit-core) deployment
+├── deployment/            # one subdirectory per deployment technology, one README each
+│   ├── docker/            # Dockerfile, compose.yml, compose-dev.yml, nginx/, pulpit/, pulp/
+│   ├── podman/            # `podman play kube` manifests (not Compose, not real Kubernetes)
+│   └── kube/              # plain Kubernetes manifests (no Helm)
 ├── e2e/                   # Playwright specs
 ├── scripts/api/           # OpenAPI schema fetch + type generation
 ├── pulpit-core/           # Pulpit's own backend (ADR 0006) - see docs/signing.md
 │   ├── app/               # FastAPI app: core/ (jobs, events, db), adapters/pulp/, modules/signing/
-│   ├── worker/            # pulpit-worker entrypoint (the only process with GPG key access)
+│   ├── worker/            # pulpit-worker's own process entrypoint (the only one with GPG key access)
 │   ├── migrations/        # Alembic
 │   └── signing-scripts/   # generic GPG signing scripts pulpit-worker publishes for Pulp to run
 └── src/
@@ -177,7 +189,7 @@ pulpit/
 
 Pulpit uses calendar-based release versions, tracked in the [`VERSION`](VERSION) file at the
 repository root and shown at the bottom of the app. Each container image is built from a tagged
-release matching that file.
+release matching that file. See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each release.
 
 ## Contributing
 

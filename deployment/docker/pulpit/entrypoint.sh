@@ -1,0 +1,129 @@
+#!/bin/bash
+# Multi-process supervisor for the merged `pulpit` image (nginx + pulpit-core
+# API + pulpit-worker job queue in one container - docs/adr/0007-merged-
+# pulpit-container.md). Runs as root initially (needed to start nginx and to
+# prepare the shared GNUPGHOME volume for the worker loop's own uid-700
+# drop, exactly as pulpit-core/worker/entrypoint.sh did before the merge),
+# then execs each of the three processes as an unprivileged user.
+#
+# Deliberately no per-process auto-restart (no supervisord/s6): if ANY of
+# the three dies, this script kills the other two and exits, so the whole
+# container restarts - simpler, and the same "a crash restarts the whole
+# container" behavior pulpit-worker alone already had before the merge.
+set -euo pipefail
+
+# --- nginx config templating ---------------------------------------------
+# Reimplements the official nginx.org Docker image's own
+# 15-local-resolvers.envsh + 20-envsubst-on-templates.sh (not available
+# here - nginx comes from Debian's own apt package, not that image) -
+# VERIFIED reading /etc/resolv.conf is what makes the resolver portable
+# across Docker, Podman, and Kubernetes (docs/DEPLOYMENT.md "Known issue
+# (fixed): nginx caches Pulp's IP").
+NGINX_LOCAL_RESOLVERS=$(awk '/^nameserver/ { addr = $2; if (addr ~ /:/) addr = "[" addr "]"; printf "%s ", addr }' /etc/resolv.conf)
+export NGINX_LOCAL_RESOLVERS="${NGINX_LOCAL_RESOLVERS:-127.0.0.11}"
+# host:port (or a bare host, defaulting to port 80) of the Pulp instance to
+# reverse-proxy to - deliberately just a string this container never
+# interprets further, so Pulp can be a sibling container (Compose/Podman
+# service name), a Kubernetes Service DNS name, or a real remote host on a
+# non-standard port, with no code change (task: "definir dans une var
+# l'URL de contact de pulp"). No scheme prefix - this container always
+# speaks plain HTTP to Pulp on its own internal network, same trust
+# boundary as before the merge.
+export PULP_UPSTREAM="${PULP_UPSTREAM:-pulp:80}"
+envsubst '${NGINX_LOCAL_RESOLVERS} ${PULP_UPSTREAM}' \
+    < /etc/nginx/pulpit.conf.template \
+    > /etc/nginx/conf.d/pulpit.conf
+
+# --- pulpit-core's own data dir + database migrations ---------------------
+# Embedded SQLite by default (no separate DB container needed - see
+# app/core/config/settings.py); PULPIT_CORE_DATABASE_URL can still point at
+# a real Postgres instead, in which case this directory (and everything
+# below) is simply unused.
+#
+# BUG FOUND LIVE ("attempt to write a readonly database", then later
+# "unable to open database file"): the API/migrations run as the `pulpit`
+# user, but the worker loop below runs as uid/gid 700 (GNUPGHOME's own
+# owner - see below) - two different identities both needing read/write on
+# the SAME SQLite file and its WAL-mode `-wal`/`-shm` sidecar files
+# (app/core/database/session.py). VERIFIED, in order of what was actually
+# tried and ruled out:
+#   - A permissive umask does NOT fix this: SQLite opens its main file with
+#     an explicit, non-default mode (0644) rather than the usual 0666 a
+#     umask assumes - umask can only ever *remove* permission bits from
+#     what a program explicitly requests, never add ones back.
+#   - A POSIX default ACL on this directory does NOT fix it either, for the
+#     same underlying reason: creating a file with an explicit 0644 mode
+#     sets the new file's ACL *mask* to match (r-- for the group class),
+#     which caps any default-ACL-granted group permission down to
+#     read-only regardless of what the ACL itself grants.
+#   - `pulpit` being a *member* of group 700 (see the Dockerfile) is
+#     necessary but not sufficient on its own - it makes group permissions
+#     actually apply to `pulpit`, but SQLite's own 0644 still has no
+#     group-write bit for `fix_pulpit_data_perms` below to have anything to
+#     rely on without also chmod'ing explicitly.
+#   - The `-wal`/`-shm` files are not created once and left alone: VERIFIED
+#     their ownership flips between `pulpit` and `700` across a container's
+#     startup (each side's first connection can recreate them) - a single
+#     chmod pass immediately after migrations is a race against whichever
+#     of uvicorn/the worker loop connects for the first time next. A second
+#     pass a few seconds after both are running (below) catches the loser
+#     of that race; steady-state operation afterward reuses the same
+#     already-open connections and doesn't re-trigger it.
+mkdir -p /var/lib/pulpit
+chown pulpit:700 /var/lib/pulpit
+chmod 2770 /var/lib/pulpit
+su pulpit -c "cd /app && alembic upgrade head"
+
+# No-ops (harmlessly, both here and in fix_pulpit_data_perms below) if
+# PULPIT_CORE_DATABASE_URL was overridden to a real Postgres instead - none
+# of these files exist in that case.
+fix_pulpit_data_perms() {
+    chmod 0660 /var/lib/pulpit/pulpit-core.db 2>/dev/null || true
+    chmod 0660 /var/lib/pulpit/pulpit-core.db-wal /var/lib/pulpit/pulpit-core.db-shm 2>/dev/null || true
+}
+fix_pulpit_data_perms
+
+# --- shared signing volume prep (pulpit-worker) ----------------------------
+# Identical to the pre-merge pulpit-worker/entrypoint.sh - see
+# docs/signing.md "Shared volume permissions" for why uid/gid 700 exactly
+# (VERIFIED to match pulpcore-worker's own uid inside the `pulp` image).
+GNUPGHOME_DIR="${PULPIT_CORE_SIGNING_GNUPG_HOME:-/var/lib/pulpit-signing/gnupg}"
+SCRIPTS_DIR="${PULPIT_CORE_SIGNING_SCRIPTS_DIR:-/var/lib/pulpit-signing/scripts}"
+mkdir -p "${GNUPGHOME_DIR}" "${SCRIPTS_DIR}"
+cp /opt/pulpit-signing-scripts/*.sh "${SCRIPTS_DIR}/"
+chmod 0755 "${SCRIPTS_DIR}"/*.sh
+chown -R 700:700 "${GNUPGHOME_DIR}" "${SCRIPTS_DIR}"
+chmod 0700 "${GNUPGHOME_DIR}"
+chmod 0755 "${SCRIPTS_DIR}"
+
+# --- start all three processes ---------------------------------------------
+# set -e was only meant to fail fast on the one-time setup above; from here
+# on this script itself decides what a failure means, so `wait -n`'s
+# non-zero return must not immediately exit it.
+set +e
+
+nginx -g 'daemon off;' &
+nginx_pid=$!
+
+su pulpit -c "cd /app && exec uvicorn app.main:app --host 127.0.0.1 --port 8000" &
+core_pid=$!
+
+setpriv --reuid=700 --regid=700 --clear-groups -- python3 -m worker.main &
+worker_pid=$!
+
+# Settles the startup race described above, once both of the above have
+# had a chance to open their own first SQLite connection - self-terminating,
+# not an ongoing background daemon.
+(sleep 3; fix_pulpit_data_perms; sleep 5; fix_pulpit_data_perms) &
+settle_pid=$!
+
+terminate() {
+    kill -TERM "${nginx_pid}" "${core_pid}" "${worker_pid}" "${settle_pid}" 2>/dev/null
+}
+trap terminate TERM INT
+
+wait -n "${nginx_pid}" "${core_pid}" "${worker_pid}"
+exit_code=$?
+terminate
+wait
+exit "${exit_code}"

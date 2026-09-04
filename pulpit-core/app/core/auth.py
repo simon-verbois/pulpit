@@ -1,7 +1,7 @@
 """pulpit-core has no user/session store of its own - Pulp remains the only
 identity source (docs/AUTHENTICATION.md, ADR 0001, carried forward by ADR
 0006). A request reaching pulpit-core (always through the same nginx origin
-- see docker/nginx/pulpit.conf.template) forwards whatever cookie/Basic-auth
+- see deployment/docker/nginx/pulpit.conf.template) forwards whatever cookie/Basic-auth
 header the browser already sent Pulp; pulpit-core validates it the same way
 Pulpit's own frontend does: GET /pulp/api/v3/login/ ("who am I" - VERIFIED
 in docs/AUTHENTICATION.md), reusing Pulp's answer rather than inventing a

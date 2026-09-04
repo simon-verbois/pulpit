@@ -1,6 +1,6 @@
 """Public, unauthenticated key distribution (task section 7). Mounted at the
 bare `/keys/...` path (see app/modules/registry.py build_public_router and
-app/main.py) - `docker/nginx/pulpit.conf.template` proxies it straight
+app/main.py) - `deployment/docker/nginx/pulpit.conf.template` proxies it straight
 through with no auth check, exactly like DNF expects for a `gpgkey=` URL.
 
 Single active key model (task requirement: "je veux une seule cle active

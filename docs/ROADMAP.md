@@ -172,7 +172,7 @@ pointed at `ghcr.io/pulp/hello-world`, synced, browsed, distributed, and pulled 
       `index.html` instead of the real blob, surfacing downstream as a confusing "digest does not
       match" error) and `/extensions/v2/...` (the image-signature extension API podman/docker
       probe on every pull, surfacing as "decoding signature list: invalid character '<'" without
-      it). Both fixed in `docker/nginx/pulpit.conf.template`; full detail in
+      it). Both fixed in `deployment/docker/nginx/pulpit.conf.template`; full detail in
       `docs/DEPLOYMENT.md`.
 
 Tests: unit tests for every container API adapter (`src/api/client/container/*.test.ts`,
@@ -282,7 +282,7 @@ namespace create/update, and a cross-repository search).
       live schema for per-content-unit copy/move with signing, not built here to avoid a
       content-unit-picker UI this milestone doesn't otherwise need).
 - [x] **Infrastructure fix found during this milestone**: the nginx reverse proxy
-      (`docker/nginx/pulpit.conf.template`) only proxied `/pulp/api/`, `/pulp/content/`, and
+      (`deployment/docker/nginx/pulpit.conf.template`) only proxied `/pulp/api/`, `/pulp/content/`, and
       `/v2/` to Pulp - `/pulp_ansible/...` (the entire Galaxy-v3-compatible API namespace/search
       lives under) fell through to Pulpit's own SPA fallback. A GET request there silently
       "succeeded" with Pulpit's own `index.html` instead of Pulp's JSON, and a POST 405'd (a

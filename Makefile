@@ -2,7 +2,7 @@
 	compose-up compose-down compose-build compose-logs \
 	pulp-status pulp-versions pulp-migrations pulp-migrate pulp-reset-admin pulp-reset-hard \
 	api-fetch api-generate \
-	pulpit-core-install pulpit-core-test pulpit-core-migrate pulpit-core-logs pulpit-worker-logs \
+	pulpit-core-install pulpit-core-test pulpit-core-migrate pulpit-logs \
 	pulpit-signing-exec
 
 PULPIT_HTTP_PORT ?= 8080
@@ -51,10 +51,12 @@ check: format-check lint typecheck test build ## Full quality gate: format + lin
 
 ## --- Docker Compose ---------------------------------------------------------
 
-# compose-dev.yml (not compose.yml) - it builds `pulpit` from local source
-# instead of pulling the published image, see that file's header comment
-# and docs/DEVELOPMENT.md "Mode B".
-COMPOSE_DEV := docker compose -f compose-dev.yml
+# deployment/docker/compose-dev.yml (not compose.yml) - it builds `pulpit`
+# from local source instead of pulling the published image, see that
+# file's header comment and docs/DEVELOPMENT.md "Mode B". --env-file .env
+# is required so `.env` (at the repo root, this Makefile's own directory)
+# is found - see compose-dev.yml's own header comment for why.
+COMPOSE_DEV := docker compose -f deployment/docker/compose-dev.yml --env-file .env
 
 compose-up: ## Start the full Pulp + Pulpit stack, built from local source
 	$(COMPOSE_DEV) up -d --build
@@ -102,17 +104,14 @@ api-generate: ## Generate TypeScript types from the fetched schema
 pulpit-core-install: ## Install pulpit-core's Python dependencies into pulpit-core/.venv
 	cd pulpit-core && python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 
-pulpit-core-test: ## Run pulpit-core's pytest suite (needs PULPIT_CORE_DATABASE_URL - see docs/signing.md)
+pulpit-core-test: ## Run pulpit-core's pytest suite (defaults to a real Postgres at localhost:15432 - set PULPIT_CORE_DATABASE_URL=sqlite:///... to use SQLite instead, see tests/conftest.py)
 	cd pulpit-core && . .venv/bin/activate && pytest
 
 pulpit-core-migrate: ## Apply pulpit-core's own Alembic migrations inside the running container
-	$(COMPOSE_DEV) exec pulpit-core alembic upgrade head
+	$(COMPOSE_DEV) exec pulpit alembic upgrade head
 
-pulpit-core-logs: ## Tail pulpit-core (API) logs
-	$(COMPOSE_DEV) logs -f pulpit-core
-
-pulpit-worker-logs: ## Tail pulpit-worker (jobs/rotation scheduler) logs
-	$(COMPOSE_DEV) logs -f pulpit-worker
+pulpit-logs: ## Tail pulpit (nginx + API + job queue worker, docs/adr/0007-merged-pulpit-container.md) logs
+	$(COMPOSE_DEV) logs -f pulpit
 
 pulpit-signing-exec: ## Run a pulpcore-manager command shown by the Signing GUI (usage: make pulpit-signing-exec CMD="add-signing-service ...")
 	$(COMPOSE_DEV) exec pulp pulpcore-manager $(CMD)

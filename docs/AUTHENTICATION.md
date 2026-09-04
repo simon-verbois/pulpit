@@ -30,7 +30,7 @@ is configured with — it does not implement its own.
     their own native credential prompt on top of the page - which happened on first load here
     (the "who am I" check 401s before login), stealing focus from Pulpit's own login form. Fixed
     by stripping that header at the nginx layer for `/pulp/api/` (`proxy_hide_header
-WWW-Authenticate;` in `docker/nginx/pulpit.conf.template`), since Pulpit never relies on the
+WWW-Authenticate;` in `deployment/docker/nginx/pulpit.conf.template`), since Pulpit never relies on the
     browser's native prompt - it authenticates itself via one explicit `POST /login/` call. This is
     scoped to `/pulp/api/` only, not `/v2/` (the container registry), where real `podman`/`docker`
     clients do need to see the (Bearer, not Basic) challenge header to negotiate token auth.
