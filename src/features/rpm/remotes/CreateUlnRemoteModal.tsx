@@ -90,6 +90,7 @@ export function CreateUlnRemoteModal({ onClose }: { onClose: () => void }) {
             <TextInput
               id="uln-remote-username"
               isRequired
+              autoComplete="off"
               value={username}
               onChange={(_event, value) => setUsername(value)}
             />
@@ -99,6 +100,7 @@ export function CreateUlnRemoteModal({ onClose }: { onClose: () => void }) {
               id="uln-remote-password"
               isRequired
               type="password"
+              autoComplete="new-password"
               value={password}
               onChange={(_event, value) => setPassword(value)}
             />

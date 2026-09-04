@@ -48,6 +48,7 @@ export interface ContainerRemote {
   pulp_created: string;
   proxy_url: string | null;
   tls_validation: boolean;
+  ca_cert: string | null;
   hidden_fields: HiddenRemoteField[];
   /** Glob patterns (e.g. "latest", "v1.*") limiting which tags get synced -
    * VERIFIED live: `null`/omitted means "sync every tag". The live schema
@@ -67,6 +68,7 @@ export interface ContainerRemoteConnectionSettings {
   username?: string | null;
   password?: string | null;
   tls_validation?: boolean;
+  ca_cert?: string | null;
 }
 
 export interface ContainerRemoteCreate extends ContainerRemoteConnectionSettings {

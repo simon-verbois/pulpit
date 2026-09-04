@@ -115,6 +115,15 @@ export interface DefaultSettings {
    * Pulp-side way to skip validation for only the proxy while still
    * validating the origin (or vice versa). */
   proxy_tls_validation: boolean;
+  /** Public material (unlike proxy_password above) - returned in full, not
+   * behind an `is_set` indirection. Applied to every new Remote's own
+   * native `ca_cert` field (RemoteConnectionSettingsFields.tsx), the same
+   * per-remote-override pattern as proxy_tls_validation. Replaces the old
+   * trusted_ca module's docker-exec/update-ca-trust mechanism - Pulp's own
+   * aiohttp downloader already trusts a Remote's `ca_cert` IN ADDITION TO
+   * the system CA bundle (pulpcore's DownloaderFactory), so this needed no
+   * container-filesystem automation at all. */
+  proxy_ca_cert: string | null;
   updated_at: string;
 }
 
@@ -126,6 +135,8 @@ export interface DefaultSettingsUpdate {
    * pulpit-core/app/modules/default_settings/schemas.py. */
   proxy_password?: string;
   proxy_tls_validation?: boolean;
+  /** Same three-state convention as proxy_password above. */
+  proxy_ca_cert?: string;
 }
 
 /** The real, decrypted default proxy - deliberately a separate type/request
@@ -136,24 +147,5 @@ export interface DefaultProxyCredentials {
   proxy_url: string;
   proxy_username: string;
   proxy_password: string | null;
-}
-
-export type TrustedCaCertificateStatus = "pending" | "applied" | "failed";
-
-// Mirrors pulpit-core/app/modules/trusted_ca/schemas.py. Unlike the proxy
-// password above, `pem` IS returned here - a CA certificate is public
-// material by definition, nothing to keep write-only.
-export interface TrustedCaCertificate {
-  id: string;
-  name: string;
-  pem: string;
-  status: TrustedCaCertificateStatus;
-  last_error: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TrustedCaCertificateCreate {
-  name: string;
-  pem: string;
+  proxy_ca_cert: string | null;
 }

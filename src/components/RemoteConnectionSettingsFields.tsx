@@ -8,6 +8,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  TextArea,
   TextInput,
 } from "@patternfly/react-core";
 
@@ -26,6 +27,11 @@ export interface RemoteConnectionSettings {
   username?: string | null;
   password?: string | null;
   tls_validation?: boolean;
+  /** A PEM encoded CA certificate Pulp's own aiohttp downloader trusts IN
+   * ADDITION to the system CA bundle (verified live in pulpcore's
+   * DownloaderFactory) - shared by the origin server and the proxy
+   * connection, same as tls_validation above, never two separate fields. */
+  ca_cert?: string | null;
 }
 
 export interface HiddenRemoteField {
@@ -98,11 +104,13 @@ export function RemoteConnectionSettingsFields({
     const credentials = proxyCredentialsQuery.data;
     const resolvedPassword = credentials.proxy_password ?? "";
     const resolvedTlsValidation = defaultSettingsQuery.data.proxy_tls_validation;
+    const resolvedCaCert = credentials.proxy_ca_cert ?? "";
     if (
       value.proxy_url === credentials.proxy_url &&
       value.proxy_username === credentials.proxy_username &&
       value.proxy_password === resolvedPassword &&
-      value.tls_validation === resolvedTlsValidation
+      value.tls_validation === resolvedTlsValidation &&
+      (value.ca_cert ?? "") === resolvedCaCert
     ) {
       return;
     }
@@ -116,6 +124,9 @@ export function RemoteConnectionSettingsFields({
       // also applies its TLS preference, there is no narrower field to set
       // instead (DefaultSettings.proxy_tls_validation's own doc comment).
       tls_validation: resolvedTlsValidation,
+      // Same reasoning as tls_validation above - one ca_cert per Remote,
+      // shared by proxy and origin server.
+      ca_cert: resolvedCaCert,
     });
   }, [
     useInstanceDefault,
@@ -193,6 +204,7 @@ export function RemoteConnectionSettingsFields({
           <FormGroup label="Proxy username" fieldId={`${idPrefix}-proxy-username`}>
             <TextInput
               id={`${idPrefix}-proxy-username`}
+              autoComplete="off"
               value={value.proxy_username ?? ""}
               onChange={(_event, v) => onChange({ ...value, proxy_username: v })}
             />
@@ -210,6 +222,7 @@ export function RemoteConnectionSettingsFields({
             <TextInput
               id={`${idPrefix}-proxy-password`}
               type="password"
+              autoComplete="new-password"
               value={value.proxy_password ?? ""}
               onChange={(_event, v) => onChange({ ...value, proxy_password: v })}
             />
@@ -228,6 +241,7 @@ export function RemoteConnectionSettingsFields({
       <FormGroup label="Origin server username" fieldId={`${idPrefix}-username`}>
         <TextInput
           id={`${idPrefix}-username`}
+          autoComplete="off"
           value={value.username ?? ""}
           onChange={(_event, v) => onChange({ ...value, username: v })}
         />
@@ -243,6 +257,7 @@ export function RemoteConnectionSettingsFields({
         <TextInput
           id={`${idPrefix}-password`}
           type="password"
+          autoComplete="new-password"
           value={value.password ?? ""}
           onChange={(_event, v) => onChange({ ...value, password: v })}
         />
@@ -273,6 +288,33 @@ export function RemoteConnectionSettingsFields({
             </HelperText>
           </FormHelperText>
         ) : null}
+      </FormGroup>
+      <FormGroup label="Trusted CA certificate (PEM)" fieldId={`${idPrefix}-ca-cert`}>
+        <TextArea
+          id={`${idPrefix}-ca-cert`}
+          rows={6}
+          resizeOrientation="vertical"
+          autoComplete="off"
+          placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
+          isDisabled={hasDefaultProxy && useInstanceDefault}
+          value={value.ca_cert ?? ""}
+          onChange={(_event, v) => onChange({ ...value, ca_cert: v })}
+        />
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              {hasDefaultProxy && useInstanceDefault ? (
+                <>
+                  Set by the instance default proxy above - uncheck{" "}
+                  <strong>Use the instance default proxy</strong> to control this
+                  separately for this remote.
+                </>
+              ) : (
+                "Trusted in addition to the system's own CAs - most commonly needed for a self-signed origin server or proxy."
+              )}
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
       </FormGroup>
     </ExpandableSection>
   );

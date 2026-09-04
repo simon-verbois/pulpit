@@ -52,6 +52,7 @@ export function EditRemoteModal({
     username: "",
     password: "",
     tls_validation: remote.tls_validation,
+    ca_cert: remote.ca_cert ?? "",
   });
   const updateMutation = useUpdateContainerRemoteMutation();
 
@@ -76,6 +77,7 @@ export function EditRemoteModal({
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
           tls_validation: connectionSettings.tls_validation,
+          ca_cert: connectionSettings.ca_cert || null,
         },
       },
       { onSuccess: () => onClose() },

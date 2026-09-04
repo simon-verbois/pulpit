@@ -34,6 +34,7 @@ const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
   username: "",
   password: "",
   tls_validation: true,
+  ca_cert: "",
 };
 
 /** Classic pre-collections Galaxy roles (`galaxy.ansible.com/api/v1/roles/`
@@ -57,6 +58,7 @@ export function CreateRoleRemoteModal({ onClose }: { onClose: () => void }) {
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
         tls_validation: connectionSettings.tls_validation,
+        ca_cert: connectionSettings.ca_cert || undefined,
       },
       { onSuccess: () => onClose() },
     );

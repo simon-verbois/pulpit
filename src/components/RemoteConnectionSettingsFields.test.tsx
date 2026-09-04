@@ -14,9 +14,13 @@ import {
 const SETTINGS_URL = "/pulpit-core/api/v1/default_settings/settings";
 const CREDENTIALS_URL = "/pulpit-core/api/v1/default_settings/proxy-credentials";
 
+const DEFAULT_CA_CERT =
+  "-----BEGIN CERTIFICATE-----\nMIIC...fake...==\n-----END CERTIFICATE-----";
+
 function mockInstanceDefaultProxy({
   proxyTlsValidation = true,
-}: { proxyTlsValidation?: boolean } = {}) {
+  proxyCaCert = DEFAULT_CA_CERT,
+}: { proxyTlsValidation?: boolean; proxyCaCert?: string | null } = {}) {
   server.use(
     http.get(SETTINGS_URL, () =>
       HttpResponse.json({
@@ -25,6 +29,7 @@ function mockInstanceDefaultProxy({
         proxy_username: "default-user",
         proxy_password_is_set: true,
         proxy_tls_validation: proxyTlsValidation,
+        proxy_ca_cert: proxyCaCert,
         updated_at: "2026-01-01T00:00:00Z",
       }),
     ),
@@ -33,6 +38,7 @@ function mockInstanceDefaultProxy({
         proxy_url: "http://default-proxy.example.com:3128",
         proxy_username: "default-user",
         proxy_password: "default-pass",
+        proxy_ca_cert: proxyCaCert,
       }),
     ),
   );
@@ -127,15 +133,49 @@ describe("RemoteConnectionSettingsFields", () => {
     );
     await waitFor(() => expect(tlsCheckbox).not.toBeChecked());
     expect(tlsCheckbox).toBeDisabled();
+    // Shared wording with the ca_cert field's own helper text below, hence
+    // >= 1 rather than a single unique match.
     expect(
-      screen.getByText(/Set by the instance default proxy above/i),
-    ).toBeInTheDocument();
+      screen.getAllByText(/Set by the instance default proxy above/i).length,
+    ).toBeGreaterThanOrEqual(1);
 
     await waitFor(() => {
       const captured = JSON.parse(
         screen.getByTestId("captured").textContent ?? "{}",
       ) as RemoteConnectionSettings;
       expect(captured.tls_validation).toBe(false);
+    });
+  });
+
+  it("applies the default's CA certificate and locks the field", async () => {
+    mockInstanceDefaultProxy();
+
+    renderApp(<Harness />);
+
+    const caCertField = await screen.findByLabelText("Trusted CA certificate (PEM)");
+    await waitFor(() => expect(caCertField).toHaveValue(DEFAULT_CA_CERT));
+    expect(caCertField).toBeDisabled();
+    // Shared wording with the tls_validation checkbox's own helper text
+    // above, hence >= 1 rather than a single unique match.
+    expect(
+      screen.getAllByText(/Set by the instance default proxy above/i).length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it("allows a manual CA certificate when not using the instance default", async () => {
+    renderApp(<Harness />);
+
+    fireEvent.click(await screen.findByText("Advanced connection settings"));
+    const caCertField = await screen.findByLabelText("Trusted CA certificate (PEM)");
+    expect(caCertField).not.toBeDisabled();
+
+    fireEvent.change(caCertField, { target: { value: DEFAULT_CA_CERT } });
+
+    await waitFor(() => {
+      const captured = JSON.parse(
+        screen.getByTestId("captured").textContent ?? "{}",
+      ) as RemoteConnectionSettings;
+      expect(captured.ca_cert).toBe(DEFAULT_CA_CERT);
     });
   });
 });

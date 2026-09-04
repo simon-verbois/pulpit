@@ -142,6 +142,7 @@ export const RPM_REMOTE_FIXTURE: RpmRemote = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
   proxy_url: null,
   tls_validation: true,
+  ca_cert: null,
   hidden_fields: [
     { name: "proxy_username", is_set: false },
     { name: "proxy_password", is_set: false },
@@ -484,6 +485,7 @@ const rpmHandlers = [
       pulp_created: "2026-08-20T11:00:00.000000Z",
       proxy_url: body.proxy_url ?? null,
       tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
       hidden_fields: [
         { name: "proxy_username", is_set: Boolean(body.proxy_username) },
         { name: "proxy_password", is_set: Boolean(body.proxy_password) },
@@ -521,6 +523,7 @@ const rpmHandlers = [
         ...(body.tls_validation !== undefined
           ? { tls_validation: body.tls_validation }
           : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
         hidden_fields: hiddenFields,
       };
     });
@@ -893,6 +896,7 @@ export const COLLECTION_REMOTE_FIXTURE: CollectionRemote = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
   proxy_url: null,
   tls_validation: true,
+  ca_cert: null,
   hidden_fields: [{ name: "token", is_set: false }],
   requirements_file: null,
   auth_url: null,
@@ -1304,6 +1308,7 @@ export const CONTAINER_REMOTE_FIXTURE: ContainerRemote = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
   proxy_url: null,
   tls_validation: true,
+  ca_cert: null,
   hidden_fields: [{ name: "password", is_set: false }],
   includes: null,
   excludes: null,
@@ -2256,14 +2261,10 @@ const pulpitCoreHandlers = [
       proxy_username: "",
       proxy_password_is_set: false,
       proxy_tls_validation: true,
+      proxy_ca_cert: null,
       updated_at: "2026-01-01T00:00:00Z",
     }),
   ),
-
-  // Empty by default - DefaultSettingsPage's Trusted CA certificates
-  // section calls this unconditionally on mount. Tests exercising it
-  // override this with `server.use(...)`.
-  http.get("/pulpit-core/api/v1/trusted_ca/certificates", () => HttpResponse.json([])),
 ];
 
 export const handlers = [

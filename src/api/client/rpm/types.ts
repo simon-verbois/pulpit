@@ -88,6 +88,10 @@ export interface RpmRemote {
   pulp_created: string;
   proxy_url: string | null;
   tls_validation: boolean;
+  /** Unlike proxy_username/password/username/password below, this IS
+   * echoed back by GET (VERIFIED live: public certificate material, not a
+   * secret - same as client_cert, but unlike client_key). */
+  ca_cert: string | null;
   hidden_fields: HiddenRemoteField[];
 }
 
@@ -103,6 +107,7 @@ export interface RpmRemoteConnectionSettings {
   username?: string | null;
   password?: string | null;
   tls_validation?: boolean;
+  ca_cert?: string | null;
 }
 
 export interface RpmRemoteCreate extends RpmRemoteConnectionSettings {

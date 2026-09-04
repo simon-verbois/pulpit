@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
   proxy_username: "",
   proxy_password_is_set: false,
   proxy_tls_validation: true,
+  proxy_ca_cert: null as string | null,
   updated_at: "2026-01-01T00:00:00Z",
 };
 
@@ -119,5 +120,55 @@ describe("DefaultSettingsPage", () => {
     renderApp(<DefaultSettingsPage />);
 
     expect(await screen.findByLabelText("Skip TLS certificate validation")).toBeChecked();
+  });
+
+  it("disables Save until a field actually changes, and re-disables it after saving", async () => {
+    mockSettings();
+
+    renderApp(<DefaultSettingsPage />);
+
+    const saveButton = await screen.findByRole("button", { name: "Save" });
+    await waitFor(() => expect(saveButton).toBeDisabled());
+
+    const urlInput = screen.getByLabelText("Proxy URL");
+    fireEvent.change(urlInput, { target: { value: "http://proxy:3128" } });
+    expect(saveButton).toBeEnabled();
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => expect(saveButton).toBeDisabled());
+  });
+
+  it("loads the current default CA certificate", async () => {
+    const CA_CERT =
+      "-----BEGIN CERTIFICATE-----\nMIIC...fake...==\n-----END CERTIFICATE-----";
+    mockSettings({ proxy_ca_cert: CA_CERT });
+
+    renderApp(<DefaultSettingsPage />);
+
+    expect(await screen.findByLabelText("Trusted CA certificate (PEM)")).toHaveValue(
+      CA_CERT,
+    );
+  });
+
+  it("saves the CA certificate via PATCH", async () => {
+    const CA_CERT =
+      "-----BEGIN CERTIFICATE-----\nMIIC...fake...==\n-----END CERTIFICATE-----";
+    let lastPatchBody: Record<string, unknown> = {};
+    mockSettings();
+    server.use(
+      http.patch(SETTINGS_URL, async ({ request }) => {
+        lastPatchBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...DEFAULT_SETTINGS, ...lastPatchBody });
+      }),
+    );
+
+    renderApp(<DefaultSettingsPage />);
+
+    const caCertField = await screen.findByLabelText("Trusted CA certificate (PEM)");
+    fireEvent.change(caCertField, { target: { value: CA_CERT } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(lastPatchBody.proxy_ca_cert).toBe(CA_CERT));
   });
 });

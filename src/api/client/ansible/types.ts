@@ -76,6 +76,7 @@ export interface AnsibleRemoteConnectionSettings {
   username?: string | null;
   password?: string | null;
   tls_validation?: boolean;
+  ca_cert?: string | null;
 }
 
 export interface CollectionRemote {
@@ -86,6 +87,7 @@ export interface CollectionRemote {
   pulp_created: string;
   proxy_url: string | null;
   tls_validation: boolean;
+  ca_cert: string | null;
   hidden_fields: HiddenRemoteField[];
   requirements_file: string | null;
   auth_url: string | null;
@@ -119,6 +121,7 @@ export interface GitRemote {
   pulp_created: string;
   proxy_url: string | null;
   tls_validation: boolean;
+  ca_cert: string | null;
   hidden_fields: HiddenRemoteField[];
   git_ref: string | null;
   metadata_only: boolean;
@@ -142,6 +145,7 @@ export interface RoleRemote {
   pulp_created: string;
   proxy_url: string | null;
   tls_validation: boolean;
+  ca_cert: string | null;
   hidden_fields: HiddenRemoteField[];
 }
 

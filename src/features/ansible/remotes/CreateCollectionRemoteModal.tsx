@@ -36,6 +36,7 @@ const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
   username: "",
   password: "",
   tls_validation: true,
+  ca_cert: "",
 };
 
 export function CreateCollectionRemoteModal({ onClose }: { onClose: () => void }) {
@@ -64,6 +65,7 @@ export function CreateCollectionRemoteModal({ onClose }: { onClose: () => void }
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
         tls_validation: connectionSettings.tls_validation,
+        ca_cert: connectionSettings.ca_cert || undefined,
       },
       { onSuccess: () => onClose() },
     );
@@ -158,6 +160,7 @@ export function CreateCollectionRemoteModal({ onClose }: { onClose: () => void }
               <TextInput
                 id="collection-remote-token"
                 type="password"
+                autoComplete="new-password"
                 value={token}
                 onChange={(_event, value) => setToken(value)}
               />

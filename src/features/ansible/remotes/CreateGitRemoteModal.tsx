@@ -26,6 +26,7 @@ const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
   username: "",
   password: "",
   tls_validation: true,
+  ca_cert: "",
 };
 
 /** No sync policy here (VERIFIED live schema: GitRemote has no `policy`
@@ -51,6 +52,7 @@ export function CreateGitRemoteModal({ onClose }: { onClose: () => void }) {
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
         tls_validation: connectionSettings.tls_validation,
+        ca_cert: connectionSettings.ca_cert || undefined,
       },
       { onSuccess: () => onClose() },
     );

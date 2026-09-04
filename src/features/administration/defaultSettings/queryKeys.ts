@@ -9,9 +9,3 @@ export const defaultProxyCredentialsKey = [
   "default-settings",
   "proxy-credentials",
 ] as const;
-
-export const trustedCaCertificatesKey = [
-  "pulpit-core",
-  "trusted-ca",
-  "certificates",
-] as const;

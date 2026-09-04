@@ -32,26 +32,16 @@ export function AdministrationDefaultSettingsTopic() {
         server - there's no way to relax it for only the proxy while still validating the
         origin, so enabling this here (or per Remote) skips both once applied.
       </Content>
-
-      <Content component="h3">Trusted CA certificates</Content>
       <Content component="p">
-        Paste a CA certificate's PEM content and give it a name to have Pulp itself trust
-        connections signed by it - most commonly a corporate TLS-inspecting proxy sitting
-        in front of every sync. This is separate from{" "}
-        <strong>Skip TLS certificate validation</strong> above: that disables checking
-        entirely, this instead teaches Pulp to actually trust a specific CA, so validation
-        stays on.
-      </Content>
-      <Content component="p">
-        Adding or removing one queues a background job that copies the current full set of
-        certificates into Pulp's own OCI-image trust store (
-        <code>/etc/pki/ca-trust/source/anchors/</code>, via <code>update-ca-trust</code>)
-        - the only mechanism Pulp's container image actually supports for this, there is
-        no API field or environment variable Pulp reads instead. That requires the same
-        Docker-exec automation described in <strong>Repository Signing</strong>'s "manual
-        Pulp step" (<code>docs/signing.md</code>); without it configured, every
-        certificate stays <strong>Pending</strong> rather than failing outright, exactly
-        like Repository Signing's own automation falls back when unavailable.
+        <strong>Trusted CA certificate (PEM)</strong> is Pulp's own native per-Remote{" "}
+        <code>ca_cert</code> field - applied the same way as the proxy fields above, and
+        just as overridable per Remote. Unlike{" "}
+        <strong>Skip TLS certificate validation</strong>, this doesn't disable checking:
+        Pulp's downloader trusts this CA <em>in addition to</em> the system's own CA
+        bundle, so validation stays on - most commonly needed to trust a corporate
+        TLS-inspecting proxy without disabling TLS validation entirely. This is public
+        material (unlike the proxy password above), so it's returned in full, not just as
+        "set" or "unset".
       </Content>
     </Content>
   );

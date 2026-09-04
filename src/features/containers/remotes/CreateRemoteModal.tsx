@@ -37,6 +37,7 @@ const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
   username: "",
   password: "",
   tls_validation: true,
+  ca_cert: "",
 };
 
 export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
@@ -66,6 +67,7 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
         tls_validation: connectionSettings.tls_validation,
+        ca_cert: connectionSettings.ca_cert || undefined,
       },
       { onSuccess: () => onClose() },
     );

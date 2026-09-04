@@ -4,7 +4,6 @@ import {
   Button,
   Checkbox,
   Content,
-  Divider,
   Form,
   FormGroup,
   FormHelperText,
@@ -13,6 +12,7 @@ import {
   PageSection,
   Stack,
   StackItem,
+  TextArea,
   TextInput,
 } from "@patternfly/react-core";
 
@@ -23,7 +23,6 @@ import { PulpApiError } from "../../../api/errors/PulpApiError";
 import type { DefaultSettings } from "../../../api/client/pulpitCore/types";
 import { useDefaultSettingsQuery } from "./useDefaultSettingsQuery";
 import { useUpdateDefaultSettingsMutation } from "./useUpdateDefaultSettingsMutation";
-import { TrustedCaCertificatesSection } from "./TrustedCaCertificatesSection";
 
 export function DefaultSettingsPage() {
   const settingsQuery = useDefaultSettingsQuery();
@@ -49,12 +48,6 @@ export function DefaultSettingsPage() {
             <StackItem>
               <ProxySettingsForm settings={settingsQuery.data} />
             </StackItem>
-            <StackItem>
-              <Divider />
-            </StackItem>
-            <StackItem>
-              <TrustedCaCertificatesSection />
-            </StackItem>
           </Stack>
         ) : null}
       </PageSection>
@@ -73,10 +66,23 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
   const [skipTlsValidation, setSkipTlsValidation] = useState(
     !settings.proxy_tls_validation,
   );
+  // Unlike proxyPassword above, this is public material and IS echoed back
+  // by GET (models.py's docstring) - prefilled with the real current value,
+  // not blank. Applied to every new Remote's own native `ca_cert` field
+  // (RemoteConnectionSettingsFields.tsx) - replaces the old trusted_ca
+  // module's docker-exec mechanism.
+  const [caCert, setCaCert] = useState(settings.proxy_ca_cert ?? "");
 
   const passwordHint = settings.proxy_password_is_set
     ? "Currently set - leave blank to keep it, or type a new value to replace it."
     : undefined;
+
+  const isDirty =
+    proxyUrl !== settings.proxy_url ||
+    proxyUsername !== settings.proxy_username ||
+    proxyPassword !== "" ||
+    skipTlsValidation !== !settings.proxy_tls_validation ||
+    caCert !== (settings.proxy_ca_cert ?? "");
 
   const handleSave = () => {
     updateSettings.mutate(
@@ -85,11 +91,20 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
         proxy_username: proxyUsername,
         proxy_password: proxyPassword || undefined,
         proxy_tls_validation: !skipTlsValidation,
+        proxy_ca_cert: caCert,
       },
-      // Blank the field back out rather than leaving whatever was just
-      // typed sitting there - the hint below it is the only thing that
-      // should reflect "set", same as every Remote's proxy password field.
-      { onSuccess: () => setProxyPassword("") },
+      {
+        onSuccess: (data) => {
+          // Blank the password back out rather than leaving whatever was
+          // just typed sitting there - the hint below it is the only thing
+          // that should reflect "set", same as every Remote's proxy
+          // password field. caCert is re-synced to the server's own
+          // (whitespace-trimmed) value so isDirty above doesn't stay true
+          // after a successful save just because of trailing whitespace.
+          setProxyPassword("");
+          setCaCert(data.proxy_ca_cert ?? "");
+        },
+      },
     );
   };
 
@@ -120,6 +135,7 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
             <TextInput
               id="default-settings-proxy-url"
               placeholder="http://proxy.example.com:3128"
+              autoComplete="off"
               value={proxyUrl}
               onChange={(_event, value) => setProxyUrl(value)}
             />
@@ -127,6 +143,7 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
           <FormGroup label="Proxy username" fieldId="default-settings-proxy-username">
             <TextInput
               id="default-settings-proxy-username"
+              autoComplete="off"
               value={proxyUsername}
               onChange={(_event, value) => setProxyUsername(value)}
             />
@@ -135,6 +152,7 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
             <TextInput
               id="default-settings-proxy-password"
               type="password"
+              autoComplete="new-password"
               value={proxyPassword}
               onChange={(_event, value) => setProxyPassword(value)}
             />
@@ -164,13 +182,36 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
               </HelperText>
             </FormHelperText>
           </FormGroup>
+          <FormGroup
+            label="Trusted CA certificate (PEM)"
+            fieldId="default-settings-proxy-ca-cert"
+          >
+            <TextArea
+              id="default-settings-proxy-ca-cert"
+              rows={8}
+              resizeOrientation="vertical"
+              autoComplete="off"
+              placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
+              value={caCert}
+              onChange={(_event, value) => setCaCert(value)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Applied to every new Remote's own <code>ca_cert</code> field (in
+                  addition to the system's own trusted CAs) - most commonly needed to
+                  trust a corporate TLS-inspecting proxy. Leave blank for none.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
         </Form>
       </StackItem>
 
       <StackItem>
         <Button
           variant="primary"
-          isDisabled={updateSettings.isPending}
+          isDisabled={!isDirty || updateSettings.isPending}
           isLoading={updateSettings.isPending}
           onClick={handleSave}
         >

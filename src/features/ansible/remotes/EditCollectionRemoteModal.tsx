@@ -58,6 +58,7 @@ export function EditCollectionRemoteModal({
     username: "",
     password: "",
     tls_validation: remote.tls_validation,
+    ca_cert: remote.ca_cert ?? "",
   });
   const updateMutation = useUpdateCollectionRemoteMutation();
   const tokenIsSet = remote.hidden_fields.find((f) => f.name === "token")?.is_set;
@@ -80,6 +81,7 @@ export function EditCollectionRemoteModal({
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
           tls_validation: connectionSettings.tls_validation,
+          ca_cert: connectionSettings.ca_cert || null,
         },
       },
       { onSuccess: () => onClose() },
@@ -180,6 +182,7 @@ export function EditCollectionRemoteModal({
               <TextInput
                 id="collection-remote-edit-token"
                 type="password"
+                autoComplete="new-password"
                 value={token}
                 onChange={(_event, value) => setToken(value)}
               />
