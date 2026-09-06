@@ -72,6 +72,7 @@ export function RepositoryTagsTab({ repository }: { repository: ContainerReposit
         tags={tagsQuery.data?.results}
         emptyTitle="No tags in this repository yet"
         emptyBody="Sync a remote or tag a manifest to add a tag to this repository."
+        emptyStateVariant="sm"
         onUntag={handleUntag}
       />
 

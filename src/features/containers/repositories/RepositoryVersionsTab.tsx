@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
-  Label,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -15,6 +14,7 @@ import type { ContainerRepository } from "../../../api/client/container/types";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import { containerRepositoryVersionsKey } from "./queryKeys";
@@ -65,6 +65,7 @@ export function RepositoryVersionsTab({
       ) : null}
       {versionsQuery.isSuccess && versionsQuery.data.results.length === 0 ? (
         <EmptyState
+          variant="sm"
           title="No versions yet"
           body="A repository gets its first version once content is synced or added to it."
         />
@@ -96,9 +97,9 @@ export function RepositoryVersionsTab({
                     {isCurrent ? (
                       <>
                         {" "}
-                        <Label color="blue" isCompact>
+                        <StatusIndicator color="blue" isCompact>
                           Current
-                        </Label>
+                        </StatusIndicator>
                       </>
                     ) : null}
                   </Td>

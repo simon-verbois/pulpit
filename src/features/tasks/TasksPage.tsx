@@ -3,7 +3,6 @@ import {
   Button,
   FormSelect,
   FormSelectOption,
-  Label,
   PageSection,
   Pagination,
   SearchInput,
@@ -17,6 +16,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingState } from "../../components/LoadingState";
 import { ErrorState } from "../../components/ErrorState";
 import { EmptyState } from "../../components/EmptyState";
+import { StatusIndicator } from "../../components/StatusIndicator";
 import { usePulpPagination } from "../../hooks/usePulpPagination";
 import { formatRelativeTime } from "../../lib/relativeTime";
 import type { PulpTask, PulpTaskState } from "../../api/client/tasks";
@@ -137,9 +137,9 @@ export function TasksPage() {
                     <code>{task.name ?? "—"}</code>
                   </Td>
                   <Td dataLabel="State">
-                    <Label color={TASK_STATE_COLOR[task.state]} isCompact>
+                    <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>
                       {task.state}
-                    </Label>
+                    </StatusIndicator>
                   </Td>
                   <Td dataLabel="Created by">
                     <CreatedByCell createdBy={task.created_by} />

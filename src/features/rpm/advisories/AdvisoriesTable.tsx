@@ -1,9 +1,9 @@
-import { Label } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import type { RpmAdvisory } from "../../../api/client/rpm/types";
 
 const SEVERITY_COLOR: Record<string, "red" | "orange" | "yellow" | "green" | "grey"> = {
@@ -18,7 +18,9 @@ function SeverityLabel({ severity }: { severity: string }) {
     return <>—</>;
   }
   return (
-    <Label color={SEVERITY_COLOR[severity.toLowerCase()] ?? "grey"}>{severity}</Label>
+    <StatusIndicator color={SEVERITY_COLOR[severity.toLowerCase()] ?? "grey"}>
+      {severity}
+    </StatusIndicator>
   );
 }
 
@@ -30,6 +32,9 @@ interface AdvisoriesTableProps {
   advisories: RpmAdvisory[] | undefined;
   emptyTitle: string;
   emptyBody: string;
+  /** Set by a repository-detail tab caller (nested in a bigger page) -
+   * unset for the equivalent top-level list page, which stays full-page. */
+  emptyStateVariant?: "sm";
 }
 
 export function AdvisoriesTable({
@@ -40,6 +45,7 @@ export function AdvisoriesTable({
   advisories,
   emptyTitle,
   emptyBody,
+  emptyStateVariant,
 }: AdvisoriesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading advisories" />;
@@ -48,7 +54,7 @@ export function AdvisoriesTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!advisories || advisories.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} />;
+    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
   }
 
   return (

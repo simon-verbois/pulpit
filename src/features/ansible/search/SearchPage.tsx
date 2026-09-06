@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Label,
   Pagination,
   PageSection,
   SearchInput,
@@ -14,6 +13,7 @@ import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useSearchCollectionVersionsQuery } from "./useSearchCollectionVersionsQuery";
 
@@ -101,19 +101,19 @@ export function SearchPage() {
                   <Td dataLabel="Repository">{result.repository.name}</Td>
                   <Td dataLabel="Status">
                     {result.is_highest ? (
-                      <Label isCompact color="blue">
+                      <StatusIndicator isCompact color="blue">
                         Highest
-                      </Label>
+                      </StatusIndicator>
                     ) : null}{" "}
                     {result.is_signed ? (
-                      <Label isCompact color="green">
+                      <StatusIndicator isCompact color="green">
                         Signed
-                      </Label>
+                      </StatusIndicator>
                     ) : null}{" "}
                     {result.is_deprecated ? (
-                      <Label isCompact color="orange">
+                      <StatusIndicator isCompact color="orange">
                         Deprecated
-                      </Label>
+                      </StatusIndicator>
                     ) : null}
                   </Td>
                 </Tr>

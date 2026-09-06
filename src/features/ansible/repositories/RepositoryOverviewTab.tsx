@@ -10,6 +10,7 @@ import {
   Label,
 } from "@patternfly/react-core";
 
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import type { AnsibleRepository } from "../../../api/client/ansible/types";
 import {
   ansibleRepositoriesListRootKey,
@@ -46,9 +47,9 @@ export function RepositoryOverviewTab({ repository }: { repository: AnsibleRepos
           <DescriptionListTerm>Default remote</DescriptionListTerm>
           <DescriptionListDescription>
             {repository.remote ? (
-              <Label color="blue">Configured</Label>
+              <StatusIndicator color="blue">Configured</StatusIndicator>
             ) : (
-              <Label>None</Label>
+              <StatusIndicator color="grey">None</StatusIndicator>
             )}
           </DescriptionListDescription>
         </DescriptionListGroup>
@@ -61,7 +62,11 @@ export function RepositoryOverviewTab({ repository }: { repository: AnsibleRepos
         <DescriptionListGroup>
           <DescriptionListTerm>GPG key</DescriptionListTerm>
           <DescriptionListDescription>
-            {repository.gpgkey ? <Label color="blue">Set</Label> : <Label>None</Label>}
+            {repository.gpgkey ? (
+              <StatusIndicator color="blue">Set</StatusIndicator>
+            ) : (
+              <StatusIndicator color="grey">None</StatusIndicator>
+            )}
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>

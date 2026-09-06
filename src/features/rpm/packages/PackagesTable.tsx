@@ -24,6 +24,9 @@ interface PackagesTableProps {
   packages: RpmPackage[] | undefined;
   emptyTitle: string;
   emptyBody: string;
+  /** Set by a repository-detail tab caller (nested in a bigger page) -
+   * unset for the equivalent top-level list page, which stays full-page. */
+  emptyStateVariant?: "sm";
 }
 
 export function PackagesTable({
@@ -34,6 +37,7 @@ export function PackagesTable({
   packages,
   emptyTitle,
   emptyBody,
+  emptyStateVariant,
 }: PackagesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading packages" />;
@@ -42,7 +46,7 @@ export function PackagesTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!packages || packages.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} />;
+    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
   }
 
   return (

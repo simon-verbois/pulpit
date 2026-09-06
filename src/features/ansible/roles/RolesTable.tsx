@@ -13,6 +13,9 @@ interface RolesTableProps {
   roles: AnsibleRole[] | undefined;
   emptyTitle: string;
   emptyBody: string;
+  /** Set by a repository-detail tab caller (nested in a bigger page) -
+   * unset for the equivalent top-level list page, which stays full-page. */
+  emptyStateVariant?: "sm";
 }
 
 export function RolesTable({
@@ -23,6 +26,7 @@ export function RolesTable({
   roles,
   emptyTitle,
   emptyBody,
+  emptyStateVariant,
 }: RolesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading roles" />;
@@ -31,7 +35,7 @@ export function RolesTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!roles || roles.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} />;
+    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
   }
 
   return (

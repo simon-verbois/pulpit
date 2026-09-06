@@ -25,6 +25,7 @@ import { listRpmRepoMetadataFiles } from "../../../api/client/rpm/repoMetadataFi
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
+import { EmptyState } from "../../../components/EmptyState";
 import { UploadCompsModal } from "./UploadCompsModal";
 import { rpmRepositoryByNameKey, rpmRepositoryVersionsKey } from "./queryKeys";
 
@@ -57,7 +58,9 @@ function ContentSection({
     >
       {isPending ? <LoadingState label={`Loading ${title.toLowerCase()}`} /> : null}
       {isError ? <ErrorState error={error} /> : null}
-      {!isPending && !isError && count === 0 ? <p>None in this repository.</p> : null}
+      {!isPending && !isError && count === 0 ? (
+        <EmptyState variant="xs" title="None in this repository." />
+      ) : null}
       {!isPending && !isError && count > 0 ? children : null}
     </ExpandableSection>
   );

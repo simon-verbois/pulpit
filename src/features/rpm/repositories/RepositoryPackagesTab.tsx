@@ -52,6 +52,7 @@ export function RepositoryPackagesTab({ repository }: { repository: RpmRepositor
         packages={packagesQuery.data?.results}
         emptyTitle="No packages in this repository yet"
         emptyBody="Sync a remote or upload a package to add content to this repository."
+        emptyStateVariant="sm"
       />
 
       {isUploadOpen ? (

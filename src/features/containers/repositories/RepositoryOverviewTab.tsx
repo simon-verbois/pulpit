@@ -4,9 +4,9 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Label,
 } from "@patternfly/react-core";
 
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import type { ContainerRepository } from "../../../api/client/container/types";
 import {
   containerRepositoriesListRootKey,
@@ -41,9 +41,9 @@ export function RepositoryOverviewTab({
         <DescriptionListTerm>Default remote</DescriptionListTerm>
         <DescriptionListDescription>
           {repository.remote ? (
-            <Label color="blue">Configured</Label>
+            <StatusIndicator color="blue">Configured</StatusIndicator>
           ) : (
-            <Label>None</Label>
+            <StatusIndicator color="grey">None</StatusIndicator>
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>

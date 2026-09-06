@@ -52,6 +52,7 @@ export function RepositoryRolesTab({ repository }: { repository: AnsibleReposito
         roles={rolesQuery.data?.results}
         emptyTitle="No roles in this repository yet"
         emptyBody="Sync a remote or upload a role to add content to this repository."
+        emptyStateVariant="sm"
       />
 
       {isUploadOpen ? (

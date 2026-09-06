@@ -14,6 +14,9 @@ interface CollectionVersionsTableProps {
   collectionVersions: CollectionVersion[] | undefined;
   emptyTitle: string;
   emptyBody: string;
+  /** Set by a repository-detail tab caller (nested in a bigger page) -
+   * unset for the equivalent top-level list page, which stays full-page. */
+  emptyStateVariant?: "sm";
 }
 
 export function CollectionVersionsTable({
@@ -24,6 +27,7 @@ export function CollectionVersionsTable({
   collectionVersions,
   emptyTitle,
   emptyBody,
+  emptyStateVariant,
 }: CollectionVersionsTableProps) {
   if (isPending) {
     return <LoadingState label="Loading collections" />;
@@ -32,7 +36,7 @@ export function CollectionVersionsTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!collectionVersions || collectionVersions.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} />;
+    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
   }
 
   return (

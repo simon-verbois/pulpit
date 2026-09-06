@@ -4,9 +4,9 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Label,
 } from "@patternfly/react-core";
 
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import {
   rpmRepositoriesListRootKey,
@@ -36,9 +36,9 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
         <DescriptionListTerm>Default remote</DescriptionListTerm>
         <DescriptionListDescription>
           {repository.remote ? (
-            <Label color="blue">Configured</Label>
+            <StatusIndicator color="blue">Configured</StatusIndicator>
           ) : (
-            <Label>None</Label>
+            <StatusIndicator color="grey">None</StatusIndicator>
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>
@@ -102,9 +102,9 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
         <DescriptionListTerm>Package signing</DescriptionListTerm>
         <DescriptionListDescription>
           {repository.package_signing_service ? (
-            <Label color="green">Enabled</Label>
+            <StatusIndicator color="green">Enabled</StatusIndicator>
           ) : (
-            <Label>Disabled</Label>
+            <StatusIndicator color="grey">Disabled</StatusIndicator>
           )}
           {/* pulp_rpm signs on upload only (docs/signing.md "Known
               limitations") - this reflects future uploads, never a claim
@@ -123,9 +123,9 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
         <DescriptionListTerm>Metadata signing</DescriptionListTerm>
         <DescriptionListDescription>
           {repository.metadata_signing_service ? (
-            <Label color="green">Enabled</Label>
+            <StatusIndicator color="green">Enabled</StatusIndicator>
           ) : (
-            <Label>Disabled</Label>
+            <StatusIndicator color="grey">Disabled</StatusIndicator>
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>

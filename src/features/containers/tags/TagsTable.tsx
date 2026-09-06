@@ -15,6 +15,9 @@ interface TagsTableProps {
   tags: ContainerTag[] | undefined;
   emptyTitle: string;
   emptyBody: string;
+  /** Set by a repository-detail tab caller (nested in a bigger page) -
+   * unset for the equivalent top-level list page, which stays full-page. */
+  emptyStateVariant?: "sm";
   /** Present only on a repository-scoped tab (RepositoryTagsTab) - the
    * global Tags page (mirroring RPM's global Packages page) is read-only. */
   onUntag?: (tag: ContainerTag) => void;
@@ -28,6 +31,7 @@ export function TagsTable({
   tags,
   emptyTitle,
   emptyBody,
+  emptyStateVariant,
   onUntag,
 }: TagsTableProps) {
   if (isPending) {
@@ -37,7 +41,7 @@ export function TagsTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!tags || tags.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} />;
+    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
   }
 
   return (

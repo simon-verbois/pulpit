@@ -37,24 +37,6 @@ export function RepositoryDistributionsTab({
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Button onClick={() => setIsCreateOpen(true)}>Create distribution</Button>
-          </ToolbarItem>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={distributionsQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-
       {distributionsQuery.isPending ? (
         <LoadingState label="Loading distributions" />
       ) : null}
@@ -66,6 +48,7 @@ export function RepositoryDistributionsTab({
       ) : null}
       {distributionsQuery.isSuccess && distributionsQuery.data.results.length === 0 ? (
         <EmptyState
+          variant="sm"
           title="No distributions yet"
           body="Create a distribution to publish this repository's content at a URL."
           action={
@@ -74,38 +57,57 @@ export function RepositoryDistributionsTab({
         />
       ) : null}
       {distributionsQuery.isSuccess && distributionsQuery.data.results.length > 0 ? (
-        <Table aria-label="Distributions" variant="compact">
-          <Thead>
-            <Tr>
-              <Th>Name</Th>
-              <Th>Base path</Th>
-              <Th>URL</Th>
-              <Th screenReaderText="Actions" />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {distributionsQuery.data.results.map((distribution) => (
-              <Tr key={distribution.pulp_href}>
-                <Td dataLabel="Name">{distribution.name}</Td>
-                <Td dataLabel="Base path">{distribution.base_path}</Td>
-                <Td dataLabel="URL">
-                  <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-                    {distribution.base_url}
-                  </ClipboardCopy>
-                </Td>
-                <Td dataLabel="Actions" isActionCell>
-                  <Button
-                    variant="link"
-                    isDanger
-                    onClick={() => setPendingDelete(distribution)}
-                  >
-                    Delete
-                  </Button>
-                </Td>
+        <>
+          <Toolbar>
+            <ToolbarContent>
+              <ToolbarItem>
+                <Button onClick={() => setIsCreateOpen(true)}>Create distribution</Button>
+              </ToolbarItem>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={distributionsQuery.data.count}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+          <Table aria-label="Distributions" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Base path</Th>
+                <Th>URL</Th>
+                <Th screenReaderText="Actions" />
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {distributionsQuery.data.results.map((distribution) => (
+                <Tr key={distribution.pulp_href}>
+                  <Td dataLabel="Name">{distribution.name}</Td>
+                  <Td dataLabel="Base path">{distribution.base_path}</Td>
+                  <Td dataLabel="URL">
+                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                      {distribution.base_url}
+                    </ClipboardCopy>
+                  </Td>
+                  <Td dataLabel="Actions" isActionCell>
+                    <Button
+                      variant="link"
+                      isDanger
+                      onClick={() => setPendingDelete(distribution)}
+                    >
+                      Delete
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </>
       ) : null}
 
       {isCreateOpen ? (

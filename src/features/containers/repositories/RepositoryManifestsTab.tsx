@@ -67,6 +67,7 @@ export function RepositoryManifestsTab({
       ) : null}
       {manifestsQuery.isSuccess && manifestsQuery.data.results.length === 0 ? (
         <EmptyState
+          variant="sm"
           title="No manifests in this repository yet"
           body="Sync a remote to add manifests to this repository."
         />

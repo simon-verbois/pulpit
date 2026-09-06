@@ -52,6 +52,7 @@ export function RepositoryAdvisoriesTab({ repository }: { repository: RpmReposit
         advisories={advisoriesQuery.data?.results}
         emptyTitle="No advisories in this repository yet"
         emptyBody="Sync a remote whose content includes updateinfo, or upload one directly."
+        emptyStateVariant="sm"
       />
 
       {isUploadOpen ? (

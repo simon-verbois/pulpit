@@ -5,13 +5,13 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Label,
   Modal,
   ModalBody,
   ModalHeader,
 } from "@patternfly/react-core";
 
 import type { PulpTask } from "../../api/client/tasks";
+import { StatusIndicator } from "../../components/StatusIndicator";
 import { CreatedByCell } from "./CreatedByCell";
 import { TASK_STATE_COLOR } from "./taskStateColor";
 
@@ -49,7 +49,7 @@ export function TaskDetailModal({
           <DescriptionListGroup>
             <DescriptionListTerm>State</DescriptionListTerm>
             <DescriptionListDescription>
-              <Label color={TASK_STATE_COLOR[task.state]}>{task.state}</Label>
+              <StatusIndicator color={TASK_STATE_COLOR[task.state]}>{task.state}</StatusIndicator>
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>

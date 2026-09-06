@@ -56,6 +56,7 @@ export function RepositoryCollectionVersionsTab({
         collectionVersions={collectionVersionsQuery.data?.results}
         emptyTitle="No collections in this repository yet"
         emptyBody="Sync a remote or upload a collection to add content to this repository."
+        emptyStateVariant="sm"
       />
 
       {isUploadOpen ? (
