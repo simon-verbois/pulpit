@@ -89,7 +89,7 @@ describe("RemotesPage", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     expect(
-      await within(dialog).findByText(/Pulp rejected the request as invalid/i),
+      await within(dialog).findByText(/Name: This field must be unique\./i),
     ).toBeInTheDocument();
   });
 
