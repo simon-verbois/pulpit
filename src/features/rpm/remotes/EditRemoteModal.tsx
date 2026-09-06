@@ -2,6 +2,8 @@ import { useState } from "react";
 import {
   Alert,
   Button,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSelect,
@@ -130,17 +132,23 @@ export function EditRemoteModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!name || !url || updateMutation.isPending}
-          isLoading={updateMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Save
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!name || !url || updateMutation.isPending}
+              isLoading={updateMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Save
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

@@ -4,6 +4,8 @@ import {
   Alert,
   Button,
   Content,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSelect,
@@ -101,17 +103,23 @@ export function DeprecateCollectionModal({ onClose }: { onClose: () => void }) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="danger"
-          isDisabled={!namespace || !name || !repository || deprecateMutation.isPending}
-          isLoading={deprecateMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Deprecate
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="danger"
+              isDisabled={!namespace || !name || !repository || deprecateMutation.isPending}
+              isLoading={deprecateMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Deprecate
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

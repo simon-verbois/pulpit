@@ -3,10 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
   Button,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
+  FormHelperText,
   FormSelect,
   FormSelectOption,
+  HelperText,
+  HelperTextItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -81,10 +86,14 @@ export function CreateAcsModal({ onClose }: { onClose: () => void }) {
               ))}
             </FormSelect>
             {onDemandRemotes.length === 0 ? (
-              <p>
-                Only remotes with the "On demand" sync policy can be used here - create
-                one first if none are listed.
-              </p>
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Only remotes with the "On demand" sync policy can be used here -
+                    create one first if none are listed.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
             ) : null}
           </FormGroup>
           <FormGroup label="Paths" fieldId="acs-paths">
@@ -98,17 +107,23 @@ export function CreateAcsModal({ onClose }: { onClose: () => void }) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!name || !remote || createMutation.isPending}
-          isLoading={createMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Create
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!name || !remote || createMutation.isPending}
+              isLoading={createMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Create
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

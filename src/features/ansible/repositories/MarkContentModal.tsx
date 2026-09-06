@@ -3,6 +3,8 @@ import {
   Alert,
   Button,
   Content,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   Modal,
@@ -88,17 +90,23 @@ export function MarkContentModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!value || mutation.isPending}
-          isLoading={mutation.isPending}
-          onClick={handleSubmit}
-        >
-          {mode === "mark" ? "Mark" : "Unmark"}
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!value || mutation.isPending}
+              isLoading={mutation.isPending}
+              onClick={handleSubmit}
+            >
+              {mode === "mark" ? "Mark" : "Unmark"}
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

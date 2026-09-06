@@ -4,6 +4,8 @@ import {
   Alert,
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   Modal,
@@ -113,17 +115,23 @@ export function PrunePackagesModal({ onClose }: { onClose: () => void }) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!isValid || pruneMutation.isPending}
-          isLoading={pruneMutation.isPending}
-          onClick={handleSubmit}
-        >
-          {dryRun ? "Run dry run" : "Prune"}
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!isValid || pruneMutation.isPending}
+              isLoading={pruneMutation.isPending}
+              onClick={handleSubmit}
+            >
+              {dryRun ? "Run dry run" : "Prune"}
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

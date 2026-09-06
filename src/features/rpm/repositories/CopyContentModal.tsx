@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
   Button,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSelect,
@@ -99,17 +101,23 @@ export function CopyContentModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!destRepository || copyMutation.isPending}
-          isLoading={copyMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Copy
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!destRepository || copyMutation.isPending}
+              isLoading={copyMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Copy
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
   Button,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormHelperText,
@@ -124,19 +126,25 @@ export function GrantObjectAccessModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={
-            !role || (userList.length === 0 && groupList.length === 0) || isPending
-          }
-          isLoading={isPending}
-          onClick={handleSubmit}
-        >
-          Grant
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={
+                !role || (userList.length === 0 && groupList.length === 0) || isPending
+              }
+              isLoading={isPending}
+              onClick={handleSubmit}
+            >
+              Grant
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

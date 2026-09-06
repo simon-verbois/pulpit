@@ -4,6 +4,8 @@ import {
   Alert,
   Button,
   FileUpload,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   Modal,
@@ -85,17 +87,23 @@ export function UploadCollectionVersionModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!file || uploadMutation.isPending}
-          isLoading={uploadMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Upload
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!file || uploadMutation.isPending}
+              isLoading={uploadMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Upload
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

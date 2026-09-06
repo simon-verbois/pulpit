@@ -3,6 +3,8 @@ import {
   Alert,
   Button,
   FileUpload,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   Modal,
@@ -107,17 +109,23 @@ export function EditNamespaceModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={updateMutation.isPending}
-          isLoading={updateMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Save
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={updateMutation.isPending}
+              isLoading={updateMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Save
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

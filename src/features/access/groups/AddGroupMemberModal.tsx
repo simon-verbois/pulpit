@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
   Button,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSelect,
@@ -81,17 +83,23 @@ export function AddGroupMemberModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!username || addMutation.isPending}
-          isLoading={addMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Add
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!username || addMutation.isPending}
+              isLoading={addMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Add
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

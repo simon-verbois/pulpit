@@ -4,6 +4,8 @@ import {
   Alert,
   Button,
   Content,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSelect,
@@ -102,17 +104,23 @@ export function SignContentModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!signingService || signMutation.isPending}
-          isLoading={signMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Sign
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!signingService || signMutation.isPending}
+              isLoading={signMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Sign
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

@@ -2,6 +2,8 @@ import { useState } from "react";
 import {
   Alert,
   Button,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   Modal,
@@ -68,17 +70,23 @@ export function CreateRoleModal({ onClose }: { onClose: () => void }) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!name || permissions.length === 0 || createMutation.isPending}
-          isLoading={createMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Create
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!name || permissions.length === 0 || createMutation.isPending}
+              isLoading={createMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Create
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );
