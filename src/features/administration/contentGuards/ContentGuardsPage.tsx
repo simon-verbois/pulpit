@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Flex,
@@ -13,7 +13,6 @@ import {
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -21,6 +20,7 @@ import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { contentGuardKindFromPrn } from "../../../api/client/administration/contentGuards";
 import type { ContentGuardSummary } from "../../../api/client/administration/types";
+import { useAdministrationHeaderAction } from "../AdministrationHeaderActionContext";
 import { useContentGuardsQuery } from "./useContentGuardsQuery";
 import { useDeleteContentGuardMutation } from "./useDeleteContentGuardMutation";
 import { CreateContentGuardModal } from "./CreateContentGuardModal";
@@ -44,15 +44,17 @@ export function ContentGuardsPage() {
     name__icontains: search || undefined,
   });
 
+  // Rendered in Administration's shared PageHeader (top right), not here -
+  // this page has no PageHeader of its own (docs/adr/
+  // 0010-merged-administration-page.md).
+  const createButton = useMemo(
+    () => <Button onClick={() => setIsCreateOpen(true)}>Create content guard</Button>,
+    [],
+  );
+  useAdministrationHeaderAction("content-guards", createButton);
+
   return (
     <>
-      <PageHeader
-        title="Content guards"
-        description="Extra access checks a distribution can require before serving its content."
-        actions={
-          <Button onClick={() => setIsCreateOpen(true)}>Create content guard</Button>
-        }
-      />
       <PageSection hasBodyWrapper={false}>
         <Toolbar>
           <ToolbarContent>
@@ -91,11 +93,9 @@ export function ContentGuardsPage() {
         ) : null}
         {guardsQuery.isSuccess && guardsQuery.data.results.length === 0 ? (
           <EmptyState
+            variant="sm"
             title="No content guards yet"
-            body="Create one, then set it as a repository distribution's content guard to restrict who can pull from it."
-            action={
-              <Button onClick={() => setIsCreateOpen(true)}>Create content guard</Button>
-            }
+            body="Create one above, then set it as a repository distribution's content guard to restrict who can pull from it."
           />
         ) : null}
         {guardsQuery.isSuccess && guardsQuery.data.results.length > 0 ? (

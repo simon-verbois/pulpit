@@ -38,9 +38,10 @@ from app.modules.signing.models import (
     SigningRotation,
 )
 from app.modules.signing.pulp_bootstrap import (
-    attempt_automatic_registration,
     build_bootstrap_command,
+    build_manifest_entry,
     refresh_pulp_service_status,
+    write_signing_services_manifest,
 )
 
 MODULE = "signing"
@@ -51,12 +52,6 @@ def _local_key_manager():
     from app.modules.signing.gpg_local import LocalGPGKeyManager
 
     return LocalGPGKeyManager(get_settings().signing_gnupg_home)
-
-
-def _executor():
-    from app.adapters.pulp.executor import build_executor
-
-    return build_executor(get_settings())
 
 
 def _ensure_pulp_service_row(
@@ -462,35 +457,46 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
 
 
 def check_pulp_bootstrap_job(db: Session, payload: dict) -> dict:
-    """Polls Pulp for pending SigningService rows, first trying to register
-    each one automatically through whatever `PulpCommandExecutor` is
-    configured (docs/signing.md "Automating the manual Pulp step") before
-    falling back to just checking whether an administrator already ran the
-    printed command - and re-attempts publishing once ready. Scheduled
-    periodically, and after every settings/key change."""
+    """Polls Pulp for pending SigningService rows. Registration itself isn't
+    done here (docs/signing.md "Automating the manual Pulp step",
+    docs/adr/0008-colocated-signing-reconciler.md): this job only publishes
+    the desired-state manifest a small reconciler baked into the derived
+    Pulp image (deployment/docker/pulp/pulpit-signing-reconciler) reads and
+    acts on from *inside* the `pulp` container. This job's own
+    responsibility is just detecting completion (as before, by polling
+    Pulp's signing-services list) and re-attempting publishing once ready.
+    Scheduled periodically, and after every settings/key change."""
     pulp = get_pulp_client()
-    executor = _executor()
     settings = get_settings()
     pending = (
         db.query(SigningPulpService)
         .filter(SigningPulpService.status == PulpServiceStatus.PENDING_MANUAL_SETUP)
         .all()
     )
+
+    manifest_entries = [
+        build_manifest_entry(
+            purpose=row.purpose,
+            service_name=row.name,
+            fingerprint=row.fingerprint,
+            scripts_dir=str(settings.signing_scripts_dir),
+            gnupg_home=str(settings.signing_gnupg_home),
+        )
+        for row in pending
+    ]
+    try:
+        write_signing_services_manifest(
+            manifest_entries,
+            manifest_path=str(settings.signing_scripts_dir / settings.signing_manifest_filename),
+        )
+    except OSError:
+        # Best-effort, same as the executor it replaced: a deployment not
+        # running the derived Pulp image never had this manifest read
+        # anyway, and the manual command below keeps working regardless.
+        logger.exception("Failed to write signing-services manifest for the colocated reconciler")
+
     became_active = []
     for row in pending:
-        if executor is not None:
-            try:
-                result = attempt_automatic_registration(
-                    executor, row, scripts_dir=str(settings.signing_scripts_dir)
-                )
-                if result is not None and not result.ok:
-                    logger.warning(
-                        "Automatic signing-service registration failed for %s: %s",
-                        row.name,
-                        result.stderr[-500:],
-                    )
-            except Exception:  # noqa: BLE001 - automation is best-effort, never blocks the manual fallback
-                logger.exception("Automatic signing-service registration errored for %s", row.name)
         try:
             if refresh_pulp_service_status(pulp, row):
                 became_active.append(str(row.id))
@@ -608,6 +614,126 @@ def configure_repository_signing_job(db: Session, payload: dict) -> dict:
     return {"pulp_task": task.get("task")}
 
 
+def apply_signing_to_all_repositories_job(db: Session, payload: dict) -> dict:
+    """The manual, explicit "make every existing RPM repository actually
+    signed" sweep. Repository create/edit no longer expose a per-repository
+    signing choice (task decision: signing is fully automatic for every
+    repository once enabled globally, not an opt-in) - a repository created
+    before signing was turned on (or before this policy existed) never
+    otherwise catches up on its own, so this is how an administrator brings
+    the whole instance into line on demand.
+
+    Mirrors publish_key_job's own repo-walk + resign/republish-enqueuing
+    logic (same repos_to_resign/repos_to_republish split - package resigning
+    is the expensive, content-rewriting half; metadata is just a republish),
+    just comparing every repository's current fields against what the
+    active key's services should be, instead of an old-href-to-new-href
+    rotation repoint. A repository already correctly configured is left
+    untouched (no needless PATCH/resign for something already signed)."""
+    settings_row = service.get_settings_row(db)
+    active_key = service.get_active_key(db)
+    if active_key is None:
+        return {
+            "updated_count": 0,
+            "updated": [],
+            "resigning_count": 0,
+            "republishing_count": 0,
+            "failed": [],
+            "skipped_reason": "no_active_key",
+        }
+
+    pulp = get_pulp_client()
+
+    package_row = None
+    if settings_row.package_signing_enabled:
+        package_row = (
+            db.query(SigningPulpService)
+            .filter(SigningPulpService.purpose == PulpServicePurpose.PACKAGE)
+            .filter(SigningPulpService.status == PulpServiceStatus.ACTIVE)
+            .first()
+        )
+    metadata_row = None
+    if settings_row.metadata_signing_enabled:
+        metadata_row = (
+            db.query(SigningPulpService)
+            .filter(SigningPulpService.purpose == PulpServicePurpose.METADATA)
+            .filter(SigningPulpService.signing_key_id == active_key.id)
+            .filter(SigningPulpService.status == PulpServiceStatus.ACTIVE)
+            .first()
+        )
+
+    target_package_href = package_row.pulp_href if package_row else None
+    target_metadata_href = metadata_row.pulp_href if metadata_row else None
+
+    updated: list[str] = []
+    failed: list[dict] = []
+    repos_to_resign: list[str] = []
+    repos_to_republish: set[str] = set()
+
+    offset = 0
+    while True:
+        page = pulp.list_rpm_repositories(offset=offset)
+        for repo in page["results"]:
+            href = repo["pulp_href"]
+            needs_package = (
+                package_row is not None
+                and repo.get("package_signing_service") != target_package_href
+            )
+            needs_metadata = (
+                metadata_row is not None
+                and repo.get("metadata_signing_service") != target_metadata_href
+            )
+            if not needs_package and not needs_metadata:
+                continue
+
+            try:
+                pulp.update_rpm_repository_signing(
+                    href,
+                    package_signing_service=(
+                        target_package_href if package_row else repo.get("package_signing_service")
+                    ),
+                    package_signing_fingerprint=(
+                        active_key.fingerprint if package_row else repo.get("package_signing_fingerprint")
+                    ),
+                    metadata_signing_service=(
+                        target_metadata_href if metadata_row else repo.get("metadata_signing_service")
+                    ),
+                )
+            except PulpAdapterError as exc:
+                failed.append({"repository": repo.get("name") or href, "error": str(exc)})
+                continue
+
+            updated.append(href)
+            if needs_package:
+                repos_to_resign.append(href)
+            if needs_metadata:
+                repos_to_republish.add(href)
+
+        if page.get("next") is None:
+            break
+        offset += len(page["results"])
+
+    # Mandatory follow-through, same as publish_key_job: a repository that
+    # just started using a signing service needs its already-synced content
+    # actually brought under it, not just future uploads/publishes.
+    for href in repos_to_resign:
+        enqueue_job(
+            db,
+            "signing.resign_repository_packages",
+            {"repository_href": href, "fingerprint": active_key.fingerprint},
+        )
+    for href in repos_to_republish - set(repos_to_resign):
+        enqueue_job(db, "signing.publish_repository_metadata", {"repository_href": href})
+
+    return {
+        "updated_count": len(updated),
+        "updated": updated,
+        "resigning_count": len(repos_to_resign),
+        "republishing_count": len(repos_to_republish - set(repos_to_resign)),
+        "failed": failed,
+    }
+
+
 def register() -> None:
     job_registry.register("signing.generate_key", generate_key_job)
     job_registry.register("signing.publish_key", publish_key_job)
@@ -618,3 +744,6 @@ def register() -> None:
     job_registry.register("signing.configure_repository_signing", configure_repository_signing_job)
     job_registry.register("signing.resign_repository_packages", resign_repository_packages_job)
     job_registry.register("signing.publish_repository_metadata", publish_repository_metadata_job)
+    job_registry.register(
+        "signing.apply_signing_to_all_repositories", apply_signing_to_all_repositories_job
+    )

@@ -11,7 +11,7 @@ const BASE = "/pulp/api/v3/groups/";
 
 describe("GroupsPage", () => {
   it("renders the seeded group as a link to its detail page", async () => {
-    renderApp(<GroupsPage />);
+    renderApp(<GroupsPage />, { withAdministrationHeaderAction: "groups" });
 
     const link = await screen.findByRole("link", { name: ACCESS_GROUP_FIXTURE.name });
     expect(link).toHaveAttribute("href", "/access/groups/test-group");
@@ -24,13 +24,17 @@ describe("GroupsPage", () => {
       ),
     );
 
-    renderApp(<GroupsPage />);
+    renderApp(<GroupsPage />, { withAdministrationHeaderAction: "groups" });
 
     expect(await screen.findByText("No groups yet")).toBeInTheDocument();
   });
 
   it("creates a group synchronously (201, no task) and navigates to its detail page", async () => {
-    renderApp(<GroupsPage />, { route: "/access/groups", path: "/access/groups" });
+    renderApp(<GroupsPage />, {
+      route: "/access/groups",
+      path: "/access/groups",
+      withAdministrationHeaderAction: "groups",
+    });
 
     await screen.findByText(ACCESS_GROUP_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Create group" }));
@@ -45,7 +49,7 @@ describe("GroupsPage", () => {
   });
 
   it("deletes a group after confirmation", async () => {
-    renderApp(<GroupsPage />);
+    renderApp(<GroupsPage />, { withAdministrationHeaderAction: "groups" });
 
     await screen.findByText(ACCESS_GROUP_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));

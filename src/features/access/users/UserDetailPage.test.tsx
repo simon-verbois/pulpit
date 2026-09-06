@@ -82,7 +82,7 @@ describe("UserDetailPage", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Roles" }));
 
     expect(await screen.findByText("No roles assigned yet")).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole("button", { name: "Assign role…" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Assign role…" }));
 
     const dialog = await screen.findByRole("dialog");
     await within(dialog).findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });
@@ -101,7 +101,7 @@ describe("UserDetailPage", () => {
 
     await screen.findByRole("tab", { name: "Overview" });
     fireEvent.click(screen.getByRole("tab", { name: "Roles" }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Assign role…" })[0]);
+    fireEvent.click(await screen.findByRole("button", { name: "Assign role…" }));
 
     const dialog = await screen.findByRole("dialog");
     await within(dialog).findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });

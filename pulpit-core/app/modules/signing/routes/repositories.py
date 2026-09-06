@@ -2,20 +2,23 @@
 enqueue a job - repository signing wiring is a Pulp API call plus a Pulp
 task, never something worth blocking an HTTP request on.
 
-Only exposes actions that are actually implemented and safe to run (task
-section 10: "Only expose actions that are actually implemented and safe."):
-configuring package/metadata signing on a repository going forward, and
-reading current status/policy readiness. Bulk re-signing of already-synced
-content is NOT exposed here - pulp_rpm's package signing is upload-time
-only (docs/signing.md "Known limitations"), so there is no safe, real
-"re-sign existing packages" operation to wire up yet.
+Signing is fully automatic per repository (no per-repository opt-in
+exposed in the UI): a repository's own create/edit form no longer offers a
+choice, it just applies whatever the current global policy is. `/configure`
+below is the mechanism that already existed for exactly this (previously
+unused by the UI); `/apply-to-all` is the bulk sweep that brings every
+EXISTING repository (created before signing was turned on, or before this
+policy existed) into line on demand - it also enqueues real re-signing of
+already-synced package content where needed (`signing.
+resign_repository_packages`, jobs.py), not just a future-uploads-only field
+change.
 """
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.auth import CurrentUser, require_authenticated_user
+from app.core.auth import CurrentUser, FullUser, require_authenticated_user, require_staff_user
 from app.core.database import get_db
 from app.core.jobs.schemas import JobRead
 from app.core.jobs.service import enqueue_job
@@ -76,6 +79,24 @@ def configure_repository_signing(
         db,
         "signing.configure_repository_signing",
         request.model_dump(),
+        requested_by=user.username,
+    )
+    db.commit()
+    return JobRead.model_validate(job)
+
+
+@router.post("/apply-to-all", response_model=JobRead, status_code=202)
+def apply_signing_to_all_repositories(
+    db: Session = Depends(get_db),
+    user: FullUser = Depends(require_staff_user),
+) -> JobRead:
+    """Staff-only (unlike /configure above) - this can trigger real,
+    content-rewriting re-signing work across every RPM repository on the
+    instance, not a single-repository field change."""
+    job = enqueue_job(
+        db,
+        "signing.apply_signing_to_all_repositories",
+        {},
         requested_by=user.username,
     )
     db.commit()

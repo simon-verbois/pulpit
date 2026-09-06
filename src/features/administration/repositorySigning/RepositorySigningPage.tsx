@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Divider, PageSection, Stack, StackItem } from "@patternfly/react-core";
+import { PageSection, Stack, StackItem } from "@patternfly/react-core";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { useSigningSettingsQuery } from "./useSigningSettingsQuery";
@@ -15,11 +14,6 @@ export function RepositorySigningPage() {
 
   return (
     <>
-      <PageHeader
-        title="Repository Signing"
-        description="Manage the GPG key used to sign RPM packages and repository metadata, including automatic key rotation."
-      />
-
       {settingsQuery.isPending ? (
         <PageSection hasBodyWrapper={false}>
           <LoadingState label="Loading signing configuration" />
@@ -40,9 +34,6 @@ export function RepositorySigningPage() {
           <Stack hasGutter>
             <StackItem>
               <RepositorySigningGeneralSection />
-            </StackItem>
-            <StackItem>
-              <Divider />
             </StackItem>
             <StackItem>
               <RepositorySigningKeysSection

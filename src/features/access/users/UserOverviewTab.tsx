@@ -3,11 +3,11 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Label,
 } from "@patternfly/react-core";
 
 import type { User } from "../../../api/client/access/types";
 import { formatRelativeTime } from "../../../lib/relativeTime";
+import { StatusIndicator } from "../../../components/StatusIndicator";
 
 export function UserOverviewTab({ user }: { user: User }) {
   return (
@@ -30,16 +30,20 @@ export function UserOverviewTab({ user }: { user: User }) {
         <DescriptionListTerm>Status</DescriptionListTerm>
         <DescriptionListDescription>
           {user.is_active ? (
-            <Label color="green">Active</Label>
+            <StatusIndicator color="green">Active</StatusIndicator>
           ) : (
-            <Label color="grey">Inactive</Label>
+            <StatusIndicator color="grey">Inactive</StatusIndicator>
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Staff</DescriptionListTerm>
         <DescriptionListDescription>
-          {user.is_staff ? "Yes" : "No"}
+          {user.is_staff ? (
+            <StatusIndicator color="blue">Yes</StatusIndicator>
+          ) : (
+            <StatusIndicator color="grey">No</StatusIndicator>
+          )}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>

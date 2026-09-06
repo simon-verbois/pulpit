@@ -6,7 +6,6 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Label,
   Modal,
   ModalBody,
   ModalFooter,
@@ -15,6 +14,7 @@ import {
 } from "@patternfly/react-core";
 
 import type { SigningKey } from "../../../api/client/pulpitCore/types";
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import { SIGNING_KEY_STATE_COLOR, SIGNING_KEY_STATE_LABEL } from "./signingKeyState";
 import { KeyPulpServicesStatus } from "./KeyPulpServicesStatus";
@@ -44,12 +44,12 @@ export function SigningKeyDetailsModal({
           <DescriptionListGroup>
             <DescriptionListTerm>Status</DescriptionListTerm>
             <DescriptionListDescription>
-              <Label
+              <StatusIndicator
                 color={SIGNING_KEY_STATE_COLOR[signingKey.state]}
                 title={signingKey.state}
               >
                 {SIGNING_KEY_STATE_LABEL[signingKey.state]}
-              </Label>
+              </StatusIndicator>
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>

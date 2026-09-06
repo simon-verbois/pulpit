@@ -89,7 +89,7 @@ export function GroupDetailPage() {
           onConfirm={() =>
             deleteMutation.mutate(
               { href: group.pulp_href, name: group.name },
-              { onSuccess: () => navigate("/access/groups") },
+              { onSuccess: () => navigate("/admin?tab=access&subtab=groups") },
             )
           }
         />

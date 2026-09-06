@@ -70,53 +70,55 @@ export function ObjectAccessTab({
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Button onClick={() => setIsGrantOpen(true)}>Grant access…</Button>
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-
       {rolesQuery.isPending ? <LoadingState label="Loading access" /> : null}
       {rolesQuery.isError ? (
         <ErrorState error={rolesQuery.error} onRetry={() => rolesQuery.refetch()} />
       ) : null}
       {rolesQuery.isSuccess && rows.length === 0 ? (
         <EmptyState
+          variant="sm"
           title="No one has explicit access yet"
           body="Grant a role to a user or group so they can act on this object specifically."
           action={<Button onClick={() => setIsGrantOpen(true)}>Grant access…</Button>}
         />
       ) : null}
       {rolesQuery.isSuccess && rows.length > 0 ? (
-        <Table aria-label="Access" variant="compact">
-          <Thead>
-            <Tr>
-              <Th>Role</Th>
-              <Th>Granted to</Th>
-              <Th screenReaderText="Actions" />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {rows.map((row) => (
-              <Tr key={`${row.role}-${row.kind}-${row.subject}`}>
-                <Td dataLabel="Role">
-                  <code>{row.role}</code>
-                </Td>
-                <Td dataLabel="Granted to">
-                  {row.subject}{" "}
-                  <Label isCompact>{row.kind === "user" ? "User" : "Group"}</Label>
-                </Td>
-                <Td dataLabel="Actions" isActionCell>
-                  <Button variant="link" isDanger onClick={() => handleRemove(row)}>
-                    Remove
-                  </Button>
-                </Td>
+        <>
+          <Toolbar>
+            <ToolbarContent>
+              <ToolbarItem>
+                <Button onClick={() => setIsGrantOpen(true)}>Grant access…</Button>
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+          <Table aria-label="Access" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Role</Th>
+                <Th>Granted to</Th>
+                <Th screenReaderText="Actions" />
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {rows.map((row) => (
+                <Tr key={`${row.role}-${row.kind}-${row.subject}`}>
+                  <Td dataLabel="Role">
+                    <code>{row.role}</code>
+                  </Td>
+                  <Td dataLabel="Granted to">
+                    {row.subject}{" "}
+                    <Label isCompact>{row.kind === "user" ? "User" : "Group"}</Label>
+                  </Td>
+                  <Td dataLabel="Actions" isActionCell>
+                    <Button variant="link" isDanger onClick={() => handleRemove(row)}>
+                      Remove
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </>
       ) : null}
 
       {isGrantOpen ? (

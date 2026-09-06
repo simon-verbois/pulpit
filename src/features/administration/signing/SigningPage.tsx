@@ -11,7 +11,6 @@ import {
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -39,10 +38,6 @@ export function SigningPage() {
 
   return (
     <>
-      <PageHeader
-        title="Signing services"
-        description="Server-configured services other features (like Ansible's Sign content…) can use to sign content."
-      />
       <PageSection hasBodyWrapper={false}>
         <Alert
           variant="info"

@@ -26,7 +26,7 @@ describe("ObjectAccessTab", () => {
     );
 
     await screen.findByText("No one has explicit access yet");
-    fireEvent.click(screen.getAllByRole("button", { name: "Grant access…" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Grant access…" }));
 
     const dialog = await screen.findByRole("dialog");
     await within(dialog).findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });
@@ -53,7 +53,7 @@ describe("ObjectAccessTab", () => {
     );
 
     await screen.findByText("No one has explicit access yet");
-    fireEvent.click(screen.getAllByRole("button", { name: "Grant access…" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Grant access…" }));
     const dialog = await screen.findByRole("dialog");
     await within(dialog).findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });
     fireEvent.change(within(dialog).getByLabelText("Role", { exact: false }), {

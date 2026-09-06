@@ -5,6 +5,8 @@ import {
   Alert,
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSelect,
@@ -21,8 +23,6 @@ import { listAllRpmRemotes } from "../../../api/client/rpm/remotes";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useUpdateRpmRepositoryMutation } from "./useUpdateRpmRepositoryMutation";
-import { useRepositorySigningPolicyQuery } from "./useRepositorySigningPolicyQuery";
-import { RepositorySigningFieldGroup } from "./RepositorySigningFieldGroup";
 
 export function EditRepositoryModal({
   repository,
@@ -35,15 +35,8 @@ export function EditRepositoryModal({
   const [description, setDescription] = useState(repository.description ?? "");
   const [remote, setRemote] = useState(repository.remote ?? "");
   const [autopublish, setAutopublish] = useState(repository.autopublish);
-  const [signPackages, setSignPackages] = useState(
-    Boolean(repository.package_signing_service),
-  );
-  const [signMetadata, setSignMetadata] = useState(
-    Boolean(repository.metadata_signing_service),
-  );
   const updateMutation = useUpdateRpmRepositoryMutation();
   const navigate = useNavigate();
-  const signingPolicyQuery = useRepositorySigningPolicyQuery();
 
   const remotesQuery = useQuery({
     queryKey: ["pulp", "rpm", "remotes", "all"],
@@ -51,7 +44,6 @@ export function EditRepositoryModal({
   });
 
   const handleSubmit = () => {
-    const policy = signingPolicyQuery.data;
     updateMutation.mutate(
       {
         href: repository.pulp_href,
@@ -61,18 +53,12 @@ export function EditRepositoryModal({
           description: description || null,
           remote: remote || null,
           autopublish,
-          package_signing_service:
-            signPackages && policy?.package_signing_enabled
-              ? policy.package_signing_service
-              : null,
-          package_signing_fingerprint:
-            signPackages && policy?.package_signing_enabled
-              ? policy.package_signing_fingerprint
-              : null,
-          metadata_signing_service:
-            signMetadata && policy?.metadata_signing_enabled
-              ? policy.metadata_signing_service
-              : null,
+          // Signing is not editable per-repository (Administration →
+          // Repository Signing applies automatically instead, including a
+          // bulk "Sign all repositories…" for repositories that predate
+          // it) - leaving these fields out of this PATCH entirely means
+          // editing anything else here never touches a repository's
+          // existing signing state.
         },
       },
       {
@@ -144,28 +130,26 @@ export function EditRepositoryModal({
               onChange={(_event, checked) => setAutopublish(checked)}
             />
           </FormGroup>
-          <RepositorySigningFieldGroup
-            policy={signingPolicyQuery.data}
-            idPrefix="repository-edit"
-            signPackages={signPackages}
-            onSignPackagesChange={setSignPackages}
-            signMetadata={signMetadata}
-            onSignMetadataChange={setSignMetadata}
-          />
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!name || updateMutation.isPending}
-          isLoading={updateMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Save
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!name || updateMutation.isPending}
+              isLoading={updateMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Save
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

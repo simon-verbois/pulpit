@@ -1,5 +1,10 @@
+import { useState } from "react";
 import {
   Alert,
+  Button,
+  Card,
+  CardBody,
+  CardTitle,
   Checkbox,
   Content,
   Form,
@@ -11,10 +16,17 @@ import {
 
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
+import type { SigningSettings } from "../../../api/client/pulpitCore/types";
 import { useSigningSettingsQuery } from "./useSigningSettingsQuery";
 import { useUpdateSigningSettingsMutation } from "./useUpdateSigningSettingsMutation";
 import { CopyableValue } from "./CopyableValue";
+import { ApplySigningToAllRepositoriesModal } from "./ApplySigningToAllRepositoriesModal";
 
+/** Just the two settings that matter every time, not just at key-generation
+ * time: whether signing is on at all, and where the public key is served.
+ * Everything that only matters the moment you're about to generate a key -
+ * identity/algorithm defaults, automatic rotation - lives in the Generate
+ * key dialog instead (GenerateKeyModal.tsx), not duplicated here. */
 export function RepositorySigningGeneralSection() {
   const settingsQuery = useSigningSettingsQuery();
   const updateSettings = useUpdateSigningSettingsMutation();
@@ -28,89 +40,128 @@ export function RepositorySigningGeneralSection() {
     );
   }
 
-  const settings = settingsQuery.data;
-  const publicKeyUrl = `${window.location.origin}/keys/${settings.public_key_filename}`;
+  return (
+    <RepositorySigningGeneralForm
+      settings={settingsQuery.data}
+      isSaveError={updateSettings.isError}
+      onChange={(changes) => updateSettings.mutate(changes)}
+    />
+  );
+}
+
+function RepositorySigningGeneralForm({
+  settings,
+  isSaveError,
+  onChange,
+}: {
+  settings: SigningSettings;
+  isSaveError: boolean;
+  onChange: (changes: Partial<SigningSettings>) => void;
+}) {
+  const [isApplyOpen, setIsApplyOpen] = useState(false);
+  // A local buffer, not `settings.public_key_filename` directly - VERIFIED
+  // live: bound straight to query data and saved on every keystroke, the
+  // field snapped back to the pre-keystroke value the instant it was typed
+  // (the mutation's round trip hadn't resolved yet) and the cursor landed
+  // at the end of that reverted string - same fix as SigningKeyDefaultsFields.tsx.
+  const [publicKeyFilename, setPublicKeyFilename] = useState(settings.public_key_filename);
+  const publicKeyUrl = `${window.location.origin}/keys/${publicKeyFilename}`;
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        <Content component="h2">General</Content>
-      </StackItem>
-
-      <StackItem>
-        {updateSettings.isError ? (
+      {isSaveError ? (
+        <StackItem>
           <Alert variant="danger" isInline title="Could not save signing configuration" />
-        ) : null}
-        <Form>
-          <Checkbox
-            id="signing-enabled"
-            label="Signing enabled"
-            isChecked={settings.signing_enabled}
-            onChange={(_e, checked) =>
-              updateSettings.mutate({ signing_enabled: checked })
-            }
-          />
-          <Checkbox
-            id="package-signing-enabled"
-            label="Package signing enabled"
-            isChecked={settings.package_signing_enabled}
-            onChange={(_e, checked) =>
-              updateSettings.mutate({ package_signing_enabled: checked })
-            }
-          />
-          <Checkbox
-            id="metadata-signing-enabled"
-            label="Metadata signing enabled"
-            isChecked={settings.metadata_signing_enabled}
-            onChange={(_e, checked) =>
-              updateSettings.mutate({ metadata_signing_enabled: checked })
-            }
-          />
-        </Form>
+        </StackItem>
+      ) : null}
+
+      <StackItem>
+        <Card isCompact>
+          <CardTitle>Signing</CardTitle>
+          <CardBody>
+            <Form>
+              <Checkbox
+                id="signing-enabled"
+                label="Signing enabled"
+                isChecked={settings.signing_enabled}
+                onChange={(_e, checked) => onChange({ signing_enabled: checked })}
+              />
+              <Checkbox
+                id="package-signing-enabled"
+                label="Package signing enabled"
+                isChecked={settings.package_signing_enabled}
+                onChange={(_e, checked) => onChange({ package_signing_enabled: checked })}
+              />
+              <Checkbox
+                id="metadata-signing-enabled"
+                label="Metadata signing enabled"
+                isChecked={settings.metadata_signing_enabled}
+                onChange={(_e, checked) => onChange({ metadata_signing_enabled: checked })}
+              />
+            </Form>
+          </CardBody>
+        </Card>
       </StackItem>
 
       <StackItem>
-        <Stack style={{ gap: "0.75rem" }}>
-          <StackItem>
-            <Stack style={{ gap: "0.25rem" }}>
-              <StackItem>
-                <Content component="small" style={{ margin: 0 }}>
-                  The filename used in the public key URL below.
-                </Content>
-              </StackItem>
+        <Card isCompact>
+          <CardTitle>Public key</CardTitle>
+          <CardBody>
+            <Stack hasGutter>
               <StackItem>
                 <Form>
-                  <FormGroup fieldId="public-key-filename">
+                  <FormGroup label="Filename" fieldId="public-key-filename">
                     <TextInput
                       id="public-key-filename"
-                      aria-label="Public key filename"
                       type="text"
                       autoComplete="off"
-                      value={settings.public_key_filename}
-                      onChange={(_e, value) =>
-                        updateSettings.mutate({ public_key_filename: value })
-                      }
+                      value={publicKeyFilename}
+                      onChange={(_e, value) => {
+                        setPublicKeyFilename(value);
+                        onChange({ public_key_filename: value });
+                      }}
                     />
                   </FormGroup>
                 </Form>
               </StackItem>
-            </Stack>
-          </StackItem>
 
-          <StackItem>
-            <Stack style={{ gap: "0.25rem" }}>
               <StackItem>
                 <Content component="small" style={{ margin: 0 }}>
-                  The full URL where the public signing key is served.
+                  Full URL where the public signing key is served.
                 </Content>
-              </StackItem>
-              <StackItem>
                 <CopyableValue value={publicKeyUrl} />
               </StackItem>
             </Stack>
-          </StackItem>
-        </Stack>
+          </CardBody>
+        </Card>
       </StackItem>
+
+      <StackItem>
+        <Card isCompact>
+          <CardTitle>Existing repositories</CardTitle>
+          <CardBody>
+            <Stack hasGutter>
+              <StackItem>
+                <Content component="small">
+                  Signing above applies automatically to every repository from now on -
+                  new repositories need no per-repository choice. A repository created
+                  before signing was turned on doesn't otherwise catch up on its own; use
+                  this to bring every existing repository into line now.
+                </Content>
+              </StackItem>
+              <StackItem>
+                <Button variant="danger" onClick={() => setIsApplyOpen(true)}>
+                  Sign all repositories…
+                </Button>
+              </StackItem>
+            </Stack>
+          </CardBody>
+        </Card>
+      </StackItem>
+
+      {isApplyOpen ? (
+        <ApplySigningToAllRepositoriesModal onClose={() => setIsApplyOpen(false)} />
+      ) : null}
     </Stack>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -11,13 +11,13 @@ import {
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { Group } from "../../../api/client/access/types";
+import { useAdministrationHeaderAction } from "../../administration/AdministrationHeaderActionContext";
 import { useGroupsQuery } from "./useGroupsQuery";
 import { useDeleteGroupMutation } from "./useDeleteGroupMutation";
 import { CreateGroupModal } from "./CreateGroupModal";
@@ -36,13 +36,17 @@ export function GroupsPage() {
     name__icontains: search || undefined,
   });
 
+  // Rendered in Administration's shared PageHeader (top right), not here -
+  // this page has no PageHeader of its own (docs/adr/
+  // 0010-merged-administration-page.md).
+  const createButton = useMemo(
+    () => <Button onClick={() => setIsCreateOpen(true)}>Create group</Button>,
+    [],
+  );
+  useAdministrationHeaderAction("groups", createButton);
+
   return (
     <>
-      <PageHeader
-        title="Groups"
-        description="Collections of users that can be granted roles together."
-        actions={<Button onClick={() => setIsCreateOpen(true)}>Create group</Button>}
-      />
       <PageSection hasBodyWrapper={false}>
         <Toolbar>
           <ToolbarContent>
@@ -81,9 +85,9 @@ export function GroupsPage() {
         ) : null}
         {groupsQuery.isSuccess && groupsQuery.data.results.length === 0 ? (
           <EmptyState
+            variant="sm"
             title="No groups yet"
-            body="Create a group to manage roles for several users at once."
-            action={<Button onClick={() => setIsCreateOpen(true)}>Create group</Button>}
+            body="Create a group above to manage roles for several users at once."
           />
         ) : null}
         {groupsQuery.isSuccess && groupsQuery.data.results.length > 0 ? (

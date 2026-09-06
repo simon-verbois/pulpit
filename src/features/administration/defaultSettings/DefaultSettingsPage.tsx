@@ -4,6 +4,7 @@ import {
   Button,
   Checkbox,
   Content,
+  Divider,
   Form,
   FormGroup,
   FormHelperText,
@@ -16,23 +17,19 @@ import {
   TextInput,
 } from "@patternfly/react-core";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import type { DefaultSettings } from "../../../api/client/pulpitCore/types";
 import { useDefaultSettingsQuery } from "./useDefaultSettingsQuery";
 import { useUpdateDefaultSettingsMutation } from "./useUpdateDefaultSettingsMutation";
+import { ApplyProxyToAllRemotesModal } from "./ApplyProxyToAllRemotesModal";
 
 export function DefaultSettingsPage() {
   const settingsQuery = useDefaultSettingsQuery();
 
   return (
     <>
-      <PageHeader
-        title="Default Settings"
-        description="Instance-wide defaults PulpIT itself applies - not sent to Pulp as a setting of its own."
-      />
       <PageSection hasBodyWrapper={false}>
         {settingsQuery.isPending ? (
           <LoadingState label="Loading default settings" />
@@ -57,6 +54,7 @@ export function DefaultSettingsPage() {
 
 function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
   const updateSettings = useUpdateDefaultSettingsMutation();
+  const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [proxyUrl, setProxyUrl] = useState(settings.proxy_url);
   const [proxyUsername, setProxyUsername] = useState(settings.proxy_username);
   // Blank on load - GET never echoes the password back (VERIFIED live,
@@ -218,6 +216,42 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
           Save
         </Button>
       </StackItem>
+
+      <StackItem>
+        <Divider />
+      </StackItem>
+
+      <StackItem>
+        <Content component="h3">Apply to existing remotes</Content>
+        <Content component="small">
+          The proxy settings above are only applied automatically to a Remote at the
+          moment it's created (or when its own Create/Edit form explicitly opts in). Use
+          this to retroactively overwrite every existing Remote's proxy with whatever is
+          currently saved above instead.
+        </Content>
+      </StackItem>
+      <StackItem>
+        <Button
+          variant="danger"
+          isDisabled={isDirty}
+          onClick={() => setIsApplyOpen(true)}
+        >
+          Apply to all remotes…
+        </Button>
+        {isDirty ? (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant="warning">
+                Save your changes above first.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        ) : null}
+      </StackItem>
+
+      {isApplyOpen ? (
+        <ApplyProxyToAllRemotesModal onClose={() => setIsApplyOpen(false)} />
+      ) : null}
     </Stack>
   );
 }

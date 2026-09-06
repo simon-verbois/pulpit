@@ -13,6 +13,13 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
       <Flex
         justifyContent={{ default: "justifyContentSpaceBetween" }}
         alignItems={{ default: "alignItemsFlexStart" }}
+        // Without this, a long enough description (e.g. Administration's)
+        // wraps the actions FlexItem below the title instead of keeping it
+        // pinned top-right - VERIFIED live. The title/description FlexItem
+        // still shrinks and wraps its own text normally within whatever
+        // width remains; only the two FlexItems themselves stay side by
+        // side.
+        flexWrap={{ default: "nowrap" }}
       >
         <FlexItem>
           <Content component="h1">{title}</Content>

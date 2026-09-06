@@ -57,7 +57,7 @@ interface RemoteConnectionSettingsFieldsProps {
 
 /** Shared by every plugin's Create/Edit remote modal - proxy/origin auth
  * settings. Collapsed by default since most remotes don't need them, unless
- * an instance default proxy (Administration > Default Settings) auto-opens
+ * an instance default proxy (Administration > Global Proxy Settings) auto-opens
  * it below. */
 export function RemoteConnectionSettingsFields({
   idPrefix,
@@ -182,7 +182,7 @@ export function RemoteConnectionSettingsFields({
             <FormHelperText>
               <HelperText>
                 <HelperTextItem>
-                  Configured in Administration &gt; Default Settings (
+                  Configured in Administration &gt; Global Proxy Settings (
                   {defaultSettingsQuery.data?.proxy_url}), including its TLS validation
                   preference below. Uncheck to set a different proxy for this remote only.
                 </HelperTextItem>

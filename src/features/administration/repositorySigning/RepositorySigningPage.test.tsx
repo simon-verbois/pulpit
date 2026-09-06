@@ -144,6 +144,39 @@ describe("RepositorySigningPage", () => {
     await waitFor(() => expect(checkbox).toBeChecked());
   });
 
+  it("keeps a text field's own typed value even while its own save PATCH is still in flight", async () => {
+    // Regression test: this field's `value` used to be bound straight to
+    // the settings query, saved on every change - typing a second character
+    // before the first PATCH resolved reverted the field to its pre-edit
+    // value (VERIFIED live: the query hadn't been updated yet, so React
+    // forced the DOM input back, moving the cursor to the end). A delayed
+    // PATCH response here reproduces exactly that race.
+    mockSettings();
+    mockKeys([]);
+    let resolvePatch: (() => void) | undefined;
+    server.use(
+      http.patch(SETTINGS_URL, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        await new Promise<void>((resolve) => {
+          resolvePatch = resolve;
+        });
+        return HttpResponse.json({ ...DEFAULT_SETTINGS, ...body });
+      }),
+    );
+
+    renderApp(<RepositorySigningPage />);
+
+    const filenameInput = await screen.findByLabelText("Filename");
+    fireEvent.change(filenameInput, { target: { value: "custom-1" } });
+    // The first PATCH is now stuck awaiting resolvePatch - typing again
+    // before it resolves must not revert the field.
+    fireEvent.change(filenameInput, { target: { value: "custom-12" } });
+    expect(filenameInput).toHaveValue("custom-12");
+
+    resolvePatch?.();
+    await waitFor(() => expect(filenameInput).toHaveValue("custom-12"));
+  });
+
   it("opens a details modal with the full key info when Inspect is clicked", async () => {
     mockSettings();
     mockKeys([ACTIVE_KEY]);
@@ -158,21 +191,87 @@ describe("RepositorySigningPage", () => {
     expect(within(dialog).getByText("local-gpg")).toBeInTheDocument();
   });
 
-  it("shows new key defaults and automatic rotation fields in the Generate key dialog", async () => {
+  it("shows new key defaults and automatic rotation fields in the Generate key dialog, not the General section", async () => {
     mockSettings();
     mockKeys([]);
 
     renderApp(<RepositorySigningPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Generate key" }));
+    await screen.findByLabelText("Signing enabled");
+    expect(screen.queryByLabelText("Key name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Automatic key rotation enabled")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate key" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Generate signing key" });
-    expect(await within(dialog).findByLabelText("Key name")).toHaveValue(
+    expect(within(dialog).getByLabelText("Validity", { exact: false })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Key name")).toHaveValue(
       "Pulp Repository Signing Key",
     );
-    expect(
-      within(dialog).getByLabelText("Automatic key rotation enabled"),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Automatic key rotation enabled")).toBeInTheDocument();
+  });
+
+  it("signs every existing repository after confirmation", async () => {
+    mockSettings();
+    mockKeys([]);
+    server.use(
+      http.post(
+        "/pulpit-core/api/v1/signing/repositories/apply-to-all",
+        () =>
+          HttpResponse.json(
+            {
+              id: "33333333-3333-3333-3333-333333333333",
+              job_type: "signing.apply_signing_to_all_repositories",
+              status: "queued",
+              result: null,
+              error: null,
+              attempts: 0,
+              scheduled_at: "2026-01-01T00:00:00Z",
+              started_at: null,
+              finished_at: null,
+              requested_by: "admin",
+              created_at: "2026-01-01T00:00:00Z",
+            },
+            { status: 202 },
+          ),
+      ),
+      http.get(
+        "/pulpit-core/api/v1/jobs/33333333-3333-3333-3333-333333333333",
+        () =>
+          HttpResponse.json({
+            id: "33333333-3333-3333-3333-333333333333",
+            job_type: "signing.apply_signing_to_all_repositories",
+            status: "success",
+            result: {
+              updated_count: 2,
+              updated: [],
+              resigning_count: 1,
+              republishing_count: 1,
+              failed: [],
+            },
+            error: null,
+            attempts: 1,
+            scheduled_at: "2026-01-01T00:00:00Z",
+            started_at: "2026-01-01T00:00:00Z",
+            finished_at: "2026-01-01T00:00:01Z",
+            requested_by: "admin",
+            created_at: "2026-01-01T00:00:00Z",
+          }),
+      ),
+    );
+
+    renderApp(<RepositorySigningPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Sign all repositories…" }),
+    );
+
+    const dialog = await screen.findByRole("dialog", { name: "Sign every existing repository?" });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Sign all repositories" }),
+    );
+
+    expect(await within(dialog).findByText("Updated 2 repositories")).toBeInTheDocument();
   });
 
   it("never shows a create/edit control for private key material anywhere on the page", async () => {

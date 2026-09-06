@@ -4,6 +4,8 @@ import {
   Alert,
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormHelperText,
@@ -57,17 +59,19 @@ export function EditContentGuardModal({
       variant="medium"
     >
       <ModalHeader title={`Edit "${guard.name}"`} labelId="edit-content-guard-title" />
-      <ModalBody>
-        {detailQuery.isPending ? <LoadingState label="Loading content guard" /> : null}
-        {detailQuery.isSuccess ? (
-          <EditContentGuardForm
-            guard={guard}
-            kind={kind}
-            detail={detailQuery.data}
-            onClose={onClose}
-          />
-        ) : null}
-      </ModalBody>
+      {detailQuery.isPending ? (
+        <ModalBody>
+          <LoadingState label="Loading content guard" />
+        </ModalBody>
+      ) : null}
+      {detailQuery.isSuccess ? (
+        <EditContentGuardForm
+          guard={guard}
+          kind={kind}
+          detail={detailQuery.data}
+          onClose={onClose}
+        />
+      ) : null}
     </Modal>
   );
 }
@@ -126,132 +130,140 @@ function EditContentGuardForm({
 
   return (
     <>
-      <Form>
-        {updateMutation.isError ? (
-          <Alert
-            variant="danger"
-            isInline
-            title={
-              updateMutation.error instanceof PulpApiError
-                ? updateMutation.error.message
-                : "Could not update the content guard."
-            }
-          />
-        ) : null}
-        <FormGroup label="Name" isRequired fieldId="content-guard-edit-name">
-          <TextInput
-            id="content-guard-edit-name"
-            isRequired
-            value={name}
-            onChange={(_event, value) => setName(value)}
-          />
-        </FormGroup>
-        <FormGroup label="Description" fieldId="content-guard-edit-description">
-          <TextArea
-            id="content-guard-edit-description"
-            value={description}
-            onChange={(_event, value) => setDescription(value)}
-            autoResize
-          />
-        </FormGroup>
-
-        {kind === "header" ? (
-          <>
-            <FormGroup
-              label="Header name"
-              isRequired
-              fieldId="content-guard-edit-header-name"
-            >
-              <TextInput
-                id="content-guard-edit-header-name"
-                isRequired
-                value={headerName}
-                onChange={(_event, value) => setHeaderName(value)}
-              />
-            </FormGroup>
-            <FormGroup
-              label="Header value"
-              isRequired
-              fieldId="content-guard-edit-header-value"
-            >
-              <TextInput
-                id="content-guard-edit-header-value"
-                isRequired
-                autoComplete="off"
-                value={headerValue}
-                onChange={(_event, value) => setHeaderValue(value)}
-              />
-            </FormGroup>
-            <FormGroup label="jq filter" fieldId="content-guard-edit-jq-filter">
-              <TextInput
-                id="content-guard-edit-jq-filter"
-                value={jqFilter}
-                onChange={(_event, value) => setJqFilter(value)}
-              />
-            </FormGroup>
-          </>
-        ) : null}
-
-        {kind === "x509" || kind === "rhsm" ? (
-          <FormGroup
-            label="CA certificate"
-            isRequired
-            fieldId="content-guard-edit-ca-certificate"
-          >
-            <TextArea
-              id="content-guard-edit-ca-certificate"
-              isRequired
-              rows={8}
-              autoComplete="off"
-              value={caCertificate}
-              onChange={(_event, value) => setCaCertificate(value)}
+      <ModalBody>
+        <Form>
+          {updateMutation.isError ? (
+            <Alert
+              variant="danger"
+              isInline
+              title={
+                updateMutation.error instanceof PulpApiError
+                  ? updateMutation.error.message
+                  : "Could not update the content guard."
+              }
             />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>A PEM-encoded X.509 certificate.</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
+          ) : null}
+          <FormGroup label="Name" isRequired fieldId="content-guard-edit-name">
+            <TextInput
+              id="content-guard-edit-name"
+              isRequired
+              value={name}
+              onChange={(_event, value) => setName(value)}
+            />
           </FormGroup>
-        ) : null}
+          <FormGroup label="Description" fieldId="content-guard-edit-description">
+            <TextArea
+              id="content-guard-edit-description"
+              value={description}
+              onChange={(_event, value) => setDescription(value)}
+              autoResize
+            />
+          </FormGroup>
 
-        {kind === "composite" ? (
-          <FormGroup
-            label="Guards to require"
-            isRequired
-            fieldId="content-guard-edit-guards"
-          >
-            {(guardsQuery.data ?? [])
-              .filter((g) => g.pulp_href !== guard.pulp_href)
-              .map((g) => (
-                <Checkbox
-                  key={g.pulp_href}
-                  id={`composite-edit-guard-${g.pulp_href}`}
-                  label={g.name}
-                  isChecked={selectedGuards.includes(g.pulp_href)}
-                  onChange={(_event, checked) =>
-                    setSelectedGuards((current) =>
-                      checked
-                        ? [...current, g.pulp_href]
-                        : current.filter((h) => h !== g.pulp_href),
-                    )
-                  }
+          {kind === "header" ? (
+            <>
+              <FormGroup
+                label="Header name"
+                isRequired
+                fieldId="content-guard-edit-header-name"
+              >
+                <TextInput
+                  id="content-guard-edit-header-name"
+                  isRequired
+                  value={headerName}
+                  onChange={(_event, value) => setHeaderName(value)}
                 />
-              ))}
-          </FormGroup>
-        ) : null}
-      </Form>
+              </FormGroup>
+              <FormGroup
+                label="Header value"
+                isRequired
+                fieldId="content-guard-edit-header-value"
+              >
+                <TextInput
+                  id="content-guard-edit-header-value"
+                  isRequired
+                  autoComplete="off"
+                  value={headerValue}
+                  onChange={(_event, value) => setHeaderValue(value)}
+                />
+              </FormGroup>
+              <FormGroup label="jq filter" fieldId="content-guard-edit-jq-filter">
+                <TextInput
+                  id="content-guard-edit-jq-filter"
+                  value={jqFilter}
+                  onChange={(_event, value) => setJqFilter(value)}
+                />
+              </FormGroup>
+            </>
+          ) : null}
+
+          {kind === "x509" || kind === "rhsm" ? (
+            <FormGroup
+              label="CA certificate"
+              isRequired
+              fieldId="content-guard-edit-ca-certificate"
+            >
+              <TextArea
+                id="content-guard-edit-ca-certificate"
+                isRequired
+                rows={8}
+                autoComplete="off"
+                value={caCertificate}
+                onChange={(_event, value) => setCaCertificate(value)}
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>A PEM-encoded X.509 certificate.</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+          ) : null}
+
+          {kind === "composite" ? (
+            <FormGroup
+              label="Guards to require"
+              isRequired
+              fieldId="content-guard-edit-guards"
+            >
+              {(guardsQuery.data ?? [])
+                .filter((g) => g.pulp_href !== guard.pulp_href)
+                .map((g) => (
+                  <Checkbox
+                    key={g.pulp_href}
+                    id={`composite-edit-guard-${g.pulp_href}`}
+                    label={g.name}
+                    isChecked={selectedGuards.includes(g.pulp_href)}
+                    onChange={(_event, checked) =>
+                      setSelectedGuards((current) =>
+                        checked
+                          ? [...current, g.pulp_href]
+                          : current.filter((h) => h !== g.pulp_href),
+                      )
+                    }
+                  />
+                ))}
+            </FormGroup>
+          ) : null}
+        </Form>
+      </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!name || updateMutation.isPending}
-          isLoading={updateMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Save
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!name || updateMutation.isPending}
+              isLoading={updateMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Save
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </>
   );

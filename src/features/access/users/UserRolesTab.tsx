@@ -34,73 +34,75 @@ export function UserRolesTab({ user }: { user: User }) {
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Button onClick={() => setIsAssignOpen(true)}>Assign role…</Button>
-          </ToolbarItem>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={rolesQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-
       {rolesQuery.isPending ? <LoadingState label="Loading role assignments" /> : null}
       {rolesQuery.isError ? (
         <ErrorState error={rolesQuery.error} onRetry={() => rolesQuery.refetch()} />
       ) : null}
       {rolesQuery.isSuccess && rolesQuery.data.results.length === 0 ? (
         <EmptyState
+          variant="sm"
           title="No roles assigned yet"
           body="Assign a role to grant this user permissions, either globally or scoped to one object."
           action={<Button onClick={() => setIsAssignOpen(true)}>Assign role…</Button>}
         />
       ) : null}
       {rolesQuery.isSuccess && rolesQuery.data.results.length > 0 ? (
-        <Table aria-label="Assigned roles" variant="compact">
-          <Thead>
-            <Tr>
-              <Th>Role</Th>
-              <Th>Scope</Th>
-              <Th screenReaderText="Actions" />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {rolesQuery.data.results.map((assignment) => (
-              <Tr key={assignment.pulp_href}>
-                <Td dataLabel="Role">{assignment.role}</Td>
-                <Td dataLabel="Scope">
-                  {assignment.content_object ? (
-                    <code>{assignment.content_object}</code>
-                  ) : (
-                    <Label isCompact>Global</Label>
-                  )}
-                </Td>
-                <Td dataLabel="Actions" isActionCell>
-                  <Button
-                    variant="link"
-                    isDanger
-                    onClick={() =>
-                      unassignMutation.mutate({
-                        userHref: user.pulp_href,
-                        roleAssignmentHref: assignment.pulp_href,
-                      })
-                    }
-                  >
-                    Remove
-                  </Button>
-                </Td>
+        <>
+          <Toolbar>
+            <ToolbarContent>
+              <ToolbarItem>
+                <Button onClick={() => setIsAssignOpen(true)}>Assign role…</Button>
+              </ToolbarItem>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={rolesQuery.data.count}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+          <Table aria-label="Assigned roles" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Role</Th>
+                <Th>Scope</Th>
+                <Th screenReaderText="Actions" />
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {rolesQuery.data.results.map((assignment) => (
+                <Tr key={assignment.pulp_href}>
+                  <Td dataLabel="Role">{assignment.role}</Td>
+                  <Td dataLabel="Scope">
+                    {assignment.content_object ? (
+                      <code>{assignment.content_object}</code>
+                    ) : (
+                      <Label isCompact>Global</Label>
+                    )}
+                  </Td>
+                  <Td dataLabel="Actions" isActionCell>
+                    <Button
+                      variant="link"
+                      isDanger
+                      onClick={() =>
+                        unassignMutation.mutate({
+                          userHref: user.pulp_href,
+                          roleAssignmentHref: assignment.pulp_href,
+                        })
+                      }
+                    >
+                      Remove
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </>
       ) : null}
 
       {isAssignOpen ? (

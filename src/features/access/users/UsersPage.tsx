@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
   Flex,
   FlexItem,
-  Label,
   Pagination,
   PageSection,
   SearchInput,
@@ -14,13 +13,14 @@ import {
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { User } from "../../../api/client/access/types";
+import { useAdministrationHeaderAction } from "../../administration/AdministrationHeaderActionContext";
 import { useUsersQuery } from "./useUsersQuery";
 import { useDeleteUserMutation } from "./useDeleteUserMutation";
 import { CreateUserModal } from "./CreateUserModal";
@@ -39,13 +39,17 @@ export function UsersPage() {
     username__icontains: search || undefined,
   });
 
+  // Rendered in Administration's shared PageHeader (top right), not here -
+  // this page has no PageHeader of its own (docs/adr/
+  // 0010-merged-administration-page.md).
+  const createButton = useMemo(
+    () => <Button onClick={() => setIsCreateOpen(true)}>Create user</Button>,
+    [],
+  );
+  useAdministrationHeaderAction("users", createButton);
+
   return (
     <>
-      <PageHeader
-        title="Users"
-        description="Pulp accounts that can log in and be granted roles."
-        actions={<Button onClick={() => setIsCreateOpen(true)}>Create user</Button>}
-      />
       <PageSection hasBodyWrapper={false}>
         <Toolbar>
           <ToolbarContent>
@@ -84,9 +88,9 @@ export function UsersPage() {
         ) : null}
         {usersQuery.isSuccess && usersQuery.data.results.length === 0 ? (
           <EmptyState
+            variant="sm"
             title="No users yet"
-            body="Create a Pulp account so someone else can log in."
-            action={<Button onClick={() => setIsCreateOpen(true)}>Create user</Button>}
+            body="Create a Pulp account above so someone else can log in."
           />
         ) : null}
         {usersQuery.isSuccess && usersQuery.data.results.length > 0 ? (
@@ -116,20 +120,20 @@ export function UsersPage() {
                     <Flex spaceItems={{ default: "spaceItemsSm" }}>
                       <FlexItem>
                         {user.is_active ? (
-                          <Label color="green" isCompact>
+                          <StatusIndicator color="green" isCompact>
                             Active
-                          </Label>
+                          </StatusIndicator>
                         ) : (
-                          <Label color="grey" isCompact>
+                          <StatusIndicator color="grey" isCompact>
                             Inactive
-                          </Label>
+                          </StatusIndicator>
                         )}
                       </FlexItem>
                       {user.is_staff ? (
                         <FlexItem>
-                          <Label color="blue" isCompact>
+                          <StatusIndicator color="blue" isCompact>
                             Staff
-                          </Label>
+                          </StatusIndicator>
                         </FlexItem>
                       ) : null}
                     </Flex>

@@ -6,6 +6,10 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { TasksProvider } from "../api/tasks/TasksContext";
 import { TasksDrawer } from "../app/layout/TasksDrawer";
 import { TaskTrackers } from "../features/tasks/TaskTrackers";
+import {
+  AdministrationHeaderActionProvider,
+  AdministrationHeaderActionSlot,
+} from "../features/administration/AdministrationHeaderActionContext";
 
 /**
  * Shared render helper for feature pages that need a QueryClient, a router
@@ -27,9 +31,33 @@ export function renderApp(
     route = "/",
     path = "/",
     withTasksDrawer = false,
-  }: { route?: string; path?: string; withTasksDrawer?: boolean } = {},
+    withAdministrationHeaderAction,
+  }: {
+    /** A plain path, or `{ pathname, state }` when a test needs to assert
+     * on `useLocation().state` (e.g. AdministrationPage's initial-tab
+     * selection after a redirect). */
+    route?: string | { pathname: string; state?: unknown };
+    path?: string;
+    withTasksDrawer?: boolean;
+    /** For a page that registers its primary action into Administration's
+     * shared PageHeader instead of rendering it inline (Users/Groups/Roles/
+     * Content guards - AdministrationHeaderActionContext.tsx) - wraps `ui`
+     * with the same provider AdministrationPage uses and renders this tab
+     * id's slot right alongside it, so the test finds the button exactly
+     * where it's really rendered without needing a whole AdministrationPage
+     * in the tree. */
+    withAdministrationHeaderAction?: string;
+  } = {},
 ) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const element = withAdministrationHeaderAction ? (
+    <AdministrationHeaderActionProvider>
+      <AdministrationHeaderActionSlot tabId={withAdministrationHeaderAction} />
+      {ui}
+    </AdministrationHeaderActionProvider>
+  ) : (
+    ui
+  );
   return {
     client,
     ...render(
@@ -37,7 +65,7 @@ export function renderApp(
         <TasksProvider>
           <MemoryRouter initialEntries={[route]}>
             <Routes>
-              <Route path={path} element={ui} />
+              <Route path={path} element={element} />
             </Routes>
           </MemoryRouter>
           {withTasksDrawer ? (

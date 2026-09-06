@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Alert,
   Button,
-  Checkbox,
   Content,
   Divider,
   Flex,
@@ -12,8 +11,6 @@ import {
   FormHelperText,
   FormSelect,
   FormSelectOption,
-  Grid,
-  GridItem,
   HelperText,
   HelperTextItem,
   Modal,
@@ -29,8 +26,8 @@ import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useGenerateSigningKeyMutation } from "./useGenerateSigningKeyMutation";
 import { useJob } from "../../../api/client/pulpitCore/useJob";
 import { useSigningSettingsQuery } from "./useSigningSettingsQuery";
-import { useUpdateSigningSettingsMutation } from "./useUpdateSigningSettingsMutation";
 import { SigningKeyDefaultsFields } from "./SigningKeyDefaultsFields";
+import { AutomaticRotationFields } from "./AutomaticRotationFields";
 
 const VALIDITY_PRESETS = [
   { value: "182", label: "6 months" },
@@ -46,7 +43,6 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
   const [preset, setPreset] = useState("730");
   const [customDays, setCustomDays] = useState(730);
   const settingsQuery = useSigningSettingsQuery();
-  const updateSettings = useUpdateSigningSettingsMutation();
   const generateMutation = useGenerateSigningKeyMutation();
   const job = useJob(generateMutation.data?.id);
 
@@ -66,7 +62,7 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal isOpen onClose={onClose} aria-labelledby="generate-key-title" variant="large">
+    <Modal isOpen onClose={onClose} aria-labelledby="generate-key-title" variant="medium">
       <ModalHeader title="Generate signing key" labelId="generate-key-title" />
       <ModalBody>
         <Stack hasGutter>
@@ -148,268 +144,37 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
             </Form>
           </StackItem>
 
-          {settings ? (
-            <>
-              <StackItem>
-                <Divider />
-              </StackItem>
+          <StackItem>
+            <Divider />
+          </StackItem>
 
-              <StackItem>
-                <Stack hasGutter>
-                  <StackItem>
-                    <Content component="h3">New key defaults</Content>
-                    <Content component="small">
-                      Used to generate this key, and every key after it until changed.
-                      Changing them does not affect existing keys.
-                    </Content>
-                  </StackItem>
-                  <StackItem>
-                    <Form>
-                      <SigningKeyDefaultsFields idPrefix="generate-key-" />
-                    </Form>
-                  </StackItem>
-                </Stack>
-              </StackItem>
+          <StackItem>
+            <Content component="h3">New key defaults</Content>
+            <Content component="small">
+              Used the next time a key is generated, and every key after it until
+              changed. Changing them does not affect existing keys.
+            </Content>
+          </StackItem>
+          <StackItem>
+            <Form>
+              <SigningKeyDefaultsFields idPrefix="generate-" />
+            </Form>
+          </StackItem>
 
-              <StackItem>
-                <Divider />
-              </StackItem>
+          <StackItem>
+            <Divider />
+          </StackItem>
 
-              <StackItem>
-                <Stack hasGutter>
-                  {updateSettings.isError ? (
-                    <StackItem>
-                      <Alert
-                        variant="danger"
-                        isInline
-                        title="Could not save signing configuration"
-                      />
-                    </StackItem>
-                  ) : null}
-                  <StackItem>
-                    <Content component="h3">Automatic rotation</Content>
-                    <Content component="small">
-                      Publishing a key, whether automatically or manually via{" "}
-                      <strong>Publish now</strong> in the signing keys table, re-signs
-                      existing packages and republishes metadata under the new key. This
-                      happens automatically and cannot be turned off. Exactly one key is
-                      exposed at the public key URL at any time.
-                    </Content>
-                  </StackItem>
-                  <StackItem>
-                    <Stack hasGutter>
-                      <StackItem>
-                        <Stack style={{ gap: "0.25rem" }}>
-                          <StackItem>
-                            <Form>
-                              <Checkbox
-                                id="allow-indefinite-validity"
-                                label="Create keys without expiration"
-                                isChecked={settings.allow_indefinite_validity}
-                                onChange={(_e, checked) =>
-                                  updateSettings.mutate({
-                                    allow_indefinite_validity: checked,
-                                  })
-                                }
-                              />
-                            </Form>
-                          </StackItem>
-                          <StackItem>
-                            <Content component="small" style={{ margin: 0 }}>
-                              Allows generating a key with no expiration date using the{" "}
-                              <strong>Validity</strong> field above. Because such a key
-                              cannot be rotated on a schedule, the settings below are
-                              disabled while this option is enabled.
-                            </Content>
-                          </StackItem>
-                        </Stack>
-                      </StackItem>
-                      <StackItem>
-                        <Form>
-                          <Checkbox
-                            id="auto-rotation-enabled"
-                            label="Automatic key rotation enabled"
-                            isChecked={settings.auto_rotation_enabled}
-                            isDisabled={settings.allow_indefinite_validity}
-                            onChange={(_e, checked) =>
-                              updateSettings.mutate({ auto_rotation_enabled: checked })
-                            }
-                          />
-                        </Form>
-                      </StackItem>
-                    </Stack>
-                  </StackItem>
-                  <StackItem>
-                    <Grid hasGutter>
-                      <GridItem span={3}>
-                        <FormGroup label="Default key validity" fieldId="validity-days">
-                          <NumberInput
-                            id="validity-days"
-                            isDisabled={
-                              !settings.auto_rotation_enabled ||
-                              settings.allow_indefinite_validity
-                            }
-                            value={settings.validity_days}
-                            min={1}
-                            max={3650}
-                            onMinus={() =>
-                              updateSettings.mutate({
-                                validity_days: Math.max(1, settings.validity_days - 1),
-                              })
-                            }
-                            onPlus={() =>
-                              updateSettings.mutate({
-                                validity_days: Math.min(3650, settings.validity_days + 1),
-                              })
-                            }
-                            onChange={(event) =>
-                              updateSettings.mutate({
-                                validity_days: Number(
-                                  (event.target as HTMLInputElement).value,
-                                ),
-                              })
-                            }
-                          />
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem>
-                                Days. For future keys - not the one above.
-                              </HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                        </FormGroup>
-                      </GridItem>
-                      <GridItem span={3}>
-                        <FormGroup label="Generate replacement" fieldId="generate-before">
-                          <NumberInput
-                            id="generate-before"
-                            isDisabled={
-                              !settings.auto_rotation_enabled ||
-                              settings.allow_indefinite_validity
-                            }
-                            value={settings.rotation_generate_before_days}
-                            min={1}
-                            max={3650}
-                            onMinus={() =>
-                              updateSettings.mutate({
-                                rotation_generate_before_days: Math.max(
-                                  1,
-                                  settings.rotation_generate_before_days - 1,
-                                ),
-                              })
-                            }
-                            onPlus={() =>
-                              updateSettings.mutate({
-                                rotation_generate_before_days:
-                                  settings.rotation_generate_before_days + 1,
-                              })
-                            }
-                            onChange={(event) =>
-                              updateSettings.mutate({
-                                rotation_generate_before_days: Number(
-                                  (event.target as HTMLInputElement).value,
-                                ),
-                              })
-                            }
-                          />
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem>Days before expiry.</HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                        </FormGroup>
-                      </GridItem>
-                      <GridItem span={3}>
-                        <FormGroup label="Publish replacement" fieldId="activate-before">
-                          <NumberInput
-                            id="activate-before"
-                            isDisabled={
-                              !settings.auto_rotation_enabled ||
-                              settings.allow_indefinite_validity
-                            }
-                            value={settings.rotation_activate_before_days}
-                            min={1}
-                            max={3650}
-                            onMinus={() =>
-                              updateSettings.mutate({
-                                rotation_activate_before_days: Math.max(
-                                  1,
-                                  settings.rotation_activate_before_days - 1,
-                                ),
-                              })
-                            }
-                            onPlus={() =>
-                              updateSettings.mutate({
-                                rotation_activate_before_days:
-                                  settings.rotation_activate_before_days + 1,
-                              })
-                            }
-                            onChange={(event) =>
-                              updateSettings.mutate({
-                                rotation_activate_before_days: Number(
-                                  (event.target as HTMLInputElement).value,
-                                ),
-                              })
-                            }
-                          />
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem>Days before expiry.</HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                        </FormGroup>
-                      </GridItem>
-                      <GridItem span={3}>
-                        <FormGroup
-                          label="Old public key retention"
-                          fieldId="retention-days"
-                        >
-                          <NumberInput
-                            id="retention-days"
-                            value={settings.key_retention_days}
-                            min={0}
-                            max={3650}
-                            onMinus={() =>
-                              updateSettings.mutate({
-                                key_retention_days: Math.max(
-                                  0,
-                                  settings.key_retention_days - 1,
-                                ),
-                              })
-                            }
-                            onPlus={() =>
-                              updateSettings.mutate({
-                                key_retention_days: settings.key_retention_days + 1,
-                              })
-                            }
-                            onChange={(event) =>
-                              updateSettings.mutate({
-                                key_retention_days: Number(
-                                  (event.target as HTMLInputElement).value,
-                                ),
-                              })
-                            }
-                          />
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem>Days.</HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                        </FormGroup>
-                      </GridItem>
-                    </Grid>
-                  </StackItem>
-                </Stack>
-              </StackItem>
-            </>
-          ) : null}
+          <StackItem>
+            <Content component="h3">Automatic rotation</Content>
+          </StackItem>
+          <StackItem>
+            <AutomaticRotationFields />
+          </StackItem>
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Flex
-          justifyContent={{ default: "justifyContentFlexEnd" }}
-          style={{ width: "100%" }}
-        >
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               {jobSucceeded ? "Close" : "Cancel"}

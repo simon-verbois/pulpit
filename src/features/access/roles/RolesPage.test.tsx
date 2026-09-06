@@ -14,14 +14,14 @@ const BASE = "/pulp/api/v3/roles/";
 
 describe("RolesPage", () => {
   it("defaults to the All filter, showing both custom and built-in roles", async () => {
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     expect(await screen.findByText(ACCESS_CUSTOM_ROLE_FIXTURE.name)).toBeInTheDocument();
     expect(screen.getByText(ACCESS_LOCKED_ROLE_FIXTURE.name)).toBeInTheDocument();
   });
 
   it("switches to Custom to show only the unlocked role", async () => {
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     await screen.findByText(ACCESS_CUSTOM_ROLE_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Custom" }));
@@ -33,7 +33,7 @@ describe("RolesPage", () => {
   });
 
   it("switches to Built-in to show locked roles without Edit/Delete actions", async () => {
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     await screen.findByText(ACCESS_CUSTOM_ROLE_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Built-in" }));
@@ -54,7 +54,7 @@ describe("RolesPage", () => {
       ),
     );
 
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     fireEvent.click(screen.getByRole("button", { name: "Custom" }));
     expect(await screen.findByText("No custom roles yet")).toBeInTheDocument();
@@ -67,13 +67,13 @@ describe("RolesPage", () => {
       ),
     );
 
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     expect(await screen.findByText("No roles found")).toBeInTheDocument();
   });
 
   it("creates a custom role with permissions picked from the picker", async () => {
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     await screen.findByText(ACCESS_CUSTOM_ROLE_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Create role" }));
@@ -94,7 +94,7 @@ describe("RolesPage", () => {
   });
 
   it("edits a custom role", async () => {
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     await screen.findByText(ACCESS_CUSTOM_ROLE_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
@@ -110,7 +110,7 @@ describe("RolesPage", () => {
   });
 
   it("deletes a custom role after confirmation", async () => {
-    renderApp(<RolesPage />);
+    renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
     await screen.findByText(ACCESS_CUSTOM_ROLE_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Custom" }));

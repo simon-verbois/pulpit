@@ -114,7 +114,7 @@ export function UserDetailPage() {
           onConfirm={() =>
             deleteMutation.mutate(
               { href: user.pulp_href, username: user.username },
-              { onSuccess: () => navigate("/access/users") },
+              { onSuccess: () => navigate("/admin?tab=access&subtab=users") },
             )
           }
         />

@@ -5,6 +5,8 @@ import {
   Alert,
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSelect,
@@ -21,7 +23,6 @@ import { listAllRpmRemotes } from "../../../api/client/rpm/remotes";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreateRpmRepositoryMutation } from "./useCreateRpmRepositoryMutation";
 import { useRepositorySigningPolicyQuery } from "./useRepositorySigningPolicyQuery";
-import { RepositorySigningFieldGroup } from "./RepositorySigningFieldGroup";
 
 export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
@@ -32,8 +33,6 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
   // separate manual "Publish" step after every sync. See
   // src/api/client/rpm/publications.ts and the Overview tab's "Publish now".
   const [autopublish, setAutopublish] = useState(true);
-  const [signPackages, setSignPackages] = useState(true);
-  const [signMetadata, setSignMetadata] = useState(true);
   const createMutation = useCreateRpmRepositoryMutation();
   const navigate = useNavigate();
   const signingPolicyQuery = useRepositorySigningPolicyQuery();
@@ -44,6 +43,10 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
   });
 
   const handleSubmit = () => {
+    // Signing is fully automatic, not a per-repository choice (Administration
+    // → Repository Signing) - applied here whenever the corresponding
+    // global policy is enabled, same as it would be for any other
+    // repository from now on.
     const policy = signingPolicyQuery.data;
     createMutation.mutate(
       {
@@ -51,18 +54,15 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
         description: description || undefined,
         remote: remote || undefined,
         autopublish,
-        package_signing_service:
-          signPackages && policy?.package_signing_enabled
-            ? policy.package_signing_service
-            : undefined,
-        package_signing_fingerprint:
-          signPackages && policy?.package_signing_enabled
-            ? policy.package_signing_fingerprint
-            : undefined,
-        metadata_signing_service:
-          signMetadata && policy?.metadata_signing_enabled
-            ? policy.metadata_signing_service
-            : undefined,
+        package_signing_service: policy?.package_signing_enabled
+          ? policy.package_signing_service
+          : undefined,
+        package_signing_fingerprint: policy?.package_signing_enabled
+          ? policy.package_signing_fingerprint
+          : undefined,
+        metadata_signing_service: policy?.metadata_signing_enabled
+          ? policy.metadata_signing_service
+          : undefined,
       },
       {
         onSuccess: (repository) => {
@@ -131,28 +131,26 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
               onChange={(_event, checked) => setAutopublish(checked)}
             />
           </FormGroup>
-          <RepositorySigningFieldGroup
-            policy={signingPolicyQuery.data}
-            idPrefix="repository-create"
-            signPackages={signPackages}
-            onSignPackagesChange={setSignPackages}
-            signMetadata={signMetadata}
-            onSignMetadataChange={setSignMetadata}
-          />
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!name || createMutation.isPending}
-          isLoading={createMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Create
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={!name || createMutation.isPending}
+              isLoading={createMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Create
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

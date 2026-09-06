@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FormGroup,
   FormHelperText,
@@ -14,6 +15,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { useSigningSettingsQuery } from "./useSigningSettingsQuery";
 import { useUpdateSigningSettingsMutation } from "./useUpdateSigningSettingsMutation";
+import type { SigningSettings } from "../../../api/client/pulpitCore/types";
 
 const ALGORITHMS = ["rsa2048", "rsa3072", "rsa4096", "ed25519"];
 
@@ -36,7 +38,42 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
     );
   }
 
-  const settings = settingsQuery.data;
+  return (
+    <SigningKeyDefaultsFieldsForm
+      idPrefix={idPrefix}
+      settings={settingsQuery.data}
+      onChange={(changes) => updateSettings.mutate(changes)}
+    />
+  );
+}
+
+function SigningKeyDefaultsFieldsForm({
+  idPrefix,
+  settings,
+  onChange,
+}: {
+  idPrefix: string;
+  settings: SigningSettings;
+  onChange: (changes: Partial<SigningSettings>) => void;
+}) {
+  // Each field keeps its OWN local buffer instead of rendering `settings.*`
+  // directly - VERIFIED live: a text input bound straight to query data,
+  // saved on every keystroke, snaps back to the pre-keystroke value the
+  // instant it's typed (the mutation's round trip hasn't resolved yet, so
+  // the `value` prop briefly hasn't changed) - the cursor then lands at the
+  // end of that reverted string, and every next character types onto the
+  // wrong position. Only ever re-initialized from `settings` on mount
+  // (`useState`'s lazy-initial-value semantics - a later change to
+  // `settings` from elsewhere, e.g. another tab, is intentionally NOT
+  // resynced here, same tradeoff as any locally-buffered live-saved field).
+  const [keyName, setKeyName] = useState(settings.key_name);
+  const [identityName, setIdentityName] = useState(settings.identity_name);
+  const [identityEmail, setIdentityEmail] = useState(settings.identity_email);
+  const [publicKeyFilename, setPublicKeyFilename] = useState(settings.public_key_filename);
+  const [rpmServiceName, setRpmServiceName] = useState(settings.rpm_signing_service_name);
+  const [metadataServiceName, setMetadataServiceName] = useState(
+    settings.metadata_signing_service_name,
+  );
 
   return (
     <Grid hasGutter>
@@ -46,8 +83,11 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
             id={`${idPrefix}key-name`}
             type="text"
             autoComplete="off"
-            value={settings.key_name}
-            onChange={(_e, value) => updateSettings.mutate({ key_name: value })}
+            value={keyName}
+            onChange={(_e, value) => {
+              setKeyName(value);
+              onChange({ key_name: value });
+            }}
           />
           <FormHelperText>
             <HelperText>
@@ -65,8 +105,11 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
             id={`${idPrefix}identity-name`}
             type="text"
             autoComplete="off"
-            value={settings.identity_name}
-            onChange={(_e, value) => updateSettings.mutate({ identity_name: value })}
+            value={identityName}
+            onChange={(_e, value) => {
+              setIdentityName(value);
+              onChange({ identity_name: value });
+            }}
           />
           <FormHelperText>
             <HelperText>
@@ -89,8 +132,11 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
             data-bwignore="true"
             data-protonpass-ignore="true"
             data-form-type="other"
-            value={settings.identity_email}
-            onChange={(_e, value) => updateSettings.mutate({ identity_email: value })}
+            value={identityEmail}
+            onChange={(_e, value) => {
+              setIdentityEmail(value);
+              onChange({ identity_email: value });
+            }}
           />
         </FormGroup>
       </GridItem>
@@ -99,7 +145,7 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
           <FormSelect
             id={`${idPrefix}algorithm`}
             value={settings.algorithm}
-            onChange={(_e, value) => updateSettings.mutate({ algorithm: value })}
+            onChange={(_e, value) => onChange({ algorithm: value })}
           >
             {ALGORITHMS.map((algo) => (
               <FormSelectOption key={algo} value={algo} label={algo.toUpperCase()} />
@@ -113,10 +159,11 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
             id={`${idPrefix}public-key-filename`}
             type="text"
             autoComplete="off"
-            value={settings.public_key_filename}
-            onChange={(_e, value) =>
-              updateSettings.mutate({ public_key_filename: value })
-            }
+            value={publicKeyFilename}
+            onChange={(_e, value) => {
+              setPublicKeyFilename(value);
+              onChange({ public_key_filename: value });
+            }}
           />
           <FormHelperText>
             <HelperText>
@@ -137,10 +184,11 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
             id={`${idPrefix}rpm-service-name`}
             type="text"
             autoComplete="off"
-            value={settings.rpm_signing_service_name}
-            onChange={(_e, value) =>
-              updateSettings.mutate({ rpm_signing_service_name: value })
-            }
+            value={rpmServiceName}
+            onChange={(_e, value) => {
+              setRpmServiceName(value);
+              onChange({ rpm_signing_service_name: value });
+            }}
           />
         </FormGroup>
       </GridItem>
@@ -153,10 +201,11 @@ export function SigningKeyDefaultsFields({ idPrefix }: { idPrefix: string }) {
             id={`${idPrefix}metadata-service-name`}
             type="text"
             autoComplete="off"
-            value={settings.metadata_signing_service_name}
-            onChange={(_e, value) =>
-              updateSettings.mutate({ metadata_signing_service_name: value })
-            }
+            value={metadataServiceName}
+            onChange={(_e, value) => {
+              setMetadataServiceName(value);
+              onChange({ metadata_signing_service_name: value });
+            }}
           />
         </FormGroup>
       </GridItem>

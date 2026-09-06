@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { server } from "../../../test/mswServer";
@@ -170,5 +170,77 @@ describe("DefaultSettingsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(lastPatchBody.proxy_ca_cert).toBe(CA_CERT));
+  });
+
+  it("disables Apply to all remotes while there are unsaved changes", async () => {
+    mockSettings();
+
+    renderApp(<DefaultSettingsPage />);
+
+    const applyButton = await screen.findByRole("button", {
+      name: "Apply to all remotes…",
+    });
+    expect(applyButton).toBeEnabled();
+
+    fireEvent.change(await screen.findByLabelText("Proxy URL"), {
+      target: { value: "http://proxy:3128" },
+    });
+    expect(applyButton).toBeDisabled();
+  });
+
+  it("applies the saved proxy to every remote after confirmation", async () => {
+    mockSettings();
+    server.use(
+      http.post(
+        "/pulpit-core/api/v1/default_settings/apply-proxy-to-all-remotes",
+        () =>
+          HttpResponse.json(
+            {
+              id: "22222222-2222-2222-2222-222222222222",
+              job_type: "default_settings.apply_proxy_to_all_remotes",
+              status: "queued",
+              result: null,
+              error: null,
+              attempts: 0,
+              scheduled_at: "2026-01-01T00:00:00Z",
+              started_at: null,
+              finished_at: null,
+              requested_by: "admin",
+              created_at: "2026-01-01T00:00:00Z",
+            },
+            { status: 202 },
+          ),
+      ),
+      http.get(
+        "/pulpit-core/api/v1/jobs/22222222-2222-2222-2222-222222222222",
+        () =>
+          HttpResponse.json({
+            id: "22222222-2222-2222-2222-222222222222",
+            job_type: "default_settings.apply_proxy_to_all_remotes",
+            status: "success",
+            result: { updated_count: 3, updated: ["a", "b", "c"], failed: [] },
+            error: null,
+            attempts: 1,
+            scheduled_at: "2026-01-01T00:00:00Z",
+            started_at: "2026-01-01T00:00:00Z",
+            finished_at: "2026-01-01T00:00:01Z",
+            requested_by: "admin",
+            created_at: "2026-01-01T00:00:00Z",
+          }),
+      ),
+    );
+
+    renderApp(<DefaultSettingsPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Apply to all remotes…" }),
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Apply to all remotes" }),
+    );
+
+    expect(await within(dialog).findByText("Updated 3 remotes")).toBeInTheDocument();
   });
 });

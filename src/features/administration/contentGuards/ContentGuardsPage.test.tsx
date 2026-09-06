@@ -11,7 +11,7 @@ const GENERIC_BASE = "/pulp/api/v3/contentguards/";
 
 describe("ContentGuardsPage", () => {
   it("renders every seeded guard with its type derived from prn", async () => {
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     expect(await screen.findByText(HEADER_GUARD_FIXTURE.name)).toBeInTheDocument();
     expect(screen.getByText(RBAC_GUARD_FIXTURE.name)).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe("ContentGuardsPage", () => {
       ),
     );
 
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     expect(await screen.findByText("No content guards yet")).toBeInTheDocument();
   });
@@ -45,13 +45,13 @@ describe("ContentGuardsPage", () => {
   it("shows a normalized error state when the list request fails", async () => {
     server.use(http.get(GENERIC_BASE, () => new HttpResponse(null, { status: 502 })));
 
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     expect(await screen.findByText(/Pulp is currently unavailable/i)).toBeInTheDocument();
   });
 
   it("creates a header content guard", async () => {
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     await screen.findByText(HEADER_GUARD_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Create content guard" }));
@@ -75,7 +75,7 @@ describe("ContentGuardsPage", () => {
   });
 
   it("creates an RBAC content guard with no extra fields required", async () => {
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     await screen.findByText(HEADER_GUARD_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Create content guard" }));
@@ -94,7 +94,7 @@ describe("ContentGuardsPage", () => {
   });
 
   it("creates an X.509 certificate guard requiring a CA certificate", async () => {
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     await screen.findByText(HEADER_GUARD_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Create content guard" }));
@@ -120,7 +120,7 @@ describe("ContentGuardsPage", () => {
   });
 
   it("edits a header guard's value", async () => {
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     await screen.findByText(HEADER_GUARD_FIXTURE.name);
     const headerRow = screen.getByRole("row", {
@@ -139,7 +139,7 @@ describe("ContentGuardsPage", () => {
   });
 
   it("manages access on an RBAC guard by reusing the shared ObjectAccessTab", async () => {
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     await screen.findByText(RBAC_GUARD_FIXTURE.name);
     const rbacRow = screen.getByRole("row", {
@@ -149,12 +149,12 @@ describe("ContentGuardsPage", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(
-      within(dialog).getByRole("button", { name: "Grant access…" }),
+      await within(dialog).findByRole("button", { name: "Grant access…" }),
     ).toBeInTheDocument();
   });
 
   it("deletes a content guard after confirmation", async () => {
-    renderApp(<ContentGuardsPage />);
+    renderApp(<ContentGuardsPage />, { withAdministrationHeaderAction: "content-guards" });
 
     await screen.findByText(HEADER_GUARD_FIXTURE.name);
     const headerRow = screen.getByRole("row", {

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import {
   Button,
+  Card,
+  CardBody,
+  CardTitle,
   Content,
   Dropdown,
   DropdownItem,
@@ -19,6 +22,7 @@ import EyeIcon from "@patternfly/react-icons/dist/esm/icons/eye-icon";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { StatusIndicator } from "../../../components/StatusIndicator";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import type { SigningKey } from "../../../api/client/pulpitCore/types";
 import { useSigningKeysQuery } from "./useSigningKeysQuery";
@@ -105,15 +109,13 @@ export function RepositorySigningKeysSection({
   const nextKey = keysQuery.data?.find((k) => k.state === "next");
 
   return (
-    <Stack hasGutter>
-      <StackItem>
+    <Card isCompact>
+      <CardTitle>
         <Flex
           justifyContent={{ default: "justifyContentSpaceBetween" }}
           alignItems={{ default: "alignItemsCenter" }}
         >
-          <FlexItem>
-            <Content component="h2">Signing keys</Content>
-          </FlexItem>
+          <FlexItem>Signing keys</FlexItem>
           <FlexItem>
             <Flex
               spaceItems={{ default: "spaceItemsSm" }}
@@ -134,8 +136,9 @@ export function RepositorySigningKeysSection({
             </Flex>
           </FlexItem>
         </Flex>
-      </StackItem>
-
+      </CardTitle>
+      <CardBody>
+        <Stack hasGutter>
       {keysQuery.isPending ? (
         <StackItem>
           <LoadingState label="Loading signing keys" />
@@ -149,6 +152,7 @@ export function RepositorySigningKeysSection({
       {keysQuery.isSuccess && keysQuery.data.length === 0 ? (
         <StackItem>
           <EmptyState
+            variant="sm"
             title="No signing key generated yet"
             body="Generate a key above to enable package and metadata signing."
           />
@@ -187,9 +191,12 @@ export function RepositorySigningKeysSection({
                 {keysQuery.data.map((key) => (
                   <Tr key={key.id}>
                     <Td dataLabel="Status">
-                      <Label color={SIGNING_KEY_STATE_COLOR[key.state]} title={key.state}>
+                      <StatusIndicator
+                        color={SIGNING_KEY_STATE_COLOR[key.state]}
+                        title={key.state}
+                      >
                         {SIGNING_KEY_STATE_LABEL[key.state]}
-                      </Label>
+                      </StatusIndicator>
                     </Td>
                     <Td dataLabel="Fingerprint">
                       <code>{key.fingerprint}</code>
@@ -227,12 +234,15 @@ export function RepositorySigningKeysSection({
         </StackItem>
       ) : null}
 
+        </Stack>
+      </CardBody>
+
       {inspectKey ? (
         <SigningKeyDetailsModal
           signingKey={inspectKey}
           onClose={() => setInspectKey(null)}
         />
       ) : null}
-    </Stack>
+    </Card>
   );
 }

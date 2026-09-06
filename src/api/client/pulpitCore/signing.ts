@@ -81,3 +81,13 @@ export function configureRepositorySigning(options: {
     body: JSON.stringify(options),
   });
 }
+
+/** Brings every EXISTING RPM repository into line with the current global
+ * signing policy (repositories created after this policy already apply it
+ * automatically at creation, no per-repository opt-in - see
+ * RepositorySigningFieldGroup.tsx's removal). Schedules real re-signing of
+ * already-synced package content where needed, not just a future-uploads-only
+ * field change. */
+export function applySigningToAllRepositories(): Promise<Job> {
+  return coreFetch<Job>(`${BASE}/repositories/apply-to-all`, { method: "POST" });
+}

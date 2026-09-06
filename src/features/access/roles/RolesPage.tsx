@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Label,
@@ -13,13 +13,13 @@ import {
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { Role } from "../../../api/client/access/types";
+import { useAdministrationHeaderAction } from "../../administration/AdministrationHeaderActionContext";
 import { useRolesQuery } from "./useRolesQuery";
 import { useDeleteRoleMutation } from "./useDeleteRoleMutation";
 import { CreateRoleModal } from "./CreateRoleModal";
@@ -44,13 +44,17 @@ export function RolesPage() {
     locked: filter === "all" ? undefined : filter === "built-in",
   });
 
+  // Rendered in Administration's shared PageHeader (top right), not here -
+  // this page has no PageHeader of its own (docs/adr/
+  // 0010-merged-administration-page.md).
+  const createButton = useMemo(
+    () => <Button onClick={() => setIsCreateOpen(true)}>Create role</Button>,
+    [],
+  );
+  useAdministrationHeaderAction("roles", createButton);
+
   return (
     <>
-      <PageHeader
-        title="Roles"
-        description="Named sets of permissions that can be assigned to users and groups."
-        actions={<Button onClick={() => setIsCreateOpen(true)}>Create role</Button>}
-      />
       <PageSection hasBodyWrapper={false}>
         <Toolbar>
           <ToolbarContent>
@@ -108,9 +112,9 @@ export function RolesPage() {
         ) : null}
         {rolesQuery.isSuccess && rolesQuery.data.results.length === 0 ? (
           <EmptyState
+            variant="sm"
             title={filter === "custom" ? "No custom roles yet" : "No roles found"}
-            body="Create a role to grant a specific set of permissions to users or groups."
-            action={<Button onClick={() => setIsCreateOpen(true)}>Create role</Button>}
+            body="Create a role above to grant a specific set of permissions to users or groups."
           />
         ) : null}
         {rolesQuery.isSuccess && rolesQuery.data.results.length > 0 ? (

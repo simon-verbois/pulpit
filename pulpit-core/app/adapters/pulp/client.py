@@ -249,6 +249,27 @@ class PulpClient:
         )
         return response.json()
 
+    # --- Generic remote listing/update (default_settings module) ---------
+    #
+    # VERIFIED live: `/pulp/api/v3/remotes/` unifies every plugin's remotes
+    # the same way `/repositories/` and `/content/` do above - each result's
+    # own `pulp_href` is already the concrete, type-specific URL (e.g.
+    # ".../remotes/rpm/rpm/<id>/"), directly PATCHable with no per-plugin
+    # remote-type endpoint needed to enumerate or update "every remote that
+    # exists". Unlike a Repository PATCH, a Remote PATCH is synchronous
+    # (VERIFIED live: 200 with the updated resource, never a task).
+
+    def list_remotes_page(self, *, limit: int, offset: int) -> dict:
+        response = self._request(
+            "GET",
+            f"{self._api_base}/remotes/",
+            params={"fields": "pulp_href,name", "limit": limit, "offset": offset},
+        )
+        return response.json()
+
+    def patch_remote(self, href: str, body: dict) -> dict:
+        return self._request("PATCH", href, json=body).json()
+
     # --- Per-plugin repository/remote/distribution creation (fixture_seed
     # module) --------------------------------------------------------------
     #
