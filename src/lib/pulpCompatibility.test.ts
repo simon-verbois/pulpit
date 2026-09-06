@@ -20,7 +20,9 @@ describe("compatibilityStatus", () => {
   });
 
   it("is not_implemented for a component with no baseline", () => {
-    expect(compatibilityStatus("hugging_face", "0.3.2")).toBe("not_implemented");
+    // ostree is a real Pulp plugin component this app has no UI for - a
+    // genuine, stable "no baseline entry" example.
+    expect(compatibilityStatus("ostree", "2.6.1")).toBe("not_implemented");
   });
 
   it("is unverified for an unparseable version string rather than guessing", () => {
