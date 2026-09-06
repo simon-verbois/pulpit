@@ -13,7 +13,7 @@ describe("OverviewPage", () => {
     expect(screen.getByText("3.116.0")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument(); // database
     expect(screen.getByText("Disconnected")).toBeInTheDocument(); // redis
-    expect(screen.getByText(/used of/)).toBeInTheDocument(); // storage
+    expect(screen.getByText(/\d+(\.\d+)? [A-Z]?B \/ \d+(\.\d+)? [A-Z]?B/)).toBeInTheDocument(); // storage
   });
 
   it("shows a normalized error state when Pulp is unavailable", async () => {
@@ -84,6 +84,36 @@ describe("OverviewPage", () => {
     // its Size cell is a plain dash, not a fabricated 0.
     const coreRow = screen.getByRole("row", { name: /^core\b/ });
     expect(within(coreRow).getAllByText("—")).toHaveLength(2);
+  });
+
+  it("hides a plugin's row when nav visibility restricts it, but keeps core (no nav module of its own)", async () => {
+    server.use(
+      http.get("/pulpit-core/api/v1/nav_visibility/me", () =>
+        HttpResponse.json({ visible_module_ids: ["ansible", "container"] }),
+      ),
+    );
+
+    renderApp(<OverviewPage />);
+
+    expect(await screen.findByRole("row", { name: /^ansible\b/ })).toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /^core\b/ })).toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /^rpm\b/ })).not.toBeInTheDocument();
+  });
+
+  it("shows every visible plugin's repository count, not just rpm/ansible/container", async () => {
+    renderApp(<OverviewPage />);
+
+    const debRow = await screen.findByRole("row", { name: /^deb\b/ });
+    expect(await within(debRow).findByRole("link", { name: "1" })).toHaveAttribute(
+      "href",
+      "/deb/repositories",
+    );
+
+    const fileRow = screen.getByRole("row", { name: /^file\b/ });
+    expect(await within(fileRow).findByRole("link", { name: "1" })).toHaveAttribute(
+      "href",
+      "/files/repositories",
+    );
   });
 
   it("shows a dash for size when the content-size fetch fails, without breaking the rest of the table", async () => {
