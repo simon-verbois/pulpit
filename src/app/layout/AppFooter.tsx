@@ -33,7 +33,12 @@ export function AppFooter() {
     >
       <Content
         component="small"
-        style={{ color: "var(--pf-t--global--text--color--200)" }}
+        // VERIFIED: --text--color--200 isn't redefined inside PatternFly's
+        // dark-theme block, so it silently fell through to the unscoped
+        // root value (gray-60, ~1.7:1 against this dark page background -
+        // a real WCAG AA failure). --text--color--subtle IS redefined per
+        // theme and lands at a comfortably readable ratio in both.
+        style={{ color: "var(--pf-t--global--text--color--subtle)" }}
       >
         <a
           href={RELEASE_URL}
