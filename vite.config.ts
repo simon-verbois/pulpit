@@ -14,6 +14,35 @@ const PULP_DEV_TARGET = `http://localhost:${process.env.PULP_HTTP_PORT ?? "8180"
 // "0.0.0-dev" for local/dev builds where no release has produced it yet.
 const APP_VERSION = readFileSync(new URL("./VERSION", import.meta.url), "utf-8").trim();
 
+// When this build actually ran, baked in the same way as APP_VERSION above -
+// only ever shown by the dev banner (src/app/layout/DevBanner.tsx,
+// VITE_DEV_BANNER), so a locally-built image's age is obvious at a glance
+// without needing a git SHA. Rendered in the build environment's own
+// timezone (process.env.TZ, set via the Dockerfile's build arg of the same
+// name - deployment/docker/Dockerfile, compose-dev.yml) rather than a
+// hardcoded UTC, with the zone's abbreviation made explicit so it's never
+// ambiguous which timezone the timestamp is in.
+function formatBuildDate(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  const tzName =
+    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" })
+      .formatToParts(date)
+      .find((part) => part.type === "timeZoneName")?.value ?? timeZone;
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} ${tzName}`;
+}
+
+const BUILD_TZ = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+const BUILD_DATE = formatBuildDate(new Date(), BUILD_TZ);
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -23,6 +52,7 @@ export default defineConfig({
   },
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
+    __BUILD_DATE__: JSON.stringify(BUILD_DATE),
   },
   server: {
     proxy: {

@@ -18,6 +18,7 @@ import { TasksProvider, useTasksContext } from "../../api/tasks/TasksContext";
 import { TaskTrackers } from "../../features/tasks/TaskTrackers";
 import { AppFooter } from "./AppFooter";
 import { AppNav } from "./AppNav";
+import { DevBanner } from "./DevBanner";
 import { HelpButton } from "./HelpButton";
 import { HelpPanel } from "./HelpPanel";
 import { PulpApiDocsLink } from "./PulpApiDocsLink";
@@ -159,40 +160,47 @@ function AppShell() {
   );
 
   return (
-    <Page
-      mainContainerId={MAIN_CONTAINER_ID}
-      // PatternFly defaults this to -1 (focusable only via the skip link,
-      // never a normal Tab stop) on the assumption that page content always
-      // supplies its own focusable elements. Some pages (Overview, System
-      // status) are read-only summaries with none at all, and axe correctly
-      // flags a scrollable main region a keyboard user can never reach -
-      // VERIFIED live (e2e/a11y.spec.ts caught this after the breadcrumb,
-      // which incidentally used to provide the only focusable element on
-      // those pages, was removed per direct user feedback). 0 makes main
-      // itself a real, reachable Tab stop on every page instead.
-      mainTabIndex={0}
-      mainAriaLabel="Main content"
-      masthead={masthead}
-      sidebar={sidebar}
-      isManagedSidebar
-      notificationDrawer={
-        isHelpOpen ? <HelpPanel onClose={() => setIsHelpOpen(false)} /> : <TasksDrawer />
-      }
-      isNotificationDrawerExpanded={isDrawerOpen || isHelpOpen}
-      // Help's two-level topic/page content (topics/index.ts) needs more
-      // room than the Tasks list this same drawer slot otherwise shows -
-      // widened only while Help is open, left as PatternFly's own default
-      // for Tasks. Still user-resizable (a plain default, not a fixed size).
-      drawerDefaultSize={isHelpOpen ? "44rem" : undefined}
-      drawerMinSize={isHelpOpen ? "28rem" : undefined}
-      skipToContent={
-        <SkipToContent href={`#${MAIN_CONTAINER_ID}`}>Skip to content</SkipToContent>
-      }
-    >
-      <Outlet />
-      <TaskTrackers />
-      <AppFooter />
-    </Page>
+    // DevBanner overlays the masthead (position: fixed - see that
+    // component) rather than taking up its own row, so it never pushes
+    // <Page> or its fixed 100vh height down.
+    <>
+      <DevBanner />
+      <Page
+        mainContainerId={MAIN_CONTAINER_ID}
+        // PatternFly defaults this to -1 (focusable only via the skip link,
+        // never a normal Tab stop) on the assumption that page content
+        // always supplies its own focusable elements. Some pages (Overview,
+        // System status) are read-only summaries with none at all, and axe
+        // correctly flags a scrollable main region a keyboard user can
+        // never reach - VERIFIED live (e2e/a11y.spec.ts caught this after
+        // the breadcrumb, which incidentally used to provide the only
+        // focusable element on those pages, was removed per direct user
+        // feedback). 0 makes main itself a real, reachable Tab stop on
+        // every page instead.
+        mainTabIndex={0}
+        mainAriaLabel="Main content"
+        masthead={masthead}
+        sidebar={sidebar}
+        isManagedSidebar
+        notificationDrawer={
+          isHelpOpen ? <HelpPanel onClose={() => setIsHelpOpen(false)} /> : <TasksDrawer />
+        }
+        isNotificationDrawerExpanded={isDrawerOpen || isHelpOpen}
+        // Help's two-level topic/page content (topics/index.ts) needs more
+        // room than the Tasks list this same drawer slot otherwise shows -
+        // widened only while Help is open, left as PatternFly's own default
+        // for Tasks. Still user-resizable (a plain default, not a fixed size).
+        drawerDefaultSize={isHelpOpen ? "44rem" : undefined}
+        drawerMinSize={isHelpOpen ? "28rem" : undefined}
+        skipToContent={
+          <SkipToContent href={`#${MAIN_CONTAINER_ID}`}>Skip to content</SkipToContent>
+        }
+      >
+        <Outlet />
+        <TaskTrackers />
+        <AppFooter />
+      </Page>
+    </>
   );
 }
 
