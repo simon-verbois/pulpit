@@ -4,11 +4,10 @@ import {
   Alert,
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -19,6 +18,8 @@ import {
 import type { User } from "../../../api/client/access/types";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useUpdateUserMutation } from "./useUpdateUserMutation";
+import { PasswordField } from "./PasswordField";
+import { evaluatePasswordPolicy } from "./passwordPolicy";
 
 export function EditUserModal({ user, onClose }: { user: User; onClose: () => void }) {
   const [username, setUsername] = useState(user.username);
@@ -33,6 +34,7 @@ export function EditUserModal({ user, onClose }: { user: User; onClose: () => vo
   const [newPassword, setNewPassword] = useState("");
   const updateMutation = useUpdateUserMutation();
   const navigate = useNavigate();
+  const passwordPolicy = evaluatePasswordPolicy(newPassword, { username, email });
 
   const handleSubmit = () => {
     updateMutation.mutate(
@@ -107,20 +109,15 @@ export function EditUserModal({ user, onClose }: { user: User; onClose: () => vo
               onChange={(_event, value) => setEmail(value)}
             />
           </FormGroup>
-          <FormGroup label="New password" fieldId="user-edit-password">
-            <TextInput
-              id="user-edit-password"
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(_event, value) => setNewPassword(value)}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>Leave blank to keep the current password.</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
+          <PasswordField
+            id="user-edit-password"
+            label="New password"
+            value={newPassword}
+            onChange={setNewPassword}
+            username={username}
+            email={email}
+            helperText="Leave blank to keep the current password."
+          />
           <FormGroup fieldId="user-edit-is-staff">
             <Checkbox
               id="user-edit-is-staff"
@@ -142,17 +139,27 @@ export function EditUserModal({ user, onClose }: { user: User; onClose: () => vo
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!username || updateMutation.isPending}
-          isLoading={updateMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Save
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={
+                !username ||
+                (newPassword.length > 0 && !passwordPolicy.isValid) ||
+                updateMutation.isPending
+              }
+              isLoading={updateMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Save
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

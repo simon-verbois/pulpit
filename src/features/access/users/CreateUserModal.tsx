@@ -4,6 +4,8 @@ import {
   Alert,
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   Modal,
@@ -15,6 +17,8 @@ import {
 
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreateUserMutation } from "./useCreateUserMutation";
+import { PasswordField } from "./PasswordField";
+import { evaluatePasswordPolicy } from "./passwordPolicy";
 
 export function CreateUserModal({ onClose }: { onClose: () => void }) {
   const [username, setUsername] = useState("");
@@ -23,6 +27,7 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
   const [isStaff, setIsStaff] = useState(false);
   const createMutation = useCreateUserMutation();
   const navigate = useNavigate();
+  const passwordPolicy = evaluatePasswordPolicy(password, { username, email });
 
   const handleSubmit = () => {
     createMutation.mutate(
@@ -66,15 +71,13 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
               onChange={(_event, value) => setUsername(value)}
             />
           </FormGroup>
-          <FormGroup label="Password" fieldId="user-password">
-            <TextInput
-              id="user-password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(_event, value) => setPassword(value)}
-            />
-          </FormGroup>
+          <PasswordField
+            id="user-password"
+            value={password}
+            onChange={setPassword}
+            username={username}
+            email={email}
+          />
           <FormGroup label="Email" fieldId="user-email">
             <TextInput
               id="user-email"
@@ -96,17 +99,27 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!username || createMutation.isPending}
-          isLoading={createMutation.isPending}
-          onClick={handleSubmit}
-        >
-          Create
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              isDisabled={
+                !username ||
+                (password.length > 0 && !passwordPolicy.isValid) ||
+                createMutation.isPending
+              }
+              isLoading={createMutation.isPending}
+              onClick={handleSubmit}
+            >
+              Create
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );
