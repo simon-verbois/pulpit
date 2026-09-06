@@ -19,7 +19,20 @@ const OUT_DIR = join(ROOT, "src/api/schemas");
 // src/api/client/administration/types.ts's CertContentGuard) is its own
 // installable component distinct from "core", VERIFIED live: not included
 // in the "core" component's own filtered schema.
-const COMPONENTS = ["core", "rpm", "container", "ansible", "certguard"];
+const COMPONENTS = [
+  "core",
+  "rpm",
+  "container",
+  "ansible",
+  "certguard",
+  "file",
+  "deb",
+  "python",
+  "npm",
+  "gem",
+  "maven",
+  "hugging_face",
+];
 
 const base = process.env.PULP_API_BASE ?? "http://localhost:8080";
 

@@ -12,17 +12,17 @@ describe("getHelpLocationForPath", () => {
     ["/containers/repositories", { categoryId: "containers", pageId: "repositories" }],
     ["/ansible/collections", { categoryId: "ansible", pageId: "collections" }],
     ["/tasks", { categoryId: "tasks", pageId: "overview" }],
-    ["/access/users", { categoryId: "access", pageId: "users" }],
-    [
-      "/admin/repository-signing",
-      { categoryId: "administration", pageId: "repository-signing" },
-    ],
-    ["/admin/signing", { categoryId: "administration", pageId: "signing" }],
-    ["/admin/content-guards", { categoryId: "administration", pageId: "content-guards" }],
-    [
-      "/admin/default-settings",
-      { categoryId: "administration", pageId: "default-settings" },
-    ],
+    // Access (Users/Groups/Roles) was folded into Administration too - its
+    // detail pages are the one place this category's routes still live
+    // outside /admin (AdministrationPage.tsx).
+    ["/access/users", { categoryId: "administration", pageId: "users" }],
+    ["/access/users/some-user", { categoryId: "administration", pageId: "users" }],
+    ["/access/groups/some-group", { categoryId: "administration", pageId: "groups" }],
+    // The former standalone admin pages (and Access's own list pages) are
+    // tabs on one /admin route now (no distinct URL per tab -
+    // AdministrationPage.tsx), so every /admin path falls back to this
+    // category's own Overview page; each tab is still manually selectable
+    // from Help's own page list regardless.
     ["/admin", { categoryId: "administration", pageId: "overview" }],
     ["/something-unknown", { categoryId: "overview", pageId: "overview" }],
   ])("maps %s to %o", (pathname, expected) => {

@@ -23,6 +23,41 @@ import { AnsibleRemotesTopic } from "./ansible/Remotes";
 import { AnsibleNamespacesTopic } from "./ansible/Namespaces";
 import { AnsibleSearchTopic } from "./ansible/Search";
 
+import { FileOverviewTopic } from "./file/Overview";
+import { FileRepositoriesTopic } from "./file/Repositories";
+import { FileContentTopic } from "./file/Content";
+import { FileRemotesTopic } from "./file/Remotes";
+
+import { HuggingFaceOverviewTopic } from "./huggingFace/Overview";
+import { HuggingFaceRepositoriesTopic } from "./huggingFace/Repositories";
+import { HuggingFaceContentTopic } from "./huggingFace/Content";
+import { HuggingFaceRemotesTopic } from "./huggingFace/Remotes";
+
+import { GemOverviewTopic } from "./gem/Overview";
+import { GemRepositoriesTopic } from "./gem/Repositories";
+import { GemContentTopic } from "./gem/Content";
+import { GemRemotesTopic } from "./gem/Remotes";
+
+import { MavenOverviewTopic } from "./maven/Overview";
+import { MavenRepositoriesTopic } from "./maven/Repositories";
+import { MavenContentTopic } from "./maven/Content";
+import { MavenRemotesTopic } from "./maven/Remotes";
+
+import { NpmOverviewTopic } from "./npm/Overview";
+import { NpmRepositoriesTopic } from "./npm/Repositories";
+import { NpmContentTopic } from "./npm/Content";
+import { NpmRemotesTopic } from "./npm/Remotes";
+
+import { PythonOverviewTopic } from "./python/Overview";
+import { PythonRepositoriesTopic } from "./python/Repositories";
+import { PythonContentTopic } from "./python/Content";
+import { PythonRemotesTopic } from "./python/Remotes";
+
+import { DebOverviewTopic } from "./deb/Overview";
+import { DebRepositoriesTopic } from "./deb/Repositories";
+import { DebContentTopic } from "./deb/Content";
+import { DebRemotesTopic } from "./deb/Remotes";
+
 import { AccessOverviewTopic } from "./access/Overview";
 import { AccessUsersTopic } from "./access/Users";
 import { AccessGroupsTopic } from "./access/Groups";
@@ -49,8 +84,12 @@ export interface HelpCategory {
   id: string;
   label: string;
   /** Matches any route under this category, e.g. "/rpm" - checked after
-   * every page's own (more specific) `path`. */
-  pathPrefix: string;
+   * every page's own (more specific) `path`. An array when a category's
+   * pages live under more than one real route prefix (Administration:
+   * `/admin` for its own merged page, `/access` for the User/Group detail
+   * pages Users/Groups still link out to - docs/adr/
+   * 0010-merged-administration-page.md). */
+  pathPrefix: string | string[];
   /** `pages[0]` is always this category's own "what is this section for"
    * overview. A category with only that one entry renders it directly, with
    * no sub-page list - the same flat shape Overview/Tasks always had. A
@@ -107,7 +146,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   },
   {
     id: "containers",
-    label: "Containers",
+    label: "Container Registry",
     pathPrefix: "/containers",
     pages: [
       { id: "overview", label: "Overview", Component: ContainersOverviewTopic },
@@ -133,7 +172,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   },
   {
     id: "ansible",
-    label: "Ansible",
+    label: "Ansible Galaxy",
     pathPrefix: "/ansible",
     pages: [
       { id: "overview", label: "Overview", Component: AnsibleOverviewTopic },
@@ -176,55 +215,243 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     ],
   },
   {
+    id: "file",
+    label: "Files",
+    pathPrefix: "/files",
+    pages: [
+      { id: "overview", label: "Overview", Component: FileOverviewTopic },
+      {
+        id: "repositories",
+        label: "Repositories",
+        path: "/files/repositories",
+        Component: FileRepositoriesTopic,
+      },
+      {
+        id: "content",
+        label: "Content",
+        path: "/files/content",
+        Component: FileContentTopic,
+      },
+      {
+        id: "remotes",
+        label: "Remotes",
+        path: "/files/remotes",
+        Component: FileRemotesTopic,
+      },
+    ],
+  },
+  {
+    id: "hugging_face",
+    label: "Hugging Face",
+    pathPrefix: "/hugging-face",
+    pages: [
+      { id: "overview", label: "Overview", Component: HuggingFaceOverviewTopic },
+      {
+        id: "repositories",
+        label: "Repositories",
+        path: "/hugging-face/repositories",
+        Component: HuggingFaceRepositoriesTopic,
+      },
+      {
+        id: "content",
+        label: "Content",
+        path: "/hugging-face/content",
+        Component: HuggingFaceContentTopic,
+      },
+      {
+        id: "remotes",
+        label: "Remotes",
+        path: "/hugging-face/remotes",
+        Component: HuggingFaceRemotesTopic,
+      },
+    ],
+  },
+  {
+    id: "gem",
+    label: "Gems",
+    pathPrefix: "/gems",
+    pages: [
+      { id: "overview", label: "Overview", Component: GemOverviewTopic },
+      {
+        id: "repositories",
+        label: "Repositories",
+        path: "/gems/repositories",
+        Component: GemRepositoriesTopic,
+      },
+      {
+        id: "content",
+        label: "Content",
+        path: "/gems/content",
+        Component: GemContentTopic,
+      },
+      {
+        id: "remotes",
+        label: "Remotes",
+        path: "/gems/remotes",
+        Component: GemRemotesTopic,
+      },
+    ],
+  },
+  {
+    id: "maven",
+    label: "Maven",
+    pathPrefix: "/maven",
+    pages: [
+      { id: "overview", label: "Overview", Component: MavenOverviewTopic },
+      {
+        id: "repositories",
+        label: "Repositories",
+        path: "/maven/repositories",
+        Component: MavenRepositoriesTopic,
+      },
+      {
+        id: "content",
+        label: "Content",
+        path: "/maven/content",
+        Component: MavenContentTopic,
+      },
+      {
+        id: "remotes",
+        label: "Remotes",
+        path: "/maven/remotes",
+        Component: MavenRemotesTopic,
+      },
+    ],
+  },
+  {
+    id: "npm",
+    label: "NPM",
+    pathPrefix: "/npm",
+    pages: [
+      { id: "overview", label: "Overview", Component: NpmOverviewTopic },
+      {
+        id: "repositories",
+        label: "Repositories",
+        path: "/npm/repositories",
+        Component: NpmRepositoriesTopic,
+      },
+      {
+        id: "content",
+        label: "Content",
+        path: "/npm/content",
+        Component: NpmContentTopic,
+      },
+      {
+        id: "remotes",
+        label: "Remotes",
+        path: "/npm/remotes",
+        Component: NpmRemotesTopic,
+      },
+    ],
+  },
+  {
+    id: "python",
+    label: "Python",
+    pathPrefix: "/python",
+    pages: [
+      { id: "overview", label: "Overview", Component: PythonOverviewTopic },
+      {
+        id: "repositories",
+        label: "Repositories",
+        path: "/python/repositories",
+        Component: PythonRepositoriesTopic,
+      },
+      {
+        id: "content",
+        label: "Content",
+        path: "/python/content",
+        Component: PythonContentTopic,
+      },
+      {
+        id: "remotes",
+        label: "Remotes",
+        path: "/python/remotes",
+        Component: PythonRemotesTopic,
+      },
+    ],
+  },
+  {
+    id: "deb",
+    label: "Debian",
+    pathPrefix: "/deb",
+    pages: [
+      { id: "overview", label: "Overview", Component: DebOverviewTopic },
+      {
+        id: "repositories",
+        label: "Repositories",
+        path: "/deb/repositories",
+        Component: DebRepositoriesTopic,
+      },
+      {
+        id: "content",
+        label: "Content",
+        path: "/deb/content",
+        Component: DebContentTopic,
+      },
+      {
+        id: "remotes",
+        label: "Remotes",
+        path: "/deb/remotes",
+        Component: DebRemotesTopic,
+      },
+    ],
+  },
+  {
     id: "tasks",
     label: "Tasks",
     pathPrefix: "/tasks",
     pages: [{ id: "overview", label: "Overview", Component: TasksTopic }],
   },
   {
-    id: "access",
-    label: "Access",
-    pathPrefix: "/access",
+    id: "administration",
+    label: "Administration",
+    // Access's own detail pages (/access/users/:username,
+    // /access/groups/:name) are the one place this category's routes
+    // still live outside /admin - Access (Users/Groups/Roles) was folded
+    // in here too (docs/adr/0010-merged-administration-page.md).
+    pathPrefix: ["/admin", "/access"],
     pages: [
-      { id: "overview", label: "Overview", Component: AccessOverviewTopic },
-      { id: "users", label: "Users", path: "/access/users", Component: AccessUsersTopic },
+      // No `path` on any of these below except the two Access detail-page
+      // ones - every one of these used to be its own standalone page (or,
+      // for Access, its own top-level category); all now live as tabs on
+      // the one merged /admin route (AdministrationPage.tsx), so there's
+      // no longer a URL to distinguish most of them by. Still manually
+      // selectable from this category's own page list; auto-detecting the
+      // active route just falls back to this Overview for anything under
+      // /admin that isn't a Users/Groups detail page.
+      { id: "overview", label: "Overview", Component: AdministrationOverviewTopic },
+      { id: "access-overview", label: "Access overview", Component: AccessOverviewTopic },
+      {
+        id: "users",
+        label: "Users",
+        path: "/access/users",
+        Component: AccessUsersTopic,
+      },
       {
         id: "groups",
         label: "Groups",
         path: "/access/groups",
         Component: AccessGroupsTopic,
       },
-      { id: "roles", label: "Roles", path: "/access/roles", Component: AccessRolesTopic },
-    ],
-  },
-  {
-    id: "administration",
-    label: "Administration",
-    pathPrefix: "/admin",
-    pages: [
-      { id: "overview", label: "Overview", Component: AdministrationOverviewTopic },
+      { id: "roles", label: "Roles", Component: AccessRolesTopic },
       {
         id: "repository-signing",
         label: "Repository Signing",
-        path: "/admin/repository-signing",
         Component: AdministrationRepositorySigningTopic,
       },
       {
         id: "signing",
         label: "Pulp Signing Services",
-        path: "/admin/signing",
         Component: AdministrationPulpSigningServicesTopic,
       },
       {
         id: "content-guards",
         label: "Content guards",
-        path: "/admin/content-guards",
         Component: AdministrationContentGuardsTopic,
       },
       {
         id: "default-settings",
-        label: "Default Settings",
-        path: "/admin/default-settings",
+        label: "Global Proxy Settings",
         Component: AdministrationDefaultSettingsTopic,
       },
     ],
@@ -244,7 +471,10 @@ export function getHelpLocationForPath(pathname: string): {
   pageId: string;
 } {
   for (const category of HELP_CATEGORIES) {
-    if (category.pathPrefix === "/" || !pathname.startsWith(category.pathPrefix)) {
+    const prefixes = Array.isArray(category.pathPrefix)
+      ? category.pathPrefix
+      : [category.pathPrefix];
+    if (!prefixes.some((prefix) => prefix !== "/" && pathname.startsWith(prefix))) {
       continue;
     }
     let best: HelpPage = category.pages[0];

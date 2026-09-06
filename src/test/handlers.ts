@@ -43,6 +43,63 @@ import type {
   ContainerRepository,
   ContainerTag,
 } from "../api/client/container/types";
+import type {
+  FileContent,
+  FileDistribution,
+  FileGitRemote,
+  FileRemote,
+  FileRemoteCreate,
+  FileRemoteUpdate,
+  FileRepository,
+} from "../api/client/file/types";
+import type {
+  HuggingFaceContent,
+  HuggingFaceDistribution,
+  HuggingFaceRemote,
+  HuggingFaceRemoteCreate,
+  HuggingFaceRemoteUpdate,
+  HuggingFaceRepository,
+} from "../api/client/hugging_face/types";
+import type {
+  GemContent,
+  GemDistribution,
+  GemRemote,
+  GemRemoteCreate,
+  GemRemoteUpdate,
+  GemRepository,
+} from "../api/client/gem/types";
+import type {
+  MavenContent,
+  MavenDistribution,
+  MavenRemote,
+  MavenRemoteCreate,
+  MavenRemoteUpdate,
+  MavenRepository,
+} from "../api/client/maven/types";
+import type {
+  NpmContent,
+  NpmDistribution,
+  NpmRemote,
+  NpmRemoteCreate,
+  NpmRemoteUpdate,
+  NpmRepository,
+} from "../api/client/npm/types";
+import type {
+  PythonContent,
+  PythonDistribution,
+  PythonRemote,
+  PythonRemoteCreate,
+  PythonRemoteUpdate,
+  PythonRepository,
+} from "../api/client/python/types";
+import type {
+  DebContent,
+  DebDistribution,
+  DebRemote,
+  DebRemoteCreate,
+  DebRemoteUpdate,
+  DebRepository,
+} from "../api/client/deb/types";
 
 // VERIFIED: trimmed down from an actual /pulp/api/v3/status/ response
 // captured against pulpcore 3.116.0 in the bootstrap dev Compose stack
@@ -53,6 +110,13 @@ export const PULP_STATUS_FIXTURE = {
     { component: "rpm", version: "3.38.5", package: "pulp-rpm" },
     { component: "container", version: "2.29.0", package: "pulp-container" },
     { component: "ansible", version: "0.30.0", package: "pulp-ansible" },
+    { component: "file", version: "3.116.1", package: "pulpcore" },
+    { component: "hugging_face", version: "0.3.2", package: "pulp-hugging-face" },
+    { component: "gem", version: "0.8.0", package: "pulp-gem" },
+    { component: "maven", version: "0.25.1", package: "pulp-maven" },
+    { component: "npm", version: "0.10.1", package: "pulp-npm" },
+    { component: "python", version: "3.35.0", package: "pulp-python" },
+    { component: "deb", version: "3.10.0", package: "pulp-deb" },
   ],
   online_workers: [{}, {}],
   online_api_apps: [{}, {}],
@@ -829,6 +893,2410 @@ const rpmHandlers = [
     }
     return HttpResponse.json(task);
   }),
+];
+
+// ---------------------------------------------------------------------------
+// File fixtures - shapes VERIFIED against the live OpenAPI schema of a
+// pulpcore 3.116.1 instance with pulp_file bundled in (component=file -
+// docs/PULP_API.md, the pulp-api skill), mirroring the RPM in-memory
+// mutable store pattern above.
+const FILE_REPO_BASE = "/pulp/api/v3/repositories/file/file/";
+const FILE_REMOTE_BASE = "/pulp/api/v3/remotes/file/file/";
+const FILE_GIT_REMOTE_BASE = "/pulp/api/v3/remotes/file/git/";
+const FILE_DIST_BASE = "/pulp/api/v3/distributions/file/file/";
+const FILE_CONTENT_BASE = "/pulp/api/v3/content/file/files/";
+const FILE_PUBLICATIONS_BASE = "/pulp/api/v3/publications/file/file/";
+
+export const FILE_REMOTE_FIXTURE: FileRemote = {
+  pulp_href: `${FILE_REMOTE_BASE}remote-1/`,
+  name: "test-file-fixture",
+  url: "https://fixtures.pulpproject.org/file/PULP_MANIFEST",
+  policy: "immediate",
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+  proxy_url: null,
+  tls_validation: true,
+  ca_cert: null,
+  hidden_fields: [
+    { name: "proxy_username", is_set: false },
+    { name: "proxy_password", is_set: false },
+    { name: "username", is_set: false },
+    { name: "password", is_set: false },
+  ],
+};
+
+export const FILE_REPO_FIXTURE = {
+  pulp_href: `${FILE_REPO_BASE}repo-1/`,
+  name: "test-file-repo",
+  description: "A test file repository",
+  remote: FILE_REMOTE_FIXTURE.pulp_href,
+  autopublish: false,
+  manifest: null,
+  versions_href: `${FILE_REPO_BASE}repo-1/versions/`,
+  latest_version_href: `${FILE_REPO_BASE}repo-1/versions/1/`,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+export const FILE_VERSION_FIXTURES = [
+  {
+    pulp_href: `${FILE_REPO_BASE}repo-1/versions/1/`,
+    number: 1,
+    repository: FILE_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:05:00.000000Z",
+    content_summary: {
+      added: { "file.file": { count: 5, href: `${FILE_REPO_BASE}repo-1/versions/1/` } },
+      removed: {},
+      present: { "file.file": { count: 5, href: `${FILE_REPO_BASE}repo-1/versions/1/` } },
+    },
+  },
+  {
+    pulp_href: `${FILE_REPO_BASE}repo-1/versions/0/`,
+    number: 0,
+    repository: FILE_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:00:00.000000Z",
+    content_summary: { added: {}, removed: {}, present: {} },
+  },
+];
+
+export const FILE_CONTENT_FIXTURE: FileContent = {
+  pulp_href: `${FILE_CONTENT_BASE}content-1/`,
+  relative_path: "images/logo.png",
+  sha256: "abc123",
+};
+
+export const FILE_DISTRIBUTION_FIXTURE = {
+  pulp_href: `${FILE_DIST_BASE}dist-1/`,
+  name: "existing-file-dist",
+  base_path: "existing-file-dist-path",
+  base_url: "https://pulp.example.com/pulp/content/existing-file-dist-path/",
+  repository: FILE_REPO_FIXTURE.pulp_href,
+  publication: null,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+function seedFileRepositories(): FileRepository[] {
+  return [{ ...FILE_REPO_FIXTURE }];
+}
+function seedFileRemotes(): FileRemote[] {
+  return [{ ...FILE_REMOTE_FIXTURE }];
+}
+function seedFileGitRemotes(): FileGitRemote[] {
+  return [];
+}
+function seedFileDistributions(): FileDistribution[] {
+  return [{ ...FILE_DISTRIBUTION_FIXTURE }];
+}
+function seedFileContent(): FileContent[] {
+  return [{ ...FILE_CONTENT_FIXTURE }];
+}
+
+let fileRepositories = seedFileRepositories();
+let fileRemotes = seedFileRemotes();
+let fileGitRemotes = seedFileGitRemotes();
+let fileDistributions = seedFileDistributions();
+let fileContent = seedFileContent();
+
+/** Restores every File in-memory fixture store to its initial seed - call from `afterEach`. */
+export function resetFileFixtures() {
+  fileRepositories = seedFileRepositories();
+  fileRemotes = seedFileRemotes();
+  fileGitRemotes = seedFileGitRemotes();
+  fileDistributions = seedFileDistributions();
+  fileContent = seedFileContent();
+}
+
+const fileHandlers = [
+  // Repositories
+  http.get(FILE_REPO_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name");
+    const results = name
+      ? fileRepositories.filter((r) => r.name === name)
+      : fileRepositories;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(FILE_REPO_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      remote?: string;
+      autopublish?: boolean;
+      manifest?: string;
+    };
+    const id = freshId();
+    const repo = {
+      pulp_href: `${FILE_REPO_BASE}${id}/`,
+      name: body.name,
+      description: body.description ?? null,
+      remote: body.remote ?? null,
+      autopublish: body.autopublish ?? false,
+      manifest: body.manifest ?? null,
+      versions_href: `${FILE_REPO_BASE}${id}/versions/`,
+      latest_version_href: `${FILE_REPO_BASE}${id}/versions/0/`,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    fileRepositories = [...fileRepositories, repo];
+    return HttpResponse.json(repo, { status: 201 });
+  }),
+  http.get(`${FILE_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${FILE_REPO_BASE}${params.id}/`;
+    const repo = fileRepositories.find((r) => r.pulp_href === href);
+    if (!repo) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json(repo);
+  }),
+  http.delete(`${FILE_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${FILE_REPO_BASE}${params.id}/`;
+    fileRepositories = fileRepositories.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask(`Delete repository`) },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${FILE_REPO_BASE}:id/`, async ({ params, request }) => {
+    const href = `${FILE_REPO_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<FileRepository>;
+    fileRepositories = fileRepositories.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update repository") },
+      { status: 202 },
+    );
+  }),
+  http.post(`${FILE_REPO_BASE}:id/sync/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Sync repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.post(`${FILE_REPO_BASE}:id/modify/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Modify repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.get(`${FILE_REPO_BASE}:id/versions/`, ({ params }) => {
+    const results = FILE_VERSION_FIXTURES.filter(
+      (v) => v.repository === `${FILE_REPO_BASE}${params.id}/`,
+    );
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+
+  // Remotes
+  http.get(FILE_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: fileRemotes.length,
+      next: null,
+      previous: null,
+      results: fileRemotes,
+    }),
+  ),
+  http.post(FILE_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as FileRemoteCreate;
+    const remote: FileRemote = {
+      pulp_href: `${FILE_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      policy: body.policy ?? "immediate",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    fileRemotes = [...fileRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${FILE_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${FILE_REMOTE_BASE}${params.id}/`;
+    fileRemotes = fileRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json({ task: registerTask("Delete remote") }, { status: 202 });
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${FILE_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${FILE_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as FileRemoteUpdate;
+    fileRemotes = fileRemotes.map((r) => {
+      if (r.pulp_href !== href) {
+        return r;
+      }
+      const hiddenFields = r.hidden_fields.map((f) =>
+        f.name in body && body[f.name as keyof FileRemoteUpdate]
+          ? { ...f, is_set: true }
+          : f,
+      );
+      return {
+        ...r,
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.url !== undefined ? { url: body.url } : {}),
+        ...(body.policy !== undefined ? { policy: body.policy } : {}),
+        ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
+        ...(body.tls_validation !== undefined
+          ? { tls_validation: body.tls_validation }
+          : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        hidden_fields: hiddenFields,
+      };
+    });
+    return HttpResponse.json({ task: registerTask("Update remote") }, { status: 202 });
+  }),
+
+  // Git remotes - a second, separate remote collection (VERIFIED live).
+  http.get(FILE_GIT_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: fileGitRemotes.length,
+      next: null,
+      previous: null,
+      results: fileGitRemotes,
+    }),
+  ),
+  http.post(FILE_GIT_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      url: string;
+      git_ref?: string;
+      proxy_url?: string;
+      tls_validation?: boolean;
+      ca_cert?: string;
+      proxy_username?: string;
+      proxy_password?: string;
+      username?: string;
+      password?: string;
+    };
+    const remote: FileGitRemote = {
+      pulp_href: `${FILE_GIT_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      git_ref: body.git_ref ?? "HEAD",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    fileGitRemotes = [...fileGitRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${FILE_GIT_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${FILE_GIT_REMOTE_BASE}${params.id}/`;
+    fileGitRemotes = fileGitRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete Git remote") },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: unlike RPM's ULN remote, the git flavor here supports
+  // PATCH too (async, 202 + task).
+  http.patch(`${FILE_GIT_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${FILE_GIT_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<FileGitRemote>;
+    fileGitRemotes = fileGitRemotes.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update Git remote") },
+      { status: 202 },
+    );
+  }),
+
+  // Distributions
+  http.get(FILE_DIST_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repository = url.searchParams.get("repository");
+    const results = repository
+      ? fileDistributions.filter((d) => d.repository === repository)
+      : fileDistributions;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(FILE_DIST_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      base_path: string;
+      repository?: string;
+    };
+    const id = freshId();
+    const distribution = {
+      pulp_href: `${FILE_DIST_BASE}${id}/`,
+      name: body.name,
+      base_path: body.base_path,
+      base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
+      repository: body.repository ?? null,
+      publication: null,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    const task = registerTask(`Create distribution "${body.name}"`);
+    fileDistributions = [...fileDistributions, distribution];
+    return HttpResponse.json({ task }, { status: 202 });
+  }),
+  http.delete(`${FILE_DIST_BASE}:id/`, ({ params }) => {
+    const href = `${FILE_DIST_BASE}${params.id}/`;
+    fileDistributions = fileDistributions.filter((d) => d.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+
+  // Content
+  http.get(FILE_CONTENT_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repositoryVersion = url.searchParams.get("repository_version");
+    const results = repositoryVersion ? [] : fileContent;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(`${FILE_CONTENT_BASE}upload/`, async ({ request }) => {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return HttpResponse.json({ detail: "expected multipart upload" }, { status: 400 });
+    }
+    const content = {
+      ...FILE_CONTENT_FIXTURE,
+      pulp_href: `${FILE_CONTENT_BASE}${freshId()}/`,
+    };
+    fileContent = [...fileContent, content];
+    return HttpResponse.json(content, { status: 201 });
+  }),
+
+  // Publications
+  http.post(FILE_PUBLICATIONS_BASE, () =>
+    HttpResponse.json({ task: registerTask("Publish repository") }, { status: 202 }),
+  ),
+];
+
+// ---------------------------------------------------------------------------
+// Hugging Face fixtures - shapes VERIFIED against the live OpenAPI schema of
+// a pulpcore 3.116.1 instance with pulp_hugging_face 0.3.2 installed
+// (component=hugging_face - docs/PULP_API.md, the pulp-api skill),
+// mirroring the RPM/File in-memory mutable store pattern above. Only one
+// remote "flavor" for this plugin (no Standard/Git-style toggle needed),
+// and no `autopublish` field at all - publishing is always a manual step.
+const HF_REPO_BASE = "/pulp/api/v3/repositories/hugging_face/hugging-face/";
+const HF_REMOTE_BASE = "/pulp/api/v3/remotes/hugging_face/hugging-face/";
+const HF_DIST_BASE = "/pulp/api/v3/distributions/hugging_face/hugging-face/";
+const HF_CONTENT_BASE = "/pulp/api/v3/content/hugging_face/hugging-face/";
+const HF_PUBLICATIONS_BASE = "/pulp/api/v3/publications/hugging_face/hugging-face/";
+
+export const HF_REMOTE_FIXTURE: HuggingFaceRemote = {
+  pulp_href: `${HF_REMOTE_BASE}remote-1/`,
+  name: "test-hf-fixture",
+  url: "https://huggingface.co/bert-base-uncased",
+  policy: "immediate",
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+  proxy_url: null,
+  tls_validation: true,
+  ca_cert: null,
+  hidden_fields: [
+    { name: "proxy_username", is_set: false },
+    { name: "proxy_password", is_set: false },
+    { name: "username", is_set: false },
+    { name: "password", is_set: false },
+  ],
+};
+
+export const HF_REPO_FIXTURE = {
+  pulp_href: `${HF_REPO_BASE}repo-1/`,
+  name: "test-hf-repo",
+  description: "A test Hugging Face repository",
+  remote: HF_REMOTE_FIXTURE.pulp_href,
+  versions_href: `${HF_REPO_BASE}repo-1/versions/`,
+  latest_version_href: `${HF_REPO_BASE}repo-1/versions/1/`,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+export const HF_VERSION_FIXTURES = [
+  {
+    pulp_href: `${HF_REPO_BASE}repo-1/versions/1/`,
+    number: 1,
+    repository: HF_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:05:00.000000Z",
+    content_summary: {
+      added: {
+        "hugging_face.hugging-face": {
+          count: 3,
+          href: `${HF_REPO_BASE}repo-1/versions/1/`,
+        },
+      },
+      removed: {},
+      present: {
+        "hugging_face.hugging-face": {
+          count: 3,
+          href: `${HF_REPO_BASE}repo-1/versions/1/`,
+        },
+      },
+    },
+  },
+  {
+    pulp_href: `${HF_REPO_BASE}repo-1/versions/0/`,
+    number: 0,
+    repository: HF_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:00:00.000000Z",
+    content_summary: { added: {}, removed: {}, present: {} },
+  },
+];
+
+export const HF_CONTENT_FIXTURE: HuggingFaceContent = {
+  pulp_href: `${HF_CONTENT_BASE}content-1/`,
+  relative_path: "config.json",
+  repo_id: "bert-base-uncased",
+  repo_type: "model",
+};
+
+export const HF_DISTRIBUTION_FIXTURE = {
+  pulp_href: `${HF_DIST_BASE}dist-1/`,
+  name: "existing-hf-dist",
+  base_path: "existing-hf-dist-path",
+  base_url: "https://pulp.example.com/pulp/content/existing-hf-dist-path/",
+  repository: HF_REPO_FIXTURE.pulp_href,
+  publication: null,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+function seedHfRepositories(): HuggingFaceRepository[] {
+  return [{ ...HF_REPO_FIXTURE }];
+}
+function seedHfRemotes(): HuggingFaceRemote[] {
+  return [{ ...HF_REMOTE_FIXTURE }];
+}
+function seedHfDistributions(): HuggingFaceDistribution[] {
+  return [{ ...HF_DISTRIBUTION_FIXTURE }];
+}
+function seedHfContent(): HuggingFaceContent[] {
+  return [{ ...HF_CONTENT_FIXTURE }];
+}
+
+let hfRepositories = seedHfRepositories();
+let hfRemotes = seedHfRemotes();
+let hfDistributions = seedHfDistributions();
+let hfContent = seedHfContent();
+
+/** Restores every Hugging Face in-memory fixture store to its initial seed - call from `afterEach`. */
+export function resetHuggingFaceFixtures() {
+  hfRepositories = seedHfRepositories();
+  hfRemotes = seedHfRemotes();
+  hfDistributions = seedHfDistributions();
+  hfContent = seedHfContent();
+}
+
+const huggingFaceHandlers = [
+  // Repositories
+  http.get(HF_REPO_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name");
+    const results = name ? hfRepositories.filter((r) => r.name === name) : hfRepositories;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(HF_REPO_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      remote?: string;
+    };
+    const id = freshId();
+    const repo = {
+      pulp_href: `${HF_REPO_BASE}${id}/`,
+      name: body.name,
+      description: body.description ?? null,
+      remote: body.remote ?? null,
+      versions_href: `${HF_REPO_BASE}${id}/versions/`,
+      latest_version_href: `${HF_REPO_BASE}${id}/versions/0/`,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    hfRepositories = [...hfRepositories, repo];
+    return HttpResponse.json(repo, { status: 201 });
+  }),
+  http.get(`${HF_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${HF_REPO_BASE}${params.id}/`;
+    const repo = hfRepositories.find((r) => r.pulp_href === href);
+    if (!repo) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json(repo);
+  }),
+  http.delete(`${HF_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${HF_REPO_BASE}${params.id}/`;
+    hfRepositories = hfRepositories.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask(`Delete repository`) },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${HF_REPO_BASE}:id/`, async ({ params, request }) => {
+    const href = `${HF_REPO_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<HuggingFaceRepository>;
+    hfRepositories = hfRepositories.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update repository") },
+      { status: 202 },
+    );
+  }),
+  http.post(`${HF_REPO_BASE}:id/sync/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Sync repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.post(`${HF_REPO_BASE}:id/modify/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Modify repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.get(`${HF_REPO_BASE}:id/versions/`, ({ params }) => {
+    const results = HF_VERSION_FIXTURES.filter(
+      (v) => v.repository === `${HF_REPO_BASE}${params.id}/`,
+    );
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+
+  // Remotes
+  http.get(HF_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: hfRemotes.length,
+      next: null,
+      previous: null,
+      results: hfRemotes,
+    }),
+  ),
+  http.post(HF_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as HuggingFaceRemoteCreate;
+    const remote: HuggingFaceRemote = {
+      pulp_href: `${HF_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      policy: body.policy ?? "immediate",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    hfRemotes = [...hfRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${HF_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${HF_REMOTE_BASE}${params.id}/`;
+    hfRemotes = hfRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json({ task: registerTask("Delete remote") }, { status: 202 });
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${HF_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${HF_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as HuggingFaceRemoteUpdate;
+    hfRemotes = hfRemotes.map((r) => {
+      if (r.pulp_href !== href) {
+        return r;
+      }
+      const hiddenFields = r.hidden_fields.map((f) =>
+        f.name in body && body[f.name as keyof HuggingFaceRemoteUpdate]
+          ? { ...f, is_set: true }
+          : f,
+      );
+      return {
+        ...r,
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.url !== undefined ? { url: body.url } : {}),
+        ...(body.policy !== undefined ? { policy: body.policy } : {}),
+        ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
+        ...(body.tls_validation !== undefined
+          ? { tls_validation: body.tls_validation }
+          : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        hidden_fields: hiddenFields,
+      };
+    });
+    return HttpResponse.json({ task: registerTask("Update remote") }, { status: 202 });
+  }),
+
+  // Distributions
+  http.get(HF_DIST_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repository = url.searchParams.get("repository");
+    const results = repository
+      ? hfDistributions.filter((d) => d.repository === repository)
+      : hfDistributions;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(HF_DIST_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      base_path: string;
+      repository?: string;
+    };
+    const id = freshId();
+    const distribution = {
+      pulp_href: `${HF_DIST_BASE}${id}/`,
+      name: body.name,
+      base_path: body.base_path,
+      base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
+      repository: body.repository ?? null,
+      publication: null,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    const task = registerTask(`Create distribution "${body.name}"`);
+    hfDistributions = [...hfDistributions, distribution];
+    return HttpResponse.json({ task }, { status: 202 });
+  }),
+  http.delete(`${HF_DIST_BASE}:id/`, ({ params }) => {
+    const href = `${HF_DIST_BASE}${params.id}/`;
+    hfDistributions = hfDistributions.filter((d) => d.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+
+  // Content
+  http.get(HF_CONTENT_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repositoryVersion = url.searchParams.get("repository_version");
+    const results = repositoryVersion ? [] : hfContent;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(HF_CONTENT_BASE, async ({ request }) => {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return HttpResponse.json({ detail: "expected multipart upload" }, { status: 400 });
+    }
+    const content = {
+      ...HF_CONTENT_FIXTURE,
+      pulp_href: `${HF_CONTENT_BASE}${freshId()}/`,
+    };
+    hfContent = [...hfContent, content];
+    return HttpResponse.json(content, { status: 201 });
+  }),
+
+  // Publications
+  http.post(HF_PUBLICATIONS_BASE, () =>
+    HttpResponse.json({ task: registerTask("Publish repository") }, { status: 202 }),
+  ),
+];
+
+// ---------------------------------------------------------------------------
+// Gem fixtures - shapes VERIFIED against the live OpenAPI schema of a
+// pulpcore 3.116.1 instance with pulp_gem 0.8.0 installed (component=gem -
+// docs/PULP_API.md, the pulp-api skill), mirroring the Hugging Face
+// in-memory mutable store pattern above. Only one remote "flavor" for this
+// plugin, and no `autopublish` field at all - publishing is always a manual
+// step. Unlike Hugging Face/File, content has no `relative_path` - a gem's
+// identity (name/version/platform) is parsed server-side from the uploaded
+// file's own embedded metadata.
+const GEM_REPO_BASE = "/pulp/api/v3/repositories/gem/gem/";
+const GEM_REMOTE_BASE = "/pulp/api/v3/remotes/gem/gem/";
+const GEM_DIST_BASE = "/pulp/api/v3/distributions/gem/gem/";
+const GEM_CONTENT_BASE = "/pulp/api/v3/content/gem/gem/";
+const GEM_PUBLICATIONS_BASE = "/pulp/api/v3/publications/gem/gem/";
+
+export const GEM_REMOTE_FIXTURE: GemRemote = {
+  pulp_href: `${GEM_REMOTE_BASE}remote-1/`,
+  name: "test-gem-fixture",
+  url: "https://rubygems.org",
+  policy: "immediate",
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+  proxy_url: null,
+  tls_validation: true,
+  ca_cert: null,
+  hidden_fields: [
+    { name: "proxy_username", is_set: false },
+    { name: "proxy_password", is_set: false },
+    { name: "username", is_set: false },
+    { name: "password", is_set: false },
+  ],
+};
+
+export const GEM_REPO_FIXTURE = {
+  pulp_href: `${GEM_REPO_BASE}repo-1/`,
+  name: "test-gem-repo",
+  description: "A test Gem repository",
+  remote: GEM_REMOTE_FIXTURE.pulp_href,
+  versions_href: `${GEM_REPO_BASE}repo-1/versions/`,
+  latest_version_href: `${GEM_REPO_BASE}repo-1/versions/1/`,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+export const GEM_VERSION_FIXTURES = [
+  {
+    pulp_href: `${GEM_REPO_BASE}repo-1/versions/1/`,
+    number: 1,
+    repository: GEM_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:05:00.000000Z",
+    content_summary: {
+      added: {
+        "gem.gem": { count: 3, href: `${GEM_REPO_BASE}repo-1/versions/1/` },
+      },
+      removed: {},
+      present: {
+        "gem.gem": { count: 3, href: `${GEM_REPO_BASE}repo-1/versions/1/` },
+      },
+    },
+  },
+  {
+    pulp_href: `${GEM_REPO_BASE}repo-1/versions/0/`,
+    number: 0,
+    repository: GEM_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:00:00.000000Z",
+    content_summary: { added: {}, removed: {}, present: {} },
+  },
+];
+
+export const GEM_CONTENT_FIXTURE: GemContent = {
+  pulp_href: `${GEM_CONTENT_BASE}content-1/`,
+  name: "rails",
+  version: "7.1.0",
+  platform: "ruby",
+};
+
+export const GEM_DISTRIBUTION_FIXTURE = {
+  pulp_href: `${GEM_DIST_BASE}dist-1/`,
+  name: "existing-gem-dist",
+  base_path: "existing-gem-dist-path",
+  base_url: "https://pulp.example.com/pulp/content/existing-gem-dist-path/",
+  repository: GEM_REPO_FIXTURE.pulp_href,
+  publication: null,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+function seedGemRepositories(): GemRepository[] {
+  return [{ ...GEM_REPO_FIXTURE }];
+}
+function seedGemRemotes(): GemRemote[] {
+  return [{ ...GEM_REMOTE_FIXTURE }];
+}
+function seedGemDistributions(): GemDistribution[] {
+  return [{ ...GEM_DISTRIBUTION_FIXTURE }];
+}
+function seedGemContent(): GemContent[] {
+  return [{ ...GEM_CONTENT_FIXTURE }];
+}
+
+let gemRepositories = seedGemRepositories();
+let gemRemotes = seedGemRemotes();
+let gemDistributions = seedGemDistributions();
+let gemContent = seedGemContent();
+
+/** Restores every Gem in-memory fixture store to its initial seed - call from `afterEach`. */
+export function resetGemFixtures() {
+  gemRepositories = seedGemRepositories();
+  gemRemotes = seedGemRemotes();
+  gemDistributions = seedGemDistributions();
+  gemContent = seedGemContent();
+}
+
+const gemHandlers = [
+  // Repositories
+  http.get(GEM_REPO_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name");
+    const results = name ? gemRepositories.filter((r) => r.name === name) : gemRepositories;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(GEM_REPO_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      remote?: string;
+    };
+    const id = freshId();
+    const repo = {
+      pulp_href: `${GEM_REPO_BASE}${id}/`,
+      name: body.name,
+      description: body.description ?? null,
+      remote: body.remote ?? null,
+      versions_href: `${GEM_REPO_BASE}${id}/versions/`,
+      latest_version_href: `${GEM_REPO_BASE}${id}/versions/0/`,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    gemRepositories = [...gemRepositories, repo];
+    return HttpResponse.json(repo, { status: 201 });
+  }),
+  http.get(`${GEM_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${GEM_REPO_BASE}${params.id}/`;
+    const repo = gemRepositories.find((r) => r.pulp_href === href);
+    if (!repo) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json(repo);
+  }),
+  http.delete(`${GEM_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${GEM_REPO_BASE}${params.id}/`;
+    gemRepositories = gemRepositories.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask(`Delete repository`) },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${GEM_REPO_BASE}:id/`, async ({ params, request }) => {
+    const href = `${GEM_REPO_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<GemRepository>;
+    gemRepositories = gemRepositories.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update repository") },
+      { status: 202 },
+    );
+  }),
+  http.post(`${GEM_REPO_BASE}:id/sync/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Sync repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.post(`${GEM_REPO_BASE}:id/modify/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Modify repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.get(`${GEM_REPO_BASE}:id/versions/`, ({ params }) => {
+    const results = GEM_VERSION_FIXTURES.filter(
+      (v) => v.repository === `${GEM_REPO_BASE}${params.id}/`,
+    );
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+
+  // Remotes
+  http.get(GEM_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: gemRemotes.length,
+      next: null,
+      previous: null,
+      results: gemRemotes,
+    }),
+  ),
+  http.post(GEM_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as GemRemoteCreate;
+    const remote: GemRemote = {
+      pulp_href: `${GEM_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      policy: body.policy ?? "immediate",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    gemRemotes = [...gemRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${GEM_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${GEM_REMOTE_BASE}${params.id}/`;
+    gemRemotes = gemRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json({ task: registerTask("Delete remote") }, { status: 202 });
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${GEM_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${GEM_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as GemRemoteUpdate;
+    gemRemotes = gemRemotes.map((r) => {
+      if (r.pulp_href !== href) {
+        return r;
+      }
+      const hiddenFields = r.hidden_fields.map((f) =>
+        f.name in body && body[f.name as keyof GemRemoteUpdate]
+          ? { ...f, is_set: true }
+          : f,
+      );
+      return {
+        ...r,
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.url !== undefined ? { url: body.url } : {}),
+        ...(body.policy !== undefined ? { policy: body.policy } : {}),
+        ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
+        ...(body.tls_validation !== undefined
+          ? { tls_validation: body.tls_validation }
+          : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        hidden_fields: hiddenFields,
+      };
+    });
+    return HttpResponse.json({ task: registerTask("Update remote") }, { status: 202 });
+  }),
+
+  // Distributions
+  http.get(GEM_DIST_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repository = url.searchParams.get("repository");
+    const results = repository
+      ? gemDistributions.filter((d) => d.repository === repository)
+      : gemDistributions;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(GEM_DIST_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      base_path: string;
+      repository?: string;
+    };
+    const id = freshId();
+    const distribution = {
+      pulp_href: `${GEM_DIST_BASE}${id}/`,
+      name: body.name,
+      base_path: body.base_path,
+      base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
+      repository: body.repository ?? null,
+      publication: null,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    const task = registerTask(`Create distribution "${body.name}"`);
+    gemDistributions = [...gemDistributions, distribution];
+    return HttpResponse.json({ task }, { status: 202 });
+  }),
+  http.delete(`${GEM_DIST_BASE}:id/`, ({ params }) => {
+    const href = `${GEM_DIST_BASE}${params.id}/`;
+    gemDistributions = gemDistributions.filter((d) => d.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+
+  // Content
+  http.get(GEM_CONTENT_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repositoryVersion = url.searchParams.get("repository_version");
+    const results = repositoryVersion ? [] : gemContent;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(GEM_CONTENT_BASE, async ({ request }) => {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return HttpResponse.json({ detail: "expected multipart upload" }, { status: 400 });
+    }
+    const content = {
+      ...GEM_CONTENT_FIXTURE,
+      pulp_href: `${GEM_CONTENT_BASE}${freshId()}/`,
+    };
+    gemContent = [...gemContent, content];
+    return HttpResponse.json(content, { status: 201 });
+  }),
+
+  // Publications
+  http.post(GEM_PUBLICATIONS_BASE, () =>
+    HttpResponse.json({ task: registerTask("Publish repository") }, { status: 202 }),
+  ),
+];
+
+// ---------------------------------------------------------------------------
+// Maven fixtures - shapes VERIFIED against the live OpenAPI schema of a
+// pulpcore 3.116.1 instance with pulp_maven 0.25.1 installed
+// (component=maven - docs/PULP_API.md, the pulp-api skill). Structurally
+// different from every other plugin above: no `remote` field or `sync/`
+// action on Repository, no publication endpoint at all, and content upload
+// is itself asynchronous (202 + task) with an optional `repository` field
+// baked directly into the same call - see uploadMavenContent's own comment.
+const MAVEN_REPO_BASE = "/pulp/api/v3/repositories/maven/maven/";
+const MAVEN_REMOTE_BASE = "/pulp/api/v3/remotes/maven/maven/";
+const MAVEN_DIST_BASE = "/pulp/api/v3/distributions/maven/maven/";
+const MAVEN_CONTENT_BASE = "/pulp/api/v3/content/maven/artifact/";
+
+export const MAVEN_REMOTE_FIXTURE: MavenRemote = {
+  pulp_href: `${MAVEN_REMOTE_BASE}remote-1/`,
+  name: "test-maven-fixture",
+  url: "https://repo1.maven.org/maven2/",
+  policy: "immediate",
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+  proxy_url: null,
+  tls_validation: true,
+  ca_cert: null,
+  hidden_fields: [
+    { name: "proxy_username", is_set: false },
+    { name: "proxy_password", is_set: false },
+    { name: "username", is_set: false },
+    { name: "password", is_set: false },
+  ],
+};
+
+export const MAVEN_REPO_FIXTURE = {
+  pulp_href: `${MAVEN_REPO_BASE}repo-1/`,
+  name: "test-maven-repo",
+  description: "A test Maven repository",
+  versions_href: `${MAVEN_REPO_BASE}repo-1/versions/`,
+  latest_version_href: `${MAVEN_REPO_BASE}repo-1/versions/1/`,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+export const MAVEN_VERSION_FIXTURES = [
+  {
+    pulp_href: `${MAVEN_REPO_BASE}repo-1/versions/1/`,
+    number: 1,
+    repository: MAVEN_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:05:00.000000Z",
+    content_summary: {
+      added: {
+        "maven.artifact": { count: 3, href: `${MAVEN_REPO_BASE}repo-1/versions/1/` },
+      },
+      removed: {},
+      present: {
+        "maven.artifact": { count: 3, href: `${MAVEN_REPO_BASE}repo-1/versions/1/` },
+      },
+    },
+  },
+  {
+    pulp_href: `${MAVEN_REPO_BASE}repo-1/versions/0/`,
+    number: 0,
+    repository: MAVEN_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:00:00.000000Z",
+    content_summary: { added: {}, removed: {}, present: {} },
+  },
+];
+
+export const MAVEN_CONTENT_FIXTURE: MavenContent = {
+  pulp_href: `${MAVEN_CONTENT_BASE}content-1/`,
+  group_id: "com.example",
+  artifact_id: "my-lib",
+  version: "1.0",
+  filename: "my-lib-1.0.jar",
+};
+
+export const MAVEN_DISTRIBUTION_FIXTURE = {
+  pulp_href: `${MAVEN_DIST_BASE}dist-1/`,
+  name: "existing-maven-dist",
+  base_path: "existing-maven-dist-path",
+  base_url: "https://pulp.example.com/pulp/content/existing-maven-dist-path/",
+  repository: MAVEN_REPO_FIXTURE.pulp_href,
+  remote: null,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+function seedMavenRepositories(): MavenRepository[] {
+  return [{ ...MAVEN_REPO_FIXTURE }];
+}
+function seedMavenRemotes(): MavenRemote[] {
+  return [{ ...MAVEN_REMOTE_FIXTURE }];
+}
+function seedMavenDistributions(): MavenDistribution[] {
+  return [{ ...MAVEN_DISTRIBUTION_FIXTURE }];
+}
+function seedMavenContent(): MavenContent[] {
+  return [{ ...MAVEN_CONTENT_FIXTURE }];
+}
+
+let mavenRepositories = seedMavenRepositories();
+let mavenRemotes = seedMavenRemotes();
+let mavenDistributions = seedMavenDistributions();
+let mavenContent = seedMavenContent();
+
+/** Restores every Maven in-memory fixture store to its initial seed - call from `afterEach`. */
+export function resetMavenFixtures() {
+  mavenRepositories = seedMavenRepositories();
+  mavenRemotes = seedMavenRemotes();
+  mavenDistributions = seedMavenDistributions();
+  mavenContent = seedMavenContent();
+}
+
+const mavenHandlers = [
+  // Repositories
+  http.get(MAVEN_REPO_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name");
+    const results = name
+      ? mavenRepositories.filter((r) => r.name === name)
+      : mavenRepositories;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(MAVEN_REPO_BASE, async ({ request }) => {
+    const body = (await request.json()) as { name: string; description?: string };
+    const id = freshId();
+    const repo = {
+      pulp_href: `${MAVEN_REPO_BASE}${id}/`,
+      name: body.name,
+      description: body.description ?? null,
+      versions_href: `${MAVEN_REPO_BASE}${id}/versions/`,
+      latest_version_href: `${MAVEN_REPO_BASE}${id}/versions/0/`,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    mavenRepositories = [...mavenRepositories, repo];
+    return HttpResponse.json(repo, { status: 201 });
+  }),
+  http.get(`${MAVEN_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${MAVEN_REPO_BASE}${params.id}/`;
+    const repo = mavenRepositories.find((r) => r.pulp_href === href);
+    if (!repo) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json(repo);
+  }),
+  http.delete(`${MAVEN_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${MAVEN_REPO_BASE}${params.id}/`;
+    mavenRepositories = mavenRepositories.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask(`Delete repository`) },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${MAVEN_REPO_BASE}:id/`, async ({ params, request }) => {
+    const href = `${MAVEN_REPO_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<MavenRepository>;
+    mavenRepositories = mavenRepositories.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update repository") },
+      { status: 202 },
+    );
+  }),
+  http.post(`${MAVEN_REPO_BASE}:id/modify/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Modify repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.get(`${MAVEN_REPO_BASE}:id/versions/`, ({ params }) => {
+    const results = MAVEN_VERSION_FIXTURES.filter(
+      (v) => v.repository === `${MAVEN_REPO_BASE}${params.id}/`,
+    );
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+
+  // Remotes
+  http.get(MAVEN_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: mavenRemotes.length,
+      next: null,
+      previous: null,
+      results: mavenRemotes,
+    }),
+  ),
+  http.post(MAVEN_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as MavenRemoteCreate;
+    const remote: MavenRemote = {
+      pulp_href: `${MAVEN_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      policy: body.policy ?? "immediate",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    mavenRemotes = [...mavenRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${MAVEN_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${MAVEN_REMOTE_BASE}${params.id}/`;
+    mavenRemotes = mavenRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json({ task: registerTask("Delete remote") }, { status: 202 });
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${MAVEN_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${MAVEN_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as MavenRemoteUpdate;
+    mavenRemotes = mavenRemotes.map((r) => {
+      if (r.pulp_href !== href) {
+        return r;
+      }
+      const hiddenFields = r.hidden_fields.map((f) =>
+        f.name in body && body[f.name as keyof MavenRemoteUpdate]
+          ? { ...f, is_set: true }
+          : f,
+      );
+      return {
+        ...r,
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.url !== undefined ? { url: body.url } : {}),
+        ...(body.policy !== undefined ? { policy: body.policy } : {}),
+        ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
+        ...(body.tls_validation !== undefined
+          ? { tls_validation: body.tls_validation }
+          : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        hidden_fields: hiddenFields,
+      };
+    });
+    return HttpResponse.json({ task: registerTask("Update remote") }, { status: 202 });
+  }),
+
+  // Distributions
+  http.get(MAVEN_DIST_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repository = url.searchParams.get("repository");
+    const results = repository
+      ? mavenDistributions.filter((d) => d.repository === repository)
+      : mavenDistributions;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(MAVEN_DIST_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      base_path: string;
+      repository?: string;
+      remote?: string;
+    };
+    const id = freshId();
+    const distribution = {
+      pulp_href: `${MAVEN_DIST_BASE}${id}/`,
+      name: body.name,
+      base_path: body.base_path,
+      base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
+      repository: body.repository ?? null,
+      remote: body.remote ?? null,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    const task = registerTask(`Create distribution "${body.name}"`);
+    mavenDistributions = [...mavenDistributions, distribution];
+    return HttpResponse.json({ task }, { status: 202 });
+  }),
+  http.delete(`${MAVEN_DIST_BASE}:id/`, ({ params }) => {
+    const href = `${MAVEN_DIST_BASE}${params.id}/`;
+    mavenDistributions = mavenDistributions.filter((d) => d.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+
+  // Content - VERIFIED live: unlike every other plugin above, this upload
+  // is itself asynchronous (202 + task), not a sync 201 returning the
+  // created content object.
+  http.get(MAVEN_CONTENT_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repositoryVersion = url.searchParams.get("repository_version");
+    const results = repositoryVersion ? [] : mavenContent;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(MAVEN_CONTENT_BASE, async ({ request }) => {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return HttpResponse.json({ detail: "expected multipart upload" }, { status: 400 });
+    }
+    const formData = await request.formData();
+    const relativePath = formData.get("relative_path");
+    const content = {
+      ...MAVEN_CONTENT_FIXTURE,
+      pulp_href: `${MAVEN_CONTENT_BASE}${freshId()}/`,
+      filename: typeof relativePath === "string" ? relativePath : MAVEN_CONTENT_FIXTURE.filename,
+    };
+    mavenContent = [...mavenContent, content];
+    return HttpResponse.json(
+      { task: registerTask("Add artifact to repository") },
+      { status: 202 },
+    );
+  }),
+];
+
+// ---------------------------------------------------------------------------
+// npm fixtures - shapes VERIFIED against the live OpenAPI schema of a
+// pulpcore 3.116.1 instance with pulp_npm 0.10.1 installed (component=npm -
+// docs/PULP_API.md, the pulp-api skill). Unlike maven, this plugin's
+// Repository DOES have a `remote` field and a `sync/` action - but like
+// maven, there is no publication endpoint at all, and content upload is
+// itself asynchronous (202 + task) with an optional `repository` field
+// baked directly into the same call.
+const NPM_REPO_BASE = "/pulp/api/v3/repositories/npm/npm/";
+const NPM_REMOTE_BASE = "/pulp/api/v3/remotes/npm/npm/";
+const NPM_DIST_BASE = "/pulp/api/v3/distributions/npm/npm/";
+const NPM_CONTENT_BASE = "/pulp/api/v3/content/npm/packages/";
+
+export const NPM_REMOTE_FIXTURE: NpmRemote = {
+  pulp_href: `${NPM_REMOTE_BASE}remote-1/`,
+  name: "test-npm-fixture",
+  url: "https://registry.npmjs.org",
+  policy: "immediate",
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+  proxy_url: null,
+  tls_validation: true,
+  ca_cert: null,
+  hidden_fields: [
+    { name: "proxy_username", is_set: false },
+    { name: "proxy_password", is_set: false },
+    { name: "username", is_set: false },
+    { name: "password", is_set: false },
+  ],
+};
+
+export const NPM_REPO_FIXTURE = {
+  pulp_href: `${NPM_REPO_BASE}repo-1/`,
+  name: "test-npm-repo",
+  description: "A test npm repository",
+  remote: NPM_REMOTE_FIXTURE.pulp_href,
+  versions_href: `${NPM_REPO_BASE}repo-1/versions/`,
+  latest_version_href: `${NPM_REPO_BASE}repo-1/versions/1/`,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+export const NPM_VERSION_FIXTURES = [
+  {
+    pulp_href: `${NPM_REPO_BASE}repo-1/versions/1/`,
+    number: 1,
+    repository: NPM_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:05:00.000000Z",
+    content_summary: {
+      added: {
+        "npm.package": { count: 3, href: `${NPM_REPO_BASE}repo-1/versions/1/` },
+      },
+      removed: {},
+      present: {
+        "npm.package": { count: 3, href: `${NPM_REPO_BASE}repo-1/versions/1/` },
+      },
+    },
+  },
+  {
+    pulp_href: `${NPM_REPO_BASE}repo-1/versions/0/`,
+    number: 0,
+    repository: NPM_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:00:00.000000Z",
+    content_summary: { added: {}, removed: {}, present: {} },
+  },
+];
+
+export const NPM_CONTENT_FIXTURE: NpmContent = {
+  pulp_href: `${NPM_CONTENT_BASE}content-1/`,
+  relative_path: "my-package-1.0.0.tgz",
+  name: "my-package",
+  version: "1.0.0",
+};
+
+export const NPM_DISTRIBUTION_FIXTURE = {
+  pulp_href: `${NPM_DIST_BASE}dist-1/`,
+  name: "existing-npm-dist",
+  base_path: "existing-npm-dist-path",
+  base_url: "https://pulp.example.com/pulp/content/existing-npm-dist-path/",
+  repository: NPM_REPO_FIXTURE.pulp_href,
+  remote: null,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+function seedNpmRepositories(): NpmRepository[] {
+  return [{ ...NPM_REPO_FIXTURE }];
+}
+function seedNpmRemotes(): NpmRemote[] {
+  return [{ ...NPM_REMOTE_FIXTURE }];
+}
+function seedNpmDistributions(): NpmDistribution[] {
+  return [{ ...NPM_DISTRIBUTION_FIXTURE }];
+}
+function seedNpmContent(): NpmContent[] {
+  return [{ ...NPM_CONTENT_FIXTURE }];
+}
+
+let npmRepositories = seedNpmRepositories();
+let npmRemotes = seedNpmRemotes();
+let npmDistributions = seedNpmDistributions();
+let npmContent = seedNpmContent();
+
+/** Restores every npm in-memory fixture store to its initial seed - call from `afterEach`. */
+export function resetNpmFixtures() {
+  npmRepositories = seedNpmRepositories();
+  npmRemotes = seedNpmRemotes();
+  npmDistributions = seedNpmDistributions();
+  npmContent = seedNpmContent();
+}
+
+const npmHandlers = [
+  // Repositories
+  http.get(NPM_REPO_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name");
+    const results = name ? npmRepositories.filter((r) => r.name === name) : npmRepositories;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(NPM_REPO_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      remote?: string;
+    };
+    const id = freshId();
+    const repo = {
+      pulp_href: `${NPM_REPO_BASE}${id}/`,
+      name: body.name,
+      description: body.description ?? null,
+      remote: body.remote ?? null,
+      versions_href: `${NPM_REPO_BASE}${id}/versions/`,
+      latest_version_href: `${NPM_REPO_BASE}${id}/versions/0/`,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    npmRepositories = [...npmRepositories, repo];
+    return HttpResponse.json(repo, { status: 201 });
+  }),
+  http.get(`${NPM_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${NPM_REPO_BASE}${params.id}/`;
+    const repo = npmRepositories.find((r) => r.pulp_href === href);
+    if (!repo) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json(repo);
+  }),
+  http.delete(`${NPM_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${NPM_REPO_BASE}${params.id}/`;
+    npmRepositories = npmRepositories.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask(`Delete repository`) },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${NPM_REPO_BASE}:id/`, async ({ params, request }) => {
+    const href = `${NPM_REPO_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<NpmRepository>;
+    npmRepositories = npmRepositories.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update repository") },
+      { status: 202 },
+    );
+  }),
+  http.post(`${NPM_REPO_BASE}:id/sync/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Sync repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.get(`${NPM_REPO_BASE}:id/versions/`, ({ params }) => {
+    const results = NPM_VERSION_FIXTURES.filter(
+      (v) => v.repository === `${NPM_REPO_BASE}${params.id}/`,
+    );
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+
+  // Remotes
+  http.get(NPM_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: npmRemotes.length,
+      next: null,
+      previous: null,
+      results: npmRemotes,
+    }),
+  ),
+  http.post(NPM_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as NpmRemoteCreate;
+    const remote: NpmRemote = {
+      pulp_href: `${NPM_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      policy: body.policy ?? "immediate",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    npmRemotes = [...npmRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${NPM_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${NPM_REMOTE_BASE}${params.id}/`;
+    npmRemotes = npmRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json({ task: registerTask("Delete remote") }, { status: 202 });
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${NPM_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${NPM_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as NpmRemoteUpdate;
+    npmRemotes = npmRemotes.map((r) => {
+      if (r.pulp_href !== href) {
+        return r;
+      }
+      const hiddenFields = r.hidden_fields.map((f) =>
+        f.name in body && body[f.name as keyof NpmRemoteUpdate]
+          ? { ...f, is_set: true }
+          : f,
+      );
+      return {
+        ...r,
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.url !== undefined ? { url: body.url } : {}),
+        ...(body.policy !== undefined ? { policy: body.policy } : {}),
+        ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
+        ...(body.tls_validation !== undefined
+          ? { tls_validation: body.tls_validation }
+          : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        hidden_fields: hiddenFields,
+      };
+    });
+    return HttpResponse.json({ task: registerTask("Update remote") }, { status: 202 });
+  }),
+
+  // Distributions
+  http.get(NPM_DIST_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repository = url.searchParams.get("repository");
+    const results = repository
+      ? npmDistributions.filter((d) => d.repository === repository)
+      : npmDistributions;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(NPM_DIST_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      base_path: string;
+      repository?: string;
+      remote?: string;
+    };
+    const id = freshId();
+    const distribution = {
+      pulp_href: `${NPM_DIST_BASE}${id}/`,
+      name: body.name,
+      base_path: body.base_path,
+      base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
+      repository: body.repository ?? null,
+      remote: body.remote ?? null,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    const task = registerTask(`Create distribution "${body.name}"`);
+    npmDistributions = [...npmDistributions, distribution];
+    return HttpResponse.json({ task }, { status: 202 });
+  }),
+  http.delete(`${NPM_DIST_BASE}:id/`, ({ params }) => {
+    const href = `${NPM_DIST_BASE}${params.id}/`;
+    npmDistributions = npmDistributions.filter((d) => d.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+
+  // Content - VERIFIED live: like maven, this upload is itself asynchronous
+  // (202 + task), not a sync 201 returning the created content object.
+  http.get(NPM_CONTENT_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repositoryVersion = url.searchParams.get("repository_version");
+    const results = repositoryVersion ? [] : npmContent;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(NPM_CONTENT_BASE, async ({ request }) => {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return HttpResponse.json({ detail: "expected multipart upload" }, { status: 400 });
+    }
+    const formData = await request.formData();
+    const relativePath = formData.get("relative_path");
+    const content = {
+      ...NPM_CONTENT_FIXTURE,
+      pulp_href: `${NPM_CONTENT_BASE}${freshId()}/`,
+      relative_path:
+        typeof relativePath === "string" ? relativePath : NPM_CONTENT_FIXTURE.relative_path,
+    };
+    npmContent = [...npmContent, content];
+    return HttpResponse.json(
+      { task: registerTask("Add package to repository") },
+      { status: 202 },
+    );
+  }),
+];
+
+// ---------------------------------------------------------------------------
+// Python fixtures - shapes VERIFIED against the live OpenAPI schema of a
+// pulpcore 3.116.1 instance with pulp_python 3.35.0 installed
+// (component=python - docs/PULP_API.md, the pulp-api skill). Full
+// File/RPM-parity for repository/remote/publish (a `remote` + `sync/` on
+// Repository, `autopublish`, a real publication endpoint) - but like
+// maven/npm (and unlike File), content upload is itself asynchronous
+// (202 + task) with an optional `repository` field baked directly into the
+// same call.
+const PYTHON_REPO_BASE = "/pulp/api/v3/repositories/python/python/";
+const PYTHON_REMOTE_BASE = "/pulp/api/v3/remotes/python/python/";
+// VERIFIED live: distribution/publication paths live under `.../pypi/`, not
+// `.../python/`.
+const PYTHON_DIST_BASE = "/pulp/api/v3/distributions/python/pypi/";
+const PYTHON_CONTENT_BASE = "/pulp/api/v3/content/python/packages/";
+const PYTHON_PUBLICATIONS_BASE = "/pulp/api/v3/publications/python/pypi/";
+
+export const PYTHON_REMOTE_FIXTURE: PythonRemote = {
+  pulp_href: `${PYTHON_REMOTE_BASE}remote-1/`,
+  name: "test-python-fixture",
+  url: "https://pypi.org/simple/",
+  policy: "immediate",
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+  proxy_url: null,
+  tls_validation: true,
+  ca_cert: null,
+  hidden_fields: [
+    { name: "proxy_username", is_set: false },
+    { name: "proxy_password", is_set: false },
+    { name: "username", is_set: false },
+    { name: "password", is_set: false },
+  ],
+};
+
+export const PYTHON_REPO_FIXTURE = {
+  pulp_href: `${PYTHON_REPO_BASE}repo-1/`,
+  name: "test-python-repo",
+  description: "A test Python repository",
+  remote: PYTHON_REMOTE_FIXTURE.pulp_href,
+  autopublish: true,
+  versions_href: `${PYTHON_REPO_BASE}repo-1/versions/`,
+  latest_version_href: `${PYTHON_REPO_BASE}repo-1/versions/1/`,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+export const PYTHON_VERSION_FIXTURES = [
+  {
+    pulp_href: `${PYTHON_REPO_BASE}repo-1/versions/1/`,
+    number: 1,
+    repository: PYTHON_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:05:00.000000Z",
+    content_summary: {
+      added: {
+        "python.package": { count: 3, href: `${PYTHON_REPO_BASE}repo-1/versions/1/` },
+      },
+      removed: {},
+      present: {
+        "python.package": { count: 3, href: `${PYTHON_REPO_BASE}repo-1/versions/1/` },
+      },
+    },
+  },
+  {
+    pulp_href: `${PYTHON_REPO_BASE}repo-1/versions/0/`,
+    number: 0,
+    repository: PYTHON_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:00:00.000000Z",
+    content_summary: { added: {}, removed: {}, present: {} },
+  },
+];
+
+export const PYTHON_CONTENT_FIXTURE: PythonContent = {
+  pulp_href: `${PYTHON_CONTENT_BASE}content-1/`,
+  name: "my-package",
+  version: "1.0",
+  filename: "my_package-1.0-py3-none-any.whl",
+  packagetype: "bdist_wheel",
+};
+
+export const PYTHON_DISTRIBUTION_FIXTURE = {
+  pulp_href: `${PYTHON_DIST_BASE}dist-1/`,
+  name: "existing-python-dist",
+  base_path: "existing-python-dist-path",
+  base_url: "https://pulp.example.com/pulp/content/existing-python-dist-path/",
+  repository: PYTHON_REPO_FIXTURE.pulp_href,
+  publication: null,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+function seedPythonRepositories(): PythonRepository[] {
+  return [{ ...PYTHON_REPO_FIXTURE }];
+}
+function seedPythonRemotes(): PythonRemote[] {
+  return [{ ...PYTHON_REMOTE_FIXTURE }];
+}
+function seedPythonDistributions(): PythonDistribution[] {
+  return [{ ...PYTHON_DISTRIBUTION_FIXTURE }];
+}
+function seedPythonContent(): PythonContent[] {
+  return [{ ...PYTHON_CONTENT_FIXTURE }];
+}
+
+let pythonRepositories = seedPythonRepositories();
+let pythonRemotes = seedPythonRemotes();
+let pythonDistributions = seedPythonDistributions();
+let pythonContent = seedPythonContent();
+
+/** Restores every Python in-memory fixture store to its initial seed - call from `afterEach`. */
+export function resetPythonFixtures() {
+  pythonRepositories = seedPythonRepositories();
+  pythonRemotes = seedPythonRemotes();
+  pythonDistributions = seedPythonDistributions();
+  pythonContent = seedPythonContent();
+}
+
+const pythonHandlers = [
+  // Repositories
+  http.get(PYTHON_REPO_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name");
+    const results = name
+      ? pythonRepositories.filter((r) => r.name === name)
+      : pythonRepositories;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(PYTHON_REPO_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      remote?: string;
+      autopublish?: boolean;
+    };
+    const id = freshId();
+    const repo = {
+      pulp_href: `${PYTHON_REPO_BASE}${id}/`,
+      name: body.name,
+      description: body.description ?? null,
+      remote: body.remote ?? null,
+      autopublish: body.autopublish ?? false,
+      versions_href: `${PYTHON_REPO_BASE}${id}/versions/`,
+      latest_version_href: `${PYTHON_REPO_BASE}${id}/versions/0/`,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    pythonRepositories = [...pythonRepositories, repo];
+    return HttpResponse.json(repo, { status: 201 });
+  }),
+  http.get(`${PYTHON_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${PYTHON_REPO_BASE}${params.id}/`;
+    const repo = pythonRepositories.find((r) => r.pulp_href === href);
+    if (!repo) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json(repo);
+  }),
+  http.delete(`${PYTHON_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${PYTHON_REPO_BASE}${params.id}/`;
+    pythonRepositories = pythonRepositories.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask(`Delete repository`) },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${PYTHON_REPO_BASE}:id/`, async ({ params, request }) => {
+    const href = `${PYTHON_REPO_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<PythonRepository>;
+    pythonRepositories = pythonRepositories.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update repository") },
+      { status: 202 },
+    );
+  }),
+  http.post(`${PYTHON_REPO_BASE}:id/sync/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Sync repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.get(`${PYTHON_REPO_BASE}:id/versions/`, ({ params }) => {
+    const results = PYTHON_VERSION_FIXTURES.filter(
+      (v) => v.repository === `${PYTHON_REPO_BASE}${params.id}/`,
+    );
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+
+  // Remotes
+  http.get(PYTHON_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: pythonRemotes.length,
+      next: null,
+      previous: null,
+      results: pythonRemotes,
+    }),
+  ),
+  http.post(PYTHON_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as PythonRemoteCreate;
+    const remote: PythonRemote = {
+      pulp_href: `${PYTHON_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      policy: body.policy ?? "immediate",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    pythonRemotes = [...pythonRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${PYTHON_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${PYTHON_REMOTE_BASE}${params.id}/`;
+    pythonRemotes = pythonRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json({ task: registerTask("Delete remote") }, { status: 202 });
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${PYTHON_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${PYTHON_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as PythonRemoteUpdate;
+    pythonRemotes = pythonRemotes.map((r) => {
+      if (r.pulp_href !== href) {
+        return r;
+      }
+      const hiddenFields = r.hidden_fields.map((f) =>
+        f.name in body && body[f.name as keyof PythonRemoteUpdate]
+          ? { ...f, is_set: true }
+          : f,
+      );
+      return {
+        ...r,
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.url !== undefined ? { url: body.url } : {}),
+        ...(body.policy !== undefined ? { policy: body.policy } : {}),
+        ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
+        ...(body.tls_validation !== undefined
+          ? { tls_validation: body.tls_validation }
+          : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        hidden_fields: hiddenFields,
+      };
+    });
+    return HttpResponse.json({ task: registerTask("Update remote") }, { status: 202 });
+  }),
+
+  // Distributions
+  http.get(PYTHON_DIST_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repository = url.searchParams.get("repository");
+    const results = repository
+      ? pythonDistributions.filter((d) => d.repository === repository)
+      : pythonDistributions;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(PYTHON_DIST_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      base_path: string;
+      repository?: string;
+    };
+    const id = freshId();
+    const distribution = {
+      pulp_href: `${PYTHON_DIST_BASE}${id}/`,
+      name: body.name,
+      base_path: body.base_path,
+      base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
+      repository: body.repository ?? null,
+      publication: null,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    const task = registerTask(`Create distribution "${body.name}"`);
+    pythonDistributions = [...pythonDistributions, distribution];
+    return HttpResponse.json({ task }, { status: 202 });
+  }),
+  http.delete(`${PYTHON_DIST_BASE}:id/`, ({ params }) => {
+    const href = `${PYTHON_DIST_BASE}${params.id}/`;
+    pythonDistributions = pythonDistributions.filter((d) => d.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+
+  // Content - VERIFIED live: like maven/npm, this upload is itself
+  // asynchronous (202 + task), not a sync 201 returning the created content
+  // object.
+  http.get(PYTHON_CONTENT_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repositoryVersion = url.searchParams.get("repository_version");
+    const results = repositoryVersion ? [] : pythonContent;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(PYTHON_CONTENT_BASE, async ({ request }) => {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return HttpResponse.json({ detail: "expected multipart upload" }, { status: 400 });
+    }
+    const formData = await request.formData();
+    const relativePath = formData.get("relative_path");
+    const content = {
+      ...PYTHON_CONTENT_FIXTURE,
+      pulp_href: `${PYTHON_CONTENT_BASE}${freshId()}/`,
+      filename:
+        typeof relativePath === "string" ? relativePath : PYTHON_CONTENT_FIXTURE.filename,
+    };
+    pythonContent = [...pythonContent, content];
+    return HttpResponse.json(
+      { task: registerTask("Add package to repository") },
+      { status: 202 },
+    );
+  }),
+
+  // Publications
+  http.post(PYTHON_PUBLICATIONS_BASE, () =>
+    HttpResponse.json({ task: registerTask("Publish repository") }, { status: 202 }),
+  ),
+];
+
+// ---------------------------------------------------------------------------
+// Debian fixtures - shapes VERIFIED against the live OpenAPI schema of a
+// pulpcore 3.116.1 instance with pulp_deb 3.10.0 installed (component=deb -
+// docs/PULP_API.md, the pulp-api skill). Full File/RPM-parity for
+// repository/remote/publish (a `remote` + `sync/` on Repository,
+// `autopublish`, a real publication endpoint - the "apt" one; there's also
+// a "verbatim" publication type, deliberately unsupported here) - but every
+// path segment is "apt", not "deb". Content upload is like maven/npm/
+// python's, not File's: async (202 + task) with an optional `repository`
+// field baked directly into the same call. Unlike every other plugin's
+// remote in this app, this one has a second REQUIRED field:
+// `distributions` (a whitespace-separated string, not an array).
+const DEB_REPO_BASE = "/pulp/api/v3/repositories/deb/apt/";
+const DEB_REMOTE_BASE = "/pulp/api/v3/remotes/deb/apt/";
+const DEB_DIST_BASE = "/pulp/api/v3/distributions/deb/apt/";
+const DEB_CONTENT_BASE = "/pulp/api/v3/content/deb/packages/";
+const DEB_PUBLICATIONS_BASE = "/pulp/api/v3/publications/deb/apt/";
+
+export const DEB_REMOTE_FIXTURE: DebRemote = {
+  pulp_href: `${DEB_REMOTE_BASE}remote-1/`,
+  name: "test-deb-fixture",
+  url: "http://deb.debian.org/debian",
+  distributions: "bookworm",
+  policy: "immediate",
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+  proxy_url: null,
+  tls_validation: true,
+  ca_cert: null,
+  hidden_fields: [
+    { name: "proxy_username", is_set: false },
+    { name: "proxy_password", is_set: false },
+    { name: "username", is_set: false },
+    { name: "password", is_set: false },
+  ],
+};
+
+export const DEB_REPO_FIXTURE = {
+  pulp_href: `${DEB_REPO_BASE}repo-1/`,
+  name: "test-deb-repo",
+  description: "A test Debian repository",
+  remote: DEB_REMOTE_FIXTURE.pulp_href,
+  autopublish: true,
+  versions_href: `${DEB_REPO_BASE}repo-1/versions/`,
+  latest_version_href: `${DEB_REPO_BASE}repo-1/versions/1/`,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+export const DEB_VERSION_FIXTURES = [
+  {
+    pulp_href: `${DEB_REPO_BASE}repo-1/versions/1/`,
+    number: 1,
+    repository: DEB_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:05:00.000000Z",
+    content_summary: {
+      added: {
+        "deb.package": { count: 3, href: `${DEB_REPO_BASE}repo-1/versions/1/` },
+      },
+      removed: {},
+      present: {
+        "deb.package": { count: 3, href: `${DEB_REPO_BASE}repo-1/versions/1/` },
+      },
+    },
+  },
+  {
+    pulp_href: `${DEB_REPO_BASE}repo-1/versions/0/`,
+    number: 0,
+    repository: DEB_REPO_FIXTURE.pulp_href,
+    pulp_created: "2026-08-20T10:00:00.000000Z",
+    content_summary: { added: {}, removed: {}, present: {} },
+  },
+];
+
+export const DEB_CONTENT_FIXTURE: DebContent = {
+  pulp_href: `${DEB_CONTENT_BASE}content-1/`,
+  package: "my-package",
+  version: "1.0",
+  architecture: "amd64",
+};
+
+export const DEB_DISTRIBUTION_FIXTURE = {
+  pulp_href: `${DEB_DIST_BASE}dist-1/`,
+  name: "existing-deb-dist",
+  base_path: "existing-deb-dist-path",
+  base_url: "https://pulp.example.com/pulp/content/existing-deb-dist-path/",
+  repository: DEB_REPO_FIXTURE.pulp_href,
+  publication: null,
+  pulp_created: "2026-08-20T10:00:00.000000Z",
+};
+
+function seedDebRepositories(): DebRepository[] {
+  return [{ ...DEB_REPO_FIXTURE }];
+}
+function seedDebRemotes(): DebRemote[] {
+  return [{ ...DEB_REMOTE_FIXTURE }];
+}
+function seedDebDistributions(): DebDistribution[] {
+  return [{ ...DEB_DISTRIBUTION_FIXTURE }];
+}
+function seedDebContent(): DebContent[] {
+  return [{ ...DEB_CONTENT_FIXTURE }];
+}
+
+let debRepositories = seedDebRepositories();
+let debRemotes = seedDebRemotes();
+let debDistributions = seedDebDistributions();
+let debContent = seedDebContent();
+
+/** Restores every Debian in-memory fixture store to its initial seed - call from `afterEach`. */
+export function resetDebFixtures() {
+  debRepositories = seedDebRepositories();
+  debRemotes = seedDebRemotes();
+  debDistributions = seedDebDistributions();
+  debContent = seedDebContent();
+}
+
+const debHandlers = [
+  // Repositories
+  http.get(DEB_REPO_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name");
+    const results = name ? debRepositories.filter((r) => r.name === name) : debRepositories;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(DEB_REPO_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      remote?: string;
+      autopublish?: boolean;
+    };
+    const id = freshId();
+    const repo = {
+      pulp_href: `${DEB_REPO_BASE}${id}/`,
+      name: body.name,
+      description: body.description ?? null,
+      remote: body.remote ?? null,
+      autopublish: body.autopublish ?? false,
+      versions_href: `${DEB_REPO_BASE}${id}/versions/`,
+      latest_version_href: `${DEB_REPO_BASE}${id}/versions/0/`,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    debRepositories = [...debRepositories, repo];
+    return HttpResponse.json(repo, { status: 201 });
+  }),
+  http.get(`${DEB_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${DEB_REPO_BASE}${params.id}/`;
+    const repo = debRepositories.find((r) => r.pulp_href === href);
+    if (!repo) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json(repo);
+  }),
+  http.delete(`${DEB_REPO_BASE}:id/`, ({ params }) => {
+    const href = `${DEB_REPO_BASE}${params.id}/`;
+    debRepositories = debRepositories.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask(`Delete repository`) },
+      { status: 202 },
+    );
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${DEB_REPO_BASE}:id/`, async ({ params, request }) => {
+    const href = `${DEB_REPO_BASE}${params.id}/`;
+    const body = (await request.json()) as Partial<DebRepository>;
+    debRepositories = debRepositories.map((r) =>
+      r.pulp_href === href ? { ...r, ...body } : r,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update repository") },
+      { status: 202 },
+    );
+  }),
+  http.post(`${DEB_REPO_BASE}:id/sync/`, ({ params }) =>
+    HttpResponse.json(
+      { task: registerTask(`Sync repository ${params.id}`) },
+      { status: 202 },
+    ),
+  ),
+  http.get(`${DEB_REPO_BASE}:id/versions/`, ({ params }) => {
+    const results = DEB_VERSION_FIXTURES.filter(
+      (v) => v.repository === `${DEB_REPO_BASE}${params.id}/`,
+    );
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+
+  // Remotes
+  http.get(DEB_REMOTE_BASE, () =>
+    HttpResponse.json({
+      count: debRemotes.length,
+      next: null,
+      previous: null,
+      results: debRemotes,
+    }),
+  ),
+  http.post(DEB_REMOTE_BASE, async ({ request }) => {
+    const body = (await request.json()) as DebRemoteCreate;
+    const remote: DebRemote = {
+      pulp_href: `${DEB_REMOTE_BASE}${freshId()}/`,
+      name: body.name,
+      url: body.url,
+      distributions: body.distributions,
+      policy: body.policy ?? "immediate",
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+      proxy_url: body.proxy_url ?? null,
+      tls_validation: body.tls_validation ?? true,
+      ca_cert: body.ca_cert ?? null,
+      hidden_fields: [
+        { name: "proxy_username", is_set: Boolean(body.proxy_username) },
+        { name: "proxy_password", is_set: Boolean(body.proxy_password) },
+        { name: "username", is_set: Boolean(body.username) },
+        { name: "password", is_set: Boolean(body.password) },
+      ],
+    };
+    debRemotes = [...debRemotes, remote];
+    return HttpResponse.json(remote, { status: 201 });
+  }),
+  http.delete(`${DEB_REMOTE_BASE}:id/`, ({ params }) => {
+    const href = `${DEB_REMOTE_BASE}${params.id}/`;
+    debRemotes = debRemotes.filter((r) => r.pulp_href !== href);
+    return HttpResponse.json({ task: registerTask("Delete remote") }, { status: 202 });
+  }),
+  // VERIFIED live: PATCH is asynchronous (202 + task), unlike POST create.
+  http.patch(`${DEB_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${DEB_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as DebRemoteUpdate;
+    debRemotes = debRemotes.map((r) => {
+      if (r.pulp_href !== href) {
+        return r;
+      }
+      const hiddenFields = r.hidden_fields.map((f) =>
+        f.name in body && body[f.name as keyof DebRemoteUpdate]
+          ? { ...f, is_set: true }
+          : f,
+      );
+      return {
+        ...r,
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.url !== undefined ? { url: body.url } : {}),
+        ...(body.distributions !== undefined ? { distributions: body.distributions } : {}),
+        ...(body.policy !== undefined ? { policy: body.policy } : {}),
+        ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
+        ...(body.tls_validation !== undefined
+          ? { tls_validation: body.tls_validation }
+          : {}),
+        ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        hidden_fields: hiddenFields,
+      };
+    });
+    return HttpResponse.json({ task: registerTask("Update remote") }, { status: 202 });
+  }),
+
+  // Distributions
+  http.get(DEB_DIST_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repository = url.searchParams.get("repository");
+    const results = repository
+      ? debDistributions.filter((d) => d.repository === repository)
+      : debDistributions;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(DEB_DIST_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      base_path: string;
+      repository?: string;
+    };
+    const id = freshId();
+    const distribution = {
+      pulp_href: `${DEB_DIST_BASE}${id}/`,
+      name: body.name,
+      base_path: body.base_path,
+      base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
+      repository: body.repository ?? null,
+      publication: null,
+      pulp_created: "2026-08-20T11:00:00.000000Z",
+    };
+    const task = registerTask(`Create distribution "${body.name}"`);
+    debDistributions = [...debDistributions, distribution];
+    return HttpResponse.json({ task }, { status: 202 });
+  }),
+  http.delete(`${DEB_DIST_BASE}:id/`, ({ params }) => {
+    const href = `${DEB_DIST_BASE}${params.id}/`;
+    debDistributions = debDistributions.filter((d) => d.pulp_href !== href);
+    return HttpResponse.json(
+      { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+
+  // Content - VERIFIED live: like maven/npm/python, this upload is itself
+  // asynchronous (202 + task), not a sync 201 returning the created content
+  // object.
+  http.get(DEB_CONTENT_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const repositoryVersion = url.searchParams.get("repository_version");
+    const results = repositoryVersion ? [] : debContent;
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(DEB_CONTENT_BASE, async ({ request }) => {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return HttpResponse.json({ detail: "expected multipart upload" }, { status: 400 });
+    }
+    const content = {
+      ...DEB_CONTENT_FIXTURE,
+      pulp_href: `${DEB_CONTENT_BASE}${freshId()}/`,
+    };
+    debContent = [...debContent, content];
+    return HttpResponse.json(
+      { task: registerTask("Add package to repository") },
+      { status: 202 },
+    );
+  }),
+
+  // Publications
+  http.post(DEB_PUBLICATIONS_BASE, () =>
+    HttpResponse.json({ task: registerTask("Publish repository") }, { status: 202 }),
+  ),
 ];
 
 // ---------------------------------------------------------------------------
@@ -2265,11 +4733,38 @@ const pulpitCoreHandlers = [
       updated_at: "2026-01-01T00:00:00Z",
     }),
   ),
+
+  // Unrestricted by default (matches an admin/staff test session, the
+  // common case) - AppNav calls this unconditionally (AppNav.test.tsx).
+  // Tests exercising actual nav-visibility restrictions override this with
+  // server.use(...), same convention as default_settings above.
+  http.get("/pulpit-core/api/v1/nav_visibility/me", () =>
+    HttpResponse.json({ visible_module_ids: null }),
+  ),
+
+  // Nothing granted by default (the real allow-list default) - the
+  // Administration "General" tab calls this unconditionally on mount.
+  // Tests exercising specific grants override this with server.use(...),
+  // same convention as default_settings above.
+  http.get("/pulpit-core/api/v1/nav_visibility/settings", () =>
+    HttpResponse.json({ visible_module_ids: [] }),
+  ),
+  http.put("/pulpit-core/api/v1/nav_visibility/settings", async ({ request }) => {
+    const body = (await request.json()) as { visible_module_ids: string[] };
+    return HttpResponse.json({ visible_module_ids: body.visible_module_ids });
+  }),
 ];
 
 export const handlers = [
   ...authHandlers,
   ...rpmHandlers,
+  ...fileHandlers,
+  ...huggingFaceHandlers,
+  ...gemHandlers,
+  ...mavenHandlers,
+  ...npmHandlers,
+  ...pythonHandlers,
+  ...debHandlers,
   ...ansibleHandlers,
   ...containerHandlers,
   ...accessHandlers,

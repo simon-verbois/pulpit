@@ -7,6 +7,13 @@ import {
   resetAdministrationFixtures,
   resetAnsibleFixtures,
   resetContainerFixtures,
+  resetDebFixtures,
+  resetFileFixtures,
+  resetGemFixtures,
+  resetHuggingFaceFixtures,
+  resetMavenFixtures,
+  resetNpmFixtures,
+  resetPythonFixtures,
   resetRpmFixtures,
   resetTasksFixtures,
 } from "./handlers";
@@ -15,6 +22,13 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   server.resetHandlers();
   resetRpmFixtures();
+  resetFileFixtures();
+  resetGemFixtures();
+  resetHuggingFaceFixtures();
+  resetMavenFixtures();
+  resetNpmFixtures();
+  resetPythonFixtures();
+  resetDebFixtures();
   resetAnsibleFixtures();
   resetContainerFixtures();
   resetAccessFixtures();

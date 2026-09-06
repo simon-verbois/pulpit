@@ -10,7 +10,20 @@ import { spawnSync } from "node:child_process";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SCHEMA_DIR = join(ROOT, "src/api/schemas");
-const COMPONENTS = ["core", "rpm", "container", "ansible", "certguard"];
+const COMPONENTS = [
+  "core",
+  "rpm",
+  "container",
+  "ansible",
+  "certguard",
+  "file",
+  "deb",
+  "python",
+  "npm",
+  "gem",
+  "maven",
+  "hugging_face",
+];
 
 for (const component of COMPONENTS) {
   const schemaFile = join(SCHEMA_DIR, `${component}.json`);

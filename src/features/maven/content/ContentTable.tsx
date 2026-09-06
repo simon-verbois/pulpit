@@ -1,0 +1,65 @@
+import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
+
+import { LoadingState } from "../../../components/LoadingState";
+import { ErrorState } from "../../../components/ErrorState";
+import { EmptyState } from "../../../components/EmptyState";
+import type { MavenContent } from "../../../api/client/maven/types";
+
+interface ContentTableProps {
+  isPending: boolean;
+  isError: boolean;
+  error: unknown;
+  onRetry: () => void;
+  content: MavenContent[] | undefined;
+  emptyTitle: string;
+  emptyBody: string;
+  /** Set by a repository-detail tab caller (nested in a bigger page) -
+   * unset for the equivalent top-level list page, which stays full-page. */
+  emptyStateVariant?: "sm";
+}
+
+export function ContentTable({
+  isPending,
+  isError,
+  error,
+  onRetry,
+  content,
+  emptyTitle,
+  emptyBody,
+  emptyStateVariant,
+}: ContentTableProps) {
+  if (isPending) {
+    return <LoadingState label="Loading artifacts" />;
+  }
+  if (isError) {
+    return <ErrorState error={error} onRetry={onRetry} />;
+  }
+  if (!content || content.length === 0) {
+    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
+  }
+
+  return (
+    <Table aria-label="Maven content" variant="compact">
+      <Thead>
+        <Tr>
+          <Th>Group ID</Th>
+          <Th>Artifact ID</Th>
+          <Th>Version</Th>
+          <Th>Filename</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        {content.map((artifact) => (
+          <Tr key={artifact.pulp_href}>
+            <Td dataLabel="Group ID">{artifact.group_id ?? "—"}</Td>
+            <Td dataLabel="Artifact ID">{artifact.artifact_id ?? "—"}</Td>
+            <Td dataLabel="Version">{artifact.version ?? "—"}</Td>
+            <Td dataLabel="Filename">
+              <code>{artifact.filename ?? "—"}</code>
+            </Td>
+          </Tr>
+        ))}
+      </Tbody>
+    </Table>
+  );
+}
