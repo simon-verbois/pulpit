@@ -149,3 +149,29 @@ export interface DefaultProxyCredentials {
   proxy_password: string | null;
   proxy_ca_cert: string | null;
 }
+
+// Mirrors pulpit-core/app/modules/nav_visibility/schemas.py. UI-visibility
+// convenience only - never an authorization boundary, see that module's
+// models.py docstring. `module_id` values match src/app/layout/navTree.ts's
+// own stable per-group `id`s (the single source of truth for "what modules
+// exist" - pulpit-core doesn't duplicate that list server-side).
+//
+// Allow-list, not deny-list, and global (docs/adr/0009-nav-visibility-settings.md):
+// an empty `visible_module_ids` means unrestricted - everyone sees
+// everything, staff included, until an administrator explicitly grants a
+// specific non-empty subset in Administration's General tab, which then
+// restricts every user equally (no staff bypass).
+export interface NavVisibilitySettings {
+  visible_module_ids: string[];
+}
+
+/** The resolved answer for the calling user (GET .../nav_visibility/me).
+ *
+ * `visible_module_ids: null` means unrestricted - the same for every
+ * caller, staff or not, no bypass - deliberately not "every known module
+ * id", which pulpit-core has no list of at all (see NavVisibilitySettings'
+ * own comment). A non-empty array is a real, different answer: restricted
+ * to exactly those modules, for every caller. */
+export interface ResolvedNavVisibility {
+  visible_module_ids: string[] | null;
+}

@@ -5,7 +5,6 @@ import {
   CardBody,
   CardTitle,
   Gallery,
-  Label,
   Skeleton,
   Stack,
   StackItem,
@@ -16,17 +15,28 @@ import { Link } from "react-router-dom";
 import type { PulpStatus } from "../api/client/status";
 import type { PulpPage } from "../api/client/rpm/types";
 import type { ComponentContentSize } from "../api/client/pulpitCore/types";
-import { compatibilityStatus, VERIFIED_VERSIONS } from "../lib/pulpCompatibility";
 import { formatBytes } from "../lib/formatBytes";
+import { VERIFIED_VERSIONS } from "../lib/pulpCompatibility";
+import { NAV_TREE } from "../app/layout/navTree";
+import { StatusIndicator } from "./StatusIndicator";
+
+// A status component's name doubles as its nav module id (rpm, deb, container,
+// ansible, file, hugging_face, gem, maven, npm, python) - see NAV_TREE's own
+// "module id" doc comment. "core" has no group (always shown, same as
+// Overview/Tasks/Administration), so it's never in this set and never
+// nav-visibility-gated below.
+const NAV_MODULE_IDS = new Set(
+  NAV_TREE.filter((node) => node.type === "group").map((node) => node.id),
+);
 
 function ConnectionLabel({ connected }: { connected: boolean | undefined }) {
   if (connected === undefined) {
-    return <Label>Unknown</Label>;
+    return <StatusIndicator color="grey">Unknown</StatusIndicator>;
   }
   return connected ? (
-    <Label color="green">Connected</Label>
+    <StatusIndicator color="green">Connected</StatusIndicator>
   ) : (
-    <Label color="red">Disconnected</Label>
+    <StatusIndicator color="red">Disconnected</StatusIndicator>
   );
 }
 
@@ -39,39 +49,13 @@ function StatTile({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const COMPATIBILITY_COLOR: Record<
-  ReturnType<typeof compatibilityStatus>,
-  "green" | "blue" | "orange" | "grey"
-> = {
-  matches: "green",
-  newer: "blue",
-  older: "orange",
-  unverified: "grey",
-  not_implemented: "grey",
-};
-
-function CompatibilityCell({
-  component,
-  version,
-}: {
-  component: string;
-  version: string;
-}) {
-  const status = compatibilityStatus(component, version);
-  const baseline = VERIFIED_VERSIONS[component];
-  const text =
-    status === "matches"
-      ? `Matches verified ${baseline}`
-      : status === "not_implemented"
-        ? "Not implemented"
-        : status === "unverified"
-          ? "Not verified"
-          : `${status === "newer" ? "Newer" : "Older"} than verified ${baseline}`;
-  return (
-    <Label color={COMPATIBILITY_COLOR[status]} isCompact>
-      {text}
-    </Label>
-  );
+function StorageUsage({ storage }: { storage: NonNullable<PulpStatus["storage"]> }) {
+  if (storage.used === undefined || storage.total === undefined || storage.total === 0) {
+    return storage.free !== undefined
+      ? `${formatBytes(storage.free)} free`
+      : "Reported, but no usable figures";
+  }
+  return `${formatBytes(storage.used)} / ${formatBytes(storage.total)}`;
 }
 
 export interface RepositoryCountEntry {
@@ -130,10 +114,15 @@ export function PulpStatusSummary({
   status,
   repositoryCounts,
   componentSizesQuery,
+  visibleModuleIds,
 }: {
   status: PulpStatus;
   repositoryCounts?: Record<string, RepositoryCountEntry>;
   componentSizesQuery?: UseQueryResult<ComponentContentSize[]>;
+  /** Same allow-list AppNav gates the sidebar with (undefined/null both mean
+   * unrestricted - fails open the same way, e.g. while still loading) - so
+   * this table never lists a plugin the user can't actually navigate to. */
+  visibleModuleIds?: string[] | null;
 }) {
   const tiles: ReactNode[] = [];
 
@@ -175,45 +164,60 @@ export function PulpStatusSummary({
   if (status.storage) {
     tiles.push(
       <StatTile key="storage" title="Storage">
-        {status.storage.used !== undefined && status.storage.total !== undefined
-          ? `${formatBytes(status.storage.used)} used of ${formatBytes(status.storage.total)}`
-          : status.storage.free !== undefined
-            ? `${formatBytes(status.storage.free)} free`
-            : "Reported, but no usable figures"}
+        <StorageUsage storage={status.storage} />
       </StatTile>,
     );
   }
+  // Pulpit has no GUI for most components a Pulp instance reports (e.g.
+  // ostree/certguard) - listing them here is pure noise (always a dash for
+  // Repositories/Size, nothing to click through to). Only components
+  // Pulpit has a verified baseline for (src/lib/pulpCompatibility.ts) - the
+  // ones it actually has a UI for - are shown; a real compatibility issue
+  // among THESE still surfaces via CompatibilityWarnings, unaffected by
+  // this filter.
+  //
+  // A plugin's own nav module can still be hidden on top of that (an
+  // explicit nav-visibility restriction, or the sidebar's capability gate
+  // never applying here since these are already the components Pulp
+  // itself reported) - this table should never list a plugin the user
+  // can't actually navigate to from the sidebar.
+  const implementedVersions = (status.versions ?? []).filter(
+    (v) =>
+      v.component in VERIFIED_VERSIONS &&
+      (!NAV_MODULE_IDS.has(v.component) ||
+        visibleModuleIds == null ||
+        visibleModuleIds.includes(v.component)),
+  );
 
   return (
     <Stack hasGutter>
       {tiles.length > 0 ? (
         <StackItem>
-          <Gallery hasGutter minWidths={{ default: "180px" }}>
+          <Gallery
+            hasGutter
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
+          >
             {tiles}
           </Gallery>
         </StackItem>
       ) : null}
 
-      {status.versions && status.versions.length > 0 ? (
+      {implementedVersions.length > 0 ? (
         <StackItem>
           <Table aria-label="Pulp components" variant="compact">
             <Thead>
               <Tr>
                 <Th>Component</Th>
                 <Th>Version</Th>
-                <Th>Compatibility</Th>
                 {repositoryCounts ? <Th>Repositories</Th> : null}
                 {componentSizesQuery ? <Th>Size</Th> : null}
               </Tr>
             </Thead>
             <Tbody>
-              {status.versions.map((v) => (
+              {implementedVersions.map((v) => (
                 <Tr key={v.component}>
                   <Td dataLabel="Component">{v.component}</Td>
                   <Td dataLabel="Version">{v.version}</Td>
-                  <Td dataLabel="Compatibility">
-                    <CompatibilityCell component={v.component} version={v.version} />
-                  </Td>
                   {repositoryCounts ? (
                     <Td dataLabel="Repositories">
                       <RepositoryCountCell entry={repositoryCounts[v.component]} />

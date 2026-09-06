@@ -12,8 +12,8 @@ describe("AppNav", () => {
     renderApp(<AppNav />);
 
     expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Containers" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ansible" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Container Registry" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
   });
 
   it("hides a plugin's nav group when the status endpoint reports it isn't installed", async () => {
@@ -30,7 +30,7 @@ describe("AppNav", () => {
 
     expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Ansible" })).not.toBeInTheDocument(),
+      expect(screen.queryByRole("button", { name: "Ansible Galaxy" })).not.toBeInTheDocument(),
     );
   });
 
@@ -40,7 +40,7 @@ describe("AppNav", () => {
     renderApp(<AppNav />);
 
     expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ansible" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
   });
 
   it("fails open (shows every group) if the status request errors", async () => {
@@ -53,6 +53,65 @@ describe("AppNav", () => {
     // No status data ever arrives, so nothing is ever positively confirmed
     // absent - the groups are present from the very first render.
     expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ansible" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
+  });
+
+  it("shows only the granted modules when nav-visibility is restricted", async () => {
+    server.use(
+      http.get("/pulpit-core/api/v1/nav_visibility/me", () =>
+        HttpResponse.json({ visible_module_ids: ["rpm"] }),
+      ),
+    );
+
+    renderApp(<AppNav />);
+
+    expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Maven" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("hides every plugin group when nav-visibility grants nothing", async () => {
+    server.use(
+      http.get("/pulpit-core/api/v1/nav_visibility/me", () =>
+        HttpResponse.json({ visible_module_ids: [] }),
+      ),
+    );
+
+    renderApp(<AppNav />);
+
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "RPM" })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("button", { name: "Maven" })).not.toBeInTheDocument();
+    // Core, always-visible items are untouched - this is a plugin-module
+    // restriction, not a lockout from the app itself.
+    expect(screen.getByRole("link", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Tasks" })).toBeInTheDocument();
+  });
+
+  it("fails open (shows every group) while nav-visibility settings are still loading", () => {
+    server.use(
+      http.get("/pulpit-core/api/v1/nav_visibility/me", () => new Promise(() => {})),
+    );
+
+    renderApp(<AppNav />);
+
+    expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Maven" })).toBeInTheDocument();
+  });
+
+  it("fails open (shows every group) if the nav-visibility request errors", async () => {
+    server.use(
+      http.get(
+        "/pulpit-core/api/v1/nav_visibility/me",
+        () => new HttpResponse(null, { status: 502 }),
+      ),
+    );
+
+    renderApp(<AppNav />);
+
+    expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Maven" })).toBeInTheDocument();
   });
 });

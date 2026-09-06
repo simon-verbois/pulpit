@@ -3,6 +3,7 @@ import { Nav, NavExpandable, NavItem, NavList } from "@patternfly/react-core";
 
 import { deriveCapabilities } from "../../api/capabilities";
 import { useStatusQuery } from "../../hooks/useStatusQuery";
+import { useNavVisibilityQuery } from "../../hooks/useNavVisibilityQuery";
 import { NAV_TREE, type NavLeaf } from "./navTree";
 
 function renderNavItem(leaf: NavLeaf, pathname: string) {
@@ -17,6 +18,7 @@ function renderNavItem(leaf: NavLeaf, pathname: string) {
 export function AppNav() {
   const location = useLocation();
   const statusQuery = useStatusQuery();
+  const navVisibilityQuery = useNavVisibilityQuery();
 
   // Fail open: while status is loading, or if it fails, show every nav
   // group rather than hiding real navigation over a transient/unrelated
@@ -26,12 +28,24 @@ export function AppNav() {
   const capabilities = statusQuery.data
     ? deriveCapabilities(statusQuery.data)
     : undefined;
-  const navTree = capabilities
-    ? NAV_TREE.filter(
-        (node) =>
-          node.type !== "group" || !node.capability || capabilities[node.capability],
-      )
-    : NAV_TREE;
+  // Global and default-visible, same for every signed-in user regardless
+  // of role - no staff bypass (docs/adr/0009-nav-visibility-settings.md).
+  // `null` means unrestricted - either nothing has been explicitly
+  // restricted yet, or no data yet/an error, which fails open the same way
+  // capability gating does (never hide real navigation over a transient
+  // problem - safe here specifically because this is UI convenience, never
+  // the actual security boundary). A non-null array restricts EVERY user,
+  // including whichever staff account configured it.
+  const visibleModuleIds = navVisibilityQuery.data?.visible_module_ids ?? null;
+  const navTree = NAV_TREE.filter((node) => {
+    if (node.type !== "group") {
+      return true;
+    }
+    if (capabilities && node.capability && !capabilities[node.capability]) {
+      return false;
+    }
+    return visibleModuleIds === null || visibleModuleIds.includes(node.id);
+  });
 
   return (
     <Nav aria-label="PulpIT navigation">
