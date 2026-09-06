@@ -1,6 +1,8 @@
 import {
   Alert,
   Button,
+  Flex,
+  FlexItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -50,17 +52,23 @@ export function ConfirmDeleteModal({
         undone.
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="danger"
-          isLoading={isDeleting}
-          isDisabled={isDeleting}
-          onClick={onConfirm}
-        >
-          Delete
-        </Button>
-        <Button variant="link" onClick={onCancel}>
-          Cancel
-        </Button>
+        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+          <FlexItem>
+            <Button variant="link" onClick={onCancel}>
+              Cancel
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="danger"
+              isLoading={isDeleting}
+              isDisabled={isDeleting}
+              onClick={onConfirm}
+            >
+              Delete
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );
