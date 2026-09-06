@@ -249,6 +249,38 @@ class PulpClient:
         )
         return response.json()
 
+    # --- Per-plugin repository/remote/distribution creation (fixture_seed
+    # module) --------------------------------------------------------------
+    #
+    # Unlike the generic listings above, CREATE has no cross-plugin endpoint
+    # - each plugin exposes its own concrete type path (e.g. "rpm/rpm",
+    # "deb/apt", "ansible/collection" for remotes vs "ansible/ansible" for
+    # repositories - VERIFIED live against the `/pulp/api/v3/` root
+    # listing), supplied by fixture_seed/fixtures.py per plugin.
+    #
+    # VERIFIED live: remote and repository creation are both SYNCHRONOUS
+    # (plain 20x with the created object, never a task) for every plugin
+    # fixture_seed uses. Distribution creation and repository sync are both
+    # ASYNCHRONOUS (`{"task": <href>}`) - callers must `wait_for_task`.
+
+    def create_remote(self, type_path: str, body: dict) -> dict:
+        return self._request("POST", f"{self._api_base}/remotes/{type_path}/", json=body).json()
+
+    def create_repository(self, type_path: str, body: dict) -> dict:
+        return self._request(
+            "POST", f"{self._api_base}/repositories/{type_path}/", json=body
+        ).json()
+
+    def sync_repository(self, repository_href: str, remote_href: str) -> dict:
+        return self._request(
+            "POST", f"{repository_href}sync/", json={"remote": remote_href}
+        ).json()
+
+    def create_distribution(self, type_path: str, body: dict) -> dict:
+        return self._request(
+            "POST", f"{self._api_base}/distributions/{type_path}/", json=body
+        ).json()
+
 
 @lru_cache
 def _cached_client() -> PulpClient:

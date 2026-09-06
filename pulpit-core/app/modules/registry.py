@@ -12,9 +12,17 @@ from fastapi import APIRouter
 
 from app.modules.content_size import module as content_size_module
 from app.modules.default_settings import module as default_settings_module
+from app.modules.fixture_seed import module as fixture_seed_module
+from app.modules.nav_visibility import module as nav_visibility_module
 from app.modules.signing import module as signing_module
 
-_MODULES = [signing_module, content_size_module, default_settings_module]
+_MODULES = [
+    signing_module,
+    content_size_module,
+    default_settings_module,
+    nav_visibility_module,
+    fixture_seed_module,
+]
 
 
 def build_module_router() -> APIRouter:
