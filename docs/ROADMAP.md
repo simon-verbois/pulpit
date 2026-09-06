@@ -593,6 +593,8 @@ coexistence during rotation" meant a repository's trusted key set only ever grew
       ADR's original Docker-socket rejection, and `docs/signing.md` "Automating the manual Pulp
       step". VERIFIED end-to-end: a real signing service registered itself automatically with zero
       manual steps.
+      **Superseded by ADR 0008**: this whole executor/exec-in mechanism was later removed in favor
+      of a reconciler colocated inside a derived Pulp image - see that ADR for why.
 - [x] Two real bugs caught live during this pass and fixed with regression tests: the bootstrap
       command was missing the required `--home <gnupg_home>` flag (failed with "No public key");
       `SigningKey`/`Job` timestamp columns were naive instead of `DateTime(timezone=True)`, causing

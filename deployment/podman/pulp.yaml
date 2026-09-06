@@ -79,23 +79,23 @@ kind: Pod
 metadata:
   name: pulp
   labels:
-    # Matches PULPIT_CORE_PULP_EXECUTOR_CONTAINER_LABEL in 00-configmap.yaml
-    # - VERIFIED live this Pod label becomes a real, queryable container
-    # label under Podman, exactly like Compose's own automatic
-    # `com.docker.compose.service` label did.
     app: pulp
 spec:
   containers:
+    # docker.io/pulp/pulp:stable plus one added s6 longrun service - the
+    # colocated signing-service reconciler (docs/signing.md "Automating the
+    # manual Pulp step", docs/adr/0008-colocated-signing-reconciler.md) -
+    # built from deployment/docker/pulp/Dockerfile, same image
+    # compose.yml uses. Nothing reaches into this pod from the outside
+    # anymore - no docker-socket-proxy.
     - name: pulp
-      image: docker.io/pulp/pulp:stable
-      # VERIFIED live (`ausearch -m avc`, same class of denial as
-      # docker-socket-proxy.yaml's own comment): a confined container
-      # can't read a plain hostPath-mounted file either
-      # (`init-admin-password-script` below) without this - SELinux denies
-      # `container_t` opening a host file still labeled `user_tmp_t`/
-      # `default_t`, unrelated to Unix permission bits (VERIFIED the file
-      # was already world-readable and this still failed). A no-op on
-      # hosts without SELinux enforcing.
+      image: docker.io/simonverbois/pulp-pulpit:latest
+      # VERIFIED live (`ausearch -m avc`): a confined container can't read a
+      # plain hostPath-mounted file either (`init-admin-password-script`
+      # below) without this - SELinux denies `container_t` opening a host
+      # file still labeled `user_tmp_t`/`default_t`, unrelated to Unix
+      # permission bits (VERIFIED the file was already world-readable and
+      # this still failed). A no-op on hosts without SELinux enforcing.
       securityContext:
         seLinuxOptions:
           type: spc_t

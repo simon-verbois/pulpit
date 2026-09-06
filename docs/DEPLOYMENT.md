@@ -120,17 +120,15 @@ pulpit-core (the API process) and pulpit-worker (the job-queue/rotation-schedule
 one with the GPG signing volume - `pulpit_signing_gnupghome` - mounted) run as two separate OS
 processes inside the same `pulpit` container/image (`deployment/docker/pulpit/entrypoint.sh`), not as
 separate Compose services - see ADR 0007 for why and how the process-level separation (API never
-touches private key material) is preserved despite sharing a container. The one other Compose
-service this pulls in:
+touches private key material) is preserved despite sharing a container.
 
-- `docker-socket-proxy` (`tecnativa/docker-socket-proxy`) — optional, opt-in: lets `pulpit`'s
-  worker loop automate the one Pulp-side administrative command signing needs
-  (`add-signing-service`) instead of an administrator running it by hand. Scoped to
-  `CONTAINERS`+`EXEC` only (list/inspect/exec) — never the raw Docker socket, and no other Docker
-  API call is forwarded. Internal-network-only, never published. A deployment that isn't Docker at
-  all, or doesn't want to grant even this scoped access, simply omits
-  `PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST` and gets the fully manual flow instead — see
-  `docs/signing.md` "Automating the manual Pulp step" and ADR 0006 "Alternatives considered".
+`pulpit`'s worker loop never reaches into the `pulp` container to automate the one Pulp-side
+administrative command signing needs (`add-signing-service`) - since ADR 0008, `pulp` itself runs a
+derived image (`docker.io/simonverbois/pulp-pulpit`) with a small colocated reconciler baked in as
+an s6 service instead, so there is no extra Compose service or cross-container privilege of any
+kind for this. A deployment running vanilla `pulp/pulp:stable` simply doesn't get this automation
+and falls back to the manual flow - see `docs/signing.md` "Automating the manual Pulp step" and ADR
+0008.
 
 `pulpit` is healthchecked through nginx (`GET /pulpit-core/api/v1/health`, exercising the whole
 proxy chain, not just the API process alone) and needs `PULP_ADMIN_PASSWORD` set to a real value
@@ -201,17 +199,9 @@ not from Pulpit's own code, and are not fixable from this repository:
 - `pulp-1 | egrep: warning: egrep is obsolescent`, an RPM macro warning about `%add_sysuser`, and
   an `s6-chown: fatal:` line about `/var/lib/pgsql/16/backups` — all emitted by the
   `pulp/pulp:stable` image's own init scripts/RPM macros during first boot, not by anything in
-  `compose.yml` or Pulpit's code. The stack still starts and becomes healthy; these come from
-  upstream and aren't something Pulpit can patch short of forking that image.
-- `docker-socket-proxy-1 | [WARNING] missing timeouts for backend 'docker-events'` — that backend
-  is shipped by the `tecnativa/docker-socket-proxy` image's own `haproxy.cfg.template` with
-  `timeout server 0` (intentionally unbounded, since `/events` is a long-lived streaming
-  connection) - not configurable via this service's environment variables.
-- `docker-socket-proxy-1 | [WARNING] HAProxy was started as root...` — the same image runs HAProxy
-  as root with no option to drop privileges or chroot; there is no supported way to change this
-  without replacing the image. Its actual security boundary is the scoped API allowlist
-  (`CONTAINERS`/`EXEC`/`POST` only - see the service's own comment in `compose.yml`), not the
-  container's internal user.
+  `compose.yml`, `deployment/docker/pulp/Dockerfile`, or Pulpit's code. The stack still starts and
+  becomes healthy; these come from upstream and aren't something Pulpit can patch short of forking
+  that image.
 
 ## Container registry authentication: `TOKEN_AUTH_DISABLED`
 
@@ -318,44 +308,26 @@ systemctl --user start podman.socket   # rootless
 See `deployment/podman/README.md` for the full picture, including several real, VERIFIED-live
 differences from both Compose and a real Kubernetes cluster that shaped these manifests -
 `podman play kube` only supports a subset of Kubernetes kinds (no Ingress, no RBAC, no real
-Service objects, so `KubernetesExecExecutor` cannot work here at all -
-`DockerExecExecutor`/`docker-socket-proxy.yaml` is used instead, the same mechanism
-`compose.yml` uses), ConfigMaps/Secrets are not standalone objects the way they are on a real
-cluster, there is no `postStart` hook, and SELinux confinement blocks more than Docker's
-default does on an SELinux-enforcing host (Fedora/RHEL, Podman's own primary ecosystem) -
-root-caused with `ausearch -m avc`, not guessed: Podman's own API socket carries the SELinux
-type `container_runtime_t`, and its default policy denies a confined container
-(`container_t`) from connecting to it, or from reading a plain `hostPath`-mounted file,
-at all - deliberate anti-escape confinement, not a bug.
-
-Running the Compose files themselves under Podman (`docker compose`/`podman compose` CLI
-pointed at Podman's own Docker-API-compatible socket) was also verified to work for
-everything except `docker-socket-proxy`'s own SELinux confinement - not pursued further as
-the supported path once `deployment/podman/` was built, per explicit preference for a native
-`play kube` deployment over a Compose-wrapper one.
+Service objects - no longer a limitation signing automation needs to work around since ADR 0008,
+see below), ConfigMaps/Secrets are not standalone objects the way they are on a real cluster,
+there is no `postStart` hook, and SELinux confinement blocks more than Docker's default does on an
+SELinux-enforcing host (Fedora/RHEL, Podman's own primary ecosystem) - root-caused with
+`ausearch -m avc`, not guessed: reading a plain `hostPath`-mounted file is denied entirely under
+SELinux enforcement, deliberate anti-escape confinement, not a bug.
 
 ## Kubernetes
 
 Plain manifests (no Helm) live under `deployment/kube/` - see `deployment/kube/README.md` for prerequisites (notably a
 storageClass supporting `ReadWriteMany`, needed only if you want repository signing) and the
 exact `kubectl apply` invocation. They mirror this file's own Compose topology 1:1 (one `pulpit`
-Deployment, ADR 0007), using the same published Docker Hub image.
+Deployment, ADR 0007), using the same published Docker Hub images (`pulpit`, and since ADR 0008
+`pulp-pulpit` for `pulp` itself).
 
-The one architectural difference: `docker-socket-proxy` has no Kubernetes equivalent, so the
-worker loop inside `pulpit` talks to the Kubernetes API directly instead
-(`KubernetesExecExecutor`, `app/adapters/pulp/executor.py`), authenticated via its own
-ServiceAccount token (the standard in-cluster auth every pod already has) and narrowly scoped by
-`deployment/kube/pulpit.yaml`'s Role to `get`/`list` on `pods` and `get`/`create` on `pods/exec`,
-namespace-only. VERIFIED end-to-end against a real cluster (`kind`), not assumed from Kubernetes'
-own exec documentation: applied the actual manifests, got a real `pulp` pod healthy (image pull,
-the `postStart` admin-password hook, and the `httpGet` readiness/liveness probes all working),
-minted a real token for the `pulpit` ServiceAccount, and successfully ran
-`pulpcore-manager --version` inside that pod through the exact RBAC this ships - while confirming
-the same token is correctly `403 Forbidden` from listing pods in a different namespace. One real
-bug this caught before it shipped: the official `kubernetes` Python client's
-`connect_get_namespaced_pod_exec` performs the exec handshake as an HTTP `GET`, so the RBAC verb
-Kubernetes actually checks is `get`, not the more commonly-documented `create` alone - the shipped
-Role grants both.
+Since ADR 0008, there is no architectural difference from Compose/Podman here at all: `pulp.yaml`
+runs the same derived `docker.io/simonverbois/pulp-pulpit` image every other target uses, which
+reconciles signing-service registration from *inside* the pod itself - no ServiceAccount, Role,
+RoleBinding, or any other RBAC exists in `deployment/kube/` any more, and `pulpit` never talks to
+the Kubernetes API at all.
 
 ## Production (future work)
 

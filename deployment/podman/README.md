@@ -13,17 +13,12 @@ cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
 # edit deployment/podman/00-secret.yaml - replace every REPLACE_ME value
 # (openssl rand -hex 32 for both key/password fields)
 
-systemctl --user start podman.socket   # rootless; see PULPIT_PODMAN_SOCKET below
+systemctl --user start podman.socket   # rootless
 ./deployment/podman/deploy.sh up
 ```
 
 Open `http://localhost:8080/`. Tear down with `./deployment/podman/deploy.sh down` (named
 volumes/PVCs are kept - `podman volume rm` them yourself for a truly clean slate).
-
-`PULPIT_PODMAN_SOCKET` (shell env var, not read from `.env`) overrides the socket path
-`deploy.sh` substitutes into `docker-socket-proxy.yaml` - defaults to the current user's own
-rootless socket (`/run/user/$(id -u)/podman/podman.sock`). A rootful Podman host needs
-`PULPIT_PODMAN_SOCKET=/run/podman/podman.sock` instead.
 
 ## Why this is a separate directory from `deployment/kube/`
 
@@ -33,13 +28,10 @@ local Podman engine - VERIFIED live, not assumed:
 - **Supported kinds**: Pods, Deployments, DaemonSets, Jobs, PersistentVolumeClaims,
   ConfigMaps, Secrets. **No Ingress, no RBAC (Role/RoleBinding/ServiceAccount), no real
   Service objects** - there is no Kubernetes API server here at all, just a one-shot
-  translator into Podman's own container/pod primitives.
-- **No Kubernetes API server means `KubernetesExecExecutor` cannot work here** - it calls
-  the real `pods/exec` API subresource, which doesn't exist under `play kube`. This stack
-  uses `DockerExecExecutor` instead (`docker-socket-proxy.yaml`), the exact same mechanism
-  `compose.yml` uses - VERIFIED live end-to-end (a real `pulpcore-manager --version` exec
-  through the deployed `docker-socket-proxy` pod, using `app/adapters/pulp/executor.py`
-  completely unmodified).
+  translator into Podman's own container/pod primitives. This is no longer a limitation
+  signing automation needs to work around (docs/adr/0008-colocated-signing-reconciler.md):
+  the reconciler runs colocated inside `pulp.yaml`'s own image, the same one `compose.yml`
+  and `deployment/kube/` use, needing no Docker/Podman socket or Kubernetes API access at all.
 - **ConfigMaps/Secrets are not standalone objects** - VERIFIED live: `podman play kube` errors
   with "ConfigMaps in podman are not a standalone object and must be used in a container" if
   applied separately from the Pod(s) that reference them. `deploy.sh` always applies
@@ -54,14 +46,12 @@ local Podman engine - VERIFIED live, not assumed:
   instead, once `pulp` is healthy - the same idea as `compose.yml`'s `post_start` hook, just
   orchestrated by a script rather than expressible in the YAML.
 - **SELinux confinement blocks more than Docker's default does**, VERIFIED with
-  `ausearch -m avc`, not guessed - both `docker-socket-proxy.yaml` (connecting to Podman's
-  own API socket) and `pulp.yaml` (reading a plain `hostPath`-mounted file) need
-  `securityContext.seLinuxOptions.type: spc_t` on an SELinux-enforcing host (Fedora/RHEL,
-  Podman's own primary ecosystem) - a no-op elsewhere.
+  `ausearch -m avc`, not guessed - `pulp.yaml` (reading a plain `hostPath`-mounted file)
+  needs `securityContext.seLinuxOptions.type: spc_t` on an SELinux-enforcing host
+  (Fedora/RHEL, Podman's own primary ecosystem) - a no-op elsewhere.
 - **No variable interpolation in YAML at all** (unlike Compose's `${VAR}`) - `deploy.sh`
-  substitutes the two placeholders that need a real path
-  (`__PULPIT_PODMAN_SOCKET_PATH__`, `__PULPIT_REPO_ROOT__`) into temporary copies before
-  applying.
+  substitutes the one placeholder that needs a real path (`__PULPIT_REPO_ROOT__`) into a
+  temporary copy of `pulp.yaml` before applying.
 
 None of this is a real Kubernetes cluster's RBAC/Ingress/Service model, so
 `deployment/kube/`'s manifests are not reusable here as-is - hence a genuinely separate,

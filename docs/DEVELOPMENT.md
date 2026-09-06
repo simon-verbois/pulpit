@@ -11,8 +11,10 @@
 pulpit-worker merged into one image, ADR 0007) pulls its published `simonverbois/pulpit` image
 from Docker Hub, built by the release workflow, same as a real user deploying Pulpit would.
 `compose-dev.yml` is otherwise identical but builds it from local source instead — use it, not
-`compose.yml`, for everything below so you're actually testing your changes. Both files define
-`pulp`/`redis`/`docker-socket-proxy` identically.
+`compose.yml`, for everything below so you're actually testing your changes. `compose-dev.yml`
+also builds `pulp` from local source (`deployment/docker/pulp/Dockerfile`, ADR 0008), so a change
+to the colocated signing-service reconciler is picked up the same way. Both files define `redis`
+identically.
 
 ## Two development modes
 

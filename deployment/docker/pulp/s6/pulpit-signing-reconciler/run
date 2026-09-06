@@ -1,0 +1,17 @@
+#!/command/with-contenv sh
+# s6-overlay longrun - supervised/restarted automatically if it crashes,
+# same "one persistent process" model as pulp's own other services (see
+# deployment/docker/pulp/Dockerfile, docs/adr/0008-colocated-signing-reconciler.md).
+#
+# `with-contenv` (VERIFIED live: without it, /proc/<pid>/environ for this
+# process had no PULP_ADMIN_PASSWORD at all, unlike a plain `docker exec`
+# shell in the same container - s6-overlay v3 runs longruns in a clean
+# environment by default, stripped of the container's own env vars, unless
+# a service explicitly opts back in) - every other service here that reads
+# a container env var already does this (see nginx's and
+# pulpcore-worker@1's own `run` scripts). Without it, this script's
+# PULP_ADMIN_PASSWORD is always empty, so every request authenticates as
+# "admin" with an empty password and gets a real 401 from Pulp - never a
+# "Pulp not up yet" condition, despite reading exactly the same as one in
+# this script's own error message.
+exec /usr/local/bin/pulpit-signing-reconciler

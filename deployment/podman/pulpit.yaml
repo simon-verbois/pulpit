@@ -1,8 +1,8 @@
 # nginx + pulpit-core + pulpit-worker merged into one container
 # (docs/adr/0007-merged-pulpit-container.md) - mirrors compose.yml's
 # `pulpit` service. The only pod meant to be reachable from outside this
-# host (hostPort below); `pulp`/`redis`/`docker-socket-proxy` are
-# reachable by pod name on the internal Podman network only. Its own
+# host (hostPort below); `pulp`/`redis` are reachable by pod name on the
+# internal Podman network only. Its own
 # database is embedded SQLite (the `pulpit-data` PVC below), not a
 # separate Postgres pod - app/core/config/settings.py.
 apiVersion: v1

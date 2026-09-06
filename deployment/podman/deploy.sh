@@ -1,8 +1,7 @@
 #!/bin/bash
 # Applies deployment/podman/*.yaml in the right order via `podman play kube`,
-# substituting the two placeholders YAML itself can't express
-# (__PULPIT_PODMAN_SOCKET_PATH__, __PULPIT_REPO_ROOT__ - see
-# docker-socket-proxy.yaml/pulp.yaml's own comments), and runs the one step
+# substituting the one placeholder YAML itself can't express
+# (__PULPIT_REPO_ROOT__ - see pulp.yaml's own comment), and runs the one step
 # `podman play kube` genuinely cannot do at all (setting Pulp's admin
 # password - VERIFIED live no postStart-hook equivalent exists - see
 # pulp.yaml's own comment).
@@ -16,12 +15,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${REPO_ROOT}"
 
-PULPIT_PODMAN_SOCKET="${PULPIT_PODMAN_SOCKET:-/run/user/$(id -u)/podman/podman.sock}"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
-sed "s#__PULPIT_PODMAN_SOCKET_PATH__#${PULPIT_PODMAN_SOCKET}#" \
-    "${SCRIPT_DIR}/docker-socket-proxy.yaml" > "${WORK_DIR}/docker-socket-proxy.yaml"
 sed "s#__PULPIT_REPO_ROOT__#${REPO_ROOT}#" \
     "${SCRIPT_DIR}/pulp.yaml" > "${WORK_DIR}/pulp.yaml"
 
@@ -58,7 +54,6 @@ up() {
     # "configmap pulpit-config not found".
     podman play kube "${SCRIPT_DIR}/redis.yaml"
     wait_healthy redis-redis
-    podman play kube "${WORK_DIR}/docker-socket-proxy.yaml"
     podman play kube "${SCRIPT_DIR}/00-configmap.yaml" "${SCRIPT_DIR}/00-secret.yaml" "${WORK_DIR}/pulp.yaml"
     wait_healthy pulp-pulp
 
@@ -75,7 +70,6 @@ up() {
 down() {
     podman play kube --down "${SCRIPT_DIR}/pulpit.yaml" 2>/dev/null || true
     podman play kube --down "${WORK_DIR}/pulp.yaml" 2>/dev/null || true
-    podman play kube --down "${WORK_DIR}/docker-socket-proxy.yaml" 2>/dev/null || true
     podman play kube --down "${SCRIPT_DIR}/redis.yaml" 2>/dev/null || true
 }
 

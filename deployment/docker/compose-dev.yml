@@ -45,9 +45,18 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Built from local source (unlike compose.yml's published
+  # `simonverbois/pulp-pulpit` image) so the colocated signing-service
+  # reconciler always reflects whatever is currently checked out - see
+  # deployment/docker/pulp/Dockerfile, docs/adr/0008-colocated-signing-reconciler.md.
   pulp:
-    image: docker.io/pulp/pulp:stable
+    build:
+      context: ./pulp
     environment:
+      # Same timezone as `pulpit` (see below) - Pulp's own task/log
+      # timestamps (docker logs pulp, task detail timestamps) should match
+      # it too, not silently stay on UTC while the rest of the stack moved.
+      TZ: ${TZ:-UTC}
       # Fails fast with a clear error if not set - see .env.example.
       PULP_SECRET_KEY: ${PULP_SECRET_KEY:?PULP_SECRET_KEY is required. Copy .env.example to .env and set it (openssl rand -hex 32) - see docs/DEPLOYMENT.md.}
       # Optional. If set, the post_start hook below sets the "admin" user's
@@ -117,30 +126,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Scoped Docker API access so `pulpit`'s worker loop can automatically
-  # finish the one manual Pulp step (registering a signing service -
-  # docs/signing.md "Automating the manual Pulp step") instead of always
-  # requiring an administrator to run a printed command. Deliberately NOT
-  # the raw Docker socket: tecnativa/docker-socket-proxy only forwards the
-  # specific API categories enabled below (container listing + exec),
-  # refusing every other Docker API call (image builds, volume/network
-  # management, other containers' logs, etc.) - a real reduction from "root
-  # on the host" to "can list containers and exec into one identified by a
-  # label", not a cosmetic one. Internal network only, never published. A
-  # deployment that isn't Docker at all leaves
-  # PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST unset and this service is simply
-  # unused - the manual command keeps working exactly as before (see
-  # app/adapters/pulp/executor.py).
-  docker-socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest
-    environment:
-      CONTAINERS: "1"
-      EXEC: "1"
-      POST: "1"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
-
   # nginx (static SPA + reverse proxy, ADR 0005) + pulpit-core (API,
   # ADR 0006) + pulpit-worker (job queue/signing automation,
   # docs/signing.md) merged into one container
@@ -162,7 +147,19 @@ services:
       # repo root for this relative path to resolve correctly.
       context: ../..
       dockerfile: deployment/docker/Dockerfile
+      args:
+        # Shows a thin red dev-build banner (src/app/layout/DevBanner.tsx) -
+        # unset entirely in compose.yml, which builds/pulls the published
+        # image instead, so the banner only ever appears on a local build.
+        VITE_DEV_BANNER: "true"
+        # Timezone the dev banner's build timestamp is rendered in
+        # (vite.config.ts, deployment/docker/Dockerfile) - defaults to UTC
+        # if unset in .env.
+        TZ: ${TZ:-UTC}
     environment:
+      # Same timezone as the build arg above, applied at runtime too so
+      # nginx/pulpit-core/pulpit-worker log timestamps match it as well.
+      TZ: ${TZ:-UTC}
       # Plain host:port Pulp is reachable at - deliberately just a string
       # this container never interprets further, so Pulp can be a sibling
       # container (as here), a Kubernetes Service, or a real remote host on
@@ -178,14 +175,6 @@ services:
       # with: python3 -c "from cryptography.fernet import Fernet;
       # print(Fernet.generate_key().decode())"
       PULPIT_CORE_SECRET_KEY: ${PULPIT_CORE_SECRET_KEY:-}
-      # Set so the worker loop can automatically finish registering a Pulp
-      # signing service via docker-socket-proxy above, instead of requiring
-      # an administrator to run the printed command by hand. The label
-      # matches Compose's own automatic `com.docker.compose.service` label
-      # - VERIFIED present on the `pulp` container as started by this same
-      # compose file, no extra label needed on the `pulp` service itself.
-      PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST: tcp://docker-socket-proxy:2375
-      PULPIT_CORE_PULP_EXECUTOR_CONTAINER_LABEL: com.docker.compose.service=pulp
     volumes:
       # pulpit-core's own embedded SQLite database - see
       # app/core/config/settings.py. Never Pulp's own data.
@@ -206,8 +195,6 @@ services:
     depends_on:
       pulp:
         condition: service_healthy
-      docker-socket-proxy:
-        condition: service_started
       # Without this, the worker loop starts as soon as the container does
       # (much faster than Pulp's own migrations/startup) and its first
       # scheduled jobs (content_size.refresh, signing.check_pulp_bootstrap)

@@ -43,8 +43,15 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # docker.io/pulp/pulp:stable plus one added s6 longrun service - the
+  # colocated signing-service reconciler (docs/signing.md "Automating the
+  # manual Pulp step", docs/adr/0008-colocated-signing-reconciler.md) -
+  # built from deployment/docker/pulp/Dockerfile, published by the release
+  # workflow (.forgejo/workflows/release.yml). Nothing reaches into this
+  # container from the outside anymore - no docker-socket-proxy, no
+  # Kubernetes pods/exec.
   pulp:
-    image: docker.io/pulp/pulp:stable
+    image: docker.io/simonverbois/pulp-pulpit:${PULP_PULPIT_IMAGE_TAG:-latest}
     environment:
       # Fails fast with a clear error if not set - see .env.example.
       PULP_SECRET_KEY: ${PULP_SECRET_KEY:?PULP_SECRET_KEY is required. Copy .env.example to .env and set it (openssl rand -hex 32) - see docs/DEPLOYMENT.md.}
@@ -117,33 +124,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Scoped Docker API access so `pulpit`'s worker loop can automatically
-  # finish the one manual Pulp step (registering a signing service -
-  # docs/signing.md "Automating the manual Pulp step") instead of always
-  # requiring an administrator to run a printed command. Deliberately NOT
-  # the raw Docker socket: tecnativa/docker-socket-proxy only forwards the
-  # specific API categories enabled below (container listing + exec),
-  # refusing every other Docker API call (image builds, volume/network
-  # management, other containers' logs, etc.) - a real reduction from "root
-  # on the host" to "can list containers and exec into one identified by a
-  # label", not a cosmetic one. Internal network only, never published. A
-  # deployment that isn't Docker at all leaves
-  # PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST unset and this service is simply
-  # unused - the manual command keeps working exactly as before (see
-  # app/adapters/pulp/executor.py). VERIFIED live this also works against
-  # Podman's socket instead (deployment/podman/, docs/DEPLOYMENT.md "Podman");
-  # Kubernetes uses a different mechanism entirely (deployment/kube/,
-  # KubernetesExecExecutor) with no equivalent of this service at all.
-  docker-socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest
-    environment:
-      CONTAINERS: "1"
-      EXEC: "1"
-      POST: "1"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
-
   # nginx (static SPA + reverse proxy, ADR 0005) + pulpit-core (API,
   # ADR 0006) + pulpit-worker (job queue/signing automation,
   # docs/signing.md) merged into one container
@@ -172,14 +152,6 @@ services:
       # with: python3 -c "from cryptography.fernet import Fernet;
       # print(Fernet.generate_key().decode())"
       PULPIT_CORE_SECRET_KEY: ${PULPIT_CORE_SECRET_KEY:-}
-      # Set so the worker loop can automatically finish registering a Pulp
-      # signing service via docker-socket-proxy above, instead of requiring
-      # an administrator to run the printed command by hand. The label
-      # matches Compose's own automatic `com.docker.compose.service` label
-      # - VERIFIED present on the `pulp` container as started by this same
-      # compose.yml, no extra label needed on the `pulp` service itself.
-      PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST: tcp://docker-socket-proxy:2375
-      PULPIT_CORE_PULP_EXECUTOR_CONTAINER_LABEL: com.docker.compose.service=pulp
     volumes:
       # pulpit-core's own embedded SQLite database - see
       # app/core/config/settings.py. Never Pulp's own data.
@@ -200,8 +172,6 @@ services:
     depends_on:
       pulp:
         condition: service_healthy
-      docker-socket-proxy:
-        condition: service_started
       # Without this, the worker loop starts as soon as the container does
       # (much faster than Pulp's own migrations/startup) and its first
       # scheduled jobs (content_size.refresh, signing.check_pulp_bootstrap)

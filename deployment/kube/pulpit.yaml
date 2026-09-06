@@ -6,54 +6,10 @@
 # (Service/Ingress below); Pulp (pulp.yaml) is internal-only, same trust
 # boundary as under Compose. Its own database is embedded SQLite (the
 # `pulpit-data` PVC below), not a separate Postgres Deployment -
-# app/core/config/settings.py.
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: pulpit
----
-# Deliberately a namespaced Role, not a ClusterRole - VERIFIED
-# KubernetesExecExecutor (app/adapters/pulp/executor.py, used by this Pod's
-# own worker loop) only ever calls list_namespaced_pod/
-# connect_get_namespaced_pod_exec, both scoped to the one namespace this is
-# applied into. Narrower than compose.yml's docker-socket-proxy
-# (CONTAINERS+EXEC+POST across every container Docker/Podman knows about) -
-# this can only ever see/exec into pods in this exact namespace. No
-# DOCKER_HOST-equivalent connection string needed either - authenticated
-# via this ServiceAccount's own token, the standard in-cluster auth every
-# pod already has.
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: pulpit-exec
-rules:
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["pods/exec"]
-    # BUG FOUND LIVE (validated against a real kind cluster + a real
-    # ServiceAccount token, not assumed from Kubernetes' own general exec
-    # docs): the official `kubernetes` Python client's
-    # `connect_get_namespaced_pod_exec` performs the websocket upgrade as
-    # an HTTP GET, so the API server's RBAC check is against the "get"
-    # verb, not "create" (the verb `kubectl exec` itself uses, via a
-    # different SPDY-based code path). "create" is included too since it's
-    # the more commonly-documented verb and costs nothing extra.
-    verbs: ["get", "create"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: pulpit-exec
-subjects:
-  - kind: ServiceAccount
-    name: pulpit
-roleRef:
-  kind: Role
-  name: pulpit-exec
-  apiGroup: rbac.authorization.k8s.io
----
+# app/core/config/settings.py. No ServiceAccount/RBAC needed here anymore
+# (docs/adr/0008-colocated-signing-reconciler.md): signing-service
+# registration is reconciled from *inside* pulp.yaml's own image now, so
+# this Deployment never needs to reach the Kubernetes API at all.
 # pulpit-core's own embedded SQLite database - ReadWriteOnce is enough,
 # unlike pulp.yaml's signing PVCs below (only ever mounted by this one Pod).
 apiVersion: v1
@@ -87,7 +43,6 @@ spec:
       labels:
         app: pulpit
     spec:
-      serviceAccountName: pulpit
       containers:
         - name: pulpit
           image: docker.io/simonverbois/pulpit:latest
@@ -105,15 +60,6 @@ spec:
                 secretKeyRef:
                   name: pulpit-secrets
                   key: PULPIT_CORE_SECRET_KEY
-            # The Role/RoleBinding above only grant access within this
-            # namespace anyway, but KubernetesExecExecutor needs to know
-            # which one to actually call the API with - read from the
-            # Downward API rather than hardcoded, so nothing here needs
-            # editing when this is applied into a different namespace.
-            - name: PULPIT_CORE_PULP_EXECUTOR_KUBERNETES_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
           ports:
             - containerPort: 8080
           volumeMounts:

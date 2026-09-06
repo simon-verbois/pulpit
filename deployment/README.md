@@ -10,8 +10,8 @@ deploy Pulpit that way:
   wrapper (explicit project choice) and **not** a real Kubernetes cluster.
 - [`kube/`](kube/README.md) - plain Kubernetes manifests (no Helm) for a real cluster.
 
-All three run the exact same published `simonverbois/pulpit` image and were VERIFIED live, not
-just written to look plausible - see `docs/DEPLOYMENT.md` for the deeper technical picture
-(architecture rationale, persistence, secrets, and what's genuinely different about each
-target, e.g. why `podman/` can't use `KubernetesExecExecutor` or a `postStart` hook the way
-`kube/` does).
+All three run the exact same published `simonverbois/pulpit` and `simonverbois/pulp-pulpit`
+images (ADR 0008) and were VERIFIED live, not just written to look plausible - see
+`docs/DEPLOYMENT.md` for the deeper technical picture (architecture rationale, persistence,
+secrets, and what's genuinely different about each target, e.g. why `podman/` can't use a
+`postStart` hook the way `kube/` does).

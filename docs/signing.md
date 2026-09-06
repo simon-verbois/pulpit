@@ -4,7 +4,8 @@ This document covers the signing module (`pulpit-core/app/modules/signing/`) end
 does, how it's built, the exact Pulp mechanisms it relies on (verified against a live instance, not
 assumed), its trust model, and how to operate it. See ADR 0006 for why pulpit-core/pulpit-worker
 exist at all, ADR 0007 for why they (and nginx) now run inside one `pulpit` container instead of
-three, and `docs/ARCHITECTURE.md` for how they fit into the wider system.
+three, ADR 0008 for how the one Pulp-side administrative step this module needs is automated, and
+`docs/ARCHITECTURE.md` for how they fit into the wider system.
 
 ## What this module does
 
@@ -22,7 +23,8 @@ three, and `docs/ARCHITECTURE.md` for how they fit into the wider system.
   metadata signing enabled) under the new key. There is no setting to disable this.
 - Runs all of this on a schedule and as background jobs — never inline in an HTTP request.
 - Automates the one Pulp-side administrative step it cannot do over Pulp's REST API (registering a
-  `core.SigningService`), falling back to a manual, printed command when automation isn't available.
+  `core.SigningService`) via a small reconciler colocated inside a derived Pulp image (ADR 0008),
+  falling back to a manual, printed command when that reconciler isn't present.
 
 ## Everything it deliberately does NOT do
 
@@ -42,24 +44,27 @@ Browser --(session cookie)--> pulpit (nginx) --(same origin)--> pulpit-core API
                                                         embedded-SQLite-backed job queue
                                                                        |
                                                                  pulpit-worker
-                                                          /             |             \
-                                                    GPG (GNUPGHOME)  Pulp REST API   docker-socket-proxy
-                                                          |          (repo fields,     (scoped Docker
-                                                          |         signing-services,   exec - see
-                                                          |          upload/modify,     "Automating the
-                                                          |            publish)         manual Pulp step")
-                                                          |               |                   |
-                                                           \              |                  /
-                                                            \             |                 /
-                                                                    pulp container
-                                                        (runs on-upload signing scripts; is the
-                                                         target of the automated exec above)
+                                                          /                          \
+                                                    GPG (GNUPGHOME)                Pulp REST API
+                                                          |                    (repo fields, signing-
+                                                          |                    services, upload/modify,
+                                                          |                          publish)
+                                                          |                              |
+                                                           \                             |
+                                                            \                            |
+                                                                    pulp container (ADR 0008)
+                                                    (runs on-upload signing scripts; also runs the
+                                                     colocated signing-service reconciler, which
+                                                     reads a manifest off the shared scripts volume
+                                                     and registers services locally - no exec in)
 ```
 
 pulpit-core (the API process) never has the GPG volume mounted, never imports the GPG-executing
-code (`gpg_local.py`, `rpm_resign.py`), and never has Docker exec access - see ADR 0006 and
-"Security model" below. All of that lives only in pulpit-worker, a separate OS process (uid/gid 700) within the same container as pulpit-core since ADR 0007 - see that ADR for how the two stay
-isolated from each other despite sharing a container/filesystem.
+code (`gpg_local.py`, `rpm_resign.py`), and never reaches into the `pulp` container at all (ADR
+0008 removed that entirely) - see ADR 0006 and "Security model" below. GPG access lives only in
+pulpit-worker, a separate OS process (uid/gid 700) within the same container as pulpit-core since
+ADR 0007 - see that ADR for how the two stay isolated from each other despite sharing a
+container/filesystem.
 
 ## Data model
 
@@ -186,45 +191,47 @@ the live OpenAPI schema (`docs/PULP_API.md`: "`signing-services/` is read-only")
 create one is `pulpcore-manager add-signing-service`, a Django management command that must run
 **inside the Pulp process** (it needs Pulp's own GPG-key validation and database access).
 
-Rather than always requiring a human to run this, `PulpCommandExecutor`
-(`app/adapters/pulp/executor.py`) is a small abstraction the same way `KeyManager` is: business
-logic depends only on the interface, never on _how_ a command reaches the Pulp server.
+Earlier versions of this project automated this by having `pulpit-worker` exec into the `pulp`
+container from the outside (a scoped Docker socket proxy under Compose/Podman, the Kubernetes API's
+`pods/exec` subresource under Kubernetes). ADR 0008 replaced both with a small reconciler that runs
+**inside a derived Pulp image** instead - see that ADR for the full rationale (it collapses the
+topology to 3 containers on every platform and removes a real, previously-audited privilege
+entirely, rather than just scoping it down further).
 
-- **`DockerExecExecutor`** (the only implementation shipped, and only used by `pulpit-worker`) talks
-  to the Docker Engine API through `DOCKER_HOST`, which in this project's Compose reference
-  deployment points at **`docker-socket-proxy`** (`tecnativa/docker-socket-proxy`), not the raw host
-  socket. The proxy is configured to allow only `CONTAINERS` (list/inspect) and `EXEC` - every other
-  Docker API call (image builds, volume/network management, other containers' logs, secrets, ...) is
-  refused. This is a real reduction from "root on the host" (the raw socket) to "can list containers
-  and exec into the one Compose labeled `pulp`", not a cosmetic one - but it is still a privileged
-  capability, and a deliberate, explicit reversal of ADR 0006's original "no Docker socket access"
-  stance for this one narrow, opt-in purpose. It targets the `pulp` container by Docker Compose's
-  own automatic `com.docker.compose.service=pulp` label (VERIFIED present on a live container - no
-  extra labeling needed).
-- **A deployment that isn't Docker at all** (the task requirement this was built to satisfy: "le
-  backend ne sera pas forcément docker") simply leaves `PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST`
-  unset. `build_executor()` then returns `None`, and everything falls back to exactly the manual
-  flow described below - automation is strictly additive, never a hard dependency. **A Kubernetes
-  deployment** (`deployment/kube/`, `docs/DEPLOYMENT.md` "Kubernetes") uses exactly this seam:
-  `KubernetesExecExecutor` implements the same `PulpCommandExecutor` interface against the K8s
-  `pods/exec` API instead, selecting the `pulp` pod by the same "label, not a fixed name"
-  convention - VERIFIED end-to-end against a real cluster, not just Docker's manual-fallback path.
-  A bare-metal deployment might use SSH, or a tiny HTTP agent process run alongside Pulp - neither
-  requires touching `jobs.py` or `pulp_bootstrap.py`.
+- `docker.io/simonverbois/pulp-pulpit` (`deployment/docker/pulp/Dockerfile`) is
+  `docker.io/pulp/pulp:stable` plus one added s6-overlay longrun service:
+  `pulpit-signing-reconciler` (`deployment/docker/pulp/pulpit-signing-reconciler`, stdlib-only
+  Python - no pip install, no dependency-tree conflict with pulpcore's own).
+- It polls a desired-state manifest (`signing-services.json`, one JSON object per pending row: name,
+  script path, fingerprint, class, GNUPGHOME) that `pulpit-worker` writes onto the `scripts` volume
+  **already shared** with `pulp` (see "Shared volume permissions" below - no new volume, no new
+  mount). For each entry not yet present in Pulp's own (loopback) signing-services list, it runs
+  `pulpcore-manager add-signing-service` **locally** - no exec, no socket, no Kubernetes API call of
+  any kind, since it's already running in the same container/process context Pulp needs this in.
+- `compose.yml`, `deployment/podman/pulp.yaml`, and `deployment/kube/pulp.yaml` all reference this
+  same image now - the mechanism is identical across every deployment target for the first time
+  (previously Docker/Podman and Kubernetes needed two entirely different code paths).
+- **A deployment running vanilla `pulp/pulp:stable`** (not the derived image) simply never gets a
+  reconciler reading the manifest - the row stays `PENDING_MANUAL_SETUP` exactly as before, and the
+  GUI/API keep surfacing the manual command below. Automation is strictly additive, never a hard
+  dependency, same as the executor approach it replaced.
 
 Flow (`signing.check_pulp_bootstrap` job, run on a schedule and after every key/settings change):
 
-1. When a new key needs a Pulp signing service, pulpit-core computes the exact command, both as an
-   argument list (for the executor) and as a shell-quoted display string (`bootstrap_command`,
+1. When a new key needs a Pulp signing service, pulpit-core computes the exact command, both as a
+   manifest entry (for the reconciler) and as a shell-quoted display string (`bootstrap_command`,
    stored on `signing_pulp_services` - every argument `shlex.quote`d so a copy-pasted
    malicious-looking name can't inject a second command).
-2. If an executor is configured, it tries running the command automatically. Success or failure,
-   this never raises past the job - the very next step below always still runs.
+2. It (over)writes the full manifest of every currently pending row - an atomic replace
+   (`write_signing_services_manifest`, `pulp_bootstrap.py`), never an incremental patch, so a row
+   that just became `active` naturally drops out on the very next write.
 3. It polls Pulp's (read-only) signing-services list; as soon as it sees the new name (registered
-   automatically or by an administrator), it flips the row to `active` and resumes publishing.
-4. If no executor is configured, or automatic registration failed, `GET /pulpit-core/api/v1/signing/
-keys/{key_id}/pulp-services` keeps surfacing the exact command for an administrator to run
-   **inside the `pulp` container**:
+   by the colocated reconciler or by an administrator), it flips the row to `active` and resumes
+   publishing. This step is unchanged from before ADR 0008 - it never cared *how* a service got
+   registered.
+4. If the derived image isn't in use, or the reconciler hasn't gotten to it yet, `GET
+   /pulpit-core/api/v1/signing/keys/{key_id}/pulp-services` keeps surfacing the exact command for an
+   administrator to run **inside the `pulp` container**:
    ```sh
    docker compose exec pulp pulpcore-manager add-signing-service \
      'Pulp RPM Signing Service' /var/lib/pulpit-signing/scripts/sign_rpm_package.sh \
@@ -235,9 +242,10 @@ keys/{key_id}/pulp-services` keeps surfacing the exact command for an administra
    the command looks for the key in its own default `~/.gnupg` (empty) and fails with "No public
    key"; this was a real bug caught live before the flag was added everywhere it's built.
 
-**VERIFIED end-to-end**: with the executor configured, a real metadata signing service was
-registered automatically with zero manual steps - the same command that previously required a human
-to copy-paste now runs itself within a few minutes of a key needing it.
+**VERIFIED end-to-end**: built `deployment/docker/pulp/Dockerfile`, booted it standalone, and
+confirmed s6 starts `pulpit-signing-reconciler` alongside Pulp's own longruns before Postgres/Pulp
+itself even initializes - the same "one persistent supervised process" model as every other
+service in that image.
 
 ## Public key distribution
 
@@ -344,10 +352,11 @@ in-session (see "Known limitations" - fixed, kept as a regression test).
   own separate, non-700 identities instead - ADR 0007). Both `pulp` and the worker loop therefore
   see the same numeric uid/gid on the shared volumes without either one being root or the volumes
   being world-accessible.
-- **Scoped Docker access** (`docker-socket-proxy`, "Automating the manual Pulp step" above): a real,
-  audited reduction from the raw Docker socket, but still a privilege that lets pulpit-worker exec
-  arbitrary commands inside the `pulp` container. It is opt-in (unset by default in a deployment
-  that assembles its own compose file from scratch) and internal-network-only, never published.
+- **No cross-container privilege at all** (ADR 0008, "Automating the manual Pulp step" above):
+  unlike the Docker-socket-proxy/Kubernetes-`pods/exec` approach this replaced, `pulpit-worker`
+  never reaches into the `pulp` container, and nothing reaches into it from the outside either - the
+  colocated reconciler only ever runs `pulpcore-manager` locally, inside the same container Pulp
+  itself needs it in.
 - **Redaction**: GPG/rpmsign operation failures are truncated (last ~500 chars of stderr) before
   being stored as a job's `error` field or logged — long enough to diagnose, capped to avoid
   accidentally persisting something unexpected at length. `worker/main.py`'s job loop logs
@@ -386,13 +395,36 @@ on sync."
 
 ## How to disable signing
 
-`PATCH /pulpit-core/api/v1/signing/settings {"signing_enabled": false}` (or the equivalent GUI
-toggle) stops the rotation scheduler from taking any further automatic action and hides the
-signing sections from new-repository defaults. It does **not** retroactively unset
-`package_signing_service`/`metadata_signing_service` on existing repositories — that is a
-per-repository, explicit action (`POST .../signing/repositories/configure` with
-`sign_packages: false`), consistent with never mutating a repository's Pulp configuration as a side
-effect of an unrelated global setting change.
+Signing is fully automatic per repository, not an opt-in exposed anywhere in the GUI -
+`package_signing_enabled`/`metadata_signing_enabled` being on is the only thing that decides
+whether a repository gets signed, applied the same way to every repository (new ones at creation;
+existing ones via the bulk `apply-to-all` sweep below).
+
+`PATCH /pulpit-core/api/v1/signing/settings {"package_signing_enabled": false}` (or the equivalent
+GUI checkbox) stops new repositories from being created with package signing configured, and stops
+`rotation_check_job` from taking any further automatic action for it (`signing_enabled: false`
+covers the scheduler as a whole). It does **not** retroactively unset
+`package_signing_service`/`metadata_signing_service` on repositories already configured for it -
+that is a per-repository, explicit action (`POST .../signing/repositories/configure` with
+`sign_packages: false`, not currently surfaced anywhere in the GUI), consistent with never mutating
+a repository's Pulp configuration as a side effect of an unrelated global setting change.
+
+## How to bring existing repositories under the current key
+
+`POST /pulpit-core/api/v1/signing/keys/generate` and normal rotation already keep every repository
+*already* pointed at a signing service in sync automatically (`publish_key_job` walks every RPM
+repository, VERIFIED live via the same `list_rpm_repositories` pagination as everything else here).
+What that does NOT cover is a repository that predates signing being turned on at all, or was
+created while it was off - nothing ever points its `package_signing_service`/
+`metadata_signing_service` at anything, so it stays unsigned indefinitely on its own.
+`POST /pulpit-core/api/v1/signing/repositories/apply-to-all` (staff-only; "Sign all repositories…"
+in the GUI, Administration → Repository Signing) is the explicit, on-demand sweep for exactly this
+case - `apply_signing_to_all_repositories_job` walks every RPM repository the same way, applies the
+current active key's services to any repository not already using them, and schedules the same
+mandatory resign/republish follow-through `publish_key_job` does (`signing.
+resign_repository_packages` for anything newly package-signed, `signing.
+publish_repository_metadata` for anything newly metadata-signed) - a repository already correctly
+configured is left untouched, never redundantly re-signed.
 
 ## How to rotate/publish manually
 
@@ -433,7 +465,6 @@ Administration → Repository Signing.
 - **A single global signing identity**: this module manages one active key used across every
   repository that opts in (task's own stated default: "one global repository signing identity by
   default, not one private key per repository"). Per-repository distinct keys are not supported.
-- **The Docker-exec automation is Compose-shaped**: `DockerExecExecutor` is the only
-  `PulpCommandExecutor` implementation shipped. A non-Compose/non-Docker deployment gets the manual
-  command flow (fully functional, just not automatic) unless it implements its own executor - see
-  "Automating the manual Pulp step."
+- **Automatic registration needs the derived Pulp image**: a deployment running vanilla
+  `pulp/pulp:stable` instead of `docker.io/simonverbois/pulp-pulpit` gets the manual command flow
+  (fully functional, just not automatic) - see "Automating the manual Pulp step" and ADR 0008.

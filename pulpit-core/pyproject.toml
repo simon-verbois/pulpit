@@ -20,15 +20,6 @@ dependencies = [
   # the default-settings proxy password, app/core/crypto.py) - Fernet only,
   # not a general crypto toolkit dependency.
   "cryptography>=43,<44",
-  # Only ever imported by pulpit-worker (app/adapters/pulp/executor.py) -
-  # see that module's docstring. Shared here rather than a second
-  # pyproject because it's a plain library dependency with no capability of
-  # its own; the worker image is the only one with DOCKER_HOST reachable.
-  "docker>=7.1,<8",
-  # Same reasoning as docker above, for KubernetesExecExecutor
-  # (app/adapters/pulp/executor.py) - only meaningful when pulpit-worker
-  # actually runs inside a Kubernetes cluster (deployment/kube/pulpit.yaml).
-  "kubernetes>=31,<32",
 ]
 
 [project.optional-dependencies]

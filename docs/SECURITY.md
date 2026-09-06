@@ -17,10 +17,11 @@ trust model, subprocess safety, key exposure boundaries, backup/recovery — liv
 pulpit-core's own API process (both running as the unprivileged `pulpit` user) ever has private
 key material or the GNUPGHOME volume; only the worker loop (uid/gid 700) does, and it is never
 reachable from the browser at all (no route to it exists in `deployment/docker/nginx/pulpit.conf.template`,
-and it isn't an HTTP server to begin with). Optionally, that worker loop can also reach a scoped
-`docker-socket-proxy` (Docker/Podman Engine API restricted to `CONTAINERS`+`EXEC`, never the raw
-socket - Kubernetes uses its own API directly instead, no proxy container) to automate one
-Pulp-side administrative command; see ADR 0006 "Alternatives considered" and `docs/signing.md`
+and it isn't an HTTP server to begin with). That worker loop never reaches into the `pulp`
+container at all (ADR 0008): the one Pulp-side administrative command signing needs is instead
+automated by a small reconciler colocated *inside* a derived Pulp image
+(`docker.io/simonverbois/pulp-pulpit`), reading a manifest off the volume already shared between
+the two - no cross-container privilege of any kind; see ADR 0008 and `docs/signing.md`
 "Automating the manual Pulp step" for the full rationale and scope.
 
 ## No frontend secrets

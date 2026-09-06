@@ -122,8 +122,14 @@ spec:
         app: pulp
     spec:
       containers:
+        # docker.io/pulp/pulp:stable plus one added s6 longrun service - the
+        # colocated signing-service reconciler (docs/signing.md "Automating
+        # the manual Pulp step", docs/adr/0008-colocated-signing-reconciler.md)
+        # - built from deployment/docker/pulp/Dockerfile, same image
+        # compose.yml/deployment/podman/ use. Nothing reaches into this pod
+        # from the outside anymore - no ServiceAccount/RBAC needed.
         - name: pulp
-          image: docker.io/pulp/pulp:stable
+          image: docker.io/simonverbois/pulp-pulpit:latest
           env:
             - name: PULP_SECRET_KEY
               valueFrom:

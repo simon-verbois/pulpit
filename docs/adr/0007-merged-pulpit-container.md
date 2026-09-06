@@ -43,7 +43,11 @@ of a moving target on every release instead of pulling `pulp/pulp:stable` direct
 signing-automation exec mechanism (`app/adapters/pulp/executor.py`, ADR 0006) is unaffected
 by this merge - it exists to reach into _that_ separate container/pod, not to let
 pulpit-core/pulpit-worker talk to each other, so `docker-socket-proxy` (Docker/Podman) and
-`KubernetesExecExecutor` (Kubernetes) both remain exactly as before.
+`KubernetesExecExecutor` (Kubernetes) both remain exactly as before. (Superseded by ADR 0008:
+that exec mechanism was later removed entirely in favor of a reconciler colocated inside a
+derived Pulp image - the "Pulp stays separate, rebuild-on-a-moving-target" reasoning here is
+exactly why that ADR keeps the reconciler itself tiny rather than folding pulpit-core/worker
+into the same image too.)
 
 **Pulp's own address becomes a plain `host:port` string (`PULP_UPSTREAM`)**, not a
 Compose-network-specific hostname - task requirement: "définir dans une var l'URL de

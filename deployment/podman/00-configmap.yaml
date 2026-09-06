@@ -30,17 +30,3 @@ data:
   # falls back to the same session/Basic auth used everywhere else. Do not
   # carry this into a real production deployment.
   PULP_TOKEN_AUTH_DISABLED: "true"
-
-  # DockerExecExecutor (app/adapters/pulp/executor.py), NOT
-  # KubernetesExecExecutor - there is no Kubernetes API server here at all
-  # under `podman play kube` (it only interprets a subset of Kubernetes
-  # YAML client-side against the local Podman engine, VERIFIED: "Supported
-  # kinds are Pods, Deployments, DaemonSets, Jobs, and
-  # PersistentVolumeClaims" - no RBAC, no real pods/exec subresource), so
-  # this stack uses the exact same mechanism as compose.yml
-  # (docker-socket-proxy.yaml below) instead. VERIFIED live: a Pod's
-  # `metadata.labels` (pulp.yaml's `app: pulp`) become real, queryable
-  # container labels under Podman - `docker-py`'s own label filter finds
-  # them exactly like it does a Compose-created container.
-  PULPIT_CORE_PULP_EXECUTOR_DOCKER_HOST: "tcp://docker-socket-proxy:2375"
-  PULPIT_CORE_PULP_EXECUTOR_CONTAINER_LABEL: "app=pulp"

@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Reconciles Pulp `core.SigningService` registrations from *inside* the
+`pulp` container (docs/signing.md "Automating the manual Pulp step",
+docs/adr/0008-colocated-signing-reconciler.md) - replaces the previous
+approach of pulpit-worker exec'ing `pulpcore-manager` into this container
+from the outside (docker-socket-proxy / Kubernetes pods/exec).
+
+Reads the desired-state manifest pulpit-worker writes to the scripts volume
+already shared between `pulp` and `pulpit` (docs/signing.md "Shared volume
+permissions" - no new volume needed), and for each entry not yet registered,
+runs `pulpcore-manager add-signing-service` locally.
+
+Stdlib only, deliberately: this runs inside `pulp/pulp:stable`'s own Python
+environment, never pulpit-core's - no pip install needed in the derived
+image, and no risk of pulpit-core's own dependency versions conflicting with
+pulpcore's.
+"""
+
+import base64
+import json
+import os
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+MANIFEST_PATH = "/var/lib/pulpit-signing/scripts/signing-services.json"
+PULP_API_BASE = "http://localhost/pulp/api/v3"
+POLL_INTERVAL_SECONDS = 30
+
+
+def _log(message: str) -> None:
+    print(f"pulpit-signing-reconciler: {message}", flush=True)
+
+
+def _read_manifest() -> list[dict]:
+    try:
+        with open(MANIFEST_PATH, encoding="utf-8") as fh:
+            return json.load(fh)
+    except FileNotFoundError:
+        # Nothing to reconcile yet - pulpit-worker hasn't run
+        # signing.check_pulp_bootstrap for the first time (e.g. signing was
+        # never enabled). Not an error.
+        return []
+    except json.JSONDecodeError as exc:
+        # Only observable if the writer's temp-file-then-rename wasn't
+        # actually atomic (e.g. a cross-filesystem mount) - never crash the
+        # loop over it, just retry next cycle.
+        _log(f"manifest unreadable, will retry next cycle: {exc}")
+        return []
+
+
+def _signing_service_exists(name: str, *, username: str, password: str) -> bool:
+    url = f"{PULP_API_BASE}/signing-services/?name={urllib.parse.quote(name)}"
+    request = urllib.request.Request(url)
+    if username:
+        credentials = base64.b64encode(f"{username}:{password}".encode()).decode()
+        request.add_header("Authorization", f"Basic {credentials}")
+    with urllib.request.urlopen(request, timeout=10) as response:
+        body = json.load(response)
+    return body.get("count", 0) > 0
+
+
+def _register(entry: dict) -> None:
+    args = [
+        "pulpcore-manager",
+        "add-signing-service",
+        entry["name"],
+        entry["script"],
+        entry["fingerprint"],
+        "--class",
+        entry["class"],
+        "--home",
+        entry["home"],
+    ]
+    result = subprocess.run(args, capture_output=True, text=True, timeout=120)
+    if result.returncode != 0:
+        _log(f"registration failed for {entry['name']!r}: {result.stderr[-500:]}")
+    else:
+        _log(f"registered signing service {entry['name']!r}")
+
+
+def _reconcile_once(*, username: str, password: str) -> None:
+    for entry in _read_manifest():
+        try:
+            if _signing_service_exists(entry["name"], username=username, password=password):
+                continue
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            # Pulp not up yet, or PULP_ADMIN_PASSWORD not set/correct -
+            # never hard-fail, this is retried every cycle regardless.
+            _log(f"skipping {entry['name']!r} this cycle - Pulp not reachable: {exc}")
+            continue
+        _register(entry)
+
+
+def main() -> None:
+    username = "admin"
+    password = os.environ.get("PULP_ADMIN_PASSWORD", "")
+    while True:
+        _reconcile_once(username=username, password=password)
+        time.sleep(POLL_INTERVAL_SECONDS)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

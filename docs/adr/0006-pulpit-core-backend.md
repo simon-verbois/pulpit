@@ -123,6 +123,10 @@ Browser -> Pulpit (nginx, static SPA - unchanged, still no backend of its own)
   once one real SELinux confinement gotcha is worked around (`deployment/podman/`,
   `docs/DEPLOYMENT.md` "Podman") - the interface didn't need to change at all for either.
 
+  **Superseded by ADR 0008**: `PulpCommandExecutor` and both its implementations were later
+  deleted outright in favor of a reconciler colocated inside a derived Pulp image, which needs no
+  cross-container privilege (Docker socket or Kubernetes RBAC) at all - see that ADR.
+
 - **Reuse Pulp's own Postgres for pulpit-core's tables**: rejected - it would make pulpit-core's
   schema Pulp's problem during upgrades/migrations and reintroduce exactly the "second system
   quietly depends on the first system's internals" coupling ADR 0001 was written to avoid. A

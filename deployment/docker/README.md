@@ -1,10 +1,10 @@
 # Docker Compose
 
-The primary, most-tested reference topology: `pulp` + `pulpit` (nginx + pulpit-core +
-pulpit-worker merged into one image, ADR 0007) + `redis` + `docker-socket-proxy`, one
-same-origin reverse proxy in front of all of it (ADR 0005). See `docs/DEPLOYMENT.md` for the
-full picture (topology diagram, persistence, secrets, Redis, signing, known issues,
-production considerations).
+The primary, most-tested reference topology: `pulp` (a derived image with the colocated
+signing-service reconciler, docs/adr/0008-colocated-signing-reconciler.md) + `pulpit` (nginx +
+pulpit-core + pulpit-worker merged into one image, ADR 0007) + `redis`, one same-origin reverse
+proxy in front of all of it (ADR 0005). See `docs/DEPLOYMENT.md` for the full picture (topology
+diagram, persistence, secrets, Redis, signing, known issues, production considerations).
 
 ## Deploying
 

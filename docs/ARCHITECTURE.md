@@ -27,17 +27,17 @@ flowchart TB
         PulpitCore -.->|jobs, same DB| PulpitWorker["pulpit-worker (uid/gid 700)"]
         PulpitWorker -->|GPG| GnuPGHome[(GNUPGHOME volume)]
         PulpitWorker -->|"admin API calls"| Pulp
-        PulpitWorker -.->|"optional: scoped exec (Docker/Podman) or Kubernetes API (K8s)"| DockerProxy[docker-socket-proxy]
     end
     subgraph Pulp
         Pulpcore
         pulp_rpm
         pulp_container
         pulp_ansible
+        Reconciler["pulpit-signing-reconciler (s6 longrun, ADR 0008)"]
         Pulpcore --> Postgres[(PostgreSQL, owned by Pulp)]
+        Reconciler -->|"pulpcore-manager (local)"| Pulpcore
     end
-    PulpitWorker -.->|"shared GNUPGHOME + scripts volumes"| Pulp
-    DockerProxy -.->|"CONTAINERS + EXEC only"| Pulp
+    PulpitWorker -.->|"shared GNUPGHOME + scripts volumes (incl. the signing-services manifest)"| Reconciler
 ```
 
 Everything in this diagram runs as containers in the Compose dev environment; in production
@@ -58,10 +58,12 @@ ADR 0005, ADR 0006, ADR 0007, and `docs/DEPLOYMENT.md`.
   rotation-check scheduler, as a separate OS process (uid/gid 700) within the same `pulpit`
   container as pulpit-core - the only one with GPG key material's volume mounted. pulpit-core's
   API process never has that access, by construction (`docs/signing.md`, ADR 0007's own
-  entrypoint design). It can optionally also reach a scoped `docker-socket-proxy` (Docker/Podman;
-  Kubernetes uses its own API directly instead, no proxy container) to automate the one Pulp-side
-  administrative command signing needs — opt-in, falls back to a manual command otherwise
-  (`docs/signing.md` "Automating the manual Pulp step", ADR 0006 "Alternatives considered").
+  entrypoint design). It never reaches into the `pulp` container at all (ADR 0008): the one
+  Pulp-side administrative command signing needs is instead automated by a small reconciler
+  colocated *inside* a derived Pulp image, reading a desired-state manifest off the volume already
+  shared with `pulpit-worker` — opt-in (falls back to a manual command otherwise), and identical
+  across Docker/Podman/Kubernetes for the first time (`docs/signing.md` "Automating the manual Pulp
+  step", ADR 0008).
 - Structure (`pulpit-core/app/`):
   ```
   app/

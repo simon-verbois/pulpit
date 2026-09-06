@@ -29,20 +29,42 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# Empty by default (compose.yml's published-image build never sets this) -
+# only deployment/docker/compose-dev.yml passes it, to show a thin
+# dev-build banner (src/app/layout/DevBanner.tsx) so a locally-built image
+# is never mistaken for the published release. VITE_-prefixed so Vite
+# bakes it into the client bundle - not a secret, just a build identifier.
+ARG VITE_DEV_BANNER=""
+ENV VITE_DEV_BANNER=$VITE_DEV_BANNER
+# Timezone the dev banner's build timestamp is rendered in (vite.config.ts
+# reads process.env.TZ at build time) - defaults to UTC so a build with no
+# TZ passed still produces a valid, labeled timestamp instead of silently
+# using whatever zone the build host happens to be in.
+ARG TZ="UTC"
+ENV TZ=$TZ
 RUN npm run build
 
 # Stage 2: runtime.
 FROM python:3.12-slim AS runtime
 WORKDIR /app
 
+# Overridable at `docker run`/Compose/Kubernetes time, same as
+# PULP_UPSTREAM below - correct log/timestamp rendering for nginx and
+# pulpit-core/pulpit-worker, independent of the frontend build's own TZ
+# arg above (which only affects the baked-in dev banner string).
+ARG TZ="UTC"
+ENV TZ=$TZ
+
 # gnupg + rpm: signing automation (app/modules/signing/rpm_resign.py docstring
 # - Debian's `rpm` package provides both `rpm` and `rpmsign`). nginx +
 # gettext-base (envsubst): the reverse proxy + its own config templating
 # (deployment/docker/pulpit/entrypoint.sh - no nginx.org Docker image here,
 # so its usual envsubst-on-templates machinery is reimplemented by hand
-# there).
+# there). tzdata: without it, glibc has no /usr/share/zoneinfo to resolve
+# the TZ env var above against and silently falls back to UTC instead of
+# erroring - this package is what actually makes TZ take effect.
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y gnupg rpm nginx gettext-base curl \
+    && apt-get install --no-install-recommends -y gnupg rpm nginx gettext-base curl tzdata \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/nginx/sites-enabled/default
 

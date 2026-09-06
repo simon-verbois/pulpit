@@ -48,12 +48,13 @@ so ordering here is cosmetic, not load-bearing.
 - **No separate database Deployment** - pulpit-core's own database is
   embedded SQLite (the `pulpit-data` PVC in `pulpit.yaml`), not a Postgres
   Deployment - `app/core/config/settings.py`.
-- **No `docker-socket-proxy`** - `pulpit`'s worker loop talks to the
-  Kubernetes API directly instead (`KubernetesExecExecutor`,
-  `app/adapters/pulp/executor.py`), authenticated via the `pulpit`
-  ServiceAccount/Role/RoleBinding this directory creates, narrower than the
-  Docker/Podman socket-proxy approach (scoped to `get`/`list` on `pods` and
-  `get`/`create` on `pods/exec`, this namespace only).
+- **No `docker-socket-proxy`, no RBAC at all** - `pulp.yaml` runs a derived
+  image (`docker.io/simonverbois/pulp-pulpit`, same one `compose.yml`/
+  `deployment/podman/` use) that reconciles signing-service registration
+  from *inside* the pod itself
+  (docs/adr/0008-colocated-signing-reconciler.md) - `pulpit` never needs to
+  reach the Kubernetes API, so no ServiceAccount/Role/RoleBinding exists in
+  this directory at all.
 - **No Compose `post_start` hook** - `pulp.yaml` uses Kubernetes' own
   `lifecycle.postStart` container hook instead, running the exact same
   script (inlined into a ConfigMap - see that file's own comment on why).

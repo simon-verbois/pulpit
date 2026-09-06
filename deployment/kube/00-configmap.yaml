@@ -32,10 +32,3 @@ data:
   # falls back to the same session/Basic auth used everywhere else. Do not
   # carry this into a real production deployment.
   PULP_TOKEN_AUTH_DISABLED: "true"
-
-  # KubernetesExecExecutor's pod-label selector (app/adapters/pulp/
-  # executor.py) - matches pulp.yaml's Deployment/Pod `app: pulp` label.
-  # The namespace itself is NOT set here - pulpit.yaml's worker loop reads
-  # it from the Kubernetes Downward API instead (whatever namespace this is
-  # actually applied into), so nothing here needs editing to match it.
-  PULPIT_CORE_PULP_EXECUTOR_KUBERNETES_POD_LABEL: "app=pulp"

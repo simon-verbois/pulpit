@@ -75,33 +75,16 @@ class Settings(BaseSettings):
     # this directory and should not have it mounted at all). ---
     signing_gnupg_home: Path = Path("/var/lib/pulpit-signing/gnupg")
     signing_scripts_dir: Path = Path("/var/lib/pulpit-signing/scripts")
+    # Filename (under signing_scripts_dir, already shared with `pulp` -
+    # docs/signing.md "Shared volume permissions") of the desired-state
+    # manifest `signing.check_pulp_bootstrap` writes and the colocated
+    # reconciler baked into the derived Pulp image
+    # (deployment/docker/pulp/pulpit-signing-reconciler) polls from inside
+    # the `pulp` container - see docs/adr/0008-colocated-signing-reconciler.md.
+    signing_manifest_filename: str = "signing-services.json"
 
     # --- Public key distribution ---------------------------------------------
     public_key_url_prefix: str = "/keys"
-
-    # --- Automating the one manual Pulp step (app/adapters/pulp/executor.py,
-    # docs/signing.md "Automating the manual Pulp step") - unset (default) by
-    # design: this project's reference Compose deployment sets it, but a
-    # deployment that isn't Docker at all (or doesn't want to grant this)
-    # leaves it unset and gets the pre-existing manual-command flow
-    # unchanged, never a hard failure. pulpit-worker only - pulpit-core's API
-    # process never imports app.adapters.pulp.executor.
-    pulp_executor_docker_host: str = ""
-    pulp_executor_container_label: str = "com.docker.compose.service=pulp"
-    # Kubernetes equivalent (build_executor() prefers this over the Docker
-    # settings above when set - see that function's own docstring for why a
-    # deployment would only ever set one of the two). Namespace is required
-    # to enable this executor at all; the pod label selector has a sensible
-    # default matching deployment/kube/pulp.yaml's own `app: pulp` label, same
-    # "selector, not a fixed name" convention as pulp_executor_container_label
-    # (a rolling update naturally changes the pod name, never the label).
-    # VERIFIED there is no environment variable equivalent to
-    # PULP_EXECUTOR_DOCKER_HOST needed here: `config.load_incluster_config()`
-    # (executor.py) reads the ServiceAccount token/CA cert Kubernetes itself
-    # automatically mounts into every pod - the standard, idiomatic way any
-    # in-cluster client authenticates to the API server, no manual wiring.
-    pulp_executor_kubernetes_namespace: str = ""
-    pulp_executor_kubernetes_pod_label: str = "app=pulp"
 
 
 @lru_cache
