@@ -27,11 +27,12 @@ export function RpmRepositoriesTopic() {
           publish step.
         </Content>
         <Content component="li">
-          If a <strong>Signing</strong> section appears, it means an administrator has
-          enabled repository signing (Administration → Repository Signing) - check{" "}
-          <strong>Sign packages</strong>/<strong>Sign repository metadata</strong> to use
-          the current signing key for this repository. It's absent entirely if signing
-          isn't configured; nothing to do in that case.
+          Nothing to set up for signing here - it's fully automatic, not a per-repository
+          choice. If an administrator has enabled it (Administration → Repository
+          Signing), this repository is signed with the current key from the moment it's
+          created; if not, it's created unsigned. A repository created before signing was
+          turned on can be brought into line later with <strong>Sign all
+          repositories…</strong> on that same Administration page.
         </Content>
       </Content>
       <Content component="p">

@@ -23,8 +23,8 @@ export function OverviewTopic() {
       <Content component="h3">Finding your way around</Content>
       <Content component="p">
         The left-hand navigation is grouped by content type. <strong>RPM</strong>,{" "}
-        <strong>Containers</strong>, and <strong>Ansible</strong> each have their own
-        Repositories, Remotes, and related pages. <strong>Tasks</strong>,{" "}
+        <strong>Container Registry</strong>, and <strong>Ansible Galaxy</strong> each have
+        their own Repositories, Remotes, and related pages. <strong>Tasks</strong>,{" "}
         <strong>Access</strong>, and <strong>Administration</strong> apply across all of
         them.
       </Content>

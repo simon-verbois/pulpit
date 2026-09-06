@@ -18,7 +18,15 @@ export function AdministrationDefaultSettingsTopic() {
         (or editing an existing Remote, which always starts unchecked so an existing
         Remote's own proxy is never silently replaced) reveals the normal Proxy
         URL/username/password fields for a one-off override on that Remote only - saving
-        here never touches any already-created Remote.
+        here never touches any already-created Remote by itself.
+      </Content>
+      <Content component="h3">Apply to existing remotes</Content>
+      <Content component="p">
+        <strong>Apply to all remotes…</strong> is the one exception: it retroactively
+        overwrites every existing Remote, across every plugin, with whatever is currently
+        saved above, right now - not just new ones going forward. It's disabled while the
+        form has unsaved changes (save first), and always confirms before running, since
+        it's irreversible: the previous per-remote proxy values aren't recorded anywhere.
       </Content>
       <Content component="p">
         The password is write-only, same as every Remote's own proxy password: this page

@@ -173,7 +173,18 @@ describe("RepositoriesPage", () => {
     expect(requestBody).toMatchObject({ autopublish: true });
   });
 
-  it("hides the Signing section when the global signing policy has nothing enabled (default fixture)", async () => {
+  it("sends no signing fields when the global signing policy has nothing enabled (default fixture)", async () => {
+    let requestBody: unknown;
+    server.use(
+      http.post("/pulp/api/v3/repositories/rpm/rpm/", async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(
+          { ...RPM_REPO_FIXTURE, pulp_href: "/pulp/api/v3/repositories/rpm/rpm/new/" },
+          { status: 201 },
+        );
+      }),
+    );
+
     renderApp(<RepositoriesPage />, {
       route: "/rpm/repositories",
       path: "/rpm/repositories",
@@ -183,13 +194,25 @@ describe("RepositoriesPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Create repository" })[0]);
 
     const dialog = await screen.findByRole("dialog");
+    // No per-repository signing choice is exposed at all - signing is
+    // fully automatic based on the global policy, not an opt-in checkbox.
     expect(within(dialog).queryByText("Sign packages")).not.toBeInTheDocument();
     expect(
       within(dialog).queryByText("Sign repository metadata"),
     ).not.toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
+      target: { value: "new-repo" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(requestBody).not.toHaveProperty("package_signing_service");
+    expect(requestBody).not.toHaveProperty("package_signing_fingerprint");
+    expect(requestBody).not.toHaveProperty("metadata_signing_service");
   });
 
-  it("shows the Signing section and applies the active key when policy allows it", async () => {
+  it("automatically applies the active signing key when the policy allows it, with no user choice involved", async () => {
     server.use(
       http.get("/pulpit-core/api/v1/signing/repositories/policy", () =>
         HttpResponse.json({
@@ -225,10 +248,6 @@ describe("RepositoriesPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Create repository" })[0]);
 
     const dialog = await screen.findByRole("dialog");
-    await within(dialog).findByText("Sign packages");
-    expect(within(dialog).getByLabelText("Sign packages")).toBeChecked();
-    expect(within(dialog).getByLabelText("Sign repository metadata")).toBeChecked();
-
     fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
       target: { value: "signed-repo" },
     });

@@ -14,16 +14,16 @@ export function AdministrationRepositorySigningTopic() {
 
       <Content component="h3">Page layout</Content>
       <Content component="p">
-        The page has two sections, plain content with no card framing (matching the rest
-        of PulpIT). <strong>General</strong> holds the <strong>Signing</strong> master
-        switches, the public key filename, and the resulting full public key URL.{" "}
-        <strong>Signing keys</strong> is the full key history — current status, one row
-        per key ever generated, and a <strong>Generate key</strong> button next to its
-        heading. There's no separate "current key" section: the active (and next, if any)
-        key's row in that same table is where you check status, and the{" "}
-        <strong>inspect</strong> icon on any row opens its full detail — every field,
-        including ones the table doesn't have room for. Identity/algorithm defaults live
-        only in the <strong>Generate key</strong> dialog — see below.
+        The page has two cards. <strong>Signing</strong> holds the master on/off
+        checkboxes; <strong>Public key</strong> holds the filename and the resulting full
+        public key URL. <strong>Signing keys</strong> (its own card below both) is the
+        full key history — current status, one row per key ever generated, and a{" "}
+        <strong>Generate key</strong> button next to its heading. There's no separate
+        "current key" section: the active (and next, if any) key's row in that same table
+        is where you check status, and the <strong>inspect</strong> icon on any row opens
+        its full detail — every field, including ones the table doesn't have room for.
+        Identity/algorithm defaults live only in the <strong>Generate key</strong> dialog
+        — see below.
       </Content>
 
       <Content component="h3">Signing configuration</Content>
@@ -153,10 +153,23 @@ export function AdministrationRepositorySigningTopic() {
 
       <Content component="h3">Using this on a repository</Content>
       <Content component="p">
-        An RPM repository's create/edit form shows a <strong>Signing</strong> section with{" "}
-        <strong>Sign packages</strong>/<strong>Sign repository metadata</strong>{" "}
-        checkboxes whenever this page's configuration allows it — checking one applies the
-        current active key to that repository, no fingerprint typing required.
+        Signing is fully automatic, not a per-repository choice — there is no checkbox
+        on an RPM repository's create/edit form at all. Whatever's enabled above applies
+        to every repository created from that point on, using the current active key, no
+        fingerprint typing required.
+      </Content>
+
+      <Content component="h3">Existing repositories</Content>
+      <Content component="p">
+        A repository created <em>before</em> signing was turned on (or before this
+        policy existed) doesn't otherwise catch up on its own. <strong>Sign all
+        repositories…</strong>, in its own card here, brings every existing RPM
+        repository into line with the current policy on demand: repositories missing
+        package signing have their already-synced packages actually{" "}
+        <strong>re-signed</strong> in the background (re-downloaded, re-signed,
+        re-uploaded as a new repository version — not cheap for a repository with many
+        packages); repositories missing metadata signing are just republished. A
+        repository already correctly signed is left untouched. This cannot be undone.
       </Content>
     </Content>
   );
