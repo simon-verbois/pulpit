@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Reconciles Pulp/Django's LDAP authentication settings from *inside* the
+`pulp` container - same "manifest in, act on it locally" architecture as
+pulpit-signing-reconciler (docs/adr/0008-colocated-signing-reconciler.md),
+just applied to AUTHENTICATION_BACKENDS/AUTH_LDAP_* Django settings instead
+of a Pulp SigningService.
+
+Reads the desired-state manifest pulpit-worker writes to the scripts volume
+already shared between `pulp` and `pulpit` (same volume signing's own
+manifest uses - no new volume needed), and when it changes, renders
+/etc/pulp/settings.py (dynaconf's own PULP_SETTINGS path - VERIFIED empty/
+absent by default in every deployment flavor this project ships, so this
+script can own it outright) and restarts the `pulpcore-api` s6 service so
+Django picks up the change - unlike signing (a runtime Pulp object,
+reachable over its own REST API with no restart needed), AUTHENTICATION_
+BACKENDS is only ever read once, at Django process startup.
+
+Stdlib only, deliberately - see pulpit-signing-reconciler's own docstring
+for why (this reconciler renders Python source as text; the actual
+django_auth_ldap/python-ldap imports it writes into that source are
+resolved later, inside pulpcore's own process, not by this script)."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+
+MANIFEST_PATH = "/var/lib/pulpit-signing/scripts/ldap-config.json"
+SETTINGS_PATH = "/etc/pulp/settings.py"
+LAST_APPLIED_HASH_PATH = "/etc/pulp/.pulpit-ldap-manifest-hash"
+API_SERVICE_PATH = "/run/service/pulpcore-api"
+POLL_INTERVAL_SECONDS = 30
+
+# First line of any settings.py this script writes - also the guard before
+# ever overwriting/removing one: a settings.py without this marker was
+# created by someone/something else, and this script must never touch it.
+MANAGED_MARKER = "# Managed by pulpit-ldap-reconciler - changes here are overwritten on the next reconcile cycle.\n"
+
+_GROUP_TYPE_EXPR = {
+    "group_of_names": "GroupOfNamesType(name_attr='cn')",
+    "posix_group": "PosixGroupType(name_attr='cn')",
+    "nested_group_of_names": "NestedGroupOfNamesType(name_attr='cn')",
+}
+
+
+def _log(message: str) -> None:
+    print(f"pulpit-ldap-reconciler: {message}", flush=True)
+
+
+def _read_manifest() -> dict:
+    try:
+        with open(MANIFEST_PATH, encoding="utf-8") as fh:
+            return json.load(fh)
+    except FileNotFoundError:
+        # Nothing to reconcile yet - pulpit-worker hasn't run
+        # ldap.apply_config_job for the first time (LDAP never enabled).
+        return {"enabled": False}
+    except json.JSONDecodeError as exc:
+        _log(f"manifest unreadable, will retry next cycle: {exc}")
+        return None
+
+
+def _render_settings(config: dict) -> str:
+    require_group_line = (
+        f"AUTH_LDAP_REQUIRE_GROUP = {config['require_group_dn']!r}\n"
+        if config.get("require_group_dn")
+        else ""
+    )
+    return (
+        MANAGED_MARKER
+        + "\n"
+        + "import ldap\n"
+        + "from django_auth_ldap.config import (\n"
+        + "    GroupOfNamesType,\n"
+        + "    LDAPSearch,\n"
+        + "    NestedGroupOfNamesType,\n"
+        + "    PosixGroupType,\n"
+        + ")\n"
+        + "\n"
+        # ModelBackend FIRST: local Pulp accounts (notably the "admin"
+        # service account pulpit itself authenticates as, PULP_ADMIN_PASSWORD)
+        # must keep working via local password even with LDAP enabled -
+        # Django tries backends in order and stops at the first success.
+        + "AUTHENTICATION_BACKENDS = [\n"
+        + "    'django.contrib.auth.backends.ModelBackend',\n"
+        + "    'django_auth_ldap.backend.LDAPBackend',\n"
+        + "    'pulpcore.backends.ObjectRolePermissionBackend',\n"
+        + "]\n"
+        + "\n"
+        + f"AUTH_LDAP_SERVER_URI = {config['server_uri']!r}\n"
+        + f"AUTH_LDAP_BIND_DN = {config['bind_dn']!r}\n"
+        + f"AUTH_LDAP_BIND_PASSWORD = {config['bind_password']!r}\n"
+        + f"AUTH_LDAP_START_TLS = {bool(config['start_tls'])!r}\n"
+        + "AUTH_LDAP_USER_SEARCH = LDAPSearch(\n"
+        + f"    {config['user_search_base']!r}, ldap.SCOPE_SUBTREE, {config['user_search_filter']!r}\n"
+        + ")\n"
+        + "AUTH_LDAP_GROUP_SEARCH = LDAPSearch(\n"
+        + f"    {config['group_search_base']!r}, ldap.SCOPE_SUBTREE, {config['group_search_filter']!r}\n"
+        + ")\n"
+        + f"AUTH_LDAP_GROUP_TYPE = {_GROUP_TYPE_EXPR[config['group_type']]}\n"
+        + f"AUTH_LDAP_MIRROR_GROUPS = {bool(config['mirror_groups'])!r}\n"
+        + "AUTH_LDAP_USER_ATTR_MAP = {\n"
+        + f"    'first_name': {config['attr_first_name']!r},\n"
+        + f"    'last_name': {config['attr_last_name']!r},\n"
+        + f"    'email': {config['attr_email']!r},\n"
+        + "}\n"
+        + require_group_line
+    )
+
+
+def _read_existing_settings() -> str | None:
+    try:
+        with open(SETTINGS_PATH, encoding="utf-8") as fh:
+            return fh.read()
+    except FileNotFoundError:
+        return None
+
+
+def _is_ours(content: str) -> bool:
+    return content.startswith(MANAGED_MARKER)
+
+
+def _restart_api() -> None:
+    result = subprocess.run(
+        ["s6-svc", "-r", API_SERVICE_PATH], capture_output=True, text=True, timeout=30
+    )
+    if result.returncode != 0:
+        _log(f"failed to restart pulpcore-api: {result.stderr.strip()}")
+    else:
+        _log("pulpcore-api restarted to pick up the new LDAP config")
+
+
+def _last_applied_hash() -> str | None:
+    try:
+        with open(LAST_APPLIED_HASH_PATH, encoding="utf-8") as fh:
+            return fh.read().strip()
+    except FileNotFoundError:
+        return None
+
+
+def _write_last_applied_hash(digest: str) -> None:
+    with open(LAST_APPLIED_HASH_PATH, "w", encoding="utf-8") as fh:
+        fh.write(digest)
+
+
+def _reconcile_once() -> None:
+    manifest = _read_manifest()
+    if manifest is None:
+        return
+
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
+    if digest == _last_applied_hash():
+        return  # Already applied this exact config - nothing to do.
+
+    existing = _read_existing_settings()
+    if existing is not None and not _is_ours(existing):
+        _log(
+            f"{SETTINGS_PATH} exists but wasn't written by this reconciler - "
+            "leaving it alone and skipping this cycle."
+        )
+        return
+
+    if manifest.get("enabled"):
+        with open(SETTINGS_PATH, "w", encoding="utf-8") as fh:
+            fh.write(_render_settings(manifest))
+        _log("wrote LDAP settings")
+    elif existing is not None:
+        os.remove(SETTINGS_PATH)
+        _log("LDAP disabled - removed managed settings file")
+    else:
+        # Disabled and nothing we own is on disk - already in the desired
+        # state, no restart needed even though the manifest's hash changed
+        # (e.g. the very first reconcile of a never-enabled instance).
+        _write_last_applied_hash(digest)
+        return
+
+    _restart_api()
+    _write_last_applied_hash(digest)
+
+
+def main() -> None:
+    while True:
+        _reconcile_once()
+        time.sleep(POLL_INTERVAL_SECONDS)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

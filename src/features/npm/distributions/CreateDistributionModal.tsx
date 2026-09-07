@@ -17,6 +17,7 @@ import {
 
 import { listAllNpmRemotes } from "../../../api/client/npm/remotes";
 import { BasePathField } from "../../../components/BasePathField";
+import { useContentOrigin } from "../../../hooks/useContentOrigin";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreateNpmDistributionMutation } from "./useCreateNpmDistributionMutation";
 
@@ -40,6 +41,7 @@ export function CreateDistributionModal({
   onClose,
 }: CreateDistributionModalProps) {
   const [basePath, setBasePath] = useState("");
+  const contentOrigin = useContentOrigin();
   const [remote, setRemote] = useState("");
   const createMutation = useCreateNpmDistributionMutation();
 
@@ -91,7 +93,7 @@ export function CreateDistributionModal({
             <BasePathField
               id="distribution-base-path"
               isRequired
-              prefix={`${window.location.origin}/pulp/content/`}
+              prefix={`${contentOrigin}/pulp/content/`}
               placeholder="my-repo"
               value={basePath}
               onChange={setBasePath}

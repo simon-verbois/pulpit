@@ -7,9 +7,11 @@
 # then execs each of the three processes as an unprivileged user.
 #
 # Deliberately no per-process auto-restart (no supervisord/s6): if ANY of
-# the three dies, this script kills the other two and exits, so the whole
-# container restarts - simpler, and the same "a crash restarts the whole
-# container" behavior pulpit-worker alone already had before the merge.
+# nginx/pulpit-core/pulpit-worker/the TLS reload watcher dies, this script
+# kills the rest and exits, so the whole container restarts - simpler, and
+# the same "a crash restarts the whole container" behavior pulpit-worker
+# alone already had before the merge. settle_pulpit_data_perms is the one
+# exception (see its own comment below): it's expected to self-terminate.
 set -euo pipefail
 
 # --- nginx config templating ---------------------------------------------
@@ -30,7 +32,15 @@ export NGINX_LOCAL_RESOLVERS="${NGINX_LOCAL_RESOLVERS:-127.0.0.11}"
 # speaks plain HTTP to Pulp on its own internal network, same trust
 # boundary as before the merge.
 export PULP_UPSTREAM="${PULP_UPSTREAM:-pulp:80}"
+# Fixed, well-known paths every certificate writer (self-signed bootstrap,
+# manual upload, FreeIPA issuance/renewal - app/modules/tls/service.py)
+# atomically replaces in place; nginx just always reads these two.
+export TLS_CERT_PATH="${PULPIT_CORE_TLS_CERT_DIR:-/var/lib/pulpit-tls}/active/cert.pem"
+export TLS_KEY_PATH="${PULPIT_CORE_TLS_CERT_DIR:-/var/lib/pulpit-tls}/active/key.pem"
 envsubst '${NGINX_LOCAL_RESOLVERS} ${PULP_UPSTREAM}' \
+    < /etc/nginx/pulpit-locations.conf.template \
+    > /etc/nginx/pulpit-locations.conf
+envsubst '${TLS_CERT_PATH} ${TLS_KEY_PATH}' \
     < /etc/nginx/pulpit.conf.template \
     > /etc/nginx/conf.d/pulpit.conf
 
@@ -81,6 +91,22 @@ mkdir -p /var/lib/pulpit
 chown pulpit:700 /var/lib/pulpit
 chmod 2770 /var/lib/pulpit
 su pulpit -c "cd /app && alembic upgrade head"
+
+# --- TLS material bootstrap -------------------------------------------------
+# nginx hard-fails to start at all without something already at
+# ${TLS_CERT_PATH}/${TLS_KEY_PATH} - a missing cert file is not a soft
+# warning it can start without. Owned pulpit:700 mode 2770 (setgid), same
+# convention as /var/lib/pulpit above: the bootstrap script below runs as
+# `pulpit`, later regeneration/renewal/manual-upload/FreeIPA jobs run as
+# pulpit-worker (uid/gid 700) - both need write access to this one directory,
+# neither needs the other's supplementary group for anything else.
+TLS_DIR="${PULPIT_CORE_TLS_CERT_DIR:-/var/lib/pulpit-tls}"
+mkdir -p "${TLS_DIR}/active"
+chown -R pulpit:700 "${TLS_DIR}"
+chmod 2770 "${TLS_DIR}" "${TLS_DIR}/active"
+if [ ! -f "${TLS_CERT_PATH}" ] || [ ! -f "${TLS_KEY_PATH}" ]; then
+    su pulpit -c "cd /app && python3 -m app.modules.tls.bootstrap_selfsigned"
+fi
 
 # No-ops (harmlessly, both here and in pulpit_data_perms_ok/settle_pulpit_data_perms
 # below) if PULPIT_CORE_DATABASE_URL was overridden to a real Postgres instead -
@@ -151,6 +177,25 @@ chmod 0755 "${SCRIPTS_DIR}"
 # non-zero return must not immediately exit it.
 set +e
 
+# Neither pulpit-core (user `pulpit`) nor pulpit-worker (uid/gid 700) has the
+# Unix privilege to signal nginx's own root-owned master process to reload a
+# newly-installed certificate - so a TLS job just atomically replaces
+# ${TLS_CERT_PATH}/${TLS_KEY_PATH} and touches this sentinel file
+# (app/modules/tls/service.py's _request_reload), and this root-owned loop
+# (same idiom as settle_pulpit_data_perms above, but long-lived for the
+# container's whole lifetime instead of self-terminating) does the actual
+# reload on its behalf.
+watch_tls_reload() {
+    local sentinel="${TLS_DIR}/reload-requested"
+    while true; do
+        if [ -e "${sentinel}" ]; then
+            rm -f "${sentinel}"
+            nginx -s reload || true
+        fi
+        sleep 2
+    done
+}
+
 nginx -g 'daemon off;' &
 nginx_pid=$!
 
@@ -160,6 +205,9 @@ core_pid=$!
 setpriv --reuid=700 --regid=700 --clear-groups -- python3 -m worker.main &
 worker_pid=$!
 
+watch_tls_reload &
+reload_watch_pid=$!
+
 # Settles the startup race described above (see settle_pulpit_data_perms
 # and pulpit_data_perms_ok, defined earlier) - polls/re-fixes until
 # converged or its own bounded timeout elapses, rather than a fixed sleep.
@@ -167,11 +215,11 @@ settle_pulpit_data_perms &
 settle_pid=$!
 
 terminate() {
-    kill -TERM "${nginx_pid}" "${core_pid}" "${worker_pid}" "${settle_pid}" 2>/dev/null
+    kill -TERM "${nginx_pid}" "${core_pid}" "${worker_pid}" "${reload_watch_pid}" "${settle_pid}" 2>/dev/null
 }
 trap terminate TERM INT
 
-wait -n "${nginx_pid}" "${core_pid}" "${worker_pid}"
+wait -n "${nginx_pid}" "${core_pid}" "${worker_pid}" "${reload_watch_pid}"
 exit_code=$?
 terminate
 wait

@@ -1,10 +1,5 @@
-# Mirrors compose.yml's redis service - optional for pulpcore (only used
-# for HTTP response caching, not task queuing - see that file's own
-# comment), no persistence needed or configured, internal only. Plain Pod,
-# not a Deployment - a single instance is all this needs (same as every
-# other component here), and VERIFIED live no Service object is needed for
-# other pods to reach it by name (`redis`) - Podman's own DNS already
-# registers every pod's name.
+# Mirrors compose.yml's redis service. Plain Pod, not a Deployment - Podman's
+# own DNS already resolves it by name for other pods, no Service needed.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -16,12 +11,6 @@ spec:
     - name: redis
       image: docker.io/library/redis:8-alpine
       args: ["redis-server", "--save", "", "--appendonly", "no"]
-      # Conservative self-hosted defaults - this is a single-instance,
-      # single-host deployment (see CLAUDE.md "Stay 100% local"), not a
-      # multi-tenant cluster, so these just guard against one runaway
-      # container starving the others on the same box. Adjust to your own
-      # hardware/workload; redis here is only an HTTP response cache (see
-      # this file's own top comment), so it needs the least of the three.
       resources:
         requests:
           cpu: "50m"

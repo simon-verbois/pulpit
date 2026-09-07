@@ -2,9 +2,11 @@
 (task section 16: "public key endpoint", "coexistence of old/new public
 keys during rotation")."""
 
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
+import respx
 from fastapi.testclient import TestClient
 
 import app.main as main_module
@@ -51,6 +53,134 @@ def test_health_is_unauthenticated(db):
     finally:
         main_module.app.dependency_overrides.clear()
     assert response.status_code == 200
+
+
+@respx.mock
+def test_health_reports_ok_with_every_component_when_everything_is_healthy(db):
+    respx.get("http://pulp:80/pulp/api/v3/status/").mock(
+        return_value=httpx.Response(200, json={"versions": []})
+    )
+
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/api/v1/health")
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["components"]["database"] == {"status": "ok"}
+    assert body["components"]["pulp"] == {"status": "ok"}
+    assert body["components"]["worker"] == {"status": "ok"}
+
+
+@respx.mock
+def test_health_is_degraded_but_still_200_when_only_pulp_is_unreachable(db):
+    """Distinct from the database being down (see the 503 test below) - see
+    app/api/health.py's own docstring on why an unreachable Pulp must never
+    flip the HTTP status code (both readinessProbe AND livenessProbe hit
+    this same path)."""
+    respx.get("http://pulp:80/pulp/api/v3/status/").mock(
+        side_effect=httpx.ConnectError("connection refused")
+    )
+
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/api/v1/health")
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "degraded"
+    assert body["components"]["pulp"] == {"status": "error", "detail": "Pulp is unreachable"}
+    assert body["components"]["database"] == {"status": "ok"}
+
+
+@respx.mock
+def test_health_reports_worker_ok_when_no_job_has_ever_run(db):
+    """A fresh instance - no scheduled heartbeat has fired yet - is not
+    itself a sign the worker is stuck."""
+    respx.get("http://pulp:80/pulp/api/v3/status/").mock(
+        return_value=httpx.Response(200, json={"versions": []})
+    )
+
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/api/v1/health")
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+    assert response.json()["components"]["worker"] == {"status": "ok"}
+
+
+@respx.mock
+def test_health_reports_worker_error_when_no_job_has_completed_recently(db):
+    from app.core.jobs.models import Job, JobStatus
+
+    respx.get("http://pulp:80/pulp/api/v3/status/").mock(
+        return_value=httpx.Response(200, json={"versions": []})
+    )
+    stale_job = Job(
+        job_type="signing.rotation_check",
+        status=JobStatus.SUCCESS,
+        scheduled_at=datetime.now(UTC) - timedelta(hours=1),
+        finished_at=datetime.now(UTC) - timedelta(hours=1),
+    )
+    db.add(stale_job)
+    db.flush()
+
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/api/v1/health")
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+    body = response.json()
+    assert response.status_code == 200  # still 200 - only the database gates the status code
+    assert body["status"] == "degraded"
+    assert body["components"]["worker"] == {
+        "status": "error",
+        "detail": "No scheduled job has completed recently",
+    }
+
+
+def test_health_returns_503_and_skips_other_components_when_database_is_unreachable():
+    class _BrokenSession:
+        def execute(self, *args, **kwargs):
+            raise RuntimeError("simulated database outage")
+
+    def _override_db():
+        yield _BrokenSession()
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/api/v1/health")
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["components"]["database"] == {
+        "status": "error",
+        "detail": "Database is unreachable",
+    }
+    assert body["components"]["pulp"] == {"status": "skipped"}
+    assert body["components"]["worker"] == {"status": "skipped"}
 
 
 def test_signing_settings_requires_auth(db):

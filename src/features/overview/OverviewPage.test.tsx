@@ -65,7 +65,7 @@ describe("OverviewPage", () => {
 
     renderApp(<OverviewPage />);
 
-    await screen.findByText("No compatibility issues detected."); // page has loaded
+    await screen.findByText("No issues detected."); // page has loaded
     expect(
       screen.queryByRole("table", { name: "Pulp components" }),
     ).not.toBeInTheDocument();

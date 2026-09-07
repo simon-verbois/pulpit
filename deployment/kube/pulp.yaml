@@ -1,16 +1,11 @@
-# Mirrors compose.yml's `pulp` service. Single replica, single set of
-# ReadWriteOnce volumes - Pulp itself has no multi-instance story in this
-# bootstrap (same scope as the Compose deployment).
+# Mirrors compose.yml's `pulp` service.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pulp-init-admin-password-script
 data:
-  # Identical to deployment/docker/pulp/init-admin-password.sh - compose.yml bind-mounts
-  # that file directly from the repo; Kubernetes has no host-path bind mount
-  # equivalent that's portable across clusters, so its content is inlined
-  # here instead and mounted as a file (see the Deployment's volumeMounts/
-  # postStart below). Keep both copies in sync if either one changes.
+  # Identical to deployment/docker/pulp/init-admin-password.sh - keep both in
+  # sync if either changes.
   init-admin-password.sh: |
     #!/bin/sh
     set -eu
@@ -76,13 +71,9 @@ spec:
     requests:
       storage: 10Gi
 ---
-# Shared with pulpit-worker.yaml (docs/signing.md "Shared volume
-# permissions") - REQUIRES a storageClass that supports ReadWriteMany
-# (e.g. NFS, CephFS/rook-ceph, EFS on EKS, Filestore on GKE, Azure Files on
-# AKS - VERIFIED this is NOT guaranteed available on every cluster; several
-# default local-path provisioners, e.g. kind's/k3s's, are ReadWriteOnce
-# only). Uses the default storageClass below - set `storageClassName`
-# explicitly if your cluster's default doesn't support RWX.
+# REQUIRES a storageClass supporting ReadWriteMany (e.g. NFS, CephFS, EFS,
+# Filestore, Azure Files) - not guaranteed by every cluster's default
+# provisioner. Set `storageClassName` explicitly if needed.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -122,19 +113,8 @@ spec:
         app: pulp
     spec:
       containers:
-        # docker.io/pulp/pulp:stable plus one added s6 longrun service - the
-        # colocated signing-service reconciler (docs/signing.md "Automating
-        # the manual Pulp step", docs/adr/0008-colocated-signing-reconciler.md)
-        # - built from deployment/docker/pulp/Dockerfile, same image
-        # compose.yml/deployment/podman/ use. Nothing reaches into this pod
-        # from the outside anymore - no ServiceAccount/RBAC needed.
         - name: pulp
-          # __PULP_PULPIT_IMAGE_TAG__ is substituted by ./deploy.sh at apply
-          # time from the PULP_PULPIT_IMAGE_TAG env var (defaulting to
-          # "latest" - same name/default Compose's .env.example uses) - edit
-          # this directly to a real tag instead if you apply this file
-          # without deploy.sh.
-          image: docker.io/simonverbois/pulp-pulpit:__PULP_PULPIT_IMAGE_TAG__
+          image: docker.io/simonverbois/pulp-pulpit:latest
           resources:
             requests:
               cpu: "500m"
@@ -170,18 +150,11 @@ spec:
             - name: init-admin-password-script
               mountPath: /usr/local/bin/pulpit-init-admin-password.sh
               subPath: init-admin-password.sh
-            # VERIFIED live (docs/signing.md "Shared volume permissions"):
-            # pulpcore-worker inside this image runs as uid/gid 700 - the
-            # scripts volume is read-only from Pulp's own side, matching
-            # compose.yml's `:ro`.
             - name: pulpit-signing-gnupghome
               mountPath: /var/lib/pulpit-signing/gnupg
             - name: pulpit-signing-scripts
               mountPath: /var/lib/pulpit-signing/scripts
               readOnly: true
-          # Runs once the container's own init (s6-overlay) has started it -
-          # same "extra step after the image's own entrypoint" semantics as
-          # compose.yml's post_start, just Kubernetes' own equivalent hook.
           lifecycle:
             postStart:
               exec:

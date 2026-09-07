@@ -48,22 +48,18 @@ cp deployment/kube/00-secret.example.yaml deployment/kube/00-secret.yaml
 # for the two key fields - see that file's own comments)
 ```
 
-`deploy.sh` also substitutes a few placeholders the plain YAML can't
-express by itself (image tags, the public origin used for
-`CSRF_TRUSTED_ORIGINS`) from environment variables before applying -
-matching Compose's `.env.example` naming/defaults for consistency across
-all three deployment targets:
+`pulp.yaml`/`pulpit.yaml` pin images to `:latest` - edit those files directly to deploy a
+specific tag instead.
 
-| Env var                 | Default                 | Used in                                           |
-| ----------------------- | ----------------------- | ------------------------------------------------- |
-| `PULP_PULPIT_IMAGE_TAG` | `latest`                | `pulp.yaml`'s image tag                           |
-| `PULPIT_IMAGE_TAG`      | `latest`                | `pulpit.yaml`'s image tag                         |
-| `PULPIT_PUBLIC_ORIGIN`  | `http://localhost:8080` | `00-configmap.yaml`'s `PULP_CSRF_TRUSTED_ORIGINS` |
+`deploy.sh` also substitutes the public origin used for `CSRF_TRUSTED_ORIGINS` from an
+environment variable before applying:
+
+| Env var                | Default                 | Used in                                           |
+| ---------------------- | ----------------------- | ------------------------------------------------- |
+| `PULPIT_PUBLIC_ORIGIN` | `http://localhost:8080` | `00-configmap.yaml`'s `PULP_CSRF_TRUSTED_ORIGINS` |
 
 ```sh
 PULPIT_PUBLIC_ORIGIN=https://pulpit.example.com \
-PULP_PULPIT_IMAGE_TAG=1.2.3 \
-PULPIT_IMAGE_TAG=1.2.3 \
   ./deployment/kube/deploy.sh up -n <your-namespace>
 ```
 
@@ -112,5 +108,7 @@ so the prefixes are cosmetic, not load-bearing.
   genuinely single-instance in this bootstrap - same scope as Compose).
 - No NetworkPolicies, PodDisruptionBudgets, or HorizontalPodAutoscalers -
   add what your cluster's own conventions expect.
-- `pulpit.yaml`'s Ingress is a minimal example (no TLS) - adapt it to your
-  ingress controller and certificate setup.
+- `pulpit.yaml`'s Ingress is a minimal example that routes to the Service's plain-HTTP 8080 port
+  (the standard "TLS terminated at the Ingress" topology) - adapt it to your ingress controller and
+  certificate setup, or point it at the Service's 8443 port instead to have Pulpit terminate TLS
+  itself end-to-end (self-signed by default - see `docs/DEPLOYMENT.md` "TLS").

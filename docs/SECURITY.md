@@ -71,12 +71,19 @@ the two - no cross-container privilege of any kind; see ADR 0008 and `docs/signi
 
 ## TLS
 
-- Local development runs over plain HTTP (`http://localhost:<port>`) — this is a documented
-  **development-only** default, not a production recommendation.
-- Production deployments must terminate TLS (at this nginx layer or a load balancer/ingress in
-  front of it) — see `docs/DEPLOYMENT.md`. Do not enable HSTS or other TLS-only security headers
-  in the local plain-HTTP dev environment; they belong in the production nginx config only, where
-  TLS is actually present.
+- nginx serves both plain HTTP (`PULPIT_HTTP_PORT`, default 8080) and HTTPS (`PULPIT_HTTPS_PORT`,
+  default 8443) - 8080 keeps working unchanged, 8443 is purely additive. A self-signed certificate
+  is generated automatically on first boot if nothing else is configured, so 8443 always works out
+  of the box, in development and production alike - see `docs/DEPLOYMENT.md` "TLS" for the
+  Administration > TLS tab (manual certificate upload, with an expiry warning on the Overview page;
+  or the FreeIPA provider, which can issue and auto-renew a certificate).
+- A load balancer/ingress in front of nginx terminating TLS itself instead (and forwarding plain
+  HTTP to 8080) remains a fully supported, common alternative topology - nothing here requires
+  nginx itself to be the TLS termination point.
+- Do not enable HSTS or other TLS-only security headers unless TLS is actually terminated
+  somewhere in the request path (this nginx layer's 8443, or a load balancer/ingress in front of
+  it) - they have no effect and can actively break access when the only reachable path is plain
+  HTTP (e.g. 8080 alone, port-forwarded straight to a pod).
 
 ## Content / uploads
 
@@ -95,7 +102,7 @@ terminated there**). These belong in the production nginx config documented in
 
 | Concern           | Development (Compose)       | Production                                |
 | ----------------- | --------------------------- | ----------------------------------------- |
-| Transport         | HTTP                        | HTTPS (TLS terminated at/before nginx)    |
+| Transport         | HTTP (8080), self-signed HTTPS (8443) | HTTPS with a real certificate (manual upload or FreeIPA - Administration > TLS) |
 | Secrets           | `.env` (local, untracked)   | Real secret manager / orchestrator secret |
 | `PULP_SECRET_KEY` | Generated locally, dev-only | Managed secret, never reused from dev     |
 | Security headers  | Minimal                     | Full hardening set, HSTS enabled          |

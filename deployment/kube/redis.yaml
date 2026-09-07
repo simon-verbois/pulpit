@@ -1,6 +1,4 @@
-# Mirrors compose.yml's redis service - optional for pulpcore (only used
-# for HTTP response caching, not task queuing - see that file's own
-# comment), no persistence needed or configured, internal only.
+# Mirrors compose.yml's redis service.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

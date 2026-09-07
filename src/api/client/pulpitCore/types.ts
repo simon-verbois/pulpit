@@ -56,6 +56,7 @@ export interface SigningKeyPulpService {
    * `pulpcore-manager add-signing-service ...` command an administrator
    * must run inside the `pulp` container - see docs/signing.md. */
   bootstrap_command: string | null;
+  created_at: string;
 }
 
 export type JobStatus = "queued" | "running" | "success" | "failed";
@@ -80,6 +81,101 @@ export interface RepositorySigningPolicy {
   package_signing_service: string | null;
   package_signing_fingerprint: string | null;
   metadata_signing_service: string | null;
+}
+
+// Mirrors pulpit-core/app/modules/tls/schemas.py. No field here has private
+// key material - see that module's models.py docstring for why there
+// structurally can't be one to add by mistake.
+export type TlsCertSource = "self_signed" | "manual" | "freeipa";
+
+export interface TlsCertificate {
+  id: string;
+  source: TlsCertSource;
+  subject: string;
+  fingerprint_sha256: string;
+  not_before: string;
+  not_after: string;
+  created_at: string;
+  freeipa_principal: string | null;
+}
+
+export interface TlsActiveCertificate extends TlsCertificate {
+  days_until_expiry: number;
+  warn_days: number;
+  is_expiring_soon: boolean;
+}
+
+export interface TlsCertificateHistoryEntry {
+  id: string;
+  event: string;
+  source: TlsCertSource;
+  fingerprint_sha256: string;
+  not_after: string;
+  triggered_by: string;
+  notes: string;
+  created_at: string;
+}
+
+export interface ManualCertificateUpload {
+  cert_pem: string;
+  key_pem: string;
+}
+
+// Mirrors TlsFreeIpaSettingsRead - `service_password_is_set` only, never the
+// raw value (same write-only convention as SigningSettings' bind_password
+// analog in the LDAP module).
+export interface TlsFreeIpaSettings {
+  id: string;
+  enabled: boolean;
+  base_url: string;
+  verify_tls: boolean;
+  common_name: string;
+  service_principal: string;
+  service_username: string;
+  service_password_is_set: boolean;
+  ca: string;
+  profile: string | null;
+  auto_renew_enabled: boolean;
+  renew_before_days: number;
+  updated_at: string;
+}
+
+export type TlsFreeIpaSettingsUpdate = Partial<
+  Omit<TlsFreeIpaSettings, "id" | "service_password_is_set" | "updated_at"> & {
+    service_password: string;
+  }
+>;
+
+export interface FreeIpaTestConnectionResult {
+  success: boolean;
+  error?: string | null;
+}
+
+// The admin_password field exists only long enough to be sent in this one
+// request - never stored in query cache/component state beyond the form
+// itself, never logged. See docs/tls.md "Guided setup (wizard)".
+export interface FreeIpaWizardSetupRequest {
+  base_url: string;
+  verify_tls: boolean;
+  admin_username: string;
+  admin_password: string;
+  common_name: string;
+  target_principal: string;
+  service_account_username: string;
+  ca: string;
+  profile?: string | null;
+  renew_before_days: number;
+}
+
+export interface FreeIpaWizardStepResult {
+  step: string;
+  status: "created" | "already_exists" | "failed";
+  detail: string;
+}
+
+export interface FreeIpaWizardSetupResult {
+  success: boolean;
+  steps: FreeIpaWizardStepResult[];
 }
 
 // Mirrors pulpit-core/app/modules/content_size/schemas.py. A component with
@@ -174,4 +270,78 @@ export interface NavVisibilitySettings {
  * to exactly those modules, for every caller. */
 export interface ResolvedNavVisibility {
   visible_module_ids: string[] | null;
+}
+
+// Mirrors pulpit-core/app/modules/ldap/schemas.py. Staff-only end to end
+// (app/modules/ldap/routes/*.py) - this configures how everyone on the
+// instance authenticates, not a per-Remote connection detail.
+export type LdapGroupType = "group_of_names" | "posix_group" | "nested_group_of_names";
+
+export interface LdapSettings {
+  id: string;
+  enabled: boolean;
+  server_uri: string;
+  bind_dn: string;
+  bind_password_is_set: boolean;
+  start_tls: boolean;
+  user_search_base: string;
+  user_search_filter: string;
+  group_search_base: string;
+  group_search_filter: string;
+  group_type: LdapGroupType;
+  require_group_dn: string | null;
+  mirror_groups: boolean;
+  attr_first_name: string;
+  attr_last_name: string;
+  attr_email: string;
+  updated_at: string;
+}
+
+export interface LdapSettingsUpdate {
+  enabled?: boolean;
+  server_uri?: string;
+  bind_dn?: string;
+  /** Omit to leave unchanged, "" to clear the stored password, any other
+   * value to replace it - same three-state convention as
+   * DefaultSettingsUpdate.proxy_password. */
+  bind_password?: string;
+  start_tls?: boolean;
+  user_search_base?: string;
+  user_search_filter?: string;
+  group_search_base?: string;
+  group_search_filter?: string;
+  group_type?: LdapGroupType;
+  /** Same three-state convention as bind_password above. */
+  require_group_dn?: string;
+  mirror_groups?: boolean;
+  attr_first_name?: string;
+  attr_last_name?: string;
+  attr_email?: string;
+}
+
+/** Tests against whatever's currently in the form, not necessarily saved -
+ * every field optional, falling back to the saved row server-side
+ * (app/modules/ldap/service.py's resolve_test_settings). `bind_password`
+ * omitted means "use the already-saved one". */
+export interface LdapTestConnectionRequest {
+  server_uri?: string;
+  bind_dn?: string;
+  bind_password?: string;
+  start_tls?: boolean;
+  user_search_base?: string;
+  user_search_filter?: string;
+}
+
+export interface LdapTestConnectionResult {
+  success: boolean;
+  error?: string;
+  bound_as?: string;
+  user_search_matched?: boolean;
+  user_search_error?: string;
+}
+
+export interface LdapApplyResult {
+  manifest_written: boolean;
+  pulp_api_healthy: boolean;
+  error?: string;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Checkbox,
@@ -56,9 +56,11 @@ interface RemoteConnectionSettingsFieldsProps {
 }
 
 /** Shared by every plugin's Create/Edit remote modal - proxy/origin auth
- * settings. Collapsed by default since most remotes don't need them, unless
- * an instance default proxy (Administration > Global Proxy Settings) auto-opens
- * it below. */
+ * settings. Collapsed by default since most remotes don't need them, even
+ * when an instance default proxy (Administration > Global Proxy Settings)
+ * is being applied automatically underneath - the "Use the instance default
+ * proxy" checkbox and its helper text below still reflect that once
+ * expanded, this just doesn't force the section open on its own. */
 export function RemoteConnectionSettingsFields({
   idPrefix,
   value,
@@ -135,17 +137,6 @@ export function RemoteConnectionSettingsFields({
     value,
     onChange,
   ]);
-
-  // Surfaces the automatic default rather than leaving it invisible inside
-  // a collapsed section - only once, so manually collapsing it afterward
-  // (e.g. once the user has seen it) sticks.
-  const hasAutoExpandedRef = useRef(false);
-  useEffect(() => {
-    if (!isEditing && hasDefaultProxy && !hasAutoExpandedRef.current) {
-      hasAutoExpandedRef.current = true;
-      setIsExpanded(true);
-    }
-  }, [isEditing, hasDefaultProxy]);
 
   const queryClient = useQueryClient();
   const handleUseInstanceDefaultChange = (checked: boolean) => {

@@ -1,17 +1,6 @@
-# nginx (static SPA + reverse proxy, ADR 0005) + pulpit-core (API,
-# ADR 0006) + pulpit-worker (job queue/signing automation,
-# docs/signing.md) merged into one container/image
-# (docs/adr/0007-merged-pulpit-container.md) - mirrors compose.yml's
-# `pulpit` service. The only workload reachable from outside the cluster
-# (Service/Ingress below); Pulp (pulp.yaml) is internal-only, same trust
-# boundary as under Compose. Its own database is embedded SQLite (the
-# `pulpit-data` PVC below), not a separate Postgres Deployment -
-# app/core/config/settings.py. No ServiceAccount/RBAC needed here anymore
-# (docs/adr/0008-colocated-signing-reconciler.md): signing-service
-# registration is reconciled from *inside* pulp.yaml's own image now, so
-# this Deployment never needs to reach the Kubernetes API at all.
-# pulpit-core's own embedded SQLite database - ReadWriteOnce is enough,
-# unlike pulp.yaml's signing PVCs below (only ever mounted by this one Pod).
+# Mirrors compose.yml's `pulpit` service. The only workload reachable from
+# outside the cluster (Service/Ingress below); Pulp (pulp.yaml) is
+# internal-only.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -22,6 +11,19 @@ spec:
     requests:
       storage: 1Gi
 ---
+# TLS certificate/key material for the 8443 listener - own PVC (not folded
+# into pulpit-data): different sensitivity/lifecycle than the SQLite
+# database, same reasoning as the dedicated signing PVCs elsewhere.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-tls
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 64Mi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,9 +32,7 @@ metadata:
     app: pulpit
 spec:
   replicas: 1
-  # A single ReadWriteOnce PVC (pulpit-data above) can't be attached to two
-  # pods at once - a rolling update would deadlock waiting for the new
-  # pod's volume while the old one still holds it.
+  # Required: pulpit-data is a ReadWriteOnce PVC, can't attach to two pods.
   strategy:
     type: Recreate
   selector:
@@ -43,15 +43,8 @@ spec:
       labels:
         app: pulpit
     spec:
-      # Waits for `pulp` to actually answer before starting the main
-      # container - mirrors compose.yml's `depends_on: pulp: condition:
-      # service_healthy` and deployment/podman/pulpit.yaml's own
-      # `wait-for-pulp` initContainer (VERIFIED live there that
-      # `initContainers` run and block correctly). Not strictly required
-      # (the worker loop's own scheduled jobs simply fail-and-retry on
-      # their next poll if Pulp isn't up yet - app/core/jobs), but avoids a
-      # burst of confusing "Connection refused" log lines on every fresh
-      # deploy.
+      # Waits for `pulp` to answer before starting the main container -
+      # mirrors compose.yml's `depends_on: pulp: condition: service_healthy`.
       initContainers:
         - name: wait-for-pulp
           image: docker.io/pulp/pulp:stable
@@ -65,11 +58,7 @@ spec:
               done
       containers:
         - name: pulpit
-          # __PULPIT_IMAGE_TAG__ is substituted by ./deploy.sh at apply time
-          # from the PULPIT_IMAGE_TAG env var (defaulting to "latest" - same
-          # name/default Compose's .env.example uses) - edit this directly
-          # to a real tag instead if you apply this file without deploy.sh.
-          image: docker.io/simonverbois/pulpit:__PULPIT_IMAGE_TAG__
+          image: docker.io/simonverbois/pulpit:latest
           resources:
             requests:
               cpu: "100m"
@@ -93,6 +82,7 @@ spec:
                   key: PULPIT_CORE_SECRET_KEY
           ports:
             - containerPort: 8080
+            - containerPort: 8443
           volumeMounts:
             - name: pulpit-data
               mountPath: /var/lib/pulpit
@@ -100,9 +90,8 @@ spec:
               mountPath: /var/lib/pulpit-signing/gnupg
             - name: pulpit-signing-scripts
               mountPath: /var/lib/pulpit-signing/scripts
-          # Through nginx, not pulpit-core's own port directly - VERIFIED
-          # this exercises the whole proxy chain (nginx -> pulpit-core),
-          # not just one of the two.
+            - name: pulpit-tls
+              mountPath: /var/lib/pulpit-tls
           readinessProbe:
             httpGet:
               path: /pulpit-core/api/v1/health
@@ -129,6 +118,9 @@ spec:
         - name: pulpit-signing-scripts
           persistentVolumeClaim:
             claimName: pulpit-signing-scripts
+        - name: pulpit-tls
+          persistentVolumeClaim:
+            claimName: pulpit-tls
 ---
 apiVersion: v1
 kind: Service
@@ -138,16 +130,26 @@ spec:
   selector:
     app: pulpit
   ports:
-    - port: 8080
+    - name: http
+      port: 8080
       targetPort: 8080
+    - name: https
+      port: 8443
+      targetPort: 8443
 ---
-# Optional - needs an Ingress controller already installed in the cluster
-# (nginx-ingress, traefik, etc.) and `host` below changed to your real
-# hostname (must also match PULP_CSRF_TRUSTED_ORIGINS in 00-configmap.yaml -
-# get this wrong and logins work but every subsequent action 403s, same
-# CSRF requirement as under Compose - docs/DEPLOYMENT.md). Skip this file
-# entirely and use `kubectl port-forward svc/pulpit 8080:8080` instead for a
-# quick local try without any Ingress controller at all.
+# Optional - needs an Ingress controller installed and `host` below set to
+# your real hostname (must also match PULP_CSRF_TRUSTED_ORIGINS in
+# 00-configmap.yaml). Skip and use `kubectl port-forward svc/pulpit 8080:8080`
+# for a quick local try instead.
+#
+# Routes to the Service's plain-HTTP 8080 port by default - the standard
+# pattern of terminating TLS at the Ingress/load balancer in front of
+# Pulpit, not at Pulpit itself. The Service above also exposes 8443 (Pulpit's
+# own self-signed/manual/FreeIPA certificate - Administration > TLS tab) if
+# you'd rather have this Ingress terminate TLS end-to-end at Pulpit instead:
+# point `backend.service.port.number` below at 8443 and add your ingress
+# controller's own "backend speaks HTTPS" annotation (e.g. ingress-nginx's
+# `nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"`).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

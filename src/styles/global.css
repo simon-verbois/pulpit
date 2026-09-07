@@ -6,6 +6,22 @@ body,
   height: 100%;
 }
 
+/* PatternFly v6's Page main-container (the visible "card" - background,
+   border-radius, box-shadow) only sizes to its own content at desktop
+   widths (`align-self: start`, Page/page.css) - on any page shorter than
+   the viewport (most admin/settings pages), that leaves a gap below the
+   card showing the outer .pf-v6-c-page's own (differently-shaded)
+   background, all the way down to AppFooter's fixed position. Stretching
+   the card to fill its row keeps its background filling the full height
+   regardless of content length - harmless for taller content too, since
+   this only affects how much of the row a *shorter* card claims, not the
+   `max-height`/internal-scroll behavior PatternFly still enforces underneath
+   it. PatternFly's own mobile breakpoint already does exactly this by
+   default (`stretch` below 48rem) - this just applies it at every width. */
+.pf-v6-c-page__main-container {
+  align-self: stretch;
+}
+
 body {
   margin: 0;
 }

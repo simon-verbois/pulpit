@@ -124,6 +124,10 @@ export const PULP_STATUS_FIXTURE = {
   database_connection: { connected: true },
   redis_connection: { connected: false },
   storage: { total: 1021431513088, used: 66708217856, free: 954255859712 },
+  content_settings: {
+    content_origin: "http://pulp.example.com:8080",
+    content_path_prefix: "/pulp/content/",
+  },
 };
 
 // VERIFIED: matches the real /pulp/api/v3/login/ contract captured against
@@ -4764,6 +4768,26 @@ const pulpitCoreHandlers = [
     const body = (await request.json()) as { visible_module_ids: string[] };
     return HttpResponse.json({ visible_module_ids: body.visible_module_ids });
   }),
+
+  // A healthy, far-from-expiring self-signed certificate by default - the
+  // Overview page calls this unconditionally (useTlsCertWarning). Tests
+  // exercising the expiry warning itself override this with server.use(...).
+  http.get("/pulpit-core/api/v1/tls/active", () =>
+    HttpResponse.json({
+      id: "00000000-0000-0000-0000-000000000001",
+      source: "self_signed",
+      subject: "pulpit.local",
+      fingerprint_sha256: "aa".repeat(32),
+      not_before: "2026-01-01T00:00:00Z",
+      not_after: "2028-01-01T00:00:00Z",
+      created_at: "2026-01-01T00:00:00Z",
+      freeipa_principal: null,
+      days_until_expiry: 365,
+      warn_days: 30,
+      is_expiring_soon: false,
+    }),
+  ),
+  http.get("/pulpit-core/api/v1/tls/history", () => HttpResponse.json([])),
 ];
 
 export const handlers = [

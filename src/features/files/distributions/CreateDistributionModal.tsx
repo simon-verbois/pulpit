@@ -13,6 +13,7 @@ import {
 } from "@patternfly/react-core";
 
 import { BasePathField } from "../../../components/BasePathField";
+import { useContentOrigin } from "../../../hooks/useContentOrigin";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreateFileDistributionMutation } from "./useCreateFileDistributionMutation";
 
@@ -31,6 +32,7 @@ export function CreateDistributionModal({
   onClose,
 }: CreateDistributionModalProps) {
   const [basePath, setBasePath] = useState("");
+  const contentOrigin = useContentOrigin();
   const createMutation = useCreateFileDistributionMutation();
 
   const handleSubmit = () => {
@@ -71,7 +73,7 @@ export function CreateDistributionModal({
             <BasePathField
               id="distribution-base-path"
               isRequired
-              prefix={`${window.location.origin}/pulp/content/`}
+              prefix={`${contentOrigin}/pulp/content/`}
               placeholder="my-repo"
               value={basePath}
               onChange={setBasePath}

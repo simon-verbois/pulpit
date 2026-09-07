@@ -34,6 +34,10 @@ export function RepositoryVersionsTab({ repository }: { repository: AnsibleRepos
         offset: pagination.offset,
         ordering: "-number",
       }),
+    // Sync can be triggered by another session, the Pulp scheduler, or an
+    // API caller with nothing in this browser to invalidate this query -
+    // poll so a new version from outside this session shows up without F5.
+    refetchInterval: 15000,
   });
 
   return (

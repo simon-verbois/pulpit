@@ -173,11 +173,11 @@ export function PulpStatusSummary({
   // Repositories/Size, nothing to click through to). Only components
   // Pulpit has a verified baseline for (src/lib/pulpCompatibility.ts) - the
   // ones it actually has a UI for - are shown; a real compatibility issue
-  // among THESE still surfaces via CompatibilityWarnings, unaffected by
-  // this filter. "core" is the same kind of noise (always a dash for
-  // Repositories/Size too - it isn't a content plugin) even though it does
-  // have a verified baseline - excluded from the table by request, but its
-  // entry in VERIFIED_VERSIONS stays so CompatibilityWarnings below still
+  // among THESE still surfaces via the Overview page's warnings card,
+  // unaffected by this filter. "core" is the same kind of noise (always a
+  // dash for Repositories/Size too - it isn't a content plugin) even though
+  // it does have a verified baseline - excluded from the table by request,
+  // but its entry in VERIFIED_VERSIONS stays so that warnings card still
   // catches a real pulpcore version mismatch.
   //
   // A plugin's own nav module can still be hidden on top of that (an

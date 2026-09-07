@@ -1,46 +1,18 @@
 # Mirrors compose.yml's `pulp` service. Single instance, same image.
 #
-# No postStart-hook equivalent under `podman play kube` (VERIFIED live:
-# tried, the command never actually ran - a real, confirmed limitation, not
-# an oversight) and a separate Job pod can't reach this pod's *own*
-# internal Postgres (`/var/lib/pgsql`, bundled inside this one container,
-# never network-exposed) to run `pulpcore-manager reset-admin-password`
-# itself. `./deploy.sh` runs the same script content baked into the
-# `pulp-init-admin-password-script` ConfigMap below (mirroring
-# `../docker/pulp/init-admin-password.sh` verbatim) via `podman exec`
-# instead, once this pod is healthy - the same idea as compose.yml's
-# `post_start` hook, just orchestrated by a script instead of expressible in
-# the YAML itself.
+# No postStart-hook equivalent under `podman play kube` - ./deploy.sh runs
+# the script baked into the ConfigMap below via `podman exec` instead, once
+# this pod is healthy.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pulp-init-admin-password-script
 data:
-  # Verbatim copy of ../docker/pulp/init-admin-password.sh - keep these in
-  # sync by hand (no build step templates this in). Moved from a
-  # hostPath-mounted bind-mount to a ConfigMap-backed volume (see the
-  # container's volumeMounts/volumes below) specifically to drop the
-  # `securityContext.seLinuxOptions.type: spc_t` this used to need: a
-  # hostPath file stays labeled with whatever SELinux context the host
-  # filesystem gave it (`user_tmp_t`/`default_t`), which a confined
-  # `container_t` process can't read at all (VERIFIED live with
-  # `ausearch -m avc`) short of unconfining the whole container with
-  # `spc_t`. A ConfigMap volume has no such host-file label to fight -
-  # podman materializes it straight from this YAML - so no SELinux
-  # relabeling workaround is needed at all, narrow or otherwise.
+  # Verbatim copy of ../docker/pulp/init-admin-password.sh - keep in sync by
+  # hand. ConfigMap-backed rather than a hostPath bind-mount to avoid an
+  # SELinux label mismatch a confined container can't read.
   init-admin-password.sh: |
     #!/bin/sh
-    # Runs as a Compose `post_start` hook on the `pulp` service (see compose.yml)
-    # every time the container starts. It never touches the container's own
-    # entrypoint/init sequence (s6-overlay) - it only runs an extra command
-    # after that sequence has brought the container up.
-    #
-    # Behavior (docs/DEPLOYMENT.md):
-    #   - PULP_ADMIN_PASSWORD unset/empty -> do nothing, leave the "admin"
-    #     account (and whatever password Pulp itself generated for it) untouched.
-    #   - PULP_ADMIN_PASSWORD set -> wait for Pulp's own init to finish creating
-    #     the "admin" user, then set its password to that value. Idempotent -
-    #     safe to run on every start.
     set -eu
 
     if [ -z "${PULP_ADMIN_PASSWORD:-}" ]; then
@@ -105,11 +77,8 @@ spec:
     requests:
       storage: 10Gi
 ---
-# Shared with pulpit.yaml (docs/signing.md "Shared volume permissions") -
-# plain Podman named volumes under the hood, same as every other PVC here;
-# ReadWriteMany is only meaningful on a real multi-node Kubernetes cluster
-# (deployment/kube/), not on a single Podman host, where any PVC is already usable by
-# as many local pods as reference it by name.
+# Shared with pulpit.yaml. Plain Podman named volumes under the hood -
+# ReadWriteOnce is enough on a single host.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -138,41 +107,8 @@ metadata:
     app: pulp
 spec:
   containers:
-    # docker.io/pulp/pulp:stable plus one added s6 longrun service - the
-    # colocated signing-service reconciler (docs/signing.md "Automating the
-    # manual Pulp step", docs/adr/0008-colocated-signing-reconciler.md) -
-    # built from deployment/docker/pulp/Dockerfile, same image
-    # compose.yml uses. Nothing reaches into this pod from the outside
-    # anymore - no docker-socket-proxy.
     - name: pulp
-      # __PULP_PULPIT_IMAGE_TAG__ is substituted by ./deploy.sh at apply
-      # time (defaults to "latest", same PULP_PULPIT_IMAGE_TAG convention as
-      # compose.yml/.env.example - see README.md "Pinning versions and
-      # overriding config") -
-      # edit this directly to a real tag instead if you apply this file
-      # without deploy.sh.
-      image: docker.io/simonverbois/pulp-pulpit:__PULP_PULPIT_IMAGE_TAG__
-      # allowPrivilegeEscalation/capabilities: the entrypoint (this image's
-      # own, derived from pulp/pulp:stable's s6-overlay init) starts as root
-      # briefly to prepare bind-mounted volumes before dropping to an
-      # unprivileged user, the same root-then-drop pattern
-      # deployment/docker/pulpit/entrypoint.sh uses verbatim for the
-      # `pulpit` container (see that file). Deliberately NOT
-      # `runAsNonRoot: true` - that would block the container from ever
-      # starting as root to do the initial chown/chmod step at all. Capped
-      # to just the capabilities that dance plausibly needs instead of
-      # leaving the full default set: CHOWN/DAC_OVERRIDE for the
-      # chown/chmod itself, SETUID/SETGID for su/setpriv-ing down to the
-      # unprivileged user afterward. Unverified against a real running
-      # container in this sandbox (no live podman host available here) -
-      # if the entrypoint fails after this change, check its logs for a
-      # denied syscall and add the specific missing capability back rather
-      # than reverting to no securityContext at all.
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop: ["ALL"]
-          add: ["CHOWN", "DAC_OVERRIDE", "SETUID", "SETGID"]
+      image: docker.io/simonverbois/pulp-pulpit:latest
       envFrom:
         - configMapRef:
             name: pulpit-config
@@ -188,9 +124,8 @@ spec:
               name: pulpit-secrets
               key: PULP_ADMIN_PASSWORD
       ports:
-        # Dev-only convenience port (docs/DEVELOPMENT.md Mode A), bound to
-        # loopback only - matches compose.yml's own `127.0.0.1:` binding.
-        # Remove if you don't need it.
+        # Dev-only convenience port, bound to loopback only. Remove if not
+        # needed.
         - containerPort: 80
           hostPort: 8180
           hostIP: 127.0.0.1
@@ -212,13 +147,6 @@ spec:
         - name: pulpit-signing-scripts
           mountPath: /var/lib/pulpit-signing/scripts
           readOnly: true
-      # Conservative self-hosted defaults - this is a single-instance,
-      # single-host deployment (see CLAUDE.md "Stay 100% local"), not a
-      # multi-tenant cluster, so these just guard against one runaway
-      # container starving the others on the same box. Adjust to your own
-      # hardware/workload; Pulp itself (content sync/publish, repo
-      # versioning) is the most memory-hungry of the three containers here,
-      # hence the higher ceiling.
       resources:
         requests:
           cpu: "500m"
@@ -255,10 +183,6 @@ spec:
     - name: pulp-var-lib-containers
       persistentVolumeClaim:
         claimName: pulp-var-lib-containers
-    # ConfigMap-backed, not a hostPath bind-mount anymore (see the
-    # `pulp-init-admin-password-script` ConfigMap and this container's own
-    # securityContext comment above for why) - no absolute host path needed,
-    # so no substitution by ./deploy.sh either.
     - name: init-admin-password-script
       configMap:
         name: pulp-init-admin-password-script

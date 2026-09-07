@@ -76,10 +76,12 @@ describe("RemoteConnectionSettingsFields", () => {
 
     renderApp(<Harness />);
 
+    fireEvent.click(await screen.findByText("Advanced connection settings"));
     const checkbox = await screen.findByLabelText("Use the instance default proxy");
     expect(checkbox).toBeChecked();
-    // The section auto-expands and the manual fields stay hidden while the
-    // default is in effect.
+    // The manual fields stay hidden while the default is in effect, even
+    // though it's already been applied silently before the section was
+    // ever expanded (the waitFor below).
     expect(screen.queryByLabelText("Proxy URL")).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -97,6 +99,7 @@ describe("RemoteConnectionSettingsFields", () => {
 
     renderApp(<Harness hiddenFields={[]} />);
 
+    fireEvent.click(await screen.findByText("Advanced connection settings"));
     const checkbox = await screen.findByLabelText("Use the instance default proxy");
     expect(checkbox).not.toBeChecked();
     expect(await screen.findByLabelText("Proxy URL")).toBeInTheDocument();
@@ -107,6 +110,7 @@ describe("RemoteConnectionSettingsFields", () => {
 
     renderApp(<Harness />);
 
+    fireEvent.click(await screen.findByText("Advanced connection settings"));
     const checkbox = await screen.findByLabelText("Use the instance default proxy");
     await waitFor(() => expect(checkbox).toBeChecked());
     await waitFor(() => {
@@ -128,6 +132,7 @@ describe("RemoteConnectionSettingsFields", () => {
 
     renderApp(<Harness />);
 
+    fireEvent.click(await screen.findByText("Advanced connection settings"));
     const tlsCheckbox = await screen.findByLabelText(
       "Validate TLS certificates (origin server and proxy)",
     );
@@ -152,6 +157,7 @@ describe("RemoteConnectionSettingsFields", () => {
 
     renderApp(<Harness />);
 
+    fireEvent.click(await screen.findByText("Advanced connection settings"));
     const caCertField = await screen.findByLabelText("Trusted CA certificate (PEM)");
     await waitFor(() => expect(caCertField).toHaveValue(DEFAULT_CA_CERT));
     expect(caCertField).toBeDisabled();

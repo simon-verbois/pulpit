@@ -1,3 +1,6 @@
+import type { PulpStatus } from "../api/client/status";
+import type { Warning } from "./warnings";
+
 /**
  * The pulpcore/plugin versions each of this app's feature areas was last
  * VERIFIED live against (docs/ROADMAP.md, per-milestone "VERIFIED against a
@@ -63,4 +66,40 @@ export function compatibilityStatus(
     installed[0] > verified[0] ||
     (installed[0] === verified[0] && installed[1] > verified[1]);
   return isNewer ? "newer" : "older";
+}
+
+/** One Warning (src/components/OverviewWarnings.tsx) per component Pulp's
+ * own /status/ reports a version for that doesn't match Pulpit's verified
+ * baseline. "matches" needs no warning; "not_implemented" just means Pulpit
+ * has no UI for this component at all - expected for most of a Pulp
+ * instance's components, not a signal anything is wrong. */
+export function buildCompatibilityWarnings(status: PulpStatus): Warning[] {
+  const warnings: Warning[] = [];
+  for (const v of status.versions ?? []) {
+    const result = compatibilityStatus(v.component, v.version);
+    if (result === "matches" || result === "not_implemented") {
+      continue;
+    }
+    const baseline = VERIFIED_VERSIONS[v.component];
+    if (result === "newer") {
+      warnings.push({
+        id: `compatibility-${v.component}`,
+        variant: "info",
+        message: `${v.component} is running ${v.version}, newer than the ${baseline} Pulpit was last verified against - likely fine, but not yet tested.`,
+      });
+    } else if (result === "older") {
+      warnings.push({
+        id: `compatibility-${v.component}`,
+        variant: "warning",
+        message: `${v.component} is running ${v.version}, older than the ${baseline} Pulpit was last verified against.`,
+      });
+    } else {
+      warnings.push({
+        id: `compatibility-${v.component}`,
+        variant: "warning",
+        message: `${v.component} reported version "${v.version}", which couldn't be compared against Pulpit's verified baseline (${baseline}).`,
+      });
+    }
+  }
+  return warnings;
 }

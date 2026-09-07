@@ -7,237 +7,35 @@
 # Kubernetes Service, or a real remote host with no code change).
 # pulpit-core itself is always plain http://127.0.0.1:8000 below - no
 # variable needed, it can never be anywhere but this same container.
+#
+# Both server blocks below serve the exact same routes - see
+# pulpit-locations.conf.template, shared via `include` so 8080 and 8443 can
+# never drift out of sync route-wise.
+#
+# ${NGINX_LOCAL_RESOLVERS} is auto-detected from /etc/resolv.conf by the base
+# nginx image's own /docker-entrypoint.d/15-local-resolvers.envsh (opted into
+# via NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1, Dockerfile) - deliberately NOT
+# hardcoded to Docker's embedded-DNS address (127.0.0.11): VERIFIED live that
+# nothing listens there under Podman (its DNS runs on the network's own
+# bridge gateway instead, no fixed address), and Kubernetes' CoreDNS
+# ClusterIP isn't fixed either - reading /etc/resolv.conf is what makes this
+# portable across all three.
 server {
     listen 8080;
     server_name _;
+    include /etc/nginx/pulpit-locations.conf;
+}
 
-    # VERIFIED: a bare `proxy_pass http://pulp:80` resolves "pulp" to an IP
-    # once (at config load / first use) and keeps using it - if the `pulp`
-    # container/pod is later recreated (e.g. after an env var change or a
-    # Kubernetes rollout) without also restarting `pulpit`, nginx keeps
-    # proxying to the now-dead old IP and every request 502s even though
-    # Pulp itself is healthy. Using a variable in proxy_pass, together with
-    # an explicit resolver, forces nginx to re-resolve the hostname instead
-    # of caching it for the worker's lifetime.
-    #
-    # ${NGINX_LOCAL_RESOLVERS} is auto-detected from /etc/resolv.conf by the
-    # base nginx image's own /docker-entrypoint.d/15-local-resolvers.envsh
-    # (opted into via NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1, Dockerfile) -
-    # deliberately NOT hardcoded to Docker's embedded-DNS address
-    # (127.0.0.11): VERIFIED live that nothing listens there under Podman
-    # (its DNS runs on the network's own bridge gateway instead, no fixed
-    # address), and Kubernetes' CoreDNS ClusterIP isn't fixed either -
-    # reading /etc/resolv.conf is what makes this portable across all three.
-    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
-
-    # Sane finite default for the server as a whole (nginx's own built-in
-    # default is 1m, small enough to reject some legitimate API request
-    # bodies) - only the specific locations below that actually receive
-    # package/image/collection uploads (VERIFIED against docs/PULP_API.md:
-    # artifact/package/collection uploads all land under /pulp/api/;
-    # /pulp/content/ and /pulp/container/ are content-serving, and /v2/ is
-    # the container registry push/pull path) override this to unlimited.
-    # Previously `client_max_body_size 0` (unlimited) here applied to EVERY
-    # path on this server, including pulpit-core's own JSON API and the
-    # static SPA - no request body anywhere on this origin had any size
-    # ceiling at all.
-    client_max_body_size 10m;
-
-    location /pulp/api/ {
-        set $pulp_upstream http://${PULP_UPSTREAM};
-        proxy_pass $pulp_upstream;
-        # $http_host (not $host): nginx's $host strips the port, so a
-        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
-        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
-        # anything Pulp itself builds from request.get_host() (VERIFIED
-        # live: pulp_container's `registry_path` field came back as
-        # "localhost/<base_path>", missing ":8080", with $host here).
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # VERIFIED: pulpcore's DRF BasicAuthentication sends
-        # "WWW-Authenticate: Basic" on every 401, which makes browsers pop up
-        # their native credential prompt on top of Pulpit's own login page
-        # (docs/AUTHENTICATION.md) - Pulpit never relies on that prompt (it
-        # sends Basic auth itself, once, from its own login form), so it's
-        # hidden here rather than fighting the browser for control of the 401.
-        proxy_hide_header WWW-Authenticate;
-        # Package/artifact uploads are real file uploads that can be large
-        # (RPM packages, generic artifacts, Ansible collection tarballs -
-        # docs/PULP_API.md's "Package upload"/"Collection version upload"
-        # sections), unlike the rest of Pulp's JSON API on this same prefix.
-        client_max_body_size 0;
-    }
-
-    location /pulp/content/ {
-        set $pulp_upstream http://${PULP_UPSTREAM};
-        proxy_pass $pulp_upstream;
-        # $http_host (not $host): nginx's $host strips the port, so a
-        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
-        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
-        # anything Pulp itself builds from request.get_host() (VERIFIED
-        # live: pulp_container's `registry_path` field came back as
-        # "localhost/<base_path>", missing ":8080", with $host here).
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # Content-serving path for large package/artifact downloads - kept
-        # unlimited to match the upload side above rather than risk rejecting
-        # a legitimate large request here too.
-        client_max_body_size 0;
-    }
-
-    # Container registry (pulp_container). Registry clients push/pull large,
-    # chunked image layers, so buffering/timeouts are relaxed here. VERIFIED
-    # against a real `podman pull` end-to-end (see docs/DEPLOYMENT.md).
-    location /v2/ {
-        set $pulp_upstream http://${PULP_UPSTREAM};
-        proxy_pass $pulp_upstream;
-        # $http_host (not $host): nginx's $host strips the port, so a
-        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
-        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
-        # anything Pulp itself builds from request.get_host() (VERIFIED
-        # live: pulp_container's `registry_path` field came back as
-        # "localhost/<base_path>", missing ":8080", with $host here).
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_request_buffering off;
-        proxy_read_timeout 300s;
-        proxy_send_timeout 300s;
-        # Image layer pushes can be large - see the block comment above.
-        client_max_body_size 0;
-    }
-
-    # pulp_container's "atomic" signature extension API (podman/docker
-    # clients probe this for image signatures on every pull, even when none
-    # exist) - VERIFIED live this was missing too, same symptom as the two
-    # blocks below: silently served Pulpit's own index.html instead of
-    # Pulp's real (empty-signatures) JSON response, which broke a real
-    # `podman pull` with a confusing "decoding signature list: invalid
-    # character '<'" error instead of an obvious routing failure.
-    location /extensions/v2/ {
-        set $pulp_upstream http://${PULP_UPSTREAM};
-        proxy_pass $pulp_upstream;
-        # $http_host (not $host): nginx's $host strips the port, so a
-        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
-        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
-        # anything Pulp itself builds from request.get_host() (VERIFIED
-        # live: pulp_container's `registry_path` field came back as
-        # "localhost/<base_path>", missing ":8080", with $host here).
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # pulp_container's own content-serving app (blob/manifest downloads) -
-    # `/v2/.../blobs/...` above 302-redirects here with a signed, expiring
-    # URL, a *separate* path prefix from the generic `/pulp/content/` used
-    # by RPM/Ansible. VERIFIED live this was missing entirely, the exact
-    # same class of gap as the `/pulp_ansible/` one below: without this
-    # block a real `podman pull` "succeeded" in following the redirect but
-    # silently received Pulpit's own index.html (a 200, wrong content) from
-    # the SPA fallback instead of the real blob, which surfaced downstream
-    # as a confusing "digest does not match" error, not an obvious routing
-    # failure.
-    location /pulp/container/ {
-        set $pulp_upstream http://${PULP_UPSTREAM};
-        proxy_pass $pulp_upstream;
-        # $http_host (not $host): nginx's $host strips the port, so a
-        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
-        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
-        # anything Pulp itself builds from request.get_host() (VERIFIED
-        # live: pulp_container's `registry_path` field came back as
-        # "localhost/<base_path>", missing ":8080", with $host here).
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_request_buffering off;
-        proxy_read_timeout 300s;
-        proxy_send_timeout 300s;
-        # Large blob downloads land here (see the block comment above) - same
-        # unlimited scoping as /v2/.
-        client_max_body_size 0;
-    }
-
-    # pulp_ansible's own Galaxy-v3-compatible API (per-distribution content
-    # browsing, namespace management, cross-repository collection search -
-    # see docs/PULP_API.md "Ansible endpoints"). VERIFIED live this was
-    # missing entirely: without this block, GET requests here silently fell
-    # through to the SPA fallback below (nginx's `try_files` served
-    # Pulpit's own index.html with a 200, not Pulp's real JSON - a search
-    # request "succeeded" while actually hitting the wrong app) and POST
-    # requests 405'd (a static-file location doesn't accept POST) - both
-    # looked like generic frontend bugs until checked at the network level.
-    location /pulp_ansible/ {
-        set $pulp_upstream http://${PULP_UPSTREAM};
-        proxy_pass $pulp_upstream;
-        # $http_host (not $host): nginx's $host strips the port, so a
-        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
-        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
-        # anything Pulp itself builds from request.get_host() (VERIFIED
-        # live: pulp_container's `registry_path` field came back as
-        # "localhost/<base_path>", missing ":8080", with $host here).
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # This mount also serves the Galaxy-v3 collection publish endpoint
-        # real `ansible-galaxy` clients push tarballs to directly (docs/
-        # PULP_API.md "Ansible endpoints") - same unlimited scoping as the
-        # upload path under /pulp/api/ above.
-        client_max_body_size 0;
-    }
-
-    # pulpit-core's authenticated module API (ADR 0006, docs/signing.md).
-    # Same-origin, same trust boundary as /pulp/api/ above - the browser
-    # sends whatever cookie/Basic-auth it already has, and pulpit-core
-    # itself re-validates it against Pulp (app/core/auth.py) rather than
-    # inventing a second identity source.
-    location /pulpit-core/api/ {
-        # The frontend already requests paths under /pulpit-core/api/v1/...
-        # (src/api/client/pulpitCore/httpClient.ts's API_BASE_PATH) - strip
-        # only the /pulpit-core prefix and pass the rest through unchanged.
-        # BUG FOUND LIVE: an earlier version of this rewrite also prepended
-        # /api/v1/, producing /api/v1/v1/... (doubled), which matched no
-        # FastAPI route and 404'd every single pulpit-core API call.
-        rewrite ^/pulpit-core(/.*)$ $1 break;
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Public signing-key distribution (task section 7) - deliberately NOT
-    # under /pulpit-core/api/ and NOT authenticated: DNF/rpm clients fetch
-    # this directly via a repository's plain `gpgkey=` URL, the same way
-    # they'd fetch a key from any other static HTTPS location.
-    location /keys/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Legacy pulp-ui (bundled in the Pulp all-in-one image) is intentionally
-    # not exposed here - Pulpit replaces its management use case (ADR 0005).
-    location /ui/ {
-        return 404;
-    }
-
-    # Pulpit static SPA, with SPA fallback (kept last so it never shadows
-    # the Pulp routes above).
-    root /usr/share/nginx/html;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+# TLS - self-signed fallback generated automatically on first boot if
+# nothing else is configured (Administration > TLS tab: manual upload or the
+# FreeIPA provider both replace ${TLS_CERT_PATH}/${TLS_KEY_PATH} in place and
+# request a reload - see docs/DEPLOYMENT.md "TLS"). 8080 keeps working
+# unchanged; this is purely additive.
+server {
+    listen 8443 ssl;
+    server_name _;
+    ssl_certificate     ${TLS_CERT_PATH};
+    ssl_certificate_key ${TLS_KEY_PATH};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    include /etc/nginx/pulpit-locations.conf;
 }

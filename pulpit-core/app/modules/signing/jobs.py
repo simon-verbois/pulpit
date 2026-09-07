@@ -12,7 +12,7 @@ image has the `gpg`/`rpm`/`rpmsign` binaries and the GNUPGHOME volume at all.
 
 import logging
 import tempfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -46,6 +46,15 @@ from app.modules.signing.pulp_bootstrap import (
 
 MODULE = "signing"
 logger = logging.getLogger(__name__)
+
+# Matches deployment/docker/pulp/pulpit-signing-reconciler's own
+# POLL_INTERVAL_SECONDS - once a service is pending, re-checking any faster
+# than the reconciler itself polls just wastes a job run. Capped so a
+# deployment that never registers the service (vanilla pulp/pulp:stable, no
+# reconciler) falls back to rotation_check's normal 300s cadence instead of
+# polling every 30s forever.
+_BOOTSTRAP_QUICK_RETRY_SECONDS = 30
+_BOOTSTRAP_QUICK_RETRY_LIMIT = 10
 
 
 def _local_key_manager():
@@ -136,6 +145,13 @@ def generate_key_job(db: Session, payload: dict) -> dict:
         _ensure_pulp_service_row(
             db, purpose=PulpServicePurpose.METADATA, key=key, settings_row=settings_row
         )
+
+    if settings_row.package_signing_enabled or settings_row.metadata_signing_enabled:
+        # Writes the manifest for the colocated reconciler right away instead
+        # of waiting for the next scheduled rotation_check (up to 300s later)
+        # - see check_pulp_bootstrap_job's own quick-retry loop for what
+        # happens after this first attempt.
+        enqueue_job(db, "signing.check_pulp_bootstrap", {})
 
     db.add(
         SigningRotation(
@@ -472,7 +488,13 @@ def check_pulp_bootstrap_job(db: Session, payload: dict) -> dict:
     acts on from *inside* the `pulp` container. This job's own
     responsibility is just detecting completion (as before, by polling
     Pulp's signing-services list) and re-attempting publishing once ready.
-    Scheduled periodically, and after every settings/key change."""
+    Scheduled periodically (rotation_check_job) and immediately after key
+    generation (generate_key_job); while a row is still pending afterward,
+    reschedules itself every _BOOTSTRAP_QUICK_RETRY_SECONDS (matching the
+    reconciler's own poll interval) up to _BOOTSTRAP_QUICK_RETRY_LIMIT times,
+    so the common case resolves in under a minute instead of waiting for
+    rotation_check_job's next 300s cycle - falls back to that slower cadence
+    once the retry budget is spent (e.g. no reconciler present at all)."""
     pulp = get_pulp_client()
     settings = get_settings()
     pending = (
@@ -521,6 +543,16 @@ def check_pulp_bootstrap_job(db: Session, payload: dict) -> dict:
         # this key needs is actually ACTIVE, and get_next_key stops
         # returning a key at all once it succeeds.
         enqueue_job(db, "signing.publish_key", {"key_id": str(next_key.id), "triggered_by": "schedule"})
+
+    still_pending = len(pending) - len(became_active)
+    quick_retry = payload.get("quick_retry", 0)
+    if still_pending > 0 and quick_retry < _BOOTSTRAP_QUICK_RETRY_LIMIT:
+        enqueue_job(
+            db,
+            "signing.check_pulp_bootstrap",
+            {"quick_retry": quick_retry + 1},
+            run_at=datetime.now(UTC) + timedelta(seconds=_BOOTSTRAP_QUICK_RETRY_SECONDS),
+        )
 
     return {"became_active": became_active}
 

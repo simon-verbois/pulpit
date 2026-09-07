@@ -1,0 +1,7 @@
+#!/bin/sh
+# s6-overlay longrun - supervised/restarted automatically if it crashes,
+# same "one persistent process" model as pulpit-signing-reconciler's own
+# run script. Unlike that one, this reconciler reads no container env vars
+# (no Pulp credentials needed - it only reads the manifest file and calls
+# `s6-svc` locally), so no `with-contenv` wrapper is needed here.
+exec /usr/local/bin/pulpit-ldap-reconciler

@@ -26,6 +26,11 @@ export function RepositoryVersionsTab({ repository }: { repository: MavenReposit
         // Newest first - versions accumulate, most admins care about recent ones.
         ordering: "-number",
       }),
+    // Maven is pull-through-cache only (no sync action at all) - a new
+    // version can appear purely from a client requesting an artifact, with
+    // nothing in this browser to invalidate the query. Poll so it shows up
+    // without F5.
+    refetchInterval: 15000,
   });
 
   return (

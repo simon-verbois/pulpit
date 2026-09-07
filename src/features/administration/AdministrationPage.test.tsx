@@ -97,6 +97,11 @@ describe("AdministrationPage", () => {
       await screen.findByRole("button", { name: "Create content guard" }),
     ).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("tab", { name: "TLS" }));
+    expect(
+      await screen.findByRole("button", { name: "Regenerate self-signed certificate" }),
+    ).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("tab", { name: "Global Proxy Settings" }));
     expect(await screen.findByLabelText("Proxy URL")).toBeInTheDocument();
   });

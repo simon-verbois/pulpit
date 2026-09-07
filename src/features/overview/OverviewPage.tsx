@@ -1,7 +1,7 @@
 import { Grid, GridItem, PageSection, Stack, StackItem } from "@patternfly/react-core";
 
 import { deriveCapabilities } from "../../api/capabilities";
-import { CompatibilityWarnings } from "../../components/CompatibilityWarnings";
+import { OverviewWarnings } from "../../components/OverviewWarnings";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingState } from "../../components/LoadingState";
 import { ErrorState } from "../../components/ErrorState";
@@ -9,11 +9,13 @@ import {
   PulpStatusSummary,
   type RepositoryCountEntry,
 } from "../../components/PulpStatusSummary";
+import { buildCompatibilityWarnings } from "../../lib/pulpCompatibility";
 import { useStatusQuery } from "../../hooks/useStatusQuery";
 import { useNavVisibilityQuery } from "../../hooks/useNavVisibilityQuery";
 import { RecentTasksCard } from "./RecentTasksCard";
 import { useRepositoryCounts } from "./useRepositoryCounts";
 import { useComponentSizesQuery } from "./useComponentSizesQuery";
+import { useTlsCertWarning } from "./useTlsCertWarning";
 
 export function OverviewPage() {
   const statusQuery = useStatusQuery();
@@ -23,6 +25,7 @@ export function OverviewPage() {
     : undefined;
   const counts = useRepositoryCounts(capabilities);
   const componentSizesQuery = useComponentSizesQuery();
+  const tlsCertWarning = useTlsCertWarning();
 
   // Keyed by status.versions[].component, so PulpStatusSummary can look
   // each row's count up directly - only plugins Pulpit has a Repositories
@@ -76,7 +79,9 @@ export function OverviewPage() {
                   <RecentTasksCard />
                 </GridItem>
                 <GridItem md={6} style={{ alignSelf: "start" }}>
-                  <CompatibilityWarnings status={statusQuery.data} />
+                  <OverviewWarnings
+                    sources={[buildCompatibilityWarnings(statusQuery.data), tlsCertWarning]}
+                  />
                 </GridItem>
               </Grid>
             </StackItem>

@@ -45,9 +45,13 @@ Thumbs.db
 # TypeScript build info
 *.tsbuildinfo
 
+# Python bytecode cache - anywhere in the repo, not just pulpit-core/ (the
+# derived Pulp image's own reconciler scripts under deployment/docker/pulp/
+# are plain Python run directly, same artifact).
+__pycache__/
+
 # pulpit-core (Python backend) - build/dev artifacts
 pulpit-core/.venv/
-pulpit-core/**/__pycache__/
 pulpit-core/.pytest_cache/
 pulpit-core/*.egg-info/
 

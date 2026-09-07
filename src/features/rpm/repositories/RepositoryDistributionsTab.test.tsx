@@ -53,6 +53,14 @@ describe("RepositoryDistributionsTab", () => {
     expect(
       within(dialog).queryByLabelText("Name", { exact: false }),
     ).not.toBeInTheDocument();
+    // The base-path prefix reflects Pulp's own CONTENT_ORIGIN
+    // (content_settings.content_origin from /pulp/api/v3/status/) - what a
+    // created distribution's real base_url is actually built from - not
+    // window.location.origin, which can differ from it in a real deployment
+    // where CONTENT_ORIGIN isn't configured to match the public origin.
+    expect(
+      await within(dialog).findByText("http://pulp.example.com:8080/pulp/content/"),
+    ).toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
     });

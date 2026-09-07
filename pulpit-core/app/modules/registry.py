@@ -13,8 +13,10 @@ from fastapi import APIRouter
 from app.modules.content_size import module as content_size_module
 from app.modules.default_settings import module as default_settings_module
 from app.modules.fixture_seed import module as fixture_seed_module
+from app.modules.ldap import module as ldap_module
 from app.modules.nav_visibility import module as nav_visibility_module
 from app.modules.signing import module as signing_module
+from app.modules.tls import module as tls_module
 
 _MODULES = [
     signing_module,
@@ -22,6 +24,8 @@ _MODULES = [
     default_settings_module,
     nav_visibility_module,
     fixture_seed_module,
+    ldap_module,
+    tls_module,
 ]
 
 

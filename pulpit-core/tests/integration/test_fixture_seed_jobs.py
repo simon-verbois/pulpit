@@ -5,9 +5,24 @@ _FakePulpClient for the one external dependency each job actually needs."""
 import pytest
 
 from app.adapters.pulp.exceptions import PulpAdapterError
+from app.core.config import get_settings
 from app.modules.fixture_seed import jobs as fixture_seed_jobs
 from app.modules.fixture_seed import service
 from app.modules.fixture_seed.fixtures import FIXTURES
+
+
+@pytest.fixture(autouse=True)
+def _fixture_seed_enabled(monkeypatch):
+    """fixture_seed_enabled defaults to False (opt-in, see
+    app/core/config/settings.py) - every test in this file except the
+    "disabled" one below is exercising the seeding mechanism itself, not
+    the toggle, so enable it here rather than repeating this in every test.
+    test_skips_entirely_when_disabled_by_settings overrides this back to
+    false itself, after this fixture has already run."""
+    monkeypatch.setenv("PULPIT_CORE_FIXTURE_SEED_ENABLED", "true")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class _FakePulpClient:

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Button,
@@ -50,6 +50,17 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
   const jobSucceeded = job.data?.status === "success";
   const settings = settingsQuery.data;
   const allowIndefiniteValidity = settings?.allow_indefinite_validity ?? false;
+
+  // The new key already shows up in the keys list behind this modal (the
+  // mutation invalidates it on success) - nothing more to show here once
+  // generation succeeds, so close automatically instead of waiting on the
+  // user to click "Close" themselves. Left open on failure so the error
+  // stays visible.
+  useEffect(() => {
+    if (jobSucceeded) {
+      onClose();
+    }
+  }, [jobSucceeded, onClose]);
 
   const handleGenerate = () => {
     if (preset === "none") {

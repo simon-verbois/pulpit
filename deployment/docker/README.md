@@ -36,8 +36,9 @@ flags already baked in).
 
 ## Known gaps
 
-- Not a hardened production deployment as-is - no TLS termination, secrets sourced from a
-  `.env` file rather than a real secret manager (`docs/SECURITY.md`,
-  `docs/DEPLOYMENT.md` "Production (future work)").
+- Not a hardened production deployment as-is - nginx does terminate TLS itself on 8443 (self-signed
+  by default, see `docs/DEPLOYMENT.md` "TLS"), but secrets are still sourced from a `.env` file
+  rather than a real secret manager (`docs/SECURITY.md`, `docs/DEPLOYMENT.md`
+  "Production (future work)").
 - Single Docker host only - no orchestration, scheduling, or multi-node story (that's
   `deployment/kube/`).

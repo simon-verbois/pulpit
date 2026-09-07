@@ -14,38 +14,53 @@ import { RepositorySigningPage } from "./repositorySigning/RepositorySigningPage
 import { SigningPage } from "./signing/SigningPage";
 import { ContentGuardsPage } from "./contentGuards/ContentGuardsPage";
 import { DefaultSettingsPage } from "./defaultSettings/DefaultSettingsPage";
+import { LdapSettingsPage } from "./ldap/LdapSettingsPage";
+import { TlsPage } from "./tls/TlsPage";
 
 const DEFAULT_TAB = "general";
-const DEFAULT_ACCESS_SUBTAB = "users";
+// Every tab with its own nested sub-tabs (Access: Users/Groups/Roles; TLS:
+// Overview/Manual/FreeIPA) needs a default subtab to land on when the URL
+// names the tab but not a subtab - one shared map instead of a per-tab
+// branch, so a future tab gaining sub-tabs is a one-line addition here.
+const DEFAULT_SUBTAB_BY_TAB: Record<string, string> = {
+  access: "users",
+  tls: "overview",
+};
 
 /** One merged page for every instance-wide admin concern - previously 4
  * separate standalone admin pages plus the whole Access area (Users/Groups/
  * Roles), each with its own left-nav item (docs/adr/
  * 0010-merged-administration-page.md). "Administration" is now a single
  * flat nav link (AppNav.tsx/navTree.ts), and what used to be distinct
- * pages/sections are tabs here instead. Users/Groups/Roles are themselves
- * merged into one "Access" tab with its own nested sub-tabs, rather than 3
- * separate top-level tabs.
+ * pages/sections are tabs here instead. Users/Groups/Roles (Access) and
+ * the TLS certificate providers (TLS) are each merged into one top-level
+ * tab with its own nested sub-tabs, rather than separate top-level tabs.
  *
- * The active tab (and, for Access, the active sub-tab) lives in the URL's
- * query string (`?tab=...&subtab=...`), not component state - VERIFIED:
- * React Router's own history/location state (what this used before) does
- * not survive a hard reload (F5), so a refresh always reset back to
- * General. The URL does survive a reload, so this is the one source of
- * truth for both the initial render AND every tab switch afterwards; a
- * caller can also deep-link straight into a tab/sub-tab (e.g. UserDetailPage/
- * GroupDetailPage navigate here with `/admin?tab=access&subtab=users` after
- * a delete) the same way. */
+ * The active tab (and, for tabs with sub-tabs, the active sub-tab) lives in
+ * the URL's query string (`?tab=...&subtab=...`), not component state -
+ * VERIFIED: React Router's own history/location state (what this used
+ * before) does not survive a hard reload (F5), so a refresh always reset
+ * back to General. The URL does survive a reload, so this is the one
+ * source of truth for both the initial render AND every tab switch
+ * afterwards; a caller can also deep-link straight into a tab/sub-tab (e.g.
+ * UserDetailPage/GroupDetailPage navigate here with
+ * `/admin?tab=access&subtab=users` after a delete) the same way. */
 export function AdministrationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? DEFAULT_TAB;
-  const activeSubTab = searchParams.get("subtab") ?? DEFAULT_ACCESS_SUBTAB;
+  const activeSubTab =
+    searchParams.get("subtab") ?? DEFAULT_SUBTAB_BY_TAB[activeTab] ?? "";
 
   const onSelectTab = (tab: string) => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", tab);
-    if (tab === "access") {
-      next.set("subtab", next.get("subtab") ?? DEFAULT_ACCESS_SUBTAB);
+    // Always reset to THIS tab's own default sub-tab, never carry over
+    // whatever sub-tab happened to be selected on a different tab (e.g.
+    // Access's "groups" leaking into TLS as its subtab) - clicking a
+    // top-level tab is a fresh entry into it, sub-tab memory within a tab
+    // is only ever changed by onSelectSubTab below.
+    if (tab in DEFAULT_SUBTAB_BY_TAB) {
+      next.set("subtab", DEFAULT_SUBTAB_BY_TAB[tab]);
     } else {
       next.delete("subtab");
     }
@@ -54,9 +69,9 @@ export function AdministrationPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const onSelectAccessSubTab = (subtab: string) => {
+  const onSelectSubTab = (tab: string, subtab: string) => {
     const next = new URLSearchParams(searchParams);
-    next.set("tab", "access");
+    next.set("tab", tab);
     next.set("subtab", subtab);
     setSearchParams(next, { replace: true });
   };
@@ -67,7 +82,7 @@ export function AdministrationPage() {
         activeTab={activeTab}
         activeSubTab={activeSubTab}
         onSelectTab={onSelectTab}
-        onSelectAccessSubTab={onSelectAccessSubTab}
+        onSelectSubTab={onSelectSubTab}
       />
     </AdministrationHeaderActionProvider>
   );
@@ -77,12 +92,12 @@ function AdministrationPageContent({
   activeTab,
   activeSubTab,
   onSelectTab,
-  onSelectAccessSubTab,
+  onSelectSubTab,
 }: {
   activeTab: string;
   activeSubTab: string;
   onSelectTab: (tab: string) => void;
-  onSelectAccessSubTab: (subtab: string) => void;
+  onSelectSubTab: (tab: string, subtab: string) => void;
 }) {
   // Whichever tab (or, on Access, sub-tab) is active right now registered
   // its own primary action (AdministrationHeaderActionContext.tsx) -
@@ -97,7 +112,7 @@ function AdministrationPageContent({
     <>
       <PageHeader
         title="Administration"
-        description="Instance-wide configuration: what every user sees, users/groups/roles, repository signing, Pulp signing services, content guards, and a global default proxy for every Remote."
+        description="Instance-wide configuration: what every user sees, users/groups/roles, LDAP authentication, repository signing, Pulp signing services, content guards, TLS, and a global default proxy for every Remote."
         actions={headerAction}
       />
       <PageSection hasBodyWrapper={false} type="tabs">
@@ -117,7 +132,7 @@ function AdministrationPageContent({
           <Tab eventKey="access" title={<TabTitleText>Access</TabTitleText>}>
             <Tabs
               activeKey={activeSubTab}
-              onSelect={(_event, key) => onSelectAccessSubTab(String(key))}
+              onSelect={(_event, key) => onSelectSubTab("access", String(key))}
               mountOnEnter
             >
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
@@ -130,6 +145,9 @@ function AdministrationPageContent({
                 <RolesPage />
               </Tab>
             </Tabs>
+          </Tab>
+          <Tab eventKey="ldap" title={<TabTitleText>LDAP</TabTitleText>}>
+            <LdapSettingsPage />
           </Tab>
           <Tab
             eventKey="repository-signing"
@@ -148,6 +166,12 @@ function AdministrationPageContent({
             title={<TabTitleText>Content guards</TabTitleText>}
           >
             <ContentGuardsPage />
+          </Tab>
+          <Tab eventKey="tls" title={<TabTitleText>TLS</TabTitleText>}>
+            <TlsPage
+              activeSubTab={activeSubTab}
+              onSelectSubTab={(subtab) => onSelectSubTab("tls", subtab)}
+            />
           </Tab>
           <Tab
             eventKey="default-settings"

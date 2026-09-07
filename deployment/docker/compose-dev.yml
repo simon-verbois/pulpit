@@ -1,57 +1,16 @@
-# Local development stack (docs/DEVELOPMENT.md "Mode B") - identical to
-# compose.yml except `pulpit` below builds from local source instead of
-# pulling its published `simonverbois/pulpit` image, so it always reflects
-# whatever is currently checked out. Use this file (not compose.yml) to
-# test unreleased changes end to end - from the repo root:
+# Local development stack (docs/DEVELOPMENT.md "Mode B"): identical to
+# compose.yml except `pulpit` builds from local source. Run from the repo
+# root with:
 #
 #   docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d --build
 #
-# (or just `make compose-up`, which does exactly this). `--env-file .env`
-# is required when invoking `docker compose` directly: without
-# `--project-directory` set, relative paths in this file (build context,
-# volumes) resolve against this file's own directory as intended, but the
-# `.env` lookup follows the same rule and would otherwise look for
-# deployment/docker/.env instead of the real one at the repo root.
-#
-# `pulpit` bundles nginx + pulpit-core (the API) + pulpit-worker (job queue,
-# signing automation) in one image/container
-# (docs/adr/0007-merged-pulpit-container.md) - previously three separate
-# services. Only Pulp remains a separate service - see docs/ARCHITECTURE.md
-# for why this is no longer a "frontend-only" stack.
+# (or `make compose-up`).
 
-# Pinned explicitly - without this, Compose derives the project name (and
-# so every container/volume/network name) from the current directory's
-# basename, which would silently change to "docker" now that this file
-# lives in deployment/docker/ instead of the repo root.
 name: pulpit
 
-# Resource limits (`deploy.resources` below, per service): Compose's CLI
-# applies this block even outside Swarm mode for a plain `docker compose up`
-# (it's only `deploy.replicas`/`deploy.placement`/etc that are Swarm-only),
-# so this is the ordinary way to bound a single-node Compose deployment, not
-# a Swarm-specific mechanism. Without any limit, a single runaway process
-# (an accidental huge sync, a signing/resign job over a large repo, a stuck
-# retry loop) can consume the whole host's CPU/memory and starve every other
-# container - including ones unrelated to this stack. The numbers below are
-# conservative-but-workable *starting* defaults for a self-hosted
-# single-node deployment (this is not enterprise/Kubernetes-scale capacity
-# planning) - adjust per environment/hardware; `pulp`'s numbers in
-# particular assume a signing/resign job or a large repository sync is the
-# main workload these are meant to bound, not routine idle operation.
-# Kept identical to compose.yml's own copy of this same block - see this
-# file's header comment.
 services:
-  # Optional for pulpcore (VERIFIED - see docs/DEPLOYMENT.md "Redis"): only
-  # used for HTTP response caching (CACHE_ENABLED) here, not for task queuing
-  # (this pulpcore version's default task worker is Postgres-based, not
-  # Redis/RQ). A plain cache - no persistence, no auth, internal network only.
   redis:
     image: docker.io/library/redis:8-alpine
-    # No RDB/AOF persistence - matches the "cache data, safe to lose" design
-    # above: nothing here ever calls BGSAVE, so there's no snapshot for a
-    # missing `vm.overcommit_memory=1` host sysctl to actually break (see
-    # docs/DEPLOYMENT.md "Redis" for the startup warning about it, which
-    # Redis prints unconditionally and isn't silenced by this).
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -68,73 +27,24 @@ services:
           cpus: "0.05"
           memory: 64M
 
-  # Built from local source (unlike compose.yml's published
-  # `simonverbois/pulp-pulpit` image) so the colocated signing-service
-  # reconciler always reflects whatever is currently checked out - see
-  # deployment/docker/pulp/Dockerfile, docs/adr/0008-colocated-signing-reconciler.md.
   pulp:
     build:
       context: ./pulp
     environment:
-      # Same timezone as `pulpit` (see below) - Pulp's own task/log
-      # timestamps (docker logs pulp, task detail timestamps) should match
-      # it too, not silently stay on UTC while the rest of the stack moved.
       TZ: ${TZ:-UTC}
-      # Fails fast with a clear error if not set - see .env.example.
       PULP_SECRET_KEY: ${PULP_SECRET_KEY:?PULP_SECRET_KEY is required. Copy .env.example to .env and set it (openssl rand -hex 32) - see docs/DEPLOYMENT.md.}
-      # Optional. If set, the post_start hook below sets the "admin" user's
-      # password to this value on every start. If unset, the admin account
-      # is left untouched - see .env.example and docs/DEPLOYMENT.md.
-      # Also the credential pulpit uses to call Pulp's API on its own
-      # behalf (docs/signing.md) - leave unset and the signing module
-      # simply can't reach Pulp yet, surfaced in its own job errors, not a
-      # hard failure of the rest of the stack.
       PULP_ADMIN_PASSWORD: ${PULP_ADMIN_PASSWORD:-}
-      # Django's CSRF protection checks the request's Origin header against
-      # this list (VERIFIED - see docs/DEPLOYMENT.md "CSRF_TRUSTED_ORIGINS").
-      # Without it, any session-cookie-authenticated mutation (logout,
-      # creating a repository, etc.) from the browser fails with 403.
-      # Must be a JSON array, not a bare string - dynaconf (which pulpcore's
-      # settings are built on) otherwise iterates it character-by-character.
       PULP_CSRF_TRUSTED_ORIGINS: '["${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}"]'
-      # Without CONTENT_ORIGIN set, pulpcore has no scheme+host to prepend
-      # and a Distribution's `base_url` comes back as a bare path (e.g.
-      # "/pulp/content/<base_path>/") instead of a URL a user can actually
-      # paste into `dnf`/a `.repo` file - same origin CSRF already trusts
-      # above, since Pulp is only ever reached through Pulpit's own reverse
-      # proxy (ADR 0005).
       PULP_CONTENT_ORIGIN: ${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}
-      # pulp_ansible and pulp_python each have their OWN hostname setting
-      # for the API root their distributions' URLs are built from
-      # (pulp_ansible's `client_url`, pulp_python's PyPI-compatible index
-      # URL) - VERIFIED live: neither one falls back to CONTENT_ORIGIN, and
-      # both default to "https://" + the container's own hostname if unset
-      # (pulp_ansible/app/settings.py, pulp_python/app/settings.py),
-      # producing an unreachable https://<container-id>/... URL otherwise.
       PULP_ANSIBLE_API_HOSTNAME: ${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}
       PULP_PYPI_API_HOSTNAME: ${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}
-      # Enables pulpcore's Redis-backed HTTP response cache (VERIFIED -
-      # docs/DEPLOYMENT.md "Redis"). Without CACHE_ENABLED, pulpcore never
-      # even tries to connect to Redis - it isn't required for tasks/workers.
       PULP_CACHE_ENABLED: "true"
       PULP_REDIS_HOST: redis
       PULP_REDIS_PORT: "6379"
-      # pulp_container's registry API (/v2/...) uses Docker/OCI token-based
-      # auth by default, which needs a TOKEN_SERVER URL plus a signing
-      # keypair to be configured (VERIFIED - see docs/DEPLOYMENT.md
-      # "Container registry authentication"). Generating and securely
-      # mounting that keypair is real, security-sensitive Pulp-side
-      # configuration beyond this bootstrap's scope, so this dev stack
-      # instead disables token auth entirely - a first-class, officially
-      # supported pulp_container setting (used throughout its own
-      # functional test suite for the same reason), not a workaround.
-      # Falls back to the same session/Basic auth already used everywhere
-      # else in this app. Do not carry this into a production deployment.
+      # See docs/DEPLOYMENT.md "Container registry authentication". Do not
+      # carry this into a production deployment.
       PULP_TOKEN_AUTH_DISABLED: "true"
     ports:
-      # Dev-only convenience port (docs/DEVELOPMENT.md Mode A) - bound to
-      # loopback only so it's never reachable from outside this host, unlike
-      # `pulpit`'s port below, which is the one actual public entry point.
       - "127.0.0.1:${PULP_HTTP_PORT:-8180}:80"
     volumes:
       - pulp_etc:/etc/pulp
@@ -142,16 +52,8 @@ services:
       - pulp_var_lib_pgsql:/var/lib/pgsql
       - pulp_var_lib_containers:/var/lib/containers
       - ./pulp/init-admin-password.sh:/usr/local/bin/pulpit-init-admin-password.sh:ro
-      # Shared with `pulpit` (docs/signing.md "Shared volume permissions" -
-      # VERIFIED pulpcore-worker runs as uid/gid 700 inside this image).
-      # `pulp`'s own worker process reads these to actually execute signing
-      # - never mounted read-write into `pulpit` beyond what its own
-      # entrypoint needs.
       - pulpit_signing_gnupghome:/var/lib/pulpit-signing/gnupg
       - pulpit_signing_scripts:/var/lib/pulpit-signing/scripts:ro
-    # Runs after the container's own init (s6-overlay) has started it - does
-    # not replace or interfere with the image's entrypoint. See the script
-    # itself and docs/DEPLOYMENT.md.
     post_start:
       - command: ["/bin/sh", "/usr/local/bin/pulpit-init-admin-password.sh"]
     healthcheck:
@@ -173,73 +75,32 @@ services:
           cpus: "0.5"
           memory: 1G
 
-  # nginx (static SPA + reverse proxy, ADR 0005) + pulpit-core (API,
-  # ADR 0006) + pulpit-worker (job queue/signing automation,
-  # docs/signing.md) merged into one container
-  # (docs/adr/0007-merged-pulpit-container.md) - the only service with a
-  # port published to the host, as the single public entry point. Its own
-  # database is embedded SQLite (the `pulpit_data` volume below), not a
-  # separate Postgres service - app/core/config/settings.py.
   pulpit:
-    # Built from local source (unlike compose.yml's published-image
-    # `pulpit`, see this file's header comment) - always reflects whatever
-    # is currently checked out, including the VERSION file's content
-    # (vite.config.ts bakes it into the build, shown in AppFooter).
     build:
-      # Context is the repo root, not this file's own directory - the
-      # Dockerfile needs pulpit-core/ and the frontend sources, both
-      # outside deployment/docker/. `make compose-up`/`compose-build`
-      # already pass the right -f path; a plain `docker compose` invocation
-      # must be run with `-f deployment/docker/compose-dev.yml` from the
-      # repo root for this relative path to resolve correctly.
+      # Repo root, not this file's own directory - the Dockerfile needs
+      # pulpit-core/ and the frontend sources too.
       context: ../..
       dockerfile: deployment/docker/Dockerfile
       args:
-        # Shows a thin red dev-build banner (src/app/layout/DevBanner.tsx) -
-        # unset entirely in compose.yml, which builds/pulls the published
-        # image instead, so the banner only ever appears on a local build.
         VITE_DEV_BANNER: "true"
-        # Timezone the dev banner's build timestamp is rendered in
-        # (vite.config.ts, deployment/docker/Dockerfile) - defaults to UTC
-        # if unset in .env.
         TZ: ${TZ:-UTC}
     environment:
-      # Same timezone as the build arg above, applied at runtime too so
-      # nginx/pulpit-core/pulpit-worker log timestamps match it as well.
       TZ: ${TZ:-UTC}
-      # Plain host:port Pulp is reachable at - deliberately just a string
-      # this container never interprets further, so Pulp can be a sibling
-      # container (as here), a Kubernetes Service, or a real remote host on
-      # a non-standard port, with no image change.
       PULP_UPSTREAM: pulp:80
       PULPIT_CORE_PULP_BASE_URL: http://pulp:80
       PULPIT_CORE_PULP_SERVICE_USERNAME: admin
       PULPIT_CORE_PULP_SERVICE_PASSWORD: ${PULP_ADMIN_PASSWORD:-}
-      # Optional (app/core/crypto.py) - encrypts secrets pulpit-core itself
-      # stores at rest (currently just Default Settings' proxy password).
-      # Leave unset and everything else keeps working; only setting a proxy
-      # password fails with a clear 503 until this is set. Generate one
-      # with: python3 -c "from cryptography.fernet import Fernet;
-      # print(Fernet.generate_key().decode())"
       PULPIT_CORE_SECRET_KEY: ${PULPIT_CORE_SECRET_KEY:-}
-      # Optional (app/modules/fixture_seed/, docs/adr/0011-fixture-seed.md) -
-      # set to "false" to skip first-boot sample-content seeding entirely on
-      # a deployment with restricted/metered egress (it otherwise reaches
-      # eight public fixture hosts using PULPIT_CORE_PULP_SERVICE_PASSWORD
-      # above) - see docs/DEPLOYMENT.md "Fixture seed". Defaults to true.
-      PULPIT_CORE_FIXTURE_SEED_ENABLED: ${PULPIT_CORE_FIXTURE_SEED_ENABLED:-true}
+      PULPIT_CORE_FIXTURE_SEED_ENABLED: ${PULPIT_CORE_FIXTURE_SEED_ENABLED:-false}
     volumes:
-      # pulpit-core's own embedded SQLite database - see
-      # app/core/config/settings.py. Never Pulp's own data.
       - pulpit_data:/var/lib/pulpit
       - pulpit_signing_gnupghome:/var/lib/pulpit-signing/gnupg
       - pulpit_signing_scripts:/var/lib/pulpit-signing/scripts
+      - pulpit_tls:/var/lib/pulpit-tls
     ports:
       - "${PULPIT_HTTP_PORT:-8080}:8080"
+      - "${PULPIT_HTTPS_PORT:-8443}:8443"
     healthcheck:
-      # Through nginx, not directly at pulpit-core's own port - VERIFIED
-      # this exercises the whole proxy chain (nginx -> pulpit-core), not
-      # just one of the two.
       test: ["CMD", "curl", "-sf", "http://localhost:8080/pulpit-core/api/v1/health"]
       interval: 15s
       timeout: 5s
@@ -248,14 +109,6 @@ services:
     depends_on:
       pulp:
         condition: service_healthy
-      # Without this, the worker loop starts as soon as the container does
-      # (much faster than Pulp's own migrations/startup) and its first
-      # scheduled jobs (content_size.refresh, signing.check_pulp_bootstrap)
-      # hit Pulp's API before anything is even listening - guaranteed
-      # "Connection refused" errors on every fresh `docker compose up`, not
-      # just a rare race. Waiting on `pulp`'s own healthcheck (which already
-      # has a 60s start_period for this) means the worker's first job run
-      # finds a ready Pulp instead.
     restart: unless-stopped
     deploy:
       resources:
@@ -271,9 +124,10 @@ volumes:
   pulp_var_lib_pulp:
   pulp_var_lib_pgsql:
   pulp_var_lib_containers:
-  # pulpit-core's own embedded SQLite database.
   pulpit_data:
-  # Never mounted into anything but `pulpit` and `pulp` itself (docs/signing.md
-  # "Shared volume permissions").
   pulpit_signing_gnupghome:
   pulpit_signing_scripts:
+  # TLS certificate/key material for the 8443 listener - its own volume
+  # (not folded into pulpit_data): different sensitivity/lifecycle than the
+  # SQLite database, same reasoning as the dedicated signing volumes above.
+  pulpit_tls:

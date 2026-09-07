@@ -157,25 +157,21 @@ its own to healthcheck separately).
 Full detail on the signing module itself — key generation, rotation, automating the Pulp
 signing-service registration step, trust model, backup/recovery — lives in `docs/signing.md`.
 
-## Fixture seed (first-boot sample content, ADR 0011)
+## Fixture seed (first-boot sample content, opt-in)
 
-On a fresh instance, `pulpit-worker` seeds one sample Repository+Remote(+Distribution) per plugin
-(`app/modules/fixture_seed/`) so the app isn't a totally empty shell on first login — see ADR 0011.
-This runs once (a marker row makes every later attempt a no-op) but makes real outbound HTTPS
-calls, using the same privileged `pulp_service_username`/`PULP_ADMIN_PASSWORD` credentials
-described above, to eight public fixture hosts (`fixtures.pulpproject.org`, `nginx.org`,
+`pulpit-worker` can seed one sample Repository+Remote(+Distribution) per plugin
+(`app/modules/fixture_seed/`) so a fresh instance isn't a totally empty shell on first login. This
+runs once (a marker row makes every later attempt a no-op) but makes real outbound HTTPS calls,
+using the same privileged `pulp_service_username`/`PULP_ADMIN_PASSWORD` credentials described
+above, to eight public fixture hosts (`fixtures.pulpproject.org`, `nginx.org`,
 `registry-1.docker.io`, `galaxy.ansible.com`, `pypi.org`, `index.rubygems.org`,
 `repo1.maven.org`, `huggingface.co`).
 
-For a production deployment with restricted or metered egress, set:
+Disabled by default. To enable it, set:
 
 ```
-PULPIT_CORE_FIXTURE_SEED_ENABLED=false
+PULPIT_CORE_FIXTURE_SEED_ENABLED=true
 ```
-
-to skip this entirely — no job is even scheduled (`app/modules/fixture_seed/module.py`). Defaults
-to `true` (unset/empty also means enabled) to keep the zero-click onboarding experience for local
-dev and evaluation installs.
 
 ## Known issue (fixed): nginx caches Pulp's IP, 502s after `pulp` alone is recreated
 
@@ -365,13 +361,38 @@ reconciles signing-service registration from _inside_ the pod itself - no Servic
 RoleBinding, or any other RBAC exists in `deployment/kube/` any more, and `pulpit` never talks to
 the Kubernetes API at all.
 
+## TLS
+
+nginx serves both plain HTTP (`PULPIT_HTTP_PORT`, default 8080 - unchanged) and HTTPS
+(`PULPIT_HTTPS_PORT`, default 8443, purely additive). Both server blocks route the same requests
+the same way (`deployment/docker/nginx/pulpit-locations.conf.template`, shared via `include` so
+they can never drift out of sync).
+
+On first boot, if no certificate has been installed yet, pulpit-core generates a self-signed one
+(`app/modules/tls/bootstrap_selfsigned.py`) so 8443 always works out of the box - browsers will
+warn about it (expected for a self-signed certificate), but the connection is still encrypted.
+Administration > TLS shows the currently active certificate (source, subject, expiry) and lets you
+regenerate the self-signed fallback on demand; installing a real certificate (manual upload, or an
+external CA provider such as FreeIPA) is tracked as follow-up work on top of this same module - see
+the certificate's `source` field, already modeled as one of `self_signed` / `manual` / `freeipa`.
+
+Certificate/key material lives in its own volume (`pulpit_tls` in Compose, a dedicated PVC in
+Kubernetes/Podman - `/var/lib/pulpit-tls` in the container), separate from `pulpit_data` (the
+SQLite database) since the two have different sensitivity and lifecycle. Whenever a new certificate
+is installed, pulpit-core writes it there atomically and requests an nginx reload; nginx picks it
+up within a couple of seconds, with no container restart (see
+`deployment/docker/pulpit/entrypoint.sh`'s `watch_tls_reload` for why this is a small polling loop
+rather than pulpit-core signaling nginx directly - neither pulpit-core nor pulpit-worker has the
+Unix privilege to do that, since nginx's own master process runs as root).
+
 ## Production (future work)
 
 Not implemented at bootstrap time. Expected differences from the dev Compose setup, to be
 designed when this milestone starts (`docs/ROADMAP.md` Milestone 6):
 
-- TLS termination at (or in front of) the nginx layer; HSTS and other TLS-only headers enabled
-  only once TLS is actually present (`docs/SECURITY.md`).
+- TLS termination is implemented at the nginx layer itself (8443, self-signed by default - see
+  "TLS" below); HSTS and other TLS-only headers still need enabling explicitly once a real
+  certificate is in place (`docs/SECURITY.md`).
 - `PULP_SECRET_KEY` and other secrets sourced from a real secret manager, not a `.env` file.
 - `deployment/kube/`'s manifests are a working baseline, not a production-hardened one: no NetworkPolicies,
   PodDisruptionBudgets, resource requests/limits, autoscaling, or TLS on the Ingress yet (see

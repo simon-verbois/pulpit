@@ -20,6 +20,12 @@ dependencies = [
   # the default-settings proxy password, app/core/crypto.py) - Fernet only,
   # not a general crypto toolkit dependency.
   "cryptography>=43,<44",
+  # LDAP module's own "test connection" check (app/modules/ldap/jobs.py) -
+  # pure-Python, no libldap system headers needed to build (unlike
+  # python-ldap, which pulpcore/django-auth-ldap use on the Pulp side where
+  # those headers are already present in the upstream image) - keeps
+  # pulpit-core's own image from needing new system packages for this.
+  "ldap3>=2.9,<3",
 ]
 
 [project.optional-dependencies]

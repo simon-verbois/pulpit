@@ -97,6 +97,7 @@ RUN chmod 0755 /opt/pulpit-signing-scripts/*.sh
 
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY deployment/docker/nginx/pulpit.conf.template /etc/nginx/pulpit.conf.template
+COPY deployment/docker/nginx/pulpit-locations.conf.template /etc/nginx/pulpit-locations.conf.template
 
 COPY deployment/docker/pulpit/entrypoint.sh /usr/local/bin/pulpit-entrypoint.sh
 RUN chmod +x /usr/local/bin/pulpit-entrypoint.sh
@@ -107,6 +108,13 @@ ENV PULP_UPSTREAM=pulp:80
 # at a real Postgres instead to keep using one, e.g. a pre-existing
 # deployment's own database (app/core/config/settings.py).
 ENV PULPIT_CORE_DATABASE_URL=sqlite:////var/lib/pulpit/pulpit-core.db
+# Cert/key material for the 8443 TLS listener (nginx/pulpit-locations, both
+# templated from entrypoint.sh) - a self-signed fallback is generated here
+# automatically on first boot if nothing else (a manual/FreeIPA certificate)
+# is already present. Own dedicated volume in compose.yml/kube/podman, not
+# folded into pulpit_data - different sensitivity/lifecycle than the SQLite
+# database.
+ENV PULPIT_CORE_TLS_CERT_DIR=/var/lib/pulpit-tls
 
-EXPOSE 8080
+EXPOSE 8080 8443
 ENTRYPOINT ["/usr/local/bin/pulpit-entrypoint.sh"]

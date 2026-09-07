@@ -30,24 +30,21 @@ volumes/PVCs are kept - `podman volume rm` them yourself for a truly clean slate
 
 ## Pinning versions and overriding config
 
-`deploy.sh` substitutes a handful of `__PLACEHOLDER__` tokens in the YAML from environment
-variables at apply time (`podman play kube` itself has no `${VAR}` interpolation) - same
-names/defaults as Compose's own `.env` (see `.env.example`, `docs/DEPLOYMENT.md`
-"CSRF_TRUSTED_ORIGINS"):
+`pulp.yaml`/`pulpit.yaml` pin images to `:latest` - edit those files directly to deploy a
+specific tag instead.
+
+`deploy.sh` substitutes the `__PULPIT_PUBLIC_ORIGIN__` placeholder in `00-configmap.yaml` from
+an environment variable at apply time (`podman play kube` itself has no `${VAR}` interpolation):
 
 ```sh
-# Pin specific image versions instead of the default "latest":
-PULP_PULPIT_IMAGE_TAG=2026.36.1 PULPIT_IMAGE_TAG=2026.36.1 ./deployment/podman/deploy.sh up
-
 # Deploying somewhere other than http://localhost:8080 (a different hostPort in
 # pulpit.yaml, a different hostname, a reverse proxy in front, etc.) - get this wrong and
 # logins will work but every subsequent action (including logout) 403s:
 PULPIT_PUBLIC_ORIGIN=http://pulpit.example.internal:8080 ./deployment/podman/deploy.sh up
 ```
 
-Applying the YAML files directly without `deploy.sh` (not recommended, but possible) means
-none of this substitution happens - edit the `__PULP_PULPIT_IMAGE_TAG__`/`__PULPIT_IMAGE_TAG__`
-placeholders in `pulp.yaml`/`pulpit.yaml` and the `__PULPIT_PUBLIC_ORIGIN__` placeholder in
+Applying the YAML files directly without `deploy.sh` (not recommended, but possible) means this
+substitution doesn't happen - edit the `__PULPIT_PUBLIC_ORIGIN__` placeholder in
 `00-configmap.yaml` directly instead.
 
 ## Why this is a separate directory from `deployment/kube/`

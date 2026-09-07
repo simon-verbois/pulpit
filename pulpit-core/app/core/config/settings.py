@@ -87,17 +87,60 @@ class Settings(BaseSettings):
     public_key_url_prefix: str = "/keys"
 
     # --- Fixture seed module (app/modules/fixture_seed/) ------------------------
-    # Defaults to True to preserve the "new instance isn't a totally empty
-    # shell" onboarding UX ADR 0011 was written for. A production deployment
-    # with restricted/metered egress may not want its very first boot making
-    # outbound HTTP calls (using the privileged pulp_service_username/password
-    # above) to eight public fixture hosts (fixtures.pulpproject.org,
-    # nginx.org, registry-1.docker.io, galaxy.ansible.com, pypi.org,
-    # index.rubygems.org, repo1.maven.org, huggingface.co) with no prior
-    # opt-in - set PULPIT_CORE_FIXTURE_SEED_ENABLED=false there (see
-    # docs/DEPLOYMENT.md). Checked once at process/worker startup
-    # (fixture_seed/module.py's `scheduled_jobs`), not re-read per request.
-    fixture_seed_enabled: bool = True
+    # Defaults to False: opt-in only, since enabling it makes outbound HTTP
+    # calls to eight public fixture hosts using the privileged
+    # pulp_service_username/password above. Set
+    # PULPIT_CORE_FIXTURE_SEED_ENABLED=true to seed sample content on first
+    # boot (see docs/DEPLOYMENT.md).
+    fixture_seed_enabled: bool = False
+
+    # --- LDAP module (app/modules/ldap/) -----------------------------------------
+    # Filename, under the SAME signing_scripts_dir above (already shared
+    # read-write with `pulpit`/read-only with `pulp` - no separate volume
+    # needed), of the desired-state manifest `ldap.apply_config_job` writes
+    # and the colocated reconciler baked into the derived Pulp image
+    # (deployment/docker/pulp/pulpit-ldap-reconciler) polls from inside the
+    # `pulp` container - same "write a manifest, a reconciler inside `pulp`
+    # acts on it" architecture as signing (docs/adr/0008), just applied to
+    # Django's own AUTHENTICATION_BACKENDS/AUTH_LDAP_* settings instead of a
+    # Pulp SigningService.
+    ldap_manifest_filename: str = "ldap-config.json"
+
+    # --- LDAP module: test-connection (pulpit-worker only) -----------------------
+    ldap_test_connection_timeout_seconds: float = 10.0
+
+    # --- TLS module (app/modules/tls/) -------------------------------------------
+    # Where the certificate/key nginx's 8443 server block reads live -
+    # deployment/docker/pulpit/entrypoint.sh mounts this as its own volume
+    # (distinct sensitivity/lifecycle from signing_gnupg_home or the embedded
+    # SQLite database). A self-signed fallback is generated here automatically
+    # on first boot if nothing else (a manual/FreeIPA certificate) is present.
+    tls_cert_dir: Path = Path("/var/lib/pulpit-tls")
+    # Both the Overview-page warning and the TLS admin tab use this same
+    # threshold - never hardcoded twice on the frontend, it's part of the
+    # GET /tls/active response.
+    tls_warn_days: int = 30
+    tls_selfsigned_validity_days: int = 825  # ~ the max validity public CAs/browsers still accept
+    tls_selfsigned_common_name: str = "pulpit.local"
+
+    # --- TLS module: FreeIPA provider (service-account password/session
+    # auth, NOT Kerberos/keytabs - see app/adapters/freeipa/client.py) -------
+    # Per-instance connection settings (base_url, service account
+    # credentials, ...) live in the admin-editable TlsFreeIpaSettings DB row,
+    # not here - this is only the one infra-level knob common to every call.
+    ipa_request_timeout_seconds: float = 30.0
+
+    # --- Health check (app/api/health.py) ----------------------------------------
+    # Deliberately much shorter than pulp_request_timeout_seconds above: a
+    # monitoring probe hitting /health should fail fast on an unreachable
+    # Pulp rather than hang for as long as a real, patient signing/resigning
+    # job would tolerate.
+    health_check_pulp_timeout_seconds: float = 5.0
+    # A scheduled heartbeat exists in every module (the fastest currently
+    # registered is signing.rotation_check, every 300s) - if no job has
+    # finished in three times that long, the worker loop is most likely
+    # stuck or not running at all, not just "between ticks".
+    health_check_worker_stale_after_seconds: float = 900.0
 
 
 @lru_cache

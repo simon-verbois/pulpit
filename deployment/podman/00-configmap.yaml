@@ -1,54 +1,27 @@
-# Non-secret configuration, mirroring compose.yml's plain `environment:`
-# values 1:1 - see that file's own comments for the reasoning behind each
-# one. Split from 00-secret.example.yaml so this file can be applied and
-# diffed freely (no real credentials in it).
+# Non-secret configuration, mirroring compose.yml's `environment:` values.
+# Split from 00-secret.example.yaml so this file can be applied/diffed
+# freely (no real credentials in it).
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pulpit-config
 data:
-  # host:port of the `pulp` pod - a plain string nginx (inside the merged
-  # pulpit image, docs/adr/0007-merged-pulpit-container.md) never
-  # interprets further. Resolvable by pod name alone under `podman play
-  # kube` - VERIFIED live: Podman's own DNS registers every pod's name
-  # automatically, no Service/Ingress object needed for this.
   PULP_UPSTREAM: "pulp:80"
   PULPIT_CORE_PULP_BASE_URL: "http://pulp:80"
   PULPIT_CORE_PULP_SERVICE_USERNAME: "admin"
 
-  # Must be a JSON array, not a bare string (dynaconf otherwise iterates it
-  # character-by-character - VERIFIED, docs/DEPLOYMENT.md "CSRF_TRUSTED_
-  # ORIGINS"). __PULPIT_PUBLIC_ORIGIN__ is substituted by ./deploy.sh at
-  # apply time (defaults to "http://localhost:8080", same PULPIT_PUBLIC_
-  # ORIGIN convention as compose.yml/.env.example - see README.md "Pinning
-  # versions and overriding config") - edit this directly (keeping the
-  # JSON-array quoting) instead if you apply this file without deploy.sh,
-  # and make sure it matches wherever `pulpit.yaml`'s hostPort actually
+  # __PULPIT_PUBLIC_ORIGIN__ is substituted by ./deploy.sh at apply time
+  # (defaults to "http://localhost:8080") - edit directly if applying
+  # without deploy.sh, and make sure it matches wherever pulpit.yaml
   # exposes the app publicly.
   PULP_CSRF_TRUSTED_ORIGINS: '["__PULPIT_PUBLIC_ORIGIN__"]'
-
-  # Without CONTENT_ORIGIN set, pulpcore has no scheme+host to prepend and
-  # a Distribution's `base_url` comes back as a bare path instead of a URL
-  # a user can actually paste into `dnf`/a `.repo` file - same origin CSRF
-  # above already trusts, since Pulp is only ever reached through Pulpit's
-  # own reverse proxy. Same __PULPIT_PUBLIC_ORIGIN__ substitution as
-  # CSRF_TRUSTED_ORIGINS above, just a bare string here (no JSON-array
-  # wrapping needed).
   PULP_CONTENT_ORIGIN: "__PULPIT_PUBLIC_ORIGIN__"
-  # pulp_ansible and pulp_python each have their OWN hostname setting for
-  # the API root their distributions' URLs are built from (pulp_ansible's
-  # `client_url`, pulp_python's PyPI-compatible index URL) - VERIFIED live:
-  # neither falls back to CONTENT_ORIGIN, and both default to "https://" +
-  # the container's own hostname if unset, producing an unreachable
-  # https://<container-id>/... URL otherwise.
   PULP_ANSIBLE_API_HOSTNAME: "__PULPIT_PUBLIC_ORIGIN__"
   PULP_PYPI_API_HOSTNAME: "__PULPIT_PUBLIC_ORIGIN__"
 
   PULP_CACHE_ENABLED: "true"
   PULP_REDIS_HOST: "redis"
   PULP_REDIS_PORT: "6379"
-  # See compose.yml's own comment: pulp_container's registry token auth
-  # needs a signing keypair this bootstrap doesn't generate - disabling it
-  # falls back to the same session/Basic auth used everywhere else. Do not
-  # carry this into a real production deployment.
+  # See docs/DEPLOYMENT.md "Container registry authentication". Do not
+  # carry this into a production deployment.
   PULP_TOKEN_AUTH_DISABLED: "true"

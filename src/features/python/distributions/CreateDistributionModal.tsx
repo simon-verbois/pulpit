@@ -13,6 +13,7 @@ import {
 } from "@patternfly/react-core";
 
 import { BasePathField } from "../../../components/BasePathField";
+import { useContentOrigin } from "../../../hooks/useContentOrigin";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreatePythonDistributionMutation } from "./useCreatePythonDistributionMutation";
 
@@ -31,6 +32,7 @@ export function CreateDistributionModal({
   onClose,
 }: CreateDistributionModalProps) {
   const [basePath, setBasePath] = useState("");
+  const contentOrigin = useContentOrigin();
   const createMutation = useCreatePythonDistributionMutation();
 
   const handleSubmit = () => {
@@ -71,7 +73,7 @@ export function CreateDistributionModal({
             <BasePathField
               id="distribution-base-path"
               isRequired
-              prefix={`${window.location.origin}/pypi/`}
+              prefix={`${contentOrigin}/pypi/`}
               placeholder="my-repo"
               value={basePath}
               onChange={setBasePath}

@@ -114,6 +114,7 @@ describe("RepositorySigningPage", () => {
         pulp_href: null,
         bootstrap_command:
           "pulpcore-manager add-signing-service 'Pulp RPM Signing Service' /var/lib/pulpit-signing/scripts/sign_rpm_package.sh ABCD1234EF567890ABCD1234EF567890ABCD1234 --class rpm:RpmPackageSigningService",
+        created_at: "2020-01-01T00:00:00Z",
       },
     ]);
 

@@ -13,6 +13,7 @@ both) specifically so the same test suite also runs against SQLite
 """
 
 import os
+import tempfile
 
 os.environ.setdefault(
     "PULPIT_CORE_DATABASE_URL",
@@ -25,6 +26,11 @@ os.environ.setdefault(
     "PULPIT_CORE_SECRET_KEY",
     "jmmWNIM3cBAfr3tAb-0Vf8Uu2SlAm3fu1-91LslWQeg=",
 )
+# The real default (/var/lib/pulpit-tls) is only writable inside the actual
+# container (entrypoint.sh chowns it) - tests writing an actual cert/key
+# (tls module) need a location this process can always write to regardless
+# of where it happens to run.
+os.environ.setdefault("PULPIT_CORE_TLS_CERT_DIR", tempfile.mkdtemp(prefix="pulpit-tls-tests-"))
 
 import pytest
 from sqlalchemy import create_engine, text

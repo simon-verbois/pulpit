@@ -57,6 +57,7 @@ def get_key_pulp_services(key_id: uuid.UUID, db: Session = Depends(get_db)) -> l
             "name": row.name,
             "pulp_href": row.pulp_href,
             "bootstrap_command": row.bootstrap_command if row.status == PulpServiceStatus.PENDING_MANUAL_SETUP else None,
+            "created_at": row.created_at,
         }
         for row in rows
     ]

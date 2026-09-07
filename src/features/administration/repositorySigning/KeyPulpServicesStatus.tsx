@@ -10,10 +10,19 @@ import {
 import { getSigningKeyPulpServices } from "../../../api/client/pulpitCore/signing";
 import { signingKeyPulpServicesKey } from "./queryKeys";
 
+/** A service normally clears "pending_manual_setup" on its own within well
+ * under a minute (the colocated reconciler polls every 30s - see
+ * deployment/docker/pulp/pulpit-signing-reconciler and
+ * app/modules/signing/jobs.py's check_pulp_bootstrap_job quick-retry loop).
+ * Below this age it's still within that expected window, not a real
+ * problem worth interrupting the admin over. */
+const PENDING_GRACE_PERIOD_MS = 90_000;
+
 /** Renders nothing while every required Pulp signing service is already
- * registered, and only surfaces something when a service genuinely needs
- * attention: the one manual step in an otherwise fully automated workflow
- * (see docs/signing.md "Automating the manual Pulp step"). */
+ * registered, or still within the automated registration's normal window,
+ * and only surfaces something once a service has been pending long enough
+ * to genuinely need attention (see docs/signing.md "Automating the manual
+ * Pulp step"). */
 export function KeyPulpServicesStatus({ keyId }: { keyId: string }) {
   const query = useQuery({
     queryKey: signingKeyPulpServicesKey(keyId),
@@ -21,11 +30,17 @@ export function KeyPulpServicesStatus({ keyId }: { keyId: string }) {
     refetchInterval: 10000,
   });
 
-  const pending = (query.data ?? []).filter(
-    (service) => service.status === "pending_manual_setup",
+  // dataUpdatedAt (react-query's own "as of when" timestamp for this fetch)
+  // instead of Date.now(), which would make this component impure and
+  // update unpredictably between renders.
+  const asOf = query.dataUpdatedAt;
+  const stuck = (query.data ?? []).filter(
+    (service) =>
+      service.status === "pending_manual_setup" &&
+      asOf - new Date(service.created_at).getTime() > PENDING_GRACE_PERIOD_MS,
   );
 
-  if (pending.length === 0) {
+  if (stuck.length === 0) {
     return null;
   }
 
@@ -38,10 +53,14 @@ export function KeyPulpServicesStatus({ keyId }: { keyId: string }) {
       >
         <Content component="p">
           Pulp signing services can only be registered by running a command on the Pulp
-          server itself. Run the command below inside the <code>pulp</code> container;
-          this page will detect the change automatically within a few minutes.
+          server itself, and this is taking longer than usual - the automated setup may
+          not be available on this deployment. Run the command below inside the{" "}
+          <code>pulp</code> container (e.g. <code>docker compose exec pulp ...</code>,{" "}
+          <code>podman exec pulp-pulp ...</code>, or{" "}
+          <code>kubectl exec deploy/pulp -- ...</code>
+          ); this page will detect the change automatically within a few minutes.
         </Content>
-        {pending.map((service) => (
+        {stuck.map((service) => (
           <ClipboardCopy
             key={service.name}
             isReadOnly
@@ -50,7 +69,7 @@ export function KeyPulpServicesStatus({ keyId }: { keyId: string }) {
             clickTip="Copied"
             variant={ClipboardCopyVariant.expansion}
           >
-            {`docker compose exec pulp ${service.bootstrap_command}`}
+            {service.bootstrap_command ?? ""}
           </ClipboardCopy>
         ))}
       </Alert>

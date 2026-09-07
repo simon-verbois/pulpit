@@ -102,6 +102,13 @@ class PulpClient:
     def get_task(self, href: str) -> dict:
         return self._request("GET", href).json()
 
+    def get_status(self) -> dict:
+        """Pulp's own unauthenticated health/version endpoint - used by
+        ldap.apply_config_job to confirm the API process actually came back
+        up after the colocated reconciler restarts it, nothing more (see
+        that job's own docstring on what this can and can't verify)."""
+        return self._request("GET", f"{self._api_base}/status/").json()
+
     def wait_for_task(self, task_href: str, *, poll_interval: float = 2.0, timeout: float = 600.0) -> dict:
         """Blocks (inside a pulpit-worker job, never an HTTP request - task
         section 12) until `task_href` leaves waiting/running. Used for the
