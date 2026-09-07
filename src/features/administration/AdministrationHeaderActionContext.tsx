@@ -26,7 +26,11 @@ const AdministrationHeaderActionContext =
  * merged into tabs here (docs/adr/0010-merged-administration-page.md) -
  * this closes that gap without giving every tab page its own PageHeader
  * back. */
-export function AdministrationHeaderActionProvider({ children }: { children: ReactNode }) {
+export function AdministrationHeaderActionProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [registry, setRegistry] = useState<Record<string, ReactNode>>({});
   const register = useCallback((tabId: string, node: ReactNode) => {
     setRegistry((prev) => (prev[tabId] === node ? prev : { ...prev, [tabId]: node }));

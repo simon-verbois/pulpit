@@ -101,7 +101,7 @@ deployment. Without any limit, a single runaway process (an accidental huge sync
 job over a large repository, a stuck retry loop) can consume the whole host's CPU/memory and starve
 every other container on the box, not just this stack.
 
-The shipped values are conservative-but-workable *starting* defaults for a self-hosted single-node
+The shipped values are conservative-but-workable _starting_ defaults for a self-hosted single-node
 deployment, not a sized-for-your-hardware recommendation — adjust the numbers in the compose file
 directly for your environment. `pulp`'s limit in particular (`cpus: "2"`, `memory: 4G`) assumes a
 signing/resign job or a large repository sync is the main workload it needs to bound, not routine
@@ -144,8 +144,7 @@ administrative command signing needs (`add-signing-service`) - since ADR 0008, `
 derived image (`docker.io/simonverbois/pulp-pulpit`) with a small colocated reconciler baked in as
 an s6 service instead, so there is no extra Compose service or cross-container privilege of any
 kind for this. A deployment running vanilla `pulp/pulp:stable` simply doesn't get this automation
-and falls back to the manual flow - see `docs/signing.md` "Automating the manual Pulp step" and ADR
-0008.
+and falls back to the manual flow - see `docs/signing.md` "Automating the manual Pulp step" and ADR 0008.
 
 `pulpit` is healthchecked through nginx (`GET /pulpit-core/api/v1/health`, exercising the whole
 proxy chain, not just the API process alone) and needs `PULP_ADMIN_PASSWORD` set to a real value
@@ -362,7 +361,7 @@ Deployment, ADR 0007), using the same published Docker Hub images (`pulpit`, and
 
 Since ADR 0008, there is no architectural difference from Compose/Podman here at all: `pulp.yaml`
 runs the same derived `docker.io/simonverbois/pulp-pulpit` image every other target uses, which
-reconciles signing-service registration from *inside* the pod itself - no ServiceAccount, Role,
+reconciles signing-service registration from _inside_ the pod itself - no ServiceAccount, Role,
 RoleBinding, or any other RBAC exists in `deployment/kube/` any more, and `pulpit` never talks to
 the Kubernetes API at all.
 

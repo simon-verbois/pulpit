@@ -5,4 +5,8 @@ export const pythonDistributionsQueryKey = (params?: {
   repository?: string;
 }) => ["pulp", "python", "distributions", params] as const;
 
-export const pythonDistributionsListRootKey = ["pulp", "python", "distributions"] as const;
+export const pythonDistributionsListRootKey = [
+  "pulp",
+  "python",
+  "distributions",
+] as const;

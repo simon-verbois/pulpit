@@ -11,7 +11,9 @@ export interface ListDebRemotesParams {
   name__icontains?: string;
 }
 
-export function listDebRemotes(params: ListDebRemotesParams): Promise<PulpPage<DebRemote>> {
+export function listDebRemotes(
+  params: ListDebRemotesParams,
+): Promise<PulpPage<DebRemote>> {
   return pulpFetch<PulpPage<DebRemote>>(`${BASE}${buildQuery(params)}`);
 }
 

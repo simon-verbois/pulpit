@@ -1,6 +1,11 @@
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type { PulpPage, MavenRemote, MavenRemoteCreate, MavenRemoteUpdate } from "./types";
+import type {
+  PulpPage,
+  MavenRemote,
+  MavenRemoteCreate,
+  MavenRemoteUpdate,
+} from "./types";
 
 const BASE = apiPath("/remotes/maven/maven/");
 

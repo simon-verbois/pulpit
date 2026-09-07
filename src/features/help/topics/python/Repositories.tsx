@@ -13,9 +13,9 @@ export function PythonRepositoriesTopic() {
       <Content component="p">
         Click <strong>Create repository</strong> and give it a <strong>Name</strong>{" "}
         (required), optional <strong>Description</strong>, a{" "}
-        <strong>Default remote</strong> if you want <strong>Sync</strong> to work
-        without asking each time, and leave <strong>Automatically publish</strong>{" "}
-        checked (the default) unless you want to control publishing manually.
+        <strong>Default remote</strong> if you want <strong>Sync</strong> to work without
+        asking each time, and leave <strong>Automatically publish</strong> checked (the
+        default) unless you want to control publishing manually.
       </Content>
       <Content component="p">
         <strong>Edit</strong> (on a repository's own page) changes the same fields,
@@ -28,20 +28,20 @@ export function PythonRepositoriesTopic() {
         <strong>Sync</strong> pulls content from the default remote in the background.
         With autopublish on (the default), the repository's distribution is updated
         automatically after every sync or upload; <strong>Publish now</strong> forces an
-        immediate republish (useful right after turning autopublish off, or to
-        republish without changing content).
+        immediate republish (useful right after turning autopublish off, or to republish
+        without changing content).
       </Content>
       <Content component="p">
         Go to the <strong>Distributions</strong> tab and click{" "}
-        <strong>Create distribution</strong> to get a real URL (shown with a copy
-        button). <strong>Delete</strong> removes one.
+        <strong>Create distribution</strong> to get a real URL (shown with a copy button).{" "}
+        <strong>Delete</strong> removes one.
       </Content>
 
       <Content component="h3">The Content tab</Content>
       <Content component="p">
         Lists this repository's packages. <strong>Upload package</strong> needs a{" "}
-        <strong>Relative path</strong> (e.g. <code>my_package-1.0-py3-none-any.whl</code>),
-        pre-filled from the chosen file's own name.
+        <strong>Relative path</strong> (e.g. <code>my_package-1.0-py3-none-any.whl</code>
+        ), pre-filled from the chosen file's own name.
       </Content>
 
       <Content component="h3">The Versions and Access tabs</Content>

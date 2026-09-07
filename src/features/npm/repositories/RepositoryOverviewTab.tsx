@@ -8,7 +8,11 @@ import {
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
 import type { NpmRepository } from "../../../api/client/npm/types";
-import { npmRepositoriesListRootKey, npmRepositoryByNameKey, npmRepositoryVersionsKey } from "./queryKeys";
+import {
+  npmRepositoriesListRootKey,
+  npmRepositoryByNameKey,
+  npmRepositoryVersionsKey,
+} from "./queryKeys";
 import { useSyncNpmRepositoryMutation } from "./useSyncNpmRepositoryMutation";
 
 /** No Publish section here - VERIFIED live: unlike gem/hugging_face, this

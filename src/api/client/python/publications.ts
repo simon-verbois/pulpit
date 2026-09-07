@@ -12,7 +12,9 @@ const BASE = apiPath("/publications/python/pypi/");
  * serves nothing (404), same as every other plugin's publish/distribution
  * relationship in this app.
  */
-export function createPythonPublication(repositoryHref: string): Promise<{ task: string }> {
+export function createPythonPublication(
+  repositoryHref: string,
+): Promise<{ task: string }> {
   return pulpFetch<{ task: string }>(BASE, {
     method: "POST",
     body: JSON.stringify({ repository: repositoryHref }),

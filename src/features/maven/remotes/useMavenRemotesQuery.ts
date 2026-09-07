@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { listMavenRemotes, type ListMavenRemotesParams } from "../../../api/client/maven/remotes";
+import {
+  listMavenRemotes,
+  type ListMavenRemotesParams,
+} from "../../../api/client/maven/remotes";
 import { mavenRemotesQueryKey } from "./queryKeys";
 
 export function useMavenRemotesQuery(params: ListMavenRemotesParams) {

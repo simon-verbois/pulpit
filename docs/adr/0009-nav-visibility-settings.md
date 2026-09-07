@@ -16,12 +16,12 @@ use, based on their account's permissions. Three designs were considered before 
    modify) aren't enumerated anywhere in this codebase to check against. Reactive 403 handling
    (`PulpApiError` already classifies status 403 as `kind: "forbidden"`) needed zero new plumbing
    and remains the correct behavior for individual actions - this ADR doesn't replace it, it adds a
-   coarser layer on top for whole nav *sections*.
+   coarser layer on top for whole nav _sections_.
 2. **Mirror Pulp's own permission tables into pulpit-core's DB, kept in sync.** Rejected: Pulp has no
    webhook/event system for permission changes, so staying in sync would mean either reading Pulp's
    Postgres directly (breaking this project's own "Pulp is a REST-API-only black box" stance, ADR
    0006/0007) or polling every object for every user - more API calls than the per-object check in
-   (1), for a cache that can lag a real revocation. A stale *authorization* cache is a security bug,
+   (1), for a cache that can lag a real revocation. A stale _authorization_ cache is a security bug,
    not just a UX one - unacceptable for a system with no Pulp-side invalidation signal at all.
 3. **This ADR's design**: pulpit-native settings, entirely independent of Pulp's own RBAC state,
    admin-configured, storing only "which whole nav sections to hide" - never "who can do what".
@@ -86,7 +86,7 @@ Add a `nav_visibility` pulpit-core module, following the same shape as `default_
   second hand-written list) so a future plugin module is automatically configurable with no extra
   wiring. `Administration` itself is a plain top-level nav item (not one of the checkable modules,
   same as `Overview`/`Tasks`) - once logged in, any authenticated user can reach it, same as before
-  this ADR existed; the real gate on actually *changing* the settings is the staff-only backend
+  this ADR existed; the real gate on actually _changing_ the settings is the staff-only backend
   route above.
 
 ## Alternatives considered
@@ -101,7 +101,7 @@ to compute, reintroducing the per-plugin codename problem option (1) above alrea
 
 ## Consequences
 
-- A second, independent authorization-*adjacent* concept now exists in the UI: Pulp's own RBAC
+- A second, independent authorization-_adjacent_ concept now exists in the UI: Pulp's own RBAC
   (real enforcement, via 403s) and pulpit's nav-visibility settings (UI convenience, via this
   module) can disagree without either being "wrong" - a user can see a nav section un-granted while
   still holding real Pulp permissions for it (reachable by direct URL), or vice versa (granted in
@@ -117,6 +117,6 @@ to compute, reintroducing the per-plugin codename problem option (1) above alrea
 - pulpit-core gained its first admin-only gate (`require_staff_user`). Any future admin-only feature
   should reuse this dependency rather than inventing a second staff/admin check.
 - `navTree.ts`'s per-group `id` is now a stored, cross-referenced key (in pulpit-core's own DB rows)
-  - renaming one (distinct from renaming the *label*, which stays free - see the Debian/NPM
+  - renaming one (distinct from renaming the _label_, which stays free - see the Debian/NPM
     relabeling history) silently orphans whatever rule was configured against the old id. Treat
     `id` as append-only, same caution as a database column name.

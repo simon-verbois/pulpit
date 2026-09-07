@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { listDebContent, type ListDebContentParams } from "../../../api/client/deb/content";
+import {
+  listDebContent,
+  type ListDebContentParams,
+} from "../../../api/client/deb/content";
 
 export function useDebContentQuery(params: ListDebContentParams) {
   return useQuery({

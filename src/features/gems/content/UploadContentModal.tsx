@@ -48,13 +48,11 @@ export function UploadContentModal({
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      aria-labelledby="upload-gem-title"
-      variant="medium"
-    >
-      <ModalHeader title={`Upload gem to "${repositoryName}"`} labelId="upload-gem-title" />
+    <Modal isOpen onClose={onClose} aria-labelledby="upload-gem-title" variant="medium">
+      <ModalHeader
+        title={`Upload gem to "${repositoryName}"`}
+        labelId="upload-gem-title"
+      />
       <ModalBody>
         <Form>
           {uploadMutation.isError ? (
@@ -87,7 +85,10 @@ export function UploadContentModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+        <Flex
+          justifyContent={{ default: "justifyContentFlexEnd" }}
+          style={{ width: "100%" }}
+        >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               Cancel

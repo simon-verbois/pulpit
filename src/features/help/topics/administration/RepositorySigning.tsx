@@ -153,19 +153,19 @@ export function AdministrationRepositorySigningTopic() {
 
       <Content component="h3">Using this on a repository</Content>
       <Content component="p">
-        Signing is fully automatic, not a per-repository choice — there is no checkbox
-        on an RPM repository's create/edit form at all. Whatever's enabled above applies
-        to every repository created from that point on, using the current active key, no
+        Signing is fully automatic, not a per-repository choice — there is no checkbox on
+        an RPM repository's create/edit form at all. Whatever's enabled above applies to
+        every repository created from that point on, using the current active key, no
         fingerprint typing required.
       </Content>
 
       <Content component="h3">Existing repositories</Content>
       <Content component="p">
-        A repository created <em>before</em> signing was turned on (or before this
-        policy existed) doesn't otherwise catch up on its own. <strong>Sign all
-        repositories…</strong>, in its own card here, brings every existing RPM
-        repository into line with the current policy on demand: repositories missing
-        package signing have their already-synced packages actually{" "}
+        A repository created <em>before</em> signing was turned on (or before this policy
+        existed) doesn't otherwise catch up on its own.{" "}
+        <strong>Sign all repositories…</strong>, in its own card here, brings every
+        existing RPM repository into line with the current policy on demand: repositories
+        missing package signing have their already-synced packages actually{" "}
         <strong>re-signed</strong> in the background (re-downloaded, re-signed,
         re-uploaded as a new repository version — not cheap for a repository with many
         packages); repositories missing metadata signing are just republished. A

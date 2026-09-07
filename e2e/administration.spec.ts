@@ -20,9 +20,7 @@ test.describe("Administration: signing services (read-only) and content guards",
     await expect(
       page.getByRole("heading", { name: "Administration", level: 1 }),
     ).toBeVisible();
-    await expect(
-      page.getByText(/Signing services are read-only here/),
-    ).toBeVisible();
+    await expect(page.getByText(/Signing services are read-only here/)).toBeVisible();
     // Read-only - VERIFIED live: no create endpoint exists at all.
     await expect(page.getByRole("button", { name: /create/i })).not.toBeVisible();
   });

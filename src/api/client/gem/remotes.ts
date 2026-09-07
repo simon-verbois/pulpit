@@ -11,7 +11,9 @@ export interface ListGemRemotesParams {
   name__icontains?: string;
 }
 
-export function listGemRemotes(params: ListGemRemotesParams): Promise<PulpPage<GemRemote>> {
+export function listGemRemotes(
+  params: ListGemRemotesParams,
+): Promise<PulpPage<GemRemote>> {
   return pulpFetch<PulpPage<GemRemote>>(`${BASE}${buildQuery(params)}`);
 }
 

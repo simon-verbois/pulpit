@@ -64,7 +64,9 @@ function RepositorySigningGeneralForm({
   // field snapped back to the pre-keystroke value the instant it was typed
   // (the mutation's round trip hadn't resolved yet) and the cursor landed
   // at the end of that reverted string - same fix as SigningKeyDefaultsFields.tsx.
-  const [publicKeyFilename, setPublicKeyFilename] = useState(settings.public_key_filename);
+  const [publicKeyFilename, setPublicKeyFilename] = useState(
+    settings.public_key_filename,
+  );
   const publicKeyUrl = `${window.location.origin}/keys/${publicKeyFilename}`;
 
   return (
@@ -96,7 +98,9 @@ function RepositorySigningGeneralForm({
                 id="metadata-signing-enabled"
                 label="Metadata signing enabled"
                 isChecked={settings.metadata_signing_enabled}
-                onChange={(_e, checked) => onChange({ metadata_signing_enabled: checked })}
+                onChange={(_e, checked) =>
+                  onChange({ metadata_signing_enabled: checked })
+                }
               />
             </Form>
           </CardBody>

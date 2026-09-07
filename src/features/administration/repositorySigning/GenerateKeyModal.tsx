@@ -151,8 +151,8 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
           <StackItem>
             <Content component="h3">New key defaults</Content>
             <Content component="small">
-              Used the next time a key is generated, and every key after it until
-              changed. Changing them does not affect existing keys.
+              Used the next time a key is generated, and every key after it until changed.
+              Changing them does not affect existing keys.
             </Content>
           </StackItem>
           <StackItem>
@@ -174,7 +174,10 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+        <Flex
+          justifyContent={{ default: "justifyContentFlexEnd" }}
+          style={{ width: "100%" }}
+        >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               {jobSucceeded ? "Close" : "Cancel"}

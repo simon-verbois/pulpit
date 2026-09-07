@@ -45,7 +45,9 @@ describe("Container RepositoryDistributionsTab", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).queryByLabelText("Name", { exact: false })).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByLabelText("Name", { exact: false }),
+    ).not.toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
     });

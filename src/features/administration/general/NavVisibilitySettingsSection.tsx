@@ -95,10 +95,10 @@ function NavVisibilityForm({ settings }: { settings: NavVisibilitySettings }) {
       <StackItem>
         <Content component="h2">Module visibility</Content>
         <Content component="p">
-          Every section is shown to every user by default, including staff - uncheck one to
-          hide it for everyone instead. Pulp's own permissions still decide what a user can
-          actually do if they navigate to a section directly - this only controls what's
-          offered in the sidebar.
+          Every section is shown to every user by default, including staff - uncheck one
+          to hide it for everyone instead. Pulp's own permissions still decide what a user
+          can actually do if they navigate to a section directly - this only controls
+          what's offered in the sidebar.
         </Content>
       </StackItem>
       <StackItem>

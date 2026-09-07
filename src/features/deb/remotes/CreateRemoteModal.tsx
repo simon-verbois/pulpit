@@ -109,11 +109,7 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
               onChange={(_event, value) => setUrl(value)}
             />
           </FormGroup>
-          <FormGroup
-            label="Distributions"
-            isRequired
-            fieldId="remote-distributions"
-          >
+          <FormGroup label="Distributions" isRequired fieldId="remote-distributions">
             <TextInput
               id="remote-distributions"
               isRequired
@@ -145,7 +141,10 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+        <Flex
+          justifyContent={{ default: "justifyContentFlexEnd" }}
+          style={{ width: "100%" }}
+        >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               Cancel

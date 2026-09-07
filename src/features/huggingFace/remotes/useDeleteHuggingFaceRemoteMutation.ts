@@ -10,7 +10,8 @@ export function useDeleteHuggingFaceRemoteMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ href }: { href: string; name: string }) => deleteHuggingFaceRemote(href),
+    mutationFn: ({ href }: { href: string; name: string }) =>
+      deleteHuggingFaceRemote(href),
     onSuccess: ({ task }, { name }) => {
       registerTask({
         href: task,

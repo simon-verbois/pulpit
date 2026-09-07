@@ -227,10 +227,10 @@ Flow (`signing.check_pulp_bootstrap` job, run on a schedule and after every key/
    that just became `active` naturally drops out on the very next write.
 3. It polls Pulp's (read-only) signing-services list; as soon as it sees the new name (registered
    by the colocated reconciler or by an administrator), it flips the row to `active` and resumes
-   publishing. This step is unchanged from before ADR 0008 - it never cared *how* a service got
+   publishing. This step is unchanged from before ADR 0008 - it never cared _how_ a service got
    registered.
 4. If the derived image isn't in use, or the reconciler hasn't gotten to it yet, `GET
-   /pulpit-core/api/v1/signing/keys/{key_id}/pulp-services` keeps surfacing the exact command for an
+/pulpit-core/api/v1/signing/keys/{key_id}/pulp-services` keeps surfacing the exact command for an
    administrator to run **inside the `pulp` container**:
    ```sh
    docker compose exec pulp pulpcore-manager add-signing-service \
@@ -412,7 +412,7 @@ a repository's Pulp configuration as a side effect of an unrelated global settin
 ## How to bring existing repositories under the current key
 
 `POST /pulpit-core/api/v1/signing/keys/generate` and normal rotation already keep every repository
-*already* pointed at a signing service in sync automatically (`publish_key_job` walks every RPM
+_already_ pointed at a signing service in sync automatically (`publish_key_job` walks every RPM
 repository, VERIFIED live via the same `list_rpm_repositories` pagination as everything else here).
 What that does NOT cover is a repository that predates signing being turned on at all, or was
 created while it was off - nothing ever points its `package_signing_service`/

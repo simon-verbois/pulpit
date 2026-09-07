@@ -11,7 +11,9 @@ export interface ListGemContentParams {
   repository_version?: string;
 }
 
-export function listGemContent(params: ListGemContentParams): Promise<PulpPage<GemContent>> {
+export function listGemContent(
+  params: ListGemContentParams,
+): Promise<PulpPage<GemContent>> {
   return pulpFetch<PulpPage<GemContent>>(`${BASE}${buildQuery(params)}`);
 }
 

@@ -13,7 +13,9 @@ describe("RepositoriesPage", () => {
 
     const link = await screen.findByRole("link", { name: MAVEN_REPO_FIXTURE.name });
     expect(link).toHaveAttribute("href", "/maven/repositories/test-maven-repo");
-    expect(screen.getByText(MAVEN_REPO_FIXTURE.description as string)).toBeInTheDocument();
+    expect(
+      screen.getByText(MAVEN_REPO_FIXTURE.description as string),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no repositories", async () => {

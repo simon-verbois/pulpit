@@ -31,8 +31,8 @@ export function RpmRepositoriesTopic() {
           choice. If an administrator has enabled it (Administration → Repository
           Signing), this repository is signed with the current key from the moment it's
           created; if not, it's created unsigned. A repository created before signing was
-          turned on can be brought into line later with <strong>Sign all
-          repositories…</strong> on that same Administration page.
+          turned on can be brought into line later with{" "}
+          <strong>Sign all repositories…</strong> on that same Administration page.
         </Content>
       </Content>
       <Content component="p">

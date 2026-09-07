@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
  * signingKeyState.ts, AdvisoriesTable's own SEVERITY_COLOR) - kept as the
  * same string union so those maps don't need to change, only the component
  * rendering them. */
-export type StatusIndicatorColor = "green" | "blue" | "red" | "orange" | "yellow" | "grey";
+export type StatusIndicatorColor =
+  "green" | "blue" | "red" | "orange" | "yellow" | "grey";
 
 // PatternFly's own theme-aware status tokens (VERIFIED: each is redefined
 // under PatternFly's dark-theme selector, unlike AppFooter.tsx's old bug -
@@ -43,7 +44,12 @@ interface StatusIndicatorProps {
  * contrast is never a question the way a pastel pill's fill-vs-page-
  * background contrast was - only the small dot carries the color coding.
  */
-export function StatusIndicator({ color, children, isCompact, title }: StatusIndicatorProps) {
+export function StatusIndicator({
+  color,
+  children,
+  isCompact,
+  title,
+}: StatusIndicatorProps) {
   return (
     <span
       title={title}

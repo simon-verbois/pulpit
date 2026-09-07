@@ -52,7 +52,8 @@ function AutomaticRotationFieldsForm({
   settings: SigningSettings;
   onChange: (changes: Partial<SigningSettings>) => void;
 }) {
-  const rotationDisabled = !settings.auto_rotation_enabled || settings.allow_indefinite_validity;
+  const rotationDisabled =
+    !settings.auto_rotation_enabled || settings.allow_indefinite_validity;
 
   // Each number field keeps its OWN local buffer instead of rendering
   // `settings.*` directly - VERIFIED live: bound straight to query data and
@@ -72,10 +73,11 @@ function AutomaticRotationFieldsForm({
     <Stack hasGutter>
       <StackItem>
         <Content component="small">
-          Publishing a key, whether automatically or manually via <strong>Publish
-          now</strong> in the signing keys table, re-signs existing packages and
-          republishes metadata under the new key. This happens automatically and cannot
-          be turned off. Exactly one key is exposed at the public key URL at any time.
+          Publishing a key, whether automatically or manually via{" "}
+          <strong>Publish now</strong> in the signing keys table, re-signs existing
+          packages and republishes metadata under the new key. This happens automatically
+          and cannot be turned off. Exactly one key is exposed at the public key URL at
+          any time.
         </Content>
       </StackItem>
 
@@ -87,7 +89,9 @@ function AutomaticRotationFieldsForm({
                 id="allow-indefinite-validity"
                 label="Create keys without expiration"
                 isChecked={settings.allow_indefinite_validity}
-                onChange={(_e, checked) => onChange({ allow_indefinite_validity: checked })}
+                onChange={(_e, checked) =>
+                  onChange({ allow_indefinite_validity: checked })
+                }
               />
             </Form>
           </StackItem>

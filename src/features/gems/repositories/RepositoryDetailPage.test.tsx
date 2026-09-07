@@ -45,10 +45,9 @@ describe("RepositoryDetailPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
     const dialog = await screen.findByRole("dialog");
-    fireEvent.change(
-      within(dialog).getByLabelText("Description", { exact: false }),
-      { target: { value: "An updated description" } },
-    );
+    fireEvent.change(within(dialog).getByLabelText("Description", { exact: false }), {
+      target: { value: "An updated description" },
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -93,9 +92,7 @@ describe("RepositoryDetailPage", () => {
     await screen.findByRole("tab", { name: "Overview" });
     fireEvent.click(screen.getByRole("tab", { name: "Content" }));
 
-    expect(
-      await screen.findByText("No gems in this repository yet"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No gems in this repository yet")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload gem" })).toBeInTheDocument();
   });
 

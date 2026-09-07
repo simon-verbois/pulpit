@@ -60,7 +60,7 @@ ADR 0005, ADR 0006, ADR 0007, and `docs/DEPLOYMENT.md`.
   API process never has that access, by construction (`docs/signing.md`, ADR 0007's own
   entrypoint design). It never reaches into the `pulp` container at all (ADR 0008): the one
   Pulp-side administrative command signing needs is instead automated by a small reconciler
-  colocated *inside* a derived Pulp image, reading a desired-state manifest off the volume already
+  colocated _inside_ a derived Pulp image, reading a desired-state manifest off the volume already
   shared with `pulpit-worker` — opt-in (falls back to a manual command otherwise), and identical
   across Docker/Podman/Kubernetes for the first time (`docs/signing.md` "Automating the manual Pulp
   step", ADR 0008).

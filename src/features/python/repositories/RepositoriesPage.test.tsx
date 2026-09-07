@@ -13,7 +13,9 @@ describe("RepositoriesPage", () => {
 
     const link = await screen.findByRole("link", { name: PYTHON_REPO_FIXTURE.name });
     expect(link).toHaveAttribute("href", "/python/repositories/test-python-repo");
-    expect(screen.getByText(PYTHON_REPO_FIXTURE.description as string)).toBeInTheDocument();
+    expect(
+      screen.getByText(PYTHON_REPO_FIXTURE.description as string),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no repositories", async () => {

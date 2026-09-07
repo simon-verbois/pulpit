@@ -1746,7 +1746,9 @@ const gemHandlers = [
   http.get(GEM_REPO_BASE, ({ request }) => {
     const url = new URL(request.url);
     const name = url.searchParams.get("name");
-    const results = name ? gemRepositories.filter((r) => r.name === name) : gemRepositories;
+    const results = name
+      ? gemRepositories.filter((r) => r.name === name)
+      : gemRepositories;
     return HttpResponse.json({
       count: results.length,
       next: null,
@@ -2278,7 +2280,8 @@ const mavenHandlers = [
     const content = {
       ...MAVEN_CONTENT_FIXTURE,
       pulp_href: `${MAVEN_CONTENT_BASE}${freshId()}/`,
-      filename: typeof relativePath === "string" ? relativePath : MAVEN_CONTENT_FIXTURE.filename,
+      filename:
+        typeof relativePath === "string" ? relativePath : MAVEN_CONTENT_FIXTURE.filename,
     };
     mavenContent = [...mavenContent, content];
     return HttpResponse.json(
@@ -2401,7 +2404,9 @@ const npmHandlers = [
   http.get(NPM_REPO_BASE, ({ request }) => {
     const url = new URL(request.url);
     const name = url.searchParams.get("name");
-    const results = name ? npmRepositories.filter((r) => r.name === name) : npmRepositories;
+    const results = name
+      ? npmRepositories.filter((r) => r.name === name)
+      : npmRepositories;
     return HttpResponse.json({
       count: results.length,
       next: null,
@@ -2606,7 +2611,9 @@ const npmHandlers = [
       ...NPM_CONTENT_FIXTURE,
       pulp_href: `${NPM_CONTENT_BASE}${freshId()}/`,
       relative_path:
-        typeof relativePath === "string" ? relativePath : NPM_CONTENT_FIXTURE.relative_path,
+        typeof relativePath === "string"
+          ? relativePath
+          : NPM_CONTENT_FIXTURE.relative_path,
     };
     npmContent = [...npmContent, content];
     return HttpResponse.json(
@@ -3079,7 +3086,9 @@ const debHandlers = [
   http.get(DEB_REPO_BASE, ({ request }) => {
     const url = new URL(request.url);
     const name = url.searchParams.get("name");
-    const results = name ? debRepositories.filter((r) => r.name === name) : debRepositories;
+    const results = name
+      ? debRepositories.filter((r) => r.name === name)
+      : debRepositories;
     return HttpResponse.json({
       count: results.length,
       next: null,
@@ -3207,7 +3216,9 @@ const debHandlers = [
         ...r,
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.url !== undefined ? { url: body.url } : {}),
-        ...(body.distributions !== undefined ? { distributions: body.distributions } : {}),
+        ...(body.distributions !== undefined
+          ? { distributions: body.distributions }
+          : {}),
         ...(body.policy !== undefined ? { policy: body.policy } : {}),
         ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
         ...(body.tls_validation !== undefined

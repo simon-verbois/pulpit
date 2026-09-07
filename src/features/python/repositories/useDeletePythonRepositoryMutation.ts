@@ -8,7 +8,8 @@ export function useDeletePythonRepositoryMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ href }: { href: string; name: string }) => deletePythonRepository(href),
+    mutationFn: ({ href }: { href: string; name: string }) =>
+      deletePythonRepository(href),
     onSuccess: ({ task }, { name }) => {
       registerTask({
         href: task,

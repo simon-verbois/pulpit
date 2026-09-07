@@ -8,7 +8,8 @@ export function useDeleteFileDistributionMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ href }: { href: string; name: string }) => deleteFileDistribution(href),
+    mutationFn: ({ href }: { href: string; name: string }) =>
+      deleteFileDistribution(href),
     onSuccess: ({ task }, { name }) => {
       registerTask({
         href: task,

@@ -5,9 +5,9 @@ export function FileRepositoriesTopic() {
     <Content>
       <Content component="p">
         A File repository holds arbitrary file content and tracks it as a sequence of{" "}
-        <strong>versions</strong> - every sync, upload, or removal creates a new one.
-        This page is the list of every File repository; open one to manage its content
-        and configuration.
+        <strong>versions</strong> - every sync, upload, or removal creates a new one. This
+        page is the list of every File repository; open one to manage its content and
+        configuration.
       </Content>
 
       <Content component="h3">Creating a repository</Content>
@@ -28,8 +28,8 @@ export function FileRepositoriesTopic() {
         </Content>
         <Content component="li">
           <strong>Manifest filename</strong> is the name of the file listing published at
-          the repository's own distribution URL (defaults to <code>PULP_MANIFEST</code>{" "}
-          if left blank).
+          the repository's own distribution URL (defaults to <code>PULP_MANIFEST</code> if
+          left blank).
         </Content>
       </Content>
       <Content component="p">

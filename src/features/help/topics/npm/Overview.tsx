@@ -11,8 +11,8 @@ export function NpmOverviewTopic() {
         The usual shape of things: create a <strong>remote</strong> pointing at an NPM
         registry, create a <strong>repository</strong> that uses it as its default, then{" "}
         <strong>sync</strong>. Unlike gem/hugging_face, this plugin has no publication
-        step at all - a <strong>distribution</strong> serves a repository's latest
-        version immediately.
+        step at all - a <strong>distribution</strong> serves a repository's latest version
+        immediately.
       </Content>
       <Content component="p">
         A distribution can also proxy a remote directly for pull-through caching,

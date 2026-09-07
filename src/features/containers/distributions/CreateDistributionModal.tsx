@@ -42,7 +42,12 @@ export function CreateDistributionModal({
     // globally-unique free-text identifiers (VERIFIED live) - reusing the
     // base path as the name avoids asking for the same thing twice.
     createMutation.mutate(
-      { name: basePath, base_path: basePath, repository: repositoryHref, private: isPrivate },
+      {
+        name: basePath,
+        base_path: basePath,
+        repository: repositoryHref,
+        private: isPrivate,
+      },
       { onSuccess: () => onClose() },
     );
   };
@@ -93,7 +98,10 @@ export function CreateDistributionModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+        <Flex
+          justifyContent={{ default: "justifyContentFlexEnd" }}
+          style={{ width: "100%" }}
+        >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               Cancel

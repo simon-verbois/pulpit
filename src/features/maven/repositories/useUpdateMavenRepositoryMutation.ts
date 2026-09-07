@@ -25,7 +25,9 @@ export function useUpdateMavenRepositoryMutation() {
           mavenRepositoryByNameKey(name),
           // The name itself may have just changed - also invalidate the new
           // one so the (renamed) repository is findable by its new slug.
-          ...(data.name && data.name !== name ? [mavenRepositoryByNameKey(data.name)] : []),
+          ...(data.name && data.name !== name
+            ? [mavenRepositoryByNameKey(data.name)]
+            : []),
           mavenRepositoriesListRootKey,
         ],
       });

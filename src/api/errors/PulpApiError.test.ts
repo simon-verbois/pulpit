@@ -46,9 +46,7 @@ describe("toPulpApiError", () => {
 
     const error = await toPulpApiError(response);
 
-    expect(error.message).toBe(
-      "Username: A user with that username already exists.",
-    );
+    expect(error.message).toBe("Username: A user with that username already exists.");
   });
 
   it("joins errors across multiple fields", async () => {
@@ -97,7 +95,9 @@ describe("toPulpApiError", () => {
   });
 
   it("keeps the friendly hardcoded message for 404", async () => {
-    const response = new Response(JSON.stringify({ detail: "Not found." }), { status: 404 });
+    const response = new Response(JSON.stringify({ detail: "Not found." }), {
+      status: 404,
+    });
 
     const error = await toPulpApiError(response);
 

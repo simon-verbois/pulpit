@@ -11,7 +11,9 @@ export interface ListNpmRemotesParams {
   name__icontains?: string;
 }
 
-export function listNpmRemotes(params: ListNpmRemotesParams): Promise<PulpPage<NpmRemote>> {
+export function listNpmRemotes(
+  params: ListNpmRemotesParams,
+): Promise<PulpPage<NpmRemote>> {
   return pulpFetch<PulpPage<NpmRemote>>(`${BASE}${buildQuery(params)}`);
 }
 

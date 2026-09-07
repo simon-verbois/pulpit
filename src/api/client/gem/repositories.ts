@@ -29,7 +29,9 @@ export function listGemRepositories(
  * use the repository's (unique) name as the URL slug instead, so this looks
  * the href up via an exact-match filter on the collection endpoint.
  */
-export async function getGemRepositoryByName(name: string): Promise<GemRepository | null> {
+export async function getGemRepositoryByName(
+  name: string,
+): Promise<GemRepository | null> {
   const page = await pulpFetch<PulpPage<GemRepository>>(
     `${BASE}${buildQuery({ name, limit: 1, offset: 0 })}`,
   );

@@ -31,7 +31,8 @@ export function RepositoryCollectionVersionsTab({
 
   return (
     <>
-      {collectionVersionsQuery.isSuccess && collectionVersionsQuery.data.results.length > 0 ? (
+      {collectionVersionsQuery.isSuccess &&
+      collectionVersionsQuery.data.results.length > 0 ? (
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem>

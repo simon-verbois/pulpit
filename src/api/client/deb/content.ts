@@ -12,7 +12,9 @@ export interface ListDebContentParams {
   repository_version?: string;
 }
 
-export function listDebContent(params: ListDebContentParams): Promise<PulpPage<DebContent>> {
+export function listDebContent(
+  params: ListDebContentParams,
+): Promise<PulpPage<DebContent>> {
   return pulpFetch<PulpPage<DebContent>>(`${BASE}${buildQuery(params)}`);
 }
 

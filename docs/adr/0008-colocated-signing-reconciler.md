@@ -9,7 +9,7 @@ Accepted
 Registering a Pulp `core.SigningService` has no REST endpoint at all (`docs/PULP_API.md`:
 "`signing-services/` is read-only") - the only way is `pulpcore-manager add-signing-service`, a
 Django management command that must run **inside the Pulp process** (it needs Pulp's own GPG-key
-validation and database access). ADR 0006 automated this by having `pulpit-worker` reach *into* the
+validation and database access). ADR 0006 automated this by having `pulpit-worker` reach _into_ the
 `pulp` container from the outside via `PulpCommandExecutor`
 (`app/adapters/pulp/executor.py`):
 
@@ -28,7 +28,7 @@ different code paths and deployment artifacts for the exact same job.
 
 Simply moving Pulp's own address into an env var (as considered early on, à la other self-hosted
 apps that parameterize every upstream URL) does not help here: `pulp_base_url`/`PULP_UPSTREAM`
-already exist (ADR 0007) for every *other* Pulp call this project makes. The one operation that
+already exist (ADR 0007) for every _other_ Pulp call this project makes. The one operation that
 needs cross-container reach isn't an HTTP call at all - it's a local management command that must
 execute inside Pulp's own process/DB context, which no amount of URL configuration changes.
 
@@ -43,7 +43,7 @@ container - one more longrun service fits the same model):
   `docker.io/pulp/pulp:stable` plus `pulpit-signing-reconciler`
   (`deployment/docker/pulp/pulpit-signing-reconciler`) registered as an s6-overlay longrun
   (`deployment/docker/pulp/s6/pulpit-signing-reconciler/`).
-- `pulpit-worker` keeps owning the *decision* of which `SigningPulpService` rows need registering
+- `pulpit-worker` keeps owning the _decision_ of which `SigningPulpService` rows need registering
   (unchanged: the `signing_pulp_services` table, `PENDING_MANUAL_SETUP` status). Instead of
   executing the command remotely, `signing.check_pulp_bootstrap` (`jobs.py`) now writes an atomic
   JSON manifest (`write_signing_services_manifest`, `pulp_bootstrap.py`) - one entry per pending row
@@ -51,10 +51,10 @@ container - one more longrun service fits the same model):
   with `pulp` (`docs/signing.md` "Shared volume permissions"). No new volume, no new mount.
 - The reconciler polls that manifest from inside the `pulp` container. For each entry not yet
   present in Pulp's own (loopback) signing-services list, it runs `pulpcore-manager
-  add-signing-service` locally via `subprocess.run` - no Docker client, no Kubernetes client, no
+add-signing-service` locally via `subprocess.run` - no Docker client, no Kubernetes client, no
   network hop of any kind.
 - `pulpit-core` keeps polling Pulp's signing-services list to detect completion
-  (`refresh_pulp_service_status`, unchanged) and flip rows to `ACTIVE` - this part never cared *how*
+  (`refresh_pulp_service_status`, unchanged) and flip rows to `ACTIVE` - this part never cared _how_
   a service got registered, so it needed no change at all.
 - The manual fallback (the printed `docker compose exec pulp pulpcore-manager ...` command,
   `build_bootstrap_command`) is unchanged, for anyone deploying vanilla `pulp/pulp:stable` instead
@@ -92,12 +92,12 @@ container - one more longrun service fits the same model):
 
 - Exactly 3 containers on every platform (`redis`, `pulp` (derived), `pulpit`) - Docker/Podman drop
   `docker-socket-proxy` entirely; Kubernetes drops its `ServiceAccount`/`Role`/`RoleBinding`
-  entirely. All three deployment targets use the *same* mechanism for the first time.
+  entirely. All three deployment targets use the _same_ mechanism for the first time.
 - One more image to build and publish per release (`.forgejo/workflows/release.yml`), tagged the
   same as `pulpit` itself - this ties rebuilding on top of whatever `pulp/pulp:stable` resolves to
   at build time to this project's own release cadence, not upstream Pulp's, the same tradeoff ADR
   0007 already accepted for not rebuilding Pulp's image at all, now slightly sharper since this ADR
-  *does* rebuild on top of it (a much smaller layer than the "alternatives considered" full-app
+  _does_ rebuild on top of it (a much smaller layer than the "alternatives considered" full-app
   fusion above, so the same class of risk at a far smaller scope).
 - `pulpit-core`'s `docker`/`kubernetes` Python dependencies, and every Docker/Kubernetes-exec test,
   are gone - one less thing that can be affected by an unrelated `docker`/`kubernetes` package

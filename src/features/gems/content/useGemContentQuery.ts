@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { listGemContent, type ListGemContentParams } from "../../../api/client/gem/content";
+import {
+  listGemContent,
+  type ListGemContentParams,
+} from "../../../api/client/gem/content";
 
 export function useGemContentQuery(params: ListGemContentParams) {
   return useQuery({

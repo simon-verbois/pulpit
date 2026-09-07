@@ -59,7 +59,9 @@ describe("AdministrationPage", () => {
     fireEvent.click(rpmCheckbox);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Save" })).toBeDisabled());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled(),
+    );
     expect(rpmCheckbox).not.toBeChecked();
   });
 
@@ -70,24 +72,30 @@ describe("AdministrationPage", () => {
     await screen.findByLabelText('Show "RPM"');
 
     fireEvent.click(screen.getByRole("tab", { name: "Access" }));
-    expect(await screen.findByRole("button", { name: "Create user" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Create user" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Groups" }));
-    expect(await screen.findByRole("button", { name: "Create group" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Create group" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Roles" }));
-    expect(await screen.findByRole("button", { name: "Create role" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Create role" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Repository Signing" }));
     expect(await screen.findByLabelText("Signing enabled")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Pulp Signing Services" }));
-    expect(
-      await screen.findByText("No signing services configured"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No signing services configured")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Content guards" }));
-    expect(await screen.findByRole("button", { name: "Create content guard" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Create content guard" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Global Proxy Settings" }));
     expect(await screen.findByLabelText("Proxy URL")).toBeInTheDocument();
@@ -111,7 +119,9 @@ describe("AdministrationPage", () => {
       path: "/admin",
     });
 
-    expect(await screen.findByRole("button", { name: "Create group" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Create group" }),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText('Show "RPM"')).not.toBeInTheDocument();
   });
 
@@ -122,6 +132,8 @@ describe("AdministrationPage", () => {
       path: "/admin",
     });
 
-    expect(await screen.findByRole("button", { name: "Create user" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Create user" }),
+    ).toBeInTheDocument();
   });
 });

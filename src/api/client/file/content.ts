@@ -28,7 +28,10 @@ export function listFileContent(
  * one - adding it to a repository is a separate `modify` call, kept
  * consistent with every other plugin's upload flow in this app.
  */
-export function uploadFileContent(file: File, relativePath: string): Promise<FileContent> {
+export function uploadFileContent(
+  file: File,
+  relativePath: string,
+): Promise<FileContent> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("relative_path", relativePath);

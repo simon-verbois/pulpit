@@ -37,9 +37,7 @@ describe("RepositoryContentTab", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(
-      await screen.findByText(
-        `Add "my-package-2.0.0.tgz" to "${NPM_REPO_FIXTURE.name}"`,
-      ),
+      await screen.findByText(`Add "my-package-2.0.0.tgz" to "${NPM_REPO_FIXTURE.name}"`),
     ).toBeInTheDocument();
   });
 });

@@ -139,101 +139,101 @@ export function RepositorySigningKeysSection({
       </CardTitle>
       <CardBody>
         <Stack hasGutter>
-      {keysQuery.isPending ? (
-        <StackItem>
-          <LoadingState label="Loading signing keys" />
-        </StackItem>
-      ) : null}
-      {keysQuery.isError ? (
-        <StackItem>
-          <ErrorState error={keysQuery.error} onRetry={() => keysQuery.refetch()} />
-        </StackItem>
-      ) : null}
-      {keysQuery.isSuccess && keysQuery.data.length === 0 ? (
-        <StackItem>
-          <EmptyState
-            variant="sm"
-            title="No signing key generated yet"
-            body="Generate a key above to enable package and metadata signing."
-          />
-        </StackItem>
-      ) : null}
+          {keysQuery.isPending ? (
+            <StackItem>
+              <LoadingState label="Loading signing keys" />
+            </StackItem>
+          ) : null}
+          {keysQuery.isError ? (
+            <StackItem>
+              <ErrorState error={keysQuery.error} onRetry={() => keysQuery.refetch()} />
+            </StackItem>
+          ) : null}
+          {keysQuery.isSuccess && keysQuery.data.length === 0 ? (
+            <StackItem>
+              <EmptyState
+                variant="sm"
+                title="No signing key generated yet"
+                body="Generate a key above to enable package and metadata signing."
+              />
+            </StackItem>
+          ) : null}
 
-      {keysQuery.isSuccess && !activeKey && keysQuery.data.length > 0 ? (
-        <StackItem>
-          <Content component="p">
-            No key is currently published - the public key URL has nothing to serve yet.
-            {nextKey
-              ? " A key has already been generated and will publish automatically once ready."
-              : ""}
-          </Content>
-        </StackItem>
-      ) : null}
-      {activeKey ? <KeyPulpServicesStatus keyId={activeKey.id} /> : null}
-      {nextKey ? <KeyPulpServicesStatus keyId={nextKey.id} /> : null}
+          {keysQuery.isSuccess && !activeKey && keysQuery.data.length > 0 ? (
+            <StackItem>
+              <Content component="p">
+                No key is currently published - the public key URL has nothing to serve
+                yet.
+                {nextKey
+                  ? " A key has already been generated and will publish automatically once ready."
+                  : ""}
+              </Content>
+            </StackItem>
+          ) : null}
+          {activeKey ? <KeyPulpServicesStatus keyId={activeKey.id} /> : null}
+          {nextKey ? <KeyPulpServicesStatus keyId={nextKey.id} /> : null}
 
-      {keysQuery.isSuccess && keysQuery.data.length > 0 ? (
-        <StackItem>
-          <div style={{ overflowX: "auto" }}>
-            <Table aria-label="Signing keys" variant="compact">
-              <Thead>
-                <Tr>
-                  <Th>Status</Th>
-                  <Th>Fingerprint</Th>
-                  <Th>Identity</Th>
-                  <Th>Algorithm</Th>
-                  <Th>Created</Th>
-                  <Th>Expires</Th>
-                  <Th screenReaderText="Actions" />
-                </Tr>
-              </Thead>
-              <Tbody>
-                {keysQuery.data.map((key) => (
-                  <Tr key={key.id}>
-                    <Td dataLabel="Status">
-                      <StatusIndicator
-                        color={SIGNING_KEY_STATE_COLOR[key.state]}
-                        title={key.state}
-                      >
-                        {SIGNING_KEY_STATE_LABEL[key.state]}
-                      </StatusIndicator>
-                    </Td>
-                    <Td dataLabel="Fingerprint">
-                      <code>{key.fingerprint}</code>
-                    </Td>
-                    <Td dataLabel="Identity">{key.identity_name}</Td>
-                    <Td dataLabel="Algorithm">{key.algorithm.toUpperCase()}</Td>
-                    <Td dataLabel="Created">{formatRelativeTime(key.created_at)}</Td>
-                    <Td dataLabel="Expires">
-                      {key.expires_at ? formatRelativeTime(key.expires_at) : "Never"}
-                    </Td>
-                    <Td dataLabel="Actions" isActionCell>
-                      <Flex
-                        spaceItems={{ default: "spaceItemsNone" }}
-                        flexWrap={{ default: "nowrap" }}
-                        alignItems={{ default: "alignItemsCenter" }}
-                      >
-                        <FlexItem>
-                          <Button
-                            variant="plain"
-                            aria-label="Inspect key"
-                            icon={<EyeIcon />}
-                            onClick={() => setInspectKey(key)}
-                          />
-                        </FlexItem>
-                        <FlexItem>
-                          <KeyRowActions signingKey={key} />
-                        </FlexItem>
-                      </Flex>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </div>
-        </StackItem>
-      ) : null}
-
+          {keysQuery.isSuccess && keysQuery.data.length > 0 ? (
+            <StackItem>
+              <div style={{ overflowX: "auto" }}>
+                <Table aria-label="Signing keys" variant="compact">
+                  <Thead>
+                    <Tr>
+                      <Th>Status</Th>
+                      <Th>Fingerprint</Th>
+                      <Th>Identity</Th>
+                      <Th>Algorithm</Th>
+                      <Th>Created</Th>
+                      <Th>Expires</Th>
+                      <Th screenReaderText="Actions" />
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {keysQuery.data.map((key) => (
+                      <Tr key={key.id}>
+                        <Td dataLabel="Status">
+                          <StatusIndicator
+                            color={SIGNING_KEY_STATE_COLOR[key.state]}
+                            title={key.state}
+                          >
+                            {SIGNING_KEY_STATE_LABEL[key.state]}
+                          </StatusIndicator>
+                        </Td>
+                        <Td dataLabel="Fingerprint">
+                          <code>{key.fingerprint}</code>
+                        </Td>
+                        <Td dataLabel="Identity">{key.identity_name}</Td>
+                        <Td dataLabel="Algorithm">{key.algorithm.toUpperCase()}</Td>
+                        <Td dataLabel="Created">{formatRelativeTime(key.created_at)}</Td>
+                        <Td dataLabel="Expires">
+                          {key.expires_at ? formatRelativeTime(key.expires_at) : "Never"}
+                        </Td>
+                        <Td dataLabel="Actions" isActionCell>
+                          <Flex
+                            spaceItems={{ default: "spaceItemsNone" }}
+                            flexWrap={{ default: "nowrap" }}
+                            alignItems={{ default: "alignItemsCenter" }}
+                          >
+                            <FlexItem>
+                              <Button
+                                variant="plain"
+                                aria-label="Inspect key"
+                                icon={<EyeIcon />}
+                                onClick={() => setInspectKey(key)}
+                              />
+                            </FlexItem>
+                            <FlexItem>
+                              <KeyRowActions signingKey={key} />
+                            </FlexItem>
+                          </Flex>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </div>
+            </StackItem>
+          ) : null}
         </Stack>
       </CardBody>
 

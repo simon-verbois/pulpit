@@ -13,8 +13,8 @@ export function NpmRepositoriesTopic() {
       <Content component="p">
         Click <strong>Create repository</strong> and give it a <strong>Name</strong>{" "}
         (required), optional <strong>Description</strong>, and a{" "}
-        <strong>Default remote</strong> if you want <strong>Sync</strong> to work
-        without asking each time.
+        <strong>Default remote</strong> if you want <strong>Sync</strong> to work without
+        asking each time.
       </Content>
       <Content component="p">
         <strong>Edit</strong> (on a repository's own page) changes the same fields,
@@ -25,18 +25,18 @@ export function NpmRepositoriesTopic() {
       <Content component="h3">Syncing and distributing</Content>
       <Content component="p">
         <strong>Sync</strong> pulls content from the default remote in the background.
-        Unlike gem/hugging_face, there's no publish step here at all - once you go to
-        the <strong>Distributions</strong> tab and click <strong>Create
-        distribution</strong>, it serves this repository's latest version immediately.
-        It can optionally also proxy a <strong>remote</strong> directly for
-        pull-through caching. <strong>Delete</strong> removes a distribution.
+        Unlike gem/hugging_face, there's no publish step here at all - once you go to the{" "}
+        <strong>Distributions</strong> tab and click <strong>Create distribution</strong>,
+        it serves this repository's latest version immediately. It can optionally also
+        proxy a <strong>remote</strong> directly for pull-through caching.{" "}
+        <strong>Delete</strong> removes a distribution.
       </Content>
 
       <Content component="h3">The Content tab</Content>
       <Content component="p">
         Lists this repository's packages. <strong>Upload package</strong> needs a{" "}
-        <strong>Relative path</strong> (e.g. <code>my-package-1.0.0.tgz</code>), pre-filled
-        from the chosen file's own name.
+        <strong>Relative path</strong> (e.g. <code>my-package-1.0.0.tgz</code>),
+        pre-filled from the chosen file's own name.
       </Content>
 
       <Content component="h3">The Versions and Access tabs</Content>

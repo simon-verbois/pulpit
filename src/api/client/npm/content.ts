@@ -11,7 +11,9 @@ export interface ListNpmContentParams {
   repository_version?: string;
 }
 
-export function listNpmContent(params: ListNpmContentParams): Promise<PulpPage<NpmContent>> {
+export function listNpmContent(
+  params: ListNpmContentParams,
+): Promise<PulpPage<NpmContent>> {
   return pulpFetch<PulpPage<NpmContent>>(`${BASE}${buildQuery(params)}`);
 }
 

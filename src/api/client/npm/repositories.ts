@@ -29,7 +29,9 @@ export function listNpmRepositories(
  * use the repository's (unique) name as the URL slug instead, so this looks
  * the href up via an exact-match filter on the collection endpoint.
  */
-export async function getNpmRepositoryByName(name: string): Promise<NpmRepository | null> {
+export async function getNpmRepositoryByName(
+  name: string,
+): Promise<NpmRepository | null> {
   const page = await pulpFetch<PulpPage<NpmRepository>>(
     `${BASE}${buildQuery({ name, limit: 1, offset: 0 })}`,
   );

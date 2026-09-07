@@ -11,8 +11,8 @@ export function GemContentTopic() {
         <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">
-        Gems appear here once a repository has synced content that includes them, or a
-        gem has been uploaded directly to a repository. There's no upload action on this
+        Gems appear here once a repository has synced content that includes them, or a gem
+        has been uploaded directly to a repository. There's no upload action on this
         global page - it's for browsing/finding a gem, not adding one.
       </Content>
     </Content>

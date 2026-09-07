@@ -141,8 +141,9 @@ export async function toPulpApiError(response: Response): Promise<PulpApiError> 
   // is (see defaultMessageFor), and a 401/403/404 body rarely carries
   // anything more specific worth surfacing anyway.
   const message =
-    (kind === "validation" || kind === "conflict" ? messageFromDetail(detail) : undefined) ??
-    defaultMessageFor(kind);
+    (kind === "validation" || kind === "conflict"
+      ? messageFromDetail(detail)
+      : undefined) ?? defaultMessageFor(kind);
   return new PulpApiError(kind, message, {
     status: response.status,
     detail,

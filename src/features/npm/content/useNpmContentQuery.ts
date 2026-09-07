@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { listNpmContent, type ListNpmContentParams } from "../../../api/client/npm/content";
+import {
+  listNpmContent,
+  type ListNpmContentParams,
+} from "../../../api/client/npm/content";
 
 export function useNpmContentQuery(params: ListNpmContentParams) {
   return useQuery({

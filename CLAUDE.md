@@ -2,7 +2,7 @@
 
 - **Stay 100% local.** Everything needed to develop, test, and verify this project runs on this
   machine - no cloud services, no external deployment targets, no remote infra. `docker compose -f
-  deployment/docker/compose-dev.yml --env-file .env ...` (see `docs/DEVELOPMENT.md`) is the whole
+deployment/docker/compose-dev.yml --env-file .env ...` (see `docs/DEVELOPMENT.md`) is the whole
   dev stack.
 - **Rebuild the local Compose stack after finishing a change.** Once code changes are done (tests
   passing), rebuild and restart the affected service(s) so the running dev stack actually reflects

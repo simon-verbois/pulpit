@@ -11,9 +11,7 @@ describe("RepositoryContentTab", () => {
       withTasksDrawer: true,
     });
 
-    expect(
-      await screen.findByText("No gems in this repository yet"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No gems in this repository yet")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Upload gem" }));
 
     const dialog = await screen.findByRole("dialog");

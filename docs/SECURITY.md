@@ -19,7 +19,7 @@ key material or the GNUPGHOME volume; only the worker loop (uid/gid 700) does, a
 reachable from the browser at all (no route to it exists in `deployment/docker/nginx/pulpit.conf.template`,
 and it isn't an HTTP server to begin with). That worker loop never reaches into the `pulp`
 container at all (ADR 0008): the one Pulp-side administrative command signing needs is instead
-automated by a small reconciler colocated *inside* a derived Pulp image
+automated by a small reconciler colocated _inside_ a derived Pulp image
 (`docker.io/simonverbois/pulp-pulpit`), reading a manifest off the volume already shared between
 the two - no cross-container privilege of any kind; see ADR 0008 and `docs/signing.md`
 "Automating the manual Pulp step" for the full rationale and scope.

@@ -12,9 +12,9 @@ on-demand sample repository per plugin automatically, so a new instance has some
 immediately, without any manual action.
 
 This is new ground for `pulpit-core`: every other module either reads Pulp (`content_size`,
-`nav_visibility`) or mutates *existing* objects a user already created (`default_settings`'s
+`nav_visibility`) or mutates _existing_ objects a user already created (`default_settings`'s
 apply-to-all-remotes, `signing`'s resigning) - `PulpClient` had no repository/remote/distribution
-*creation* methods at all before this, since the frontend has always owned that CRUD directly
+_creation_ methods at all before this, since the frontend has always owned that CRUD directly
 against Pulp (ADR 0005's same-origin proxy is what makes that possible from the browser). A
 startup-time seed has to run from the backend - there is no browser session at container boot.
 
@@ -27,7 +27,7 @@ other `PulpClient` method's own header comments.
 - **New `PulpClient` methods** (`app/adapters/pulp/client.py`): `create_remote`, `create_repository`,
   `sync_repository`, `create_distribution` - one call per plugin-typed endpoint (e.g. `rpm/rpm`,
   `deb/apt`, `ansible/collection` for remotes vs `ansible/ansible` for repositories), since unlike
-  the generic listing endpoints (`list_content_page` etc.) there is no cross-plugin *create*
+  the generic listing endpoints (`list_content_page` etc.) there is no cross-plugin _create_
   endpoint. VERIFIED live: remote/repository creation is synchronous for every plugin used here;
   distribution creation and repository sync are both asynchronous (`{"task": <href>}`).
 - **New `fixture_seed` module** (`app/modules/fixture_seed/`), following the exact shape of
@@ -38,9 +38,9 @@ other `PulpClient` method's own header comments.
     repository type) the Repository, then sync and create a Distribution; one plugin's failure
     never aborts the rest (same convention as `default_settings.apply_proxy_to_all_remotes_job`).
   - `models.py`/`service.py` - `FixtureSeedState`, a marker row whose mere existence means seeding
-    was already *attempted* - checked at the top of the job, so every later invocation (see below)
+    was already _attempted_ - checked at the top of the job, so every later invocation (see below)
     is a cheap no-op, successful or not.
-  - `module.py` - `scheduled_jobs = [("fixture_seed.seed_sample_fixtures", 300)]`, the *same*
+  - `module.py` - `scheduled_jobs = [("fixture_seed.seed_sample_fixtures", 300)]`, the _same_
     periodic-heartbeat mechanism `content_size.refresh` already uses (`worker/main.py`), reused here
     for a one-shot startup action rather than adding a second scheduling mechanism. No routes: this
     module has no user-facing API surface at all.
@@ -85,7 +85,7 @@ other `PulpClient` method's own header comments.
 
 ## Consequences
 
-- `PulpClient` gains its first *creation* methods; every one of them is plugin-typed (no generic
+- `PulpClient` gains its first _creation_ methods; every one of them is plugin-typed (no generic
   cross-plugin create endpoint exists, unlike listing), so `fixtures.py` is the one place that
   supplies the type path per plugin.
 - A fresh instance now has six plugins with real, browsable, synced sample content within minutes of

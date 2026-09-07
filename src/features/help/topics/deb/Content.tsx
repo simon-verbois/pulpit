@@ -11,9 +11,9 @@ export function DebContentTopic() {
         <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">
-        Packages appear here once a repository has synced content that includes them, or
-        a package has been uploaded directly to a repository. There's no upload action
-        on this global page - it's for browsing/finding a package, not adding one.
+        Packages appear here once a repository has synced content that includes them, or a
+        package has been uploaded directly to a repository. There's no upload action on
+        this global page - it's for browsing/finding a package, not adding one.
       </Content>
     </Content>
   );

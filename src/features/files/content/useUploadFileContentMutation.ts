@@ -22,7 +22,11 @@ export function useUploadFileContentMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: async ({ file, relativePath, repositoryHref }: UploadToRepositoryArgs) => {
+    mutationFn: async ({
+      file,
+      relativePath,
+      repositoryHref,
+    }: UploadToRepositoryArgs) => {
       const content = await uploadFileContent(file, relativePath);
       return modifyFileRepository(repositoryHref, {
         add_content_units: [content.pulp_href],

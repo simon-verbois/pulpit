@@ -6,7 +6,9 @@ import {
 } from "../../../api/client/hugging_face/repositories";
 import { huggingFaceRepositoriesQueryKey } from "./queryKeys";
 
-export function useHuggingFaceRepositoriesQuery(params: ListHuggingFaceRepositoriesParams) {
+export function useHuggingFaceRepositoriesQuery(
+  params: ListHuggingFaceRepositoriesParams,
+) {
   return useQuery({
     queryKey: huggingFaceRepositoriesQueryKey(params),
     queryFn: () => listHuggingFaceRepositories(params),

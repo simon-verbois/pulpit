@@ -69,7 +69,9 @@ function SigningKeyDefaultsFieldsForm({
   const [keyName, setKeyName] = useState(settings.key_name);
   const [identityName, setIdentityName] = useState(settings.identity_name);
   const [identityEmail, setIdentityEmail] = useState(settings.identity_email);
-  const [publicKeyFilename, setPublicKeyFilename] = useState(settings.public_key_filename);
+  const [publicKeyFilename, setPublicKeyFilename] = useState(
+    settings.public_key_filename,
+  );
   const [rpmServiceName, setRpmServiceName] = useState(settings.rpm_signing_service_name);
   const [metadataServiceName, setMetadataServiceName] = useState(
     settings.metadata_signing_service_name,

@@ -9,8 +9,8 @@ export function DebOverviewTopic() {
       </Content>
       <Content component="p">
         The usual shape of things: create a <strong>remote</strong> pointing at a Debian
-        archive mirror, create a <strong>repository</strong> that uses it as its
-        default, then <strong>sync</strong>. Same as RPM/File/Python, this plugin has{" "}
+        archive mirror, create a <strong>repository</strong> that uses it as its default,
+        then <strong>sync</strong>. Same as RPM/File/Python, this plugin has{" "}
         <strong>autopublish</strong> - on by default, so a synced repository is
         immediately servable without a separate manual publish step.
       </Content>

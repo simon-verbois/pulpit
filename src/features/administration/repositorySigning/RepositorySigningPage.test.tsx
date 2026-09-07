@@ -199,64 +199,66 @@ describe("RepositorySigningPage", () => {
 
     await screen.findByLabelText("Signing enabled");
     expect(screen.queryByLabelText("Key name")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Automatic key rotation enabled")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Automatic key rotation enabled"),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Generate key" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Generate signing key" });
-    expect(within(dialog).getByLabelText("Validity", { exact: false })).toBeInTheDocument();
+    expect(
+      within(dialog).getByLabelText("Validity", { exact: false }),
+    ).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Key name")).toHaveValue(
       "Pulp Repository Signing Key",
     );
-    expect(within(dialog).getByLabelText("Automatic key rotation enabled")).toBeInTheDocument();
+    expect(
+      within(dialog).getByLabelText("Automatic key rotation enabled"),
+    ).toBeInTheDocument();
   });
 
   it("signs every existing repository after confirmation", async () => {
     mockSettings();
     mockKeys([]);
     server.use(
-      http.post(
-        "/pulpit-core/api/v1/signing/repositories/apply-to-all",
-        () =>
-          HttpResponse.json(
-            {
-              id: "33333333-3333-3333-3333-333333333333",
-              job_type: "signing.apply_signing_to_all_repositories",
-              status: "queued",
-              result: null,
-              error: null,
-              attempts: 0,
-              scheduled_at: "2026-01-01T00:00:00Z",
-              started_at: null,
-              finished_at: null,
-              requested_by: "admin",
-              created_at: "2026-01-01T00:00:00Z",
-            },
-            { status: 202 },
-          ),
-      ),
-      http.get(
-        "/pulpit-core/api/v1/jobs/33333333-3333-3333-3333-333333333333",
-        () =>
-          HttpResponse.json({
+      http.post("/pulpit-core/api/v1/signing/repositories/apply-to-all", () =>
+        HttpResponse.json(
+          {
             id: "33333333-3333-3333-3333-333333333333",
             job_type: "signing.apply_signing_to_all_repositories",
-            status: "success",
-            result: {
-              updated_count: 2,
-              updated: [],
-              resigning_count: 1,
-              republishing_count: 1,
-              failed: [],
-            },
+            status: "queued",
+            result: null,
             error: null,
-            attempts: 1,
+            attempts: 0,
             scheduled_at: "2026-01-01T00:00:00Z",
-            started_at: "2026-01-01T00:00:00Z",
-            finished_at: "2026-01-01T00:00:01Z",
+            started_at: null,
+            finished_at: null,
             requested_by: "admin",
             created_at: "2026-01-01T00:00:00Z",
-          }),
+          },
+          { status: 202 },
+        ),
+      ),
+      http.get("/pulpit-core/api/v1/jobs/33333333-3333-3333-3333-333333333333", () =>
+        HttpResponse.json({
+          id: "33333333-3333-3333-3333-333333333333",
+          job_type: "signing.apply_signing_to_all_repositories",
+          status: "success",
+          result: {
+            updated_count: 2,
+            updated: [],
+            resigning_count: 1,
+            republishing_count: 1,
+            failed: [],
+          },
+          error: null,
+          attempts: 1,
+          scheduled_at: "2026-01-01T00:00:00Z",
+          started_at: "2026-01-01T00:00:00Z",
+          finished_at: "2026-01-01T00:00:01Z",
+          requested_by: "admin",
+          created_at: "2026-01-01T00:00:00Z",
+        }),
       ),
     );
 
@@ -266,7 +268,9 @@ describe("RepositorySigningPage", () => {
       await screen.findByRole("button", { name: "Sign all repositories…" }),
     );
 
-    const dialog = await screen.findByRole("dialog", { name: "Sign every existing repository?" });
+    const dialog = await screen.findByRole("dialog", {
+      name: "Sign every existing repository?",
+    });
     fireEvent.click(
       within(dialog).getByRole("button", { name: "Sign all repositories" }),
     );

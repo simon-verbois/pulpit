@@ -103,7 +103,11 @@ export function CreateDistributionModal({
               value={remote}
               onChange={(_event, value) => setRemote(value)}
             >
-              <FormSelectOption key="" value="" label="None - serve this repository only" />
+              <FormSelectOption
+                key=""
+                value=""
+                label="None - serve this repository only"
+              />
               {(remotesQuery.data ?? []).map((r) => (
                 <FormSelectOption key={r.pulp_href} value={r.pulp_href} label={r.name} />
               ))}
@@ -112,7 +116,10 @@ export function CreateDistributionModal({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+        <Flex
+          justifyContent={{ default: "justifyContentFlexEnd" }}
+          style={{ width: "100%" }}
+        >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               Cancel

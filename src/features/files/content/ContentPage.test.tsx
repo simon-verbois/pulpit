@@ -11,10 +11,10 @@ describe("ContentPage", () => {
   it("renders the seeded file", async () => {
     renderApp(<ContentPage />);
 
-    expect(await screen.findByText(FILE_CONTENT_FIXTURE.relative_path)).toBeInTheDocument();
     expect(
-      screen.getByText(FILE_CONTENT_FIXTURE.sha256 as string),
+      await screen.findByText(FILE_CONTENT_FIXTURE.relative_path),
     ).toBeInTheDocument();
+    expect(screen.getByText(FILE_CONTENT_FIXTURE.sha256 as string)).toBeInTheDocument();
   });
 
   it("shows an empty state when there is no file content", async () => {

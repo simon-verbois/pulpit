@@ -22,9 +22,7 @@ export function listFileGitRemotes(
   return pulpFetch<PulpPage<FileGitRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-export function createFileGitRemote(
-  data: FileGitRemoteCreate,
-): Promise<FileGitRemote> {
+export function createFileGitRemote(data: FileGitRemoteCreate): Promise<FileGitRemote> {
   return pulpFetch<FileGitRemote>(BASE, {
     method: "POST",
     body: JSON.stringify(data),

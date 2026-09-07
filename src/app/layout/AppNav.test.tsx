@@ -12,7 +12,9 @@ describe("AppNav", () => {
     renderApp(<AppNav />);
 
     expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Container Registry" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Container Registry" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
   });
 
@@ -30,7 +32,9 @@ describe("AppNav", () => {
 
     expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Ansible Galaxy" })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole("button", { name: "Ansible Galaxy" }),
+      ).not.toBeInTheDocument(),
     );
   });
 

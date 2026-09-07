@@ -13,7 +13,9 @@ describe("OverviewPage", () => {
     expect(screen.getByText("3.38.5")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument(); // database
     expect(screen.getByText("Disconnected")).toBeInTheDocument(); // redis
-    expect(screen.getByText(/\d+(\.\d+)? [A-Z]?B \/ \d+(\.\d+)? [A-Z]?B/)).toBeInTheDocument(); // storage
+    expect(
+      screen.getByText(/\d+(\.\d+)? [A-Z]?B \/ \d+(\.\d+)? [A-Z]?B/),
+    ).toBeInTheDocument(); // storage
   });
 
   it("never shows a row for core - it isn't a content plugin, always a dash for Repositories/Size (by request)", async () => {
@@ -64,7 +66,9 @@ describe("OverviewPage", () => {
     renderApp(<OverviewPage />);
 
     await screen.findByText("No compatibility issues detected."); // page has loaded
-    expect(screen.queryByRole("table", { name: "Pulp components" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: "Pulp components" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows each installed plugin's content size inline in the component table, dash for one with none", async () => {

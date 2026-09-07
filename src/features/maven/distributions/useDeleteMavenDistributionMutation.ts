@@ -8,7 +8,8 @@ export function useDeleteMavenDistributionMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ href }: { href: string; name: string }) => deleteMavenDistribution(href),
+    mutationFn: ({ href }: { href: string; name: string }) =>
+      deleteMavenDistribution(href),
     onSuccess: ({ task }, { name }) => {
       registerTask({
         href: task,

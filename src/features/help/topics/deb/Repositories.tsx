@@ -4,19 +4,18 @@ export function DebRepositoriesTopic() {
   return (
     <Content>
       <Content component="p">
-        A Debian repository holds packages synced or uploaded from an archive mirror,
-        and tracks them as a sequence of <strong>versions</strong>. This page is the
-        list of every Debian repository; open one to manage its content and
-        configuration.
+        A Debian repository holds packages synced or uploaded from an archive mirror, and
+        tracks them as a sequence of <strong>versions</strong>. This page is the list of
+        every Debian repository; open one to manage its content and configuration.
       </Content>
 
       <Content component="h3">Creating a repository</Content>
       <Content component="p">
         Click <strong>Create repository</strong> and give it a <strong>Name</strong>{" "}
         (required), optional <strong>Description</strong>, a{" "}
-        <strong>Default remote</strong> if you want <strong>Sync</strong> to work
-        without asking each time, and leave <strong>Automatically publish</strong>{" "}
-        checked (the default) unless you want to control publishing manually.
+        <strong>Default remote</strong> if you want <strong>Sync</strong> to work without
+        asking each time, and leave <strong>Automatically publish</strong> checked (the
+        default) unless you want to control publishing manually.
       </Content>
       <Content component="p">
         <strong>Edit</strong> (on a repository's own page) changes the same fields,
@@ -33,8 +32,8 @@ export function DebRepositoriesTopic() {
       </Content>
       <Content component="p">
         Go to the <strong>Distributions</strong> tab and click{" "}
-        <strong>Create distribution</strong> to get a real URL (shown with a copy
-        button). <strong>Delete</strong> removes one.
+        <strong>Create distribution</strong> to get a real URL (shown with a copy button).{" "}
+        <strong>Delete</strong> removes one.
       </Content>
 
       <Content component="h3">The Content tab</Content>

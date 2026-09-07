@@ -25,7 +25,9 @@ describe("RepositoriesPage", () => {
 
     renderApp(<RepositoriesPage />);
 
-    expect(await screen.findByText("No Hugging Face repositories yet")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No Hugging Face repositories yet"),
+    ).toBeInTheDocument();
   });
 
   it("shows a normalized error state when the list request fails", async () => {

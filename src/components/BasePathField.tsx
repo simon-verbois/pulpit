@@ -1,4 +1,9 @@
-import { InputGroup, InputGroupItem, InputGroupText, TextInput } from "@patternfly/react-core";
+import {
+  InputGroup,
+  InputGroupItem,
+  InputGroupText,
+  TextInput,
+} from "@patternfly/react-core";
 
 interface BasePathFieldProps {
   id: string;

@@ -1,4 +1,12 @@
-import { Alert, Card, CardBody, CardTitle, Content, Stack, StackItem } from "@patternfly/react-core";
+import {
+  Alert,
+  Card,
+  CardBody,
+  CardTitle,
+  Content,
+  Stack,
+  StackItem,
+} from "@patternfly/react-core";
 
 import type { PulpStatus } from "../api/client/status";
 import { compatibilityStatus, VERIFIED_VERSIONS } from "../lib/pulpCompatibility";

@@ -10,8 +10,8 @@ export function GemRemotesTopic() {
         controls how much content is downloaded up front (Immediate/On demand/Streamed).
       </Content>
       <Content component="p">
-        Expand <strong>Advanced connection settings</strong> for a proxy or origin
-        server credentials. <strong>Edit</strong> changes any of these fields;{" "}
+        Expand <strong>Advanced connection settings</strong> for a proxy or origin server
+        credentials. <strong>Edit</strong> changes any of these fields;{" "}
         <strong>Delete</strong> removes the remote (repositories that used it as their
         default keep working, just without one).
       </Content>

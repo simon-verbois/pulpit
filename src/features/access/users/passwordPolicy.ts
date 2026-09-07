@@ -71,8 +71,7 @@ function isTooSimilar(password: string, context: PasswordPolicyContext): boolean
     .filter((value) => value.length >= 3);
 
   return candidates.some(
-    (candidate) =>
-      lowerPassword.includes(candidate) || candidate.includes(lowerPassword),
+    (candidate) => lowerPassword.includes(candidate) || candidate.includes(lowerPassword),
   );
 }
 
@@ -136,7 +135,12 @@ function randomChar(pool: string): string {
  * construction (length, non-numeric, and virtually certain not to collide
  * with a real username or a common password). */
 export function generateStrongPassword(length = 16): string {
-  const chars = [randomChar(UPPER), randomChar(LOWER), randomChar(DIGITS), randomChar(SYMBOLS)];
+  const chars = [
+    randomChar(UPPER),
+    randomChar(LOWER),
+    randomChar(DIGITS),
+    randomChar(SYMBOLS),
+  ];
   for (let i = chars.length; i < length; i += 1) {
     chars.push(randomChar(ALL));
   }

@@ -23,7 +23,8 @@ function renderNavItem(leaf: NavLeaf, pathname: string) {
 function groupIdContaining(pathname: string): string | undefined {
   return NAV_TREE.find(
     (node): node is NavGroup =>
-      node.type === "group" && node.children.some((leaf) => pathname.startsWith(leaf.path)),
+      node.type === "group" &&
+      node.children.some((leaf) => pathname.startsWith(leaf.path)),
   )?.id;
 }
 
@@ -46,10 +47,12 @@ export function AppNav() {
   // one. Route changes only ever grow this map, never shrink it, so
   // several sections can stay open across navigation exactly as if you'd
   // clicked each one open by hand.
-  const [manuallyExpanded, setManuallyExpanded] = useState<Record<string, boolean>>(() => {
-    const initialGroupId = groupIdContaining(location.pathname);
-    return initialGroupId ? { [initialGroupId]: true } : {};
-  });
+  const [manuallyExpanded, setManuallyExpanded] = useState<Record<string, boolean>>(
+    () => {
+      const initialGroupId = groupIdContaining(location.pathname);
+      return initialGroupId ? { [initialGroupId]: true } : {};
+    },
+  );
   const [lastPathname, setLastPathname] = useState(location.pathname);
   if (location.pathname !== lastPathname) {
     setLastPathname(location.pathname);

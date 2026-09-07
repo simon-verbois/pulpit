@@ -54,11 +54,11 @@ express by itself (image tags, the public origin used for
 matching Compose's `.env.example` naming/defaults for consistency across
 all three deployment targets:
 
-| Env var                  | Default                 | Used in                          |
-| ------------------------ | ------------------------ | --------------------------------- |
-| `PULP_PULPIT_IMAGE_TAG`  | `latest`                 | `pulp.yaml`'s image tag           |
-| `PULPIT_IMAGE_TAG`       | `latest`                 | `pulpit.yaml`'s image tag         |
-| `PULPIT_PUBLIC_ORIGIN`   | `http://localhost:8080`  | `00-configmap.yaml`'s `PULP_CSRF_TRUSTED_ORIGINS` |
+| Env var                 | Default                 | Used in                                           |
+| ----------------------- | ----------------------- | ------------------------------------------------- |
+| `PULP_PULPIT_IMAGE_TAG` | `latest`                | `pulp.yaml`'s image tag                           |
+| `PULPIT_IMAGE_TAG`      | `latest`                | `pulpit.yaml`'s image tag                         |
+| `PULPIT_PUBLIC_ORIGIN`  | `http://localhost:8080` | `00-configmap.yaml`'s `PULP_CSRF_TRUSTED_ORIGINS` |
 
 ```sh
 PULPIT_PUBLIC_ORIGIN=https://pulpit.example.com \
@@ -89,7 +89,7 @@ so the prefixes are cosmetic, not load-bearing.
 - **No `docker-socket-proxy`, no RBAC at all** - `pulp.yaml` runs a derived
   image (`docker.io/simonverbois/pulp-pulpit`, same one `compose.yml`/
   `deployment/podman/` use) that reconciles signing-service registration
-  from *inside* the pod itself
+  from _inside_ the pod itself
   (docs/adr/0008-colocated-signing-reconciler.md) - `pulpit` never needs to
   reach the Kubernetes API, so no ServiceAccount/Role/RoleBinding exists in
   this directory at all.

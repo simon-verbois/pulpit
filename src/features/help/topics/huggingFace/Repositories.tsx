@@ -13,8 +13,8 @@ export function HuggingFaceRepositoriesTopic() {
       <Content component="p">
         Click <strong>Create repository</strong> and give it a <strong>Name</strong>{" "}
         (required), optional <strong>Description</strong>, and a{" "}
-        <strong>Default remote</strong> if you want <strong>Sync</strong> to work
-        without asking each time.
+        <strong>Default remote</strong> if you want <strong>Sync</strong> to work without
+        asking each time.
       </Content>
       <Content component="p">
         <strong>Edit</strong> (on a repository's own page) changes the same fields,
@@ -31,17 +31,16 @@ export function HuggingFaceRepositoriesTopic() {
       </Content>
       <Content component="p">
         Then go to the <strong>Distributions</strong> tab and click{" "}
-        <strong>Create distribution</strong> to get a real URL (shown with a copy
-        button). <strong>Delete</strong> removes one.
+        <strong>Create distribution</strong> to get a real URL (shown with a copy button).{" "}
+        <strong>Delete</strong> removes one.
       </Content>
 
       <Content component="h3">The Content tab</Content>
       <Content component="p">
         Lists this repository's files. <strong>Upload file</strong> needs a{" "}
         <strong>Relative path</strong> and a <strong>Hub repo ID</strong> (e.g.{" "}
-        <code>bert-base-uncased</code>) - unlike every other simple plugin here, a
-        Hugging Face file's identity is meaningless without knowing which Hub repo it
-        came from.
+        <code>bert-base-uncased</code>) - unlike every other simple plugin here, a Hugging
+        Face file's identity is meaningless without knowing which Hub repo it came from.
       </Content>
 
       <Content component="h3">The Versions and Access tabs</Content>

@@ -6,8 +6,7 @@ export function FileRemotesTopic() {
       <Content component="p">
         A remote is an external file source that a repository can sync from. Use the{" "}
         <strong>Standard</strong>/<strong>Git</strong> toggle to switch between the two
-        kinds this page manages - they're different Pulp objects, not just a style
-        choice.
+        kinds this page manages - they're different Pulp objects, not just a style choice.
       </Content>
 
       <Content component="h3">Standard remotes</Content>

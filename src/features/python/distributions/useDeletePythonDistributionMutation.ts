@@ -8,7 +8,8 @@ export function useDeletePythonDistributionMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ href }: { href: string; name: string }) => deletePythonDistribution(href),
+    mutationFn: ({ href }: { href: string; name: string }) =>
+      deletePythonDistribution(href),
     onSuccess: ({ task }, { name }) => {
       registerTask({
         href: task,

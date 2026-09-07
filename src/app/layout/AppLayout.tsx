@@ -198,7 +198,11 @@ function AppShell() {
         sidebar={sidebar}
         isManagedSidebar
         notificationDrawer={
-          isHelpOpen ? <HelpPanel onClose={() => setIsHelpOpen(false)} /> : <TasksDrawer />
+          isHelpOpen ? (
+            <HelpPanel onClose={() => setIsHelpOpen(false)} />
+          ) : (
+            <TasksDrawer />
+          )
         }
         isNotificationDrawerExpanded={isDrawerOpen || isHelpOpen}
         // Help's two-level topic/page content (topics/index.ts) needs more

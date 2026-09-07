@@ -10,7 +10,8 @@ export function useCreateHuggingFaceDistributionMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: (data: HuggingFaceDistributionCreate) => createHuggingFaceDistribution(data),
+    mutationFn: (data: HuggingFaceDistributionCreate) =>
+      createHuggingFaceDistribution(data),
     onSuccess: ({ task }, { name }) => {
       registerTask({
         href: task,

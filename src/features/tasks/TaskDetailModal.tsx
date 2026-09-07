@@ -49,7 +49,9 @@ export function TaskDetailModal({
           <DescriptionListGroup>
             <DescriptionListTerm>State</DescriptionListTerm>
             <DescriptionListDescription>
-              <StatusIndicator color={TASK_STATE_COLOR[task.state]}>{task.state}</StatusIndicator>
+              <StatusIndicator color={TASK_STATE_COLOR[task.state]}>
+                {task.state}
+              </StatusIndicator>
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>

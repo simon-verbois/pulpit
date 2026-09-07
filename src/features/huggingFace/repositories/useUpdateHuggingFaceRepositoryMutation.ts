@@ -3,7 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { updateHuggingFaceRepository } from "../../../api/client/hugging_face/repositories";
 import type { HuggingFaceRepositoryUpdate } from "../../../api/client/hugging_face/types";
 import { useTasksContext } from "../../../api/tasks/TasksContext";
-import { huggingFaceRepositoriesListRootKey, huggingFaceRepositoryByNameKey } from "./queryKeys";
+import {
+  huggingFaceRepositoriesListRootKey,
+  huggingFaceRepositoryByNameKey,
+} from "./queryKeys";
 
 interface UpdateArgs {
   href: string;

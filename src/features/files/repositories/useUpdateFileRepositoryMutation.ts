@@ -25,7 +25,9 @@ export function useUpdateFileRepositoryMutation() {
           fileRepositoryByNameKey(name),
           // The name itself may have just changed - also invalidate the new
           // one so the (renamed) repository is findable by its new slug.
-          ...(data.name && data.name !== name ? [fileRepositoryByNameKey(data.name)] : []),
+          ...(data.name && data.name !== name
+            ? [fileRepositoryByNameKey(data.name)]
+            : []),
           fileRepositoriesListRootKey,
         ],
       });

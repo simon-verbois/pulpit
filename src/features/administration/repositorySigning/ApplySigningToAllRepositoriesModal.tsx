@@ -43,7 +43,9 @@ export function ApplySigningToAllRepositoriesModal({ onClose }: { onClose: () =>
   const jobSucceeded = job.data?.status === "success";
   const result = job.data?.result as ApplySigningResult | undefined;
   const isRunning =
-    applyMutation.isPending || job.data?.status === "queued" || job.data?.status === "running";
+    applyMutation.isPending ||
+    job.data?.status === "queued" ||
+    job.data?.status === "running";
 
   return (
     <Modal
@@ -130,7 +132,10 @@ export function ApplySigningToAllRepositoriesModal({ onClose }: { onClose: () =>
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+        <Flex
+          justifyContent={{ default: "justifyContentFlexEnd" }}
+          style={{ width: "100%" }}
+        >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               {jobSucceeded ? "Close" : "Cancel"}

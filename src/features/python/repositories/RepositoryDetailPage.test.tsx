@@ -23,7 +23,9 @@ describe("RepositoryDetailPage", () => {
     expect(
       screen.getByRole("heading", { name: PYTHON_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(PYTHON_REPO_FIXTURE.description as string)).toHaveLength(2);
+    expect(screen.getAllByText(PYTHON_REPO_FIXTURE.description as string)).toHaveLength(
+      2,
+    );
     expect(screen.getByText("Configured")).toBeInTheDocument(); // default remote
     expect(screen.getByText("Yes")).toBeInTheDocument(); // autopublish
   });
@@ -57,10 +59,9 @@ describe("RepositoryDetailPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
     const dialog = await screen.findByRole("dialog");
-    fireEvent.change(
-      within(dialog).getByLabelText("Description", { exact: false }),
-      { target: { value: "An updated description" } },
-    );
+    fireEvent.change(within(dialog).getByLabelText("Description", { exact: false }), {
+      target: { value: "An updated description" },
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
