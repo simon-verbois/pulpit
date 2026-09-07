@@ -96,8 +96,9 @@ documented list. Key points:
 The bundled Compose stack is the current reference topology, not a hardened production deployment.
 Before exposing Pulpit beyond a trusted network, see
 [`docs/SECURITY.md`](docs/SECURITY.md) and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) "Production
-(future work)" for what's still missing (TLS termination, secrets-manager-backed secrets, hardened
-security headers) and what's already true today. Notably, the container registry
+(future work)" for what's still missing (secrets-manager-backed secrets, hardened security
+headers on top of the TLS termination Pulpit already provides) and what's already true today.
+Notably, the container registry
 (`/v2/`) currently runs with `PULP_TOKEN_AUTH_DISABLED`, which is not safe to carry into a
 production deployment — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) "Container registry
 authentication".
@@ -177,12 +178,15 @@ pulpit/
   not safe to carry into a production deployment (see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
   "Container registry authentication").
 - Login works against Pulp's own accounts (session-cookie auth,
-  [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md)) only; LDAP/SSO/reverse-proxy auth are
-  architecturally supported but unconfigured and unexercised in this environment
-  ([`docs/ROADMAP.md`](docs/ROADMAP.md) Milestone 6).
-- No production deployment hardening (TLS, secrets management, security headers) is implemented
-  yet beyond what's documented in [`docs/SECURITY.md`](docs/SECURITY.md)/
-  [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) as future work.
+  [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md)); LDAP is configured and applied directly
+  from Administration → LDAP. SSO/reverse-proxy auth remain architecturally supported but
+  unconfigured and unexercised in this environment ([`docs/ROADMAP.md`](docs/ROADMAP.md)
+  Milestone 6).
+- TLS termination is implemented (self-signed by default, plus manual certificate upload and
+  FreeIPA CA integration — see [`docs/tls.md`](docs/tls.md)); secrets management and hardened
+  security headers are not implemented yet beyond what's documented in
+  [`docs/SECURITY.md`](docs/SECURITY.md)/[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) as future
+  work.
 
 ## Versioning
 

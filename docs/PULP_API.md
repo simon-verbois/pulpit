@@ -393,14 +393,16 @@ return 200/201/204 directly, never a task.
   - **DELETE works via any guard's own specific-flavor href regardless of which flavor it is** -
     the href itself already encodes the correct path, so a generic delete-by-href doesn't need to
     know the flavor first.
-- External auth (LDAP/reverse-proxy SSO): **no REST API surface at all** - VERIFIED by
-  inspecting the pulp container's installed packages, Django settings, and the full OpenAPI
-  schema. `django-auth-ldap` is installed and `REMOTE_USER_ENVIRON_NAME` exists, but both are
-  configured via raw Django settings on the server (`AUTH_LDAP_*`, `AUTHENTICATION_BACKENDS`),
-  with no dynaconf/`PULP_*` env-var wiring - unlike SAML, which pulpcore auto-wires from a
-  `SAML_CONFIG` setting via its own `saml2_settings_hook`. Nothing for this app to call. LDAP
-  group mirroring populates Django's standard `Group` model, so mirrored groups appear in the
-  existing Groups UI automatically.
+- LDAP: Pulp itself exposes no REST API surface for it, but `pulpit-core` has its own endpoints
+  (`pulpit-core/app/modules/ldap/routes/`) that write the underlying `AUTH_LDAP_*`/
+  `AUTHENTICATION_BACKENDS` Django settings on the server directly and test a bind against the
+  directory, exposed as Administration → LDAP (see `docs/AUTHENTICATION.md`).
+- Reverse-proxy SSO: **no REST API surface at all** - `REMOTE_USER_ENVIRON_NAME` exists but is
+  configured via raw Django settings on the server (`AUTHENTICATION_BACKENDS`), with no
+  dynaconf/`PULP_*` env-var wiring - unlike SAML, which pulpcore auto-wires from a `SAML_CONFIG`
+  setting via its own `saml2_settings_hook`. Nothing for this app to call. LDAP group mirroring
+  populates Django's standard `Group` model, so mirrored groups appear in the existing Groups UI
+  automatically.
 
 ## Error model
 

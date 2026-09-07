@@ -49,6 +49,10 @@ footer.
   for the admin to click Close, and the repository-signing "pending Pulp setup" warning now only
   appears once a service has been stuck past its normal ~30s registration window instead of
   immediately.
+- Documentation (`README.md`, `docs/AUTHENTICATION.md`, `docs/PULP_API.md`, `docs/DEPLOYMENT.md`,
+  `docs/ROADMAP.md`) updated to reflect that LDAP authentication and TLS termination, added above,
+  are implemented — they were previously described as future work / architecturally-supported-but-
+  unconfigured.
 
 ### Fixed
 

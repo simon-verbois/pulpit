@@ -372,9 +372,9 @@ On first boot, if no certificate has been installed yet, pulpit-core generates a
 (`app/modules/tls/bootstrap_selfsigned.py`) so 8443 always works out of the box - browsers will
 warn about it (expected for a self-signed certificate), but the connection is still encrypted.
 Administration > TLS shows the currently active certificate (source, subject, expiry) and lets you
-regenerate the self-signed fallback on demand; installing a real certificate (manual upload, or an
-external CA provider such as FreeIPA) is tracked as follow-up work on top of this same module - see
-the certificate's `source` field, already modeled as one of `self_signed` / `manual` / `freeipa`.
+regenerate the self-signed fallback on demand, upload a real certificate manually, or hand
+certificate issuance/renewal to a FreeIPA CA - see the certificate's `source` field, one of
+`self_signed` / `manual` / `freeipa`, and `docs/tls.md` for setup steps for each.
 
 Certificate/key material lives in its own volume (`pulpit_tls` in Compose, a dedicated PVC in
 Kubernetes/Podman - `/var/lib/pulpit-tls` in the container), separate from `pulpit_data` (the
@@ -387,12 +387,12 @@ Unix privilege to do that, since nginx's own master process runs as root).
 
 ## Production (future work)
 
-Not implemented at bootstrap time. Expected differences from the dev Compose setup, to be
-designed when this milestone starts (`docs/ROADMAP.md` Milestone 6):
+Expected differences from the dev Compose setup, to be designed when this milestone starts
+(`docs/ROADMAP.md` Milestone 6):
 
-- TLS termination is implemented at the nginx layer itself (8443, self-signed by default - see
-  "TLS" below); HSTS and other TLS-only headers still need enabling explicitly once a real
-  certificate is in place (`docs/SECURITY.md`).
+- HSTS and other TLS-only headers still need enabling explicitly once a real certificate is in
+  place; TLS termination itself is already implemented at the nginx layer (8443, self-signed by
+  default - see "TLS" above) (`docs/SECURITY.md`).
 - `PULP_SECRET_KEY` and other secrets sourced from a real secret manager, not a `.env` file.
 - `deployment/kube/`'s manifests are a working baseline, not a production-hardened one: no NetworkPolicies,
   PodDisruptionBudgets, resource requests/limits, autoscaling, or TLS on the Ingress yet (see

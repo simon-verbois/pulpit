@@ -30,7 +30,10 @@ import { PulpApiError } from "../../../api/errors/PulpApiError";
 import type { FreeIpaWizardStepResult } from "../../../api/client/pulpitCore/types";
 import { useRunFreeIpaWizardSetupMutation } from "./useRunFreeIpaWizardSetupMutation";
 
-const STEP_STATUS_COLOR: Record<FreeIpaWizardStepResult["status"], "green" | "blue" | "red"> = {
+const STEP_STATUS_COLOR: Record<
+  FreeIpaWizardStepResult["status"],
+  "green" | "blue" | "red"
+> = {
   created: "green",
   already_exists: "blue",
   failed: "red",
@@ -42,10 +45,8 @@ const STEP_STATUS_LABEL: Record<FreeIpaWizardStepResult["status"], string> = {
   failed: "Failed",
 };
 
-/** IPA's realm defaults to the domain name uppercased (VERIFIED as FreeIPA's
- * own installer default - an administrator can still deviate from this, which
- * is exactly why the field this feeds stays editable, not read-only). Empty
- * until the common name has at least one dot to derive a domain from. */
+/** IPA's realm defaults to the uppercased domain; editable in case an admin's
+ * realm differs. Empty until the common name has at least one dot. */
 function deriveDefaultTargetPrincipal(commonName: string): string {
   const dotIndex = commonName.indexOf(".");
   if (dotIndex === -1) {
@@ -61,14 +62,12 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
   const [adminUsername, setAdminUsername] = useState("admin");
   const [adminPassword, setAdminPassword] = useState("");
   const [commonName, setCommonName] = useState("");
-  // null = "not manually touched yet" - the field displays the derived
-  // default below; typing anything (even clearing it back to "") stores an
-  // explicit override here and stops the auto-fill, same "auto-fill until
-  // the admin touches it themselves" convention as RemoteConnectionSettingsFields'
-  // instance-default-proxy sync, but as a derived value rather than an
-  // effect (no extra render, nothing to keep in sync by hand).
-  const [targetPrincipalOverride, setTargetPrincipalOverride] = useState<string | null>(null);
-  const targetPrincipal = targetPrincipalOverride ?? deriveDefaultTargetPrincipal(commonName);
+  // null = not yet overridden by the admin; otherwise shows the derived default.
+  const [targetPrincipalOverride, setTargetPrincipalOverride] = useState<string | null>(
+    null,
+  );
+  const targetPrincipal =
+    targetPrincipalOverride ?? deriveDefaultTargetPrincipal(commonName);
   const [serviceAccountUsername, setServiceAccountUsername] = useState("svc-pulpit-tls");
   const [ca, setCa] = useState("ipa");
   const [profile, setProfile] = useState("");
@@ -108,15 +107,20 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
     serviceAccountUsername.trim();
 
   return (
-    <Modal isOpen onClose={onClose} aria-labelledby="freeipa-wizard-title" variant="medium">
+    <Modal
+      isOpen
+      onClose={onClose}
+      aria-labelledby="freeipa-wizard-title"
+      variant="medium"
+    >
       <ModalHeader title="FreeIPA guided setup" labelId="freeipa-wizard-title" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
             <Content component="small">
               Your IPA administrator password is used once, for this request only - never
-              stored, logged, or reused. Only the new automation account it creates is saved
-              (see docs/tls.md "Guided setup (wizard)").
+              stored, logged, or reused. Only the new automation account it creates is
+              saved (see docs/tls.md "Guided setup (wizard)").
             </Content>
           </StackItem>
 
@@ -148,7 +152,10 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
               <List isPlain>
                 {result.steps.map((step, index) => (
                   <ListItem key={index}>
-                    <Flex spaceItems={{ default: "spaceItemsSm" }} alignItems={{ default: "alignItemsCenter" }}>
+                    <Flex
+                      spaceItems={{ default: "spaceItemsSm" }}
+                      alignItems={{ default: "alignItemsCenter" }}
+                    >
                       <FlexItem>
                         <Label color={STEP_STATUS_COLOR[step.status]}>
                           {STEP_STATUS_LABEL[step.status]}
@@ -178,7 +185,11 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
 
                 <Divider />
 
-                <FormGroup label="IPA administrator username" isRequired fieldId="wizard-admin-username">
+                <FormGroup
+                  label="IPA administrator username"
+                  isRequired
+                  fieldId="wizard-admin-username"
+                >
                   <TextInput
                     id="wizard-admin-username"
                     autoComplete="off"
@@ -186,7 +197,11 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
                     onChange={(_event, value) => setAdminUsername(value)}
                   />
                 </FormGroup>
-                <FormGroup label="IPA administrator password" isRequired fieldId="wizard-admin-password">
+                <FormGroup
+                  label="IPA administrator password"
+                  isRequired
+                  fieldId="wizard-admin-password"
+                >
                   <TextInput
                     id="wizard-admin-password"
                     type="password"
@@ -214,12 +229,18 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
           {!result ? (
             <StackItem>
               <ExpandableSection
-                toggleText={isAdvancedExpanded ? "Hide advanced settings" : "Advanced settings"}
+                toggleText={
+                  isAdvancedExpanded ? "Hide advanced settings" : "Advanced settings"
+                }
                 isExpanded={isAdvancedExpanded}
                 onToggle={(_event, expanded) => setIsAdvancedExpanded(expanded)}
               >
                 <Form>
-                  <FormGroup label="Target service principal" isRequired fieldId="wizard-target-principal">
+                  <FormGroup
+                    label="Target service principal"
+                    isRequired
+                    fieldId="wizard-target-principal"
+                  >
                     <TextInput
                       id="wizard-target-principal"
                       placeholder="HTTP/pulpit.example.com@EXAMPLE.COM"
@@ -230,8 +251,10 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
                     <FormHelperText>
                       <HelperText>
                         <HelperTextItem>
-                          Defaults to <code>HTTP/&lt;common name&gt;@&lt;domain, uppercased&gt;</code> -
-                          IPA's own default realm naming. Only override if your realm differs.
+                          Defaults to{" "}
+                          <code>HTTP/&lt;common name&gt;@&lt;domain, uppercased&gt;</code>{" "}
+                          - IPA's own default realm naming. Only override if your realm
+                          differs.
                         </HelperTextItem>
                       </HelperText>
                     </FormHelperText>
@@ -281,7 +304,10 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
                       onChange={(_event, value) => setProfile(value)}
                     />
                   </FormGroup>
-                  <FormGroup label="Renew this many days before expiry" fieldId="wizard-renew-before-days">
+                  <FormGroup
+                    label="Renew this many days before expiry"
+                    fieldId="wizard-renew-before-days"
+                  >
                     <NumberInput
                       id="wizard-renew-before-days"
                       value={renewBeforeDays}
@@ -290,7 +316,9 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
                       onMinus={() => setRenewBeforeDays((v) => Math.max(1, v - 1))}
                       onPlus={() => setRenewBeforeDays((v) => Math.min(3650, v + 1))}
                       onChange={(event) =>
-                        setRenewBeforeDays(Number((event.target as HTMLInputElement).value))
+                        setRenewBeforeDays(
+                          Number((event.target as HTMLInputElement).value),
+                        )
                       }
                     />
                   </FormGroup>
@@ -301,7 +329,10 @@ export function FreeIpaWizardModal({ onClose }: { onClose: () => void }) {
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Flex justifyContent={{ default: "justifyContentFlexEnd" }} style={{ width: "100%" }}>
+        <Flex
+          justifyContent={{ default: "justifyContentFlexEnd" }}
+          style={{ width: "100%" }}
+        >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
               {result ? "Close" : "Cancel"}

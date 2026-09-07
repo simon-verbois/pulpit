@@ -406,20 +406,23 @@ docs/PULP_API.md "Access endpoints".
 
 ## Milestone 6 — Enterprise hardening
 
-- [ ] External authentication validation (LDAP/SSO/reverse-proxy auth) against a real deployment -
-      **investigated, nothing to build here**. VERIFIED live (container inspection of the pulp
-      image's installed packages, Django settings, and the full OpenAPI schema): Pulp supports
-      LDAP auth via `django-auth-ldap` (installed) and reverse-proxy/header SSO via
-      `RemoteUserBackend`/`RemoteUserMiddleware` (`REMOTE_USER_ENVIRON_NAME` setting present) -
-      but both are configured through raw Django settings
-      (`AUTH_LDAP_SERVER_URI`/`AUTH_LDAP_BIND_DN`/`AUTH_LDAP_GROUP_SEARCH`/
-      `AUTHENTICATION_BACKENDS`/...) on the server itself, with **zero REST API surface** - unlike
-      SAML, which pulpcore auto-wires from a `SAML_CONFIG` dynaconf setting via its own
-      `saml2_settings_hook`. Per ADR 0001 (frontend-only, no config store of its own), there is
-      nothing in Pulp's API for Pulpit to build a UI around; this is ops/deployment documentation,
-      not a UI feature. One practical consequence worth noting: LDAP group filtering/mirroring
-      populates Django's standard `Group` model, so mirrored groups **already appear in Pulpit's
-      existing Groups UI** (Milestone 5) with no additional work.
+- [x] LDAP authentication (`/admin/ldap`) - **Superseded the "nothing to build here" call below**:
+      although Pulp exposes zero REST API surface for `AUTH_LDAP_*`/`AUTHENTICATION_BACKENDS`
+      (they're raw Django settings, unlike SAML's dynaconf-wired `SAML_CONFIG`), `pulpit-core`
+      applies them directly via its own colocated reconciler (`pulpit-core/app/modules/ldap/`),
+      the same mechanism already used for repository signing - see `docs/AUTHENTICATION.md`. The
+      page covers server/bind/user/group search config and a "Test connection" action that binds
+      against the directory before applying anything. LDAP group mirroring populates Django's
+      standard `Group` model, so mirrored groups appear in Pulpit's existing Groups UI (Milestone 5) with no additional work.
+- [ ] SSO/reverse-proxy auth validation against a real deployment - **investigated, nothing to
+      build here**. VERIFIED live (container inspection of the pulp image's installed packages,
+      Django settings, and the full OpenAPI schema): Pulp supports reverse-proxy/header SSO via
+      `RemoteUserBackend`/`RemoteUserMiddleware` (`REMOTE_USER_ENVIRON_NAME` setting present), but
+      it's configured through raw Django settings (`AUTHENTICATION_BACKENDS`/...) on the server
+      itself, with **zero REST API surface** - unlike LDAP (above), pulpit-core has no reconciler
+      for this yet. Per ADR 0001 (frontend-only, no config store of its own), there is nothing in
+      Pulp's API for Pulpit to build a UI around without one; this is ops/deployment documentation,
+      not a UI feature, unless/until a reconciler is built for it too.
 - [x] Signing services UI (`/admin/signing`) - **read-only**, VERIFIED live against the schema:
       `signing-services/` supports `GET` only, no `POST`/`PUT`/`PATCH`/`DELETE` at all. Creating
       one requires a signing script plus a Django management command run on the Pulp server

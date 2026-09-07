@@ -39,17 +39,25 @@ WWW-Authenticate;` in `deployment/docker/nginx/pulpit.conf.template`), since Pul
   obtain a session; every request after that relies solely on the browser's own `sessionid`
   cookie, which Pulpit's JS never reads or writes directly.
 
+## LDAP
+
+Administration → LDAP (`src/features/administration/ldap/`) configures Pulp's own
+`django-auth-ldap` backend directly: server/bind credentials, user and group search bases/filters,
+and attribute/group-type mapping, plus a "Test connection" action that binds against the directory
+before anything is applied. Settings are applied via the same colocated-reconciler mechanism used
+for repository signing (`pulpit-core/app/modules/ldap/`) — Pulpit still never authenticates users
+itself; it only writes the Django settings Pulp's own LDAP backend reads. LDAP group mirroring
+populates Django's standard `Group` model, so mirrored groups appear in Pulpit's existing Groups UI
+with no extra work.
+
 ## ASSUMPTION / not yet validated in this environment
 
-- LDAP/FreeIPA/Active Directory, and SSO/OIDC, are integration points **Pulp itself** can be
-  configured to support (via Django auth backends / a reverse proxy performing external auth in
-  front of Pulp), but none of this has been configured or exercised in the bootstrap dev
-  environment. Do not claim Pulpit "supports LDAP/SSO" — it supports _whatever Pulp is configured
-  to accept_, transparently, because it never hardcodes an auth mechanism.
-- Reverse-proxy authentication (the proxy authenticates the user and forwards trusted headers or
-  a validated session to Pulp) is architecturally compatible with ADR 0005's same-origin nginx
-  layer, but is not implemented in the local dev Compose setup, which uses Pulp's own auth
-  directly.
+- SSO/OIDC and reverse-proxy authentication (the proxy authenticates the user and forwards trusted
+  headers or a validated session to Pulp) are integration points **Pulp itself** can be configured
+  to support, and reverse-proxy auth specifically is architecturally compatible with ADR 0005's
+  same-origin nginx layer — but neither is configured or exercised in the bootstrap dev
+  environment. Do not claim Pulpit "supports SSO" — beyond LDAP (above), it supports _whatever Pulp
+  is configured to accept_, transparently, because it never hardcodes an auth mechanism.
 
 ## What Pulpit does
 

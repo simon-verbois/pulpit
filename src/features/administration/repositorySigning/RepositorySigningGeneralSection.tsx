@@ -59,11 +59,9 @@ function RepositorySigningGeneralForm({
   onChange: (changes: Partial<SigningSettings>) => void;
 }) {
   const [isApplyOpen, setIsApplyOpen] = useState(false);
-  // A local buffer, not `settings.public_key_filename` directly - VERIFIED
-  // live: bound straight to query data and saved on every keystroke, the
-  // field snapped back to the pre-keystroke value the instant it was typed
-  // (the mutation's round trip hadn't resolved yet) and the cursor landed
-  // at the end of that reverted string - same fix as SigningKeyDefaultsFields.tsx.
+  // A local buffer, not `settings.public_key_filename` directly - binding straight to
+  // query data snapped the field back to the pre-keystroke value mid-typing while the
+  // save mutation was still in flight.
   const [publicKeyFilename, setPublicKeyFilename] = useState(
     settings.public_key_filename,
   );

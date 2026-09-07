@@ -21,9 +21,8 @@
  * ```
  * A compile error here ("Type 'true' is not assignable to type 'never'")
  * means the named hand-written interface has a field Pulp's real schema no
- * longer has - re-verify it against a live instance (`npm run api:fetch &&
- * npm run api:generate` first, to refresh the schema this checks against)
- * and update both the interface and its "VERIFIED live" comment.
+ * longer has - refresh the schema (`npm run api:fetch && npm run api:generate`)
+ * and update the interface.
  *
  * Type-only: erased at compile time, zero runtime/bundle cost, and never
  * itself a reason a build fails silently - if `Hand` is ever wider than
