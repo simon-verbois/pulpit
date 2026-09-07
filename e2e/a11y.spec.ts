@@ -1,12 +1,18 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-// Automated WCAG scanning across every static route in the app, in both
-// themes (contrast rules differ per theme - see ADR/UX docs for the theme
-// toggle). This complements eslint-plugin-jsx-a11y (which only sees JSX
-// source, not PatternFly's rendered/computed DOM) and manual keyboard/focus
-// checks that no automated tool catches (see a11y.spec.ts's dedicated tests
-// below).
+// Automated WCAG scanning across a representative sample of routes - every
+// content-type plugin's Repositories page, plus Tasks and every /admin tab/
+// sub-tab (including the merged Access sub-tabs, docs/adr/
+// 0010-merged-administration-page.md) - in both themes (contrast rules
+// differ per theme - see ADR/UX docs for the theme toggle). Not literally
+// every route (e.g. per-plugin Remotes/Content/detail pages aren't each
+// scanned separately); the same PatternFly components repeat across those,
+// so this sample catches most rendering-dependent violations without the
+// runtime cost of scanning all of them. This complements eslint-plugin-jsx-
+// a11y (which only sees JSX source, not PatternFly's rendered/computed DOM)
+// and manual keyboard/focus checks that no automated tool catches (see
+// a11y.spec.ts's dedicated tests below).
 const ROUTES = [
   "/",
   "/rpm/repositories",
@@ -23,14 +29,21 @@ const ROUTES = [
   "/ansible/remotes",
   "/ansible/namespaces",
   "/ansible/search",
+  "/files/repositories",
+  "/hugging-face/repositories",
+  "/gems/repositories",
+  "/maven/repositories",
+  "/npm/repositories",
+  "/python/repositories",
+  "/deb/repositories",
   "/tasks",
-  "/access/users",
-  "/access/groups",
-  "/access/roles",
-  "/admin/repository-signing",
-  "/admin/signing",
-  "/admin/content-guards",
-  "/admin/default-settings",
+  "/admin?tab=access&subtab=users",
+  "/admin?tab=access&subtab=groups",
+  "/admin?tab=access&subtab=roles",
+  "/admin?tab=repository-signing",
+  "/admin?tab=pulp-signing-services",
+  "/admin?tab=content-guards",
+  "/admin?tab=default-settings",
 ];
 
 async function scan(page: Page, path: string) {

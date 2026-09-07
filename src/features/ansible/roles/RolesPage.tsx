@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Pagination,
   PageSection,
@@ -10,7 +11,8 @@ import {
 
 import { PageHeader } from "../../../components/PageHeader";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
-import { useAnsibleRolesQuery } from "./useAnsibleRolesQuery";
+import { useClientSideSearch } from "../../../hooks/useClientSideSearch";
+import { listAllAnsibleRoles } from "../../../api/client/ansible/roles";
 import { RolesTable } from "./RolesTable";
 
 export function RolesPage() {
@@ -18,11 +20,19 @@ export function RolesPage() {
   const [search, setSearch] = useState("");
   const pagination = usePulpPagination();
 
-  const rolesQuery = useAnsibleRolesQuery({
-    limit: pagination.limit,
-    offset: pagination.offset,
-    name__icontains: search || undefined,
+  // No server-side `name__contains` exists for this endpoint (VERIFIED
+  // live) - listAllAnsibleRoles's own comment explains why this fetches
+  // everything and filters/paginates client-side instead.
+  const rolesQuery = useQuery({
+    queryKey: ["pulp", "ansible", "roles", "all"],
+    queryFn: listAllAnsibleRoles,
   });
+  const { paged, totalCount } = useClientSideSearch(
+    rolesQuery.data,
+    search,
+    (role) => role.name,
+    pagination,
+  );
 
   return (
     <>
@@ -31,43 +41,45 @@ export function RolesPage() {
         description="Classic (pre-collections) Ansible roles across every repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search roles by name"
-                placeholder="Search by name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={rolesQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        {rolesQuery.isSuccess && totalCount > 0 ? (
+          <Toolbar>
+            <ToolbarContent>
+              {/* Fixed width - without it, the bar grows/shrinks as the clear
+                  ("x") button appears/disappears with typed text (VERIFIED:
+                  SearchInput has no intrinsic width of its own). */}
+              <ToolbarItem style={{ width: "18rem" }}>
+                <SearchInput
+                  aria-label="Search roles by name"
+                  placeholder="Search by name…"
+                  value={searchInput}
+                  onChange={(_event, value) => setSearchInput(value)}
+                  onSearch={() => setSearch(searchInput)}
+                  onClear={() => {
+                    setSearchInput("");
+                    setSearch("");
+                  }}
+                />
+              </ToolbarItem>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={totalCount}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+        ) : null}
 
         <RolesTable
           isPending={rolesQuery.isPending}
           isError={rolesQuery.isError}
           error={rolesQuery.error}
           onRetry={() => rolesQuery.refetch()}
-          roles={rolesQuery.data?.results}
+          roles={paged}
           emptyTitle="No roles yet"
           emptyBody="Roles appear here once a repository has synced content or a role has been uploaded."
         />

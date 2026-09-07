@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
-  ClipboardCopy,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -94,12 +93,8 @@ export function RepositoryDistributionsTab({
                 <Tr key={distribution.pulp_href}>
                   <Td dataLabel="Name">{distribution.name}</Td>
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
-                  <Td dataLabel="Pull command">
-                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-                      {`podman pull ${distribution.registry_path}`}
-                    </ClipboardCopy>
-                  </Td>
-                  <Td dataLabel="Actions" isActionCell>
+                  <Td dataLabel="Pull command">{`podman pull ${distribution.registry_path}`}</Td>
+                  <Td dataLabel="Actions" isActionCell hasAction>
                     <Button
                       variant="link"
                       isDanger

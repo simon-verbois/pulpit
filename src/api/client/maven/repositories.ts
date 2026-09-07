@@ -42,10 +42,6 @@ export async function getMavenRepositoryByName(
   return page.results[0] ?? null;
 }
 
-export function getMavenRepository(href: string): Promise<MavenRepository> {
-  return pulpFetch<MavenRepository>(href);
-}
-
 export function createMavenRepository(
   data: MavenRepositoryCreate,
 ): Promise<MavenRepository> {
@@ -87,8 +83,4 @@ export function listRepositoryVersions(
   params: ListRepositoryVersionsParams,
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
-}
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }

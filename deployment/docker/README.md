@@ -11,10 +11,13 @@ diagram, persistence, secrets, Redis, signing, known issues, production consider
 Run from the repo root:
 
 ```sh
-cp .env.example .env
-openssl rand -hex 32   # paste the result into .env as PULP_SECRET_KEY
+./deployment/docker/generate-env.sh   # generates .env with fresh secrets, prints the admin password once
 docker compose -f deployment/docker/compose.yml --env-file .env up -d --build
 ```
+
+Prefer to set values by hand instead? `./deployment/docker/generate-env.sh` refuses to touch an
+existing `.env`, so `cp .env.example .env` and fill in `PULP_SECRET_KEY` (`openssl rand -hex 32`)
+and the rest yourself works the same as before.
 
 Open `http://localhost:8080/`. `--env-file .env` is required on every invocation: without
 `--project-directory`, relative paths in `compose.yml` (build context, volumes) correctly

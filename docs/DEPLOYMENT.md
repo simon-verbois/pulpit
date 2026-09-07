@@ -37,12 +37,13 @@ directly) — see "Redis" below.
 ## Bringing the stack up
 
 ```sh
-cp .env.example .env
-# generate a real secret, then paste it into .env
-openssl rand -hex 32   # -> PULP_SECRET_KEY
+./deployment/docker/generate-env.sh   # generates .env with fresh secrets, prints the admin password once
 docker compose -f deployment/docker/compose.yml --env-file .env up -d
 docker compose -f deployment/docker/compose.yml --env-file .env ps
 ```
+
+(Prefer to set values by hand? `cp .env.example .env` then fill in `PULP_SECRET_KEY`
+(`openssl rand -hex 32`) and the rest yourself.)
 
 (`--env-file .env` is required since `deployment/docker/compose.yml` no longer lives at the repo
 root - see that file's own header comment. `make compose-up` does the equivalent for
@@ -90,6 +91,22 @@ named volumes sidestep that. Nothing under these volumes is committed to version
   current key — see docs/signing.md "Recovery after key loss."
 - `pulpit_signing_scripts` — the generic signing scripts the worker loop publishes for `pulp` to
   execute. Not secret, regenerated automatically from the `pulpit` image on every start.
+
+## Resource limits
+
+`redis`, `pulp`, and `pulpit` each carry a `deploy.resources` block (`limits`/`reservations` for
+CPU and memory) in `compose.yml`/`compose-dev.yml` — Compose's CLI applies this even outside Swarm
+mode for a plain `docker compose up`, so it's the ordinary way to bound a single-node Compose
+deployment. Without any limit, a single runaway process (an accidental huge sync, a signing/resign
+job over a large repository, a stuck retry loop) can consume the whole host's CPU/memory and starve
+every other container on the box, not just this stack.
+
+The shipped values are conservative-but-workable *starting* defaults for a self-hosted single-node
+deployment, not a sized-for-your-hardware recommendation — adjust the numbers in the compose file
+directly for your environment. `pulp`'s limit in particular (`cpus: "2"`, `memory: 4G`) assumes a
+signing/resign job or a large repository sync is the main workload it needs to bound, not routine
+idle operation; a memory limit set too low there can surface as the container being OOM-killed
+mid-sync rather than a clean error.
 
 ## Secrets
 
@@ -140,6 +157,26 @@ its own to healthcheck separately).
 
 Full detail on the signing module itself — key generation, rotation, automating the Pulp
 signing-service registration step, trust model, backup/recovery — lives in `docs/signing.md`.
+
+## Fixture seed (first-boot sample content, ADR 0011)
+
+On a fresh instance, `pulpit-worker` seeds one sample Repository+Remote(+Distribution) per plugin
+(`app/modules/fixture_seed/`) so the app isn't a totally empty shell on first login — see ADR 0011.
+This runs once (a marker row makes every later attempt a no-op) but makes real outbound HTTPS
+calls, using the same privileged `pulp_service_username`/`PULP_ADMIN_PASSWORD` credentials
+described above, to eight public fixture hosts (`fixtures.pulpproject.org`, `nginx.org`,
+`registry-1.docker.io`, `galaxy.ansible.com`, `pypi.org`, `index.rubygems.org`,
+`repo1.maven.org`, `huggingface.co`).
+
+For a production deployment with restricted or metered egress, set:
+
+```
+PULPIT_CORE_FIXTURE_SEED_ENABLED=false
+```
+
+to skip this entirely — no job is even scheduled (`app/modules/fixture_seed/module.py`). Defaults
+to `true` (unset/empty also means enabled) to keep the zero-click onboarding experience for local
+dev and evaluation installs.
 
 ## Known issue (fixed): nginx caches Pulp's IP, 502s after `pulp` alone is recreated
 

@@ -21,7 +21,6 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-
 revision: str = '6275d356cd99'
 down_revision: str | None = '72f928f61c80'
 branch_labels: str | Sequence[str] | None = None

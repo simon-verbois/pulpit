@@ -19,10 +19,7 @@ describe("Ansible RepositoryDistributionsTab", () => {
     // The fixture's name and base_path are equal strings, so both the
     // "Name" and "Base path" cells match.
     expect(await screen.findAllByText(ANSIBLE_DISTRIBUTION_FIXTURE.name)).toHaveLength(2);
-    // A single-line <input> can't hold literal newlines - the browser
-    // collapses them to spaces, so check the pieces rather than the exact
-    // multi-line string.
-    const snippet = (screen.getByRole("textbox") as HTMLInputElement).value;
+    const snippet = document.querySelector("code")?.textContent ?? "";
     expect(snippet).toContain(`server_list = ${ANSIBLE_DISTRIBUTION_FIXTURE.name}`);
     expect(snippet).toContain(`[galaxy_server.${ANSIBLE_DISTRIBUTION_FIXTURE.name}]`);
     expect(snippet).toContain(`url=${ANSIBLE_DISTRIBUTION_FIXTURE.client_url}`);
@@ -58,16 +55,16 @@ describe("Ansible RepositoryDistributionsTab", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).queryByLabelText(/Repository/i)).not.toBeInTheDocument();
-    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
-      target: { value: "new-dist" },
-    });
+    expect(within(dialog).queryByLabelText("Name", { exact: false })).not.toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(await screen.findByText('Create distribution "new-dist"')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Create distribution "new-dist-path"'),
+    ).toBeInTheDocument();
   });
 
   it("deletes a distribution after confirmation and tracks the task", async () => {

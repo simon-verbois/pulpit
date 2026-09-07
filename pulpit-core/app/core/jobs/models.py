@@ -1,5 +1,4 @@
 import enum
-import uuid
 from datetime import datetime
 
 from sqlalchemy import JSON, Index, String

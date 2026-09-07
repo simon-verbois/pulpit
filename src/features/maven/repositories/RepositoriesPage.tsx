@@ -51,37 +51,6 @@ export function RepositoriesPage() {
         actions={<Button onClick={() => setIsCreateOpen(true)}>Create repository</Button>}
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search repositories by name"
-                placeholder="Search by name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={repositoriesQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
         {repositoriesQuery.isPending ? (
           <LoadingState label="Loading repositories" />
         ) : null}
@@ -101,39 +70,77 @@ export function RepositoriesPage() {
           />
         ) : null}
         {repositoriesQuery.isSuccess && repositoriesQuery.data.results.length > 0 ? (
-          <Table aria-label="Maven repositories" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Description</Th>
-                <Th>Size</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {repositoriesQuery.data.results.map((repository) => (
-                <Tr key={repository.pulp_href}>
-                  <Td dataLabel="Name">
-                    <Link to={`/maven/repositories/${encodeURIComponent(repository.name)}`}>
-                      {repository.name}
-                    </Link>
-                  </Td>
-                  <Td dataLabel="Description">{repository.description ?? "—"}</Td>
-                  <Td dataLabel="Size">
-                    <RepositorySizeCell
-                      query={sizesQuery}
-                      repositoryHref={repository.pulp_href}
-                    />
-                  </Td>
-                  <Td dataLabel="Actions" isActionCell>
-                    <Button variant="link" isDanger onClick={() => setPendingDelete(repository)}>
-                      Delete
-                    </Button>
-                  </Td>
+          <>
+            <Toolbar>
+              <ToolbarContent>
+                {/* Fixed width - without it, the bar grows/shrinks as the clear
+                    ("x") button appears/disappears with typed text (VERIFIED:
+                    SearchInput has no intrinsic width of its own). */}
+                <ToolbarItem style={{ width: "18rem" }}>
+                  <SearchInput
+                    aria-label="Search repositories by name"
+                    placeholder="Search by name…"
+                    value={searchInput}
+                    onChange={(_event, value) => setSearchInput(value)}
+                    onSearch={() => setSearch(searchInput)}
+                    onClear={() => {
+                      setSearchInput("");
+                      setSearch("");
+                    }}
+                  />
+                </ToolbarItem>
+                <ToolbarItem align={{ default: "alignEnd" }}>
+                  <Pagination
+                    itemCount={repositoriesQuery.data?.count ?? 0}
+                    page={pagination.page}
+                    perPage={pagination.perPage}
+                    onSetPage={pagination.onSetPage}
+                    onPerPageSelect={pagination.onPerPageSelect}
+                    isCompact
+                  />
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
+            <Table aria-label="Maven repositories" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Description</Th>
+                  <Th>Size</Th>
+                  <Th screenReaderText="Actions" />
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {repositoriesQuery.data.results.map((repository) => (
+                  <Tr key={repository.pulp_href}>
+                    <Td dataLabel="Name">
+                      <Link
+                        to={`/maven/repositories/${encodeURIComponent(repository.name)}`}
+                      >
+                        {repository.name}
+                      </Link>
+                    </Td>
+                    <Td dataLabel="Description">{repository.description ?? "—"}</Td>
+                    <Td dataLabel="Size">
+                      <RepositorySizeCell
+                        query={sizesQuery}
+                        repositoryHref={repository.pulp_href}
+                      />
+                    </Td>
+                    <Td dataLabel="Actions" isActionCell>
+                      <Button
+                        variant="link"
+                        isDanger
+                        onClick={() => setPendingDelete(repository)}
+                      >
+                        Delete
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </>
         ) : null}
       </PageSection>
 

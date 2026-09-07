@@ -91,3 +91,24 @@ def test_marks_seeded_even_when_some_plugins_fail(db, monkeypatch):
     fixture_seed_jobs.seed_sample_fixtures_job(db, {})
 
     assert service.has_seeded(db)
+
+
+def test_skips_entirely_when_disabled_by_settings(db, fake_pulp, monkeypatch):
+    """PULPIT_CORE_FIXTURE_SEED_ENABLED=false - the belt-and-suspenders
+    early return in jobs.py itself (module.py's own scheduling gate is
+    covered separately in test_fixture_seed_module.py), for a stray/manual
+    enqueue of this job type even after the setting was flipped."""
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("PULPIT_CORE_FIXTURE_SEED_ENABLED", "false")
+    get_settings.cache_clear()
+    try:
+        result = fixture_seed_jobs.seed_sample_fixtures_job(db, {})
+    finally:
+        get_settings.cache_clear()
+
+    assert result["skipped"] is True
+    assert fake_pulp.created_remotes == []
+    # Disabled means "never even attempted", not "attempted and marked done" -
+    # distinct from the already-seeded no-op above, which DOES mark seeded.
+    assert not service.has_seeded(db)

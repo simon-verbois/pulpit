@@ -12,6 +12,7 @@ import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useRpmAdvisoriesQuery } from "../advisories/useRpmAdvisoriesQuery";
 import { AdvisoriesTable } from "../advisories/AdvisoriesTable";
 import { UploadAdvisoryModal } from "../advisories/UploadAdvisoryModal";
+import { rpmAdvisoriesListRootKey } from "../advisories/queryKeys";
 import { rpmRepositoryByNameKey, rpmRepositoryVersionsKey } from "./queryKeys";
 
 export function RepositoryAdvisoriesTab({ repository }: { repository: RpmRepository }) {
@@ -26,23 +27,25 @@ export function RepositoryAdvisoriesTab({ repository }: { repository: RpmReposit
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Button onClick={() => setIsUploadOpen(true)}>Upload advisory</Button>
-          </ToolbarItem>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={advisoriesQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
+      {advisoriesQuery.isSuccess && advisoriesQuery.data.results.length > 0 ? (
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <Button onClick={() => setIsUploadOpen(true)}>Upload advisory</Button>
+            </ToolbarItem>
+            <ToolbarItem align={{ default: "alignEnd" }}>
+              <Pagination
+                itemCount={advisoriesQuery.data?.count ?? 0}
+                page={pagination.page}
+                perPage={pagination.perPage}
+                onSetPage={pagination.onSetPage}
+                onPerPageSelect={pagination.onPerPageSelect}
+                isCompact
+              />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+      ) : null}
 
       <AdvisoriesTable
         isPending={advisoriesQuery.isPending}
@@ -53,6 +56,9 @@ export function RepositoryAdvisoriesTab({ repository }: { repository: RpmReposit
         emptyTitle="No advisories in this repository yet"
         emptyBody="Sync a remote whose content includes updateinfo, or upload one directly."
         emptyStateVariant="sm"
+        emptyAction={
+          <Button onClick={() => setIsUploadOpen(true)}>Upload advisory</Button>
+        }
       />
 
       {isUploadOpen ? (
@@ -62,6 +68,7 @@ export function RepositoryAdvisoriesTab({ repository }: { repository: RpmReposit
           invalidateKeys={[
             rpmRepositoryByNameKey(repository.name),
             rpmRepositoryVersionsKey(repository.versions_href),
+            rpmAdvisoriesListRootKey,
           ]}
           onClose={() => setIsUploadOpen(false)}
         />

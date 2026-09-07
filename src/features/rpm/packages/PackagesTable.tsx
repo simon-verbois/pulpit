@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 import { LoadingState } from "../../../components/LoadingState";
@@ -27,6 +28,10 @@ interface PackagesTableProps {
   /** Set by a repository-detail tab caller (nested in a bigger page) -
    * unset for the equivalent top-level list page, which stays full-page. */
   emptyStateVariant?: "sm";
+  /** Rendered as the empty state's own call to action - used by callers
+   * whose toolbar action (e.g. "Upload package") is hidden while the list
+   * is empty, so the empty state stays the sole CTA. */
+  emptyAction?: ReactNode;
 }
 
 export function PackagesTable({
@@ -38,6 +43,7 @@ export function PackagesTable({
   emptyTitle,
   emptyBody,
   emptyStateVariant,
+  emptyAction,
 }: PackagesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading packages" />;
@@ -46,7 +52,14 @@ export function PackagesTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!packages || packages.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
+    return (
+      <EmptyState
+        title={emptyTitle}
+        body={emptyBody}
+        variant={emptyStateVariant}
+        action={emptyAction}
+      />
+    );
   }
 
   return (

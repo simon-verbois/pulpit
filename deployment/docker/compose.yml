@@ -23,6 +23,19 @@
 # lives in deployment/docker/ instead of the repo root.
 name: pulpit
 
+# Resource limits (`deploy.resources` below, per service): Compose's CLI
+# applies this block even outside Swarm mode for a plain `docker compose up`
+# (it's only `deploy.replicas`/`deploy.placement`/etc that are Swarm-only),
+# so this is the ordinary way to bound a single-node Compose deployment, not
+# a Swarm-specific mechanism. Without any limit, a single runaway process
+# (an accidental huge sync, a signing/resign job over a large repo, a stuck
+# retry loop) can consume the whole host's CPU/memory and starve every other
+# container - including ones unrelated to this stack. The numbers below are
+# conservative-but-workable *starting* defaults for a self-hosted
+# single-node deployment (this is not enterprise/Kubernetes-scale capacity
+# planning) - adjust per environment/hardware; `pulp`'s numbers in
+# particular assume a signing/resign job or a large repository sync is the
+# main workload these are meant to bound, not routine idle operation.
 services:
   # Optional for pulpcore (VERIFIED - see docs/DEPLOYMENT.md "Redis"): only
   # used for HTTP response caching (CACHE_ENABLED) here, not for task queuing
@@ -42,6 +55,14 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
 
   # docker.io/pulp/pulp:stable plus one added s6 longrun service - the
   # colocated signing-service reconciler (docs/signing.md "Automating the
@@ -70,6 +91,22 @@ services:
       # Must be a JSON array, not a bare string - dynaconf (which pulpcore's
       # settings are built on) otherwise iterates it character-by-character.
       PULP_CSRF_TRUSTED_ORIGINS: '["${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}"]'
+      # Without CONTENT_ORIGIN set, pulpcore has no scheme+host to prepend
+      # and a Distribution's `base_url` comes back as a bare path (e.g.
+      # "/pulp/content/<base_path>/") instead of a URL a user can actually
+      # paste into `dnf`/a `.repo` file - same origin CSRF already trusts
+      # above, since Pulp is only ever reached through Pulpit's own reverse
+      # proxy (ADR 0005).
+      PULP_CONTENT_ORIGIN: ${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}
+      # pulp_ansible and pulp_python each have their OWN hostname setting
+      # for the API root their distributions' URLs are built from
+      # (pulp_ansible's `client_url`, pulp_python's PyPI-compatible index
+      # URL) - VERIFIED live: neither one falls back to CONTENT_ORIGIN, and
+      # both default to "https://" + the container's own hostname if unset
+      # (pulp_ansible/app/settings.py, pulp_python/app/settings.py),
+      # producing an unreachable https://<container-id>/... URL otherwise.
+      PULP_ANSIBLE_API_HOSTNAME: ${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}
+      PULP_PYPI_API_HOSTNAME: ${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}
       # Enables pulpcore's Redis-backed HTTP response cache (VERIFIED -
       # docs/DEPLOYMENT.md "Redis"). Without CACHE_ENABLED, pulpcore never
       # even tries to connect to Redis - it isn't required for tasks/workers.
@@ -123,6 +160,14 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
 
   # nginx (static SPA + reverse proxy, ADR 0005) + pulpit-core (API,
   # ADR 0006) + pulpit-worker (job queue/signing automation,
@@ -152,6 +197,12 @@ services:
       # with: python3 -c "from cryptography.fernet import Fernet;
       # print(Fernet.generate_key().decode())"
       PULPIT_CORE_SECRET_KEY: ${PULPIT_CORE_SECRET_KEY:-}
+      # Optional (app/modules/fixture_seed/, docs/adr/0011-fixture-seed.md) -
+      # set to "false" to skip first-boot sample-content seeding entirely on
+      # a deployment with restricted/metered egress (it otherwise reaches
+      # eight public fixture hosts using PULPIT_CORE_PULP_SERVICE_PASSWORD
+      # above) - see docs/DEPLOYMENT.md "Fixture seed". Defaults to true.
+      PULPIT_CORE_FIXTURE_SEED_ENABLED: ${PULPIT_CORE_FIXTURE_SEED_ENABLED:-true}
     volumes:
       # pulpit-core's own embedded SQLite database - see
       # app/core/config/settings.py. Never Pulp's own data.
@@ -181,6 +232,14 @@ services:
       # has a 60s start_period for this) means the worker's first job run
       # finds a ready Pulp instead.
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.1"
+          memory: 256M
 
 volumes:
   pulp_etc:

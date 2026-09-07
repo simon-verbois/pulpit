@@ -5,6 +5,76 @@ Pulpit's own calendar scheme (`YYYY.WW.PATCH` — the ISO year/week of the relea
 counter for same-week releases), tracked in [`VERSION`](VERSION) and shown in the app's own
 footer.
 
+## 2026.37.1 — 2026-09-07
+
+### Added
+
+- Every "Create distribution" modal now shows the distribution's actual resulting URL live — a
+  greyed, fixed origin/path prefix with only the editable suffix, instead of an opaque "Base
+  path" field — and no longer asks for a separate Name (both are globally-unique free-text
+  identifiers on Pulp's side already, so the base path doubles as the name).
+- Automatic secret generation for a first deploy: `deployment/docker/generate-env.sh` for Docker,
+  and both Podman's and Kubernetes' `deploy.sh` now generate `PULP_SECRET_KEY`,
+  `PULPIT_CORE_SECRET_KEY`, and a random admin password on first run instead of requiring manual
+  `openssl rand`/secret-file editing.
+- Backend static analysis: ruff and mypy, wired into CI, for `pulpit-core` (previously untested
+  by any linter or type checker).
+- Container-level resource requests/limits, security-context hardening
+  (`allowPrivilegeEscalation: false`, dropped capabilities), and consistent image-tag pinning
+  across all three deployment targets (Docker Compose, Podman, Kubernetes).
+- Kubernetes' `deploy.sh` guards against accidentally applying the placeholder
+  `00-secret.example.yaml` via a directory glob.
+
+### Changed
+
+- The active tab on every repository/user/group detail page now lives in the URL instead of
+  component state, so it survives a hard reload (F5) instead of resetting to the first tab.
+- Left-nav sections (RPM, Debian, ...) now expand/collapse independently and stay open across
+  navigation, instead of every other open section collapsing whenever you navigate to a page
+  outside it.
+- ~55 list pages across every content type now correctly hide their toolbar/search bar alongside
+  the empty state, instead of showing it above an empty list.
+- Distribution tables no longer show a Copy button next to the URL/pull command — the text is
+  already selectable — and the Delete button's resulting misalignment is fixed too.
+- Ansible Roles/Collections, Container Tags, and Npm/Gem/Maven/Hugging Face content search, and
+  Signing Services search, now fetch the full list and filter/paginate client-side, since Pulp
+  exposes no substring filter at all for those endpoints.
+- Removed a batch of dead API-client code across most content-type modules (unused by-href
+  getters, `deleteRepositoryVersion`, unused content-guard create/update variants,
+  `listAllXRepositories`).
+- Docker's SQLite permission fix in the entrypoint is now a deterministic convergence loop
+  instead of two fixed `sleep` windows.
+
+### Fixed
+
+- RPM Packages and Python content search sent an invalid Pulp filter (`name__icontains`, which
+  Pulp doesn't support for those two endpoints) that silently left the previous, unfiltered page
+  on screen instead of an error or real matches — now uses the valid `name__contains`.
+- Distribution URLs (`base_url`/`client_url`/`registry_path`) came back as bare paths, or with the
+  wrong container-registry hostname/port, instead of a usable absolute URL — `CONTENT_ORIGIN`,
+  `ANSIBLE_API_HOSTNAME`, and `PYPI_API_HOSTNAME` are now configured on Pulp, and nginx forwards
+  the real `Host` header (including port) instead of stripping it.
+- Below roughly 1085px of window width, the entire left navigation disappeared with no way to
+  reopen it — the toggle button had been removed on the assumption the sidebar was always shown,
+  which isn't true below that width. Reinstated the standard toggle, only visible at/below that
+  breakpoint.
+- Edit/Delete action buttons stacked vertically instead of sitting on one line, on the Namespaces
+  and Access → Roles pages.
+- The "core" pseudo-component no longer shows in the Overview page's component table (it isn't a
+  content plugin — always a blank Repositories/Size); its version is still checked for
+  compatibility warnings.
+- Any authenticated user, not just staff, could read and overwrite the instance-wide default
+  proxy credentials.
+- `fixture_seed` now respects a new opt-out setting instead of always running with privileged
+  credentials against eight external hosts on every deployment.
+- The repository signing policy endpoint, and the retired/retiring signing-key lookup endpoint,
+  required no authentication at all.
+- nginx's unlimited request-body size applied to the whole server instead of just the
+  upload-handling routes.
+- Hardened the RPM signing macro against a latent shell-metacharacter injection path.
+- Several `e2e` specs still referenced Administration sub-routes removed by the merged
+  Administration page (ADR 0010).
+
 ## 2026.36.4 — 2026-09-04
 
 ### Added

@@ -12,9 +12,16 @@ test.describe.configure({ mode: "serial" });
 
 test.describe("Administration: signing services (read-only) and content guards", () => {
   test("Signing services page loads without crashing", async ({ page }) => {
-    await page.goto("/admin/signing");
+    // The merged Administration page (docs/adr/0010-merged-administration-
+    // page.md) drives its tabs via ?tab= query params, not sub-routes, and
+    // its own <h1> is always "Administration" - assert on the Pulp Signing
+    // Services tab's own content instead of a page-specific heading.
+    await page.goto("/admin?tab=pulp-signing-services");
     await expect(
-      page.getByRole("heading", { name: "Signing services", level: 1 }),
+      page.getByRole("heading", { name: "Administration", level: 1 }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Signing services are read-only here/),
     ).toBeVisible();
     // Read-only - VERIFIED live: no create endpoint exists at all.
     await expect(page.getByRole("button", { name: /create/i })).not.toBeVisible();
@@ -26,7 +33,7 @@ test.describe("Administration: signing services (read-only) and content guards",
     test.setTimeout(60_000);
 
     // --- Create a Header guard -----------------------------------------
-    await page.goto("/admin/content-guards");
+    await page.goto("/admin?tab=content-guards");
     await page.getByRole("button", { name: "Create content guard" }).click();
     let dialog = page.getByRole("dialog");
     await dialog.locator("#content-guard-name").fill(HEADER_GUARD);

@@ -129,7 +129,19 @@ spec:
         # compose.yml/deployment/podman/ use. Nothing reaches into this pod
         # from the outside anymore - no ServiceAccount/RBAC needed.
         - name: pulp
-          image: docker.io/simonverbois/pulp-pulpit:latest
+          # __PULP_PULPIT_IMAGE_TAG__ is substituted by ./deploy.sh at apply
+          # time from the PULP_PULPIT_IMAGE_TAG env var (defaulting to
+          # "latest" - same name/default Compose's .env.example uses) - edit
+          # this directly to a real tag instead if you apply this file
+          # without deploy.sh.
+          image: docker.io/simonverbois/pulp-pulpit:__PULP_PULPIT_IMAGE_TAG__
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
           env:
             - name: PULP_SECRET_KEY
               valueFrom:

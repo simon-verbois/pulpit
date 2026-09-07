@@ -45,21 +45,6 @@ export function AlternateSourcesPage() {
         }
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={acsQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
         {acsQuery.isPending ? (
           <LoadingState label="Loading alternate content sources" />
         ) : null}
@@ -78,60 +63,78 @@ export function AlternateSourcesPage() {
           />
         ) : null}
         {acsQuery.isSuccess && acsQuery.data.results.length > 0 ? (
-          <Table aria-label="RPM alternate content sources" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Paths</Th>
-                <Th>Last refreshed</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {acsQuery.data.results.map((acs) => (
-                <Tr key={acs.pulp_href}>
-                  <Td dataLabel="Name">{acs.name}</Td>
-                  <Td dataLabel="Paths">{acs.paths.filter(Boolean).join(", ") || "—"}</Td>
-                  <Td dataLabel="Last refreshed">
-                    {acs.last_refreshed
-                      ? formatRelativeTime(acs.last_refreshed)
-                      : "Never"}
-                  </Td>
-                  <Td dataLabel="Actions" isActionCell>
-                    <Flex
-                      flexWrap={{ default: "nowrap" }}
-                      spaceItems={{ default: "spaceItemsNone" }}
-                      justifyContent={{ default: "justifyContentFlexEnd" }}
-                    >
-                      <FlexItem>
-                        <Button
-                          variant="link"
-                          isDisabled={refreshMutation.isPending}
-                          onClick={() =>
-                            refreshMutation.mutate({
-                              href: acs.pulp_href,
-                              name: acs.name,
-                            })
-                          }
-                        >
-                          Refresh
-                        </Button>
-                      </FlexItem>
-                      <FlexItem>
-                        <Button
-                          variant="link"
-                          isDanger
-                          onClick={() => setPendingDelete(acs)}
-                        >
-                          Delete
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                  </Td>
+          <>
+            <Toolbar>
+              <ToolbarContent>
+                <ToolbarItem align={{ default: "alignEnd" }}>
+                  <Pagination
+                    itemCount={acsQuery.data?.count ?? 0}
+                    page={pagination.page}
+                    perPage={pagination.perPage}
+                    onSetPage={pagination.onSetPage}
+                    onPerPageSelect={pagination.onPerPageSelect}
+                    isCompact
+                  />
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
+            <Table aria-label="RPM alternate content sources" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Paths</Th>
+                  <Th>Last refreshed</Th>
+                  <Th screenReaderText="Actions" />
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {acsQuery.data.results.map((acs) => (
+                  <Tr key={acs.pulp_href}>
+                    <Td dataLabel="Name">{acs.name}</Td>
+                    <Td dataLabel="Paths">
+                      {acs.paths.filter(Boolean).join(", ") || "—"}
+                    </Td>
+                    <Td dataLabel="Last refreshed">
+                      {acs.last_refreshed
+                        ? formatRelativeTime(acs.last_refreshed)
+                        : "Never"}
+                    </Td>
+                    <Td dataLabel="Actions" isActionCell>
+                      <Flex
+                        flexWrap={{ default: "nowrap" }}
+                        spaceItems={{ default: "spaceItemsNone" }}
+                        justifyContent={{ default: "justifyContentFlexEnd" }}
+                      >
+                        <FlexItem>
+                          <Button
+                            variant="link"
+                            isDisabled={refreshMutation.isPending}
+                            onClick={() =>
+                              refreshMutation.mutate({
+                                href: acs.pulp_href,
+                                name: acs.name,
+                              })
+                            }
+                          >
+                            Refresh
+                          </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <Button
+                            variant="link"
+                            isDanger
+                            onClick={() => setPendingDelete(acs)}
+                          >
+                            Delete
+                          </Button>
+                        </FlexItem>
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </>
         ) : null}
       </PageSection>
 

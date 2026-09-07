@@ -25,9 +25,6 @@ describe("TaskTrackers", () => {
       fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
 
       const dialog = await screen.findByRole("dialog");
-      fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
-        target: { value: "tracked-only" },
-      });
       fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
         target: { value: "tracked-only-path" },
       });
@@ -36,7 +33,7 @@ describe("TaskTrackers", () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       // No <TasksDrawer> is mounted anywhere in this test - if invalidation
       // depended on it (the pre-fix bug), this would never appear.
-      expect(await screen.findByText("tracked-only")).toBeInTheDocument();
+      expect(await screen.findAllByText("tracked-only-path")).not.toHaveLength(0);
     },
   );
 });

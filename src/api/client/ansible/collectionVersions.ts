@@ -8,7 +8,6 @@ export interface ListCollectionVersionsParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
   offset: number;
-  name__icontains?: string;
   namespace?: string;
   repository_version?: string;
 }
@@ -17,6 +16,19 @@ export function listCollectionVersions(
   params: ListCollectionVersionsParams,
 ): Promise<PulpPage<CollectionVersion>> {
   return pulpFetch<PulpPage<CollectionVersion>>(`${BASE}${buildQuery(params)}`);
+}
+
+/** VERIFIED live: this endpoint has no `name__contains`/`name__icontains` -
+ * only an exact-match `name` filter - so a partial-text search box can't
+ * be implemented as a server-side query param the way every other list
+ * page in this app does. Fetches every collection version in one large
+ * page instead, for client-side search
+ * (src/hooks/useClientSideSearch.ts) - bounded, not a true
+ * unbounded-catalog fetch, which is a realistic assumption at the
+ * self-hosted scale this app targets (CLAUDE.md "Stay 100% local"). */
+export async function listAllCollectionVersions(): Promise<CollectionVersion[]> {
+  const page = await listCollectionVersions({ limit: 10000, offset: 0 });
+  return page.results;
 }
 
 /**

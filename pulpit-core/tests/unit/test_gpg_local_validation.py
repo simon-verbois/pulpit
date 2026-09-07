@@ -3,9 +3,9 @@ import pytest
 from app.modules.signing.gpg_local import (
     _build_uid,
     _validate_algorithm,
-    validate_fingerprint,
     _validate_identity_email,
     _validate_identity_name,
+    validate_fingerprint,
 )
 
 

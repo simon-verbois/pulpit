@@ -23,14 +23,6 @@ export function listHuggingFaceRepositories(
   return pulpFetch<PulpPage<HuggingFaceRepository>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every repository page - used to populate small "repository"
- * selects (e.g. the distribution create form) - see the equivalent
- * listAllHuggingFaceRemotes for the same rationale. */
-export async function listAllHuggingFaceRepositories(): Promise<HuggingFaceRepository[]> {
-  const page = await listHuggingFaceRepositories({ limit: 100, offset: 0 });
-  return page.results;
-}
-
 /**
  * Repository hrefs are opaque and only known once you already have the
  * object (docs/PULP_API.md "Repository href semantics") - Pulpit's routes
@@ -48,10 +40,6 @@ export async function getHuggingFaceRepositoryByName(
   // turn a legitimate "no such repository" result into a generic error
   // state instead of the intended not-found UI (see RepositoryDetailPage).
   return page.results[0] ?? null;
-}
-
-export function getHuggingFaceRepository(href: string): Promise<HuggingFaceRepository> {
-  return pulpFetch<HuggingFaceRepository>(href);
 }
 
 export function createHuggingFaceRepository(
@@ -111,8 +99,4 @@ export function listRepositoryVersions(
   params: ListRepositoryVersionsParams,
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
-}
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }

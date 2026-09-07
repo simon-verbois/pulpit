@@ -47,10 +47,6 @@ export async function getAnsibleRepositoryByName(
   return page.results[0] ?? null;
 }
 
-export function getAnsibleRepository(href: string): Promise<AnsibleRepository> {
-  return pulpFetch<AnsibleRepository>(href);
-}
-
 export function createAnsibleRepository(
   data: AnsibleRepositoryCreate,
 ): Promise<AnsibleRepository> {
@@ -141,8 +137,4 @@ export function listRepositoryVersions(
   params: ListRepositoryVersionsParams,
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
-}
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }

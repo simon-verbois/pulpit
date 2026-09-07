@@ -12,6 +12,7 @@ import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useAnsibleRolesQuery } from "../roles/useAnsibleRolesQuery";
 import { RolesTable } from "../roles/RolesTable";
 import { UploadRoleModal } from "../roles/UploadRoleModal";
+import { ansibleRolesListRootKey } from "../roles/queryKeys";
 import { ansibleRepositoryByNameKey, ansibleRepositoryVersionsKey } from "./queryKeys";
 
 export function RepositoryRolesTab({ repository }: { repository: AnsibleRepository }) {
@@ -26,23 +27,25 @@ export function RepositoryRolesTab({ repository }: { repository: AnsibleReposito
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Button onClick={() => setIsUploadOpen(true)}>Upload role</Button>
-          </ToolbarItem>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={rolesQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
+      {rolesQuery.isSuccess && rolesQuery.data.results.length > 0 ? (
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <Button onClick={() => setIsUploadOpen(true)}>Upload role</Button>
+            </ToolbarItem>
+            <ToolbarItem align={{ default: "alignEnd" }}>
+              <Pagination
+                itemCount={rolesQuery.data?.count ?? 0}
+                page={pagination.page}
+                perPage={pagination.perPage}
+                onSetPage={pagination.onSetPage}
+                onPerPageSelect={pagination.onPerPageSelect}
+                isCompact
+              />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+      ) : null}
 
       <RolesTable
         isPending={rolesQuery.isPending}
@@ -53,6 +56,7 @@ export function RepositoryRolesTab({ repository }: { repository: AnsibleReposito
         emptyTitle="No roles in this repository yet"
         emptyBody="Sync a remote or upload a role to add content to this repository."
         emptyStateVariant="sm"
+        emptyAction={<Button onClick={() => setIsUploadOpen(true)}>Upload role</Button>}
       />
 
       {isUploadOpen ? (
@@ -62,6 +66,7 @@ export function RepositoryRolesTab({ repository }: { repository: AnsibleReposito
           invalidateKeys={[
             ansibleRepositoryByNameKey(repository.name),
             ansibleRepositoryVersionsKey(repository.versions_href),
+            ansibleRolesListRootKey,
           ]}
           onClose={() => setIsUploadOpen(false)}
         />

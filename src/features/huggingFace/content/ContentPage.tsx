@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Pagination,
   PageSection,
@@ -10,7 +11,8 @@ import {
 
 import { PageHeader } from "../../../components/PageHeader";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
-import { useHuggingFaceContentQuery } from "./useHuggingFaceContentQuery";
+import { useClientSideSearch } from "../../../hooks/useClientSideSearch";
+import { listAllHuggingFaceContent } from "../../../api/client/hugging_face/content";
 import { ContentTable } from "./ContentTable";
 
 export function ContentPage() {
@@ -18,11 +20,19 @@ export function ContentPage() {
   const [search, setSearch] = useState("");
   const pagination = usePulpPagination();
 
-  const contentQuery = useHuggingFaceContentQuery({
-    limit: pagination.limit,
-    offset: pagination.offset,
-    relative_path__icontains: search || undefined,
+  // No server-side `relative_path__contains` exists for this endpoint
+  // (VERIFIED live) - listAllHuggingFaceContent's own comment explains why
+  // this fetches everything and filters/paginates client-side instead.
+  const contentQuery = useQuery({
+    queryKey: ["pulp", "hugging_face", "content", "all"],
+    queryFn: listAllHuggingFaceContent,
   });
+  const { paged, totalCount } = useClientSideSearch(
+    contentQuery.data,
+    search,
+    (file) => file.relative_path,
+    pagination,
+  );
 
   return (
     <>
@@ -31,43 +41,45 @@ export function ContentPage() {
         description="Files across every Hugging Face repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search files by relative path"
-                placeholder="Search by relative path…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={contentQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        {contentQuery.isSuccess && totalCount > 0 ? (
+          <Toolbar>
+            <ToolbarContent>
+              {/* Fixed width - without it, the bar grows/shrinks as the clear
+                  ("x") button appears/disappears with typed text (VERIFIED:
+                  SearchInput has no intrinsic width of its own). */}
+              <ToolbarItem style={{ width: "18rem" }}>
+                <SearchInput
+                  aria-label="Search files by relative path"
+                  placeholder="Search by relative path…"
+                  value={searchInput}
+                  onChange={(_event, value) => setSearchInput(value)}
+                  onSearch={() => setSearch(searchInput)}
+                  onClear={() => {
+                    setSearchInput("");
+                    setSearch("");
+                  }}
+                />
+              </ToolbarItem>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={totalCount}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+        ) : null}
 
         <ContentTable
           isPending={contentQuery.isPending}
           isError={contentQuery.isError}
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
-          content={contentQuery.data?.results}
+          content={paged}
           emptyTitle="No Hugging Face content yet"
           emptyBody="Files appear here once a repository has synced content or a file has been uploaded."
         />

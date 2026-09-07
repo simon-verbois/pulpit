@@ -48,109 +48,126 @@ export function UsersPage() {
   );
   useAdministrationHeaderAction("users", createButton);
 
+  const isFiltered = search !== "";
+
+  const toolbar = (
+    <Toolbar>
+      <ToolbarContent>
+        {/* Fixed width - without it, the bar grows/shrinks as the clear
+            ("x") button appears/disappears with typed text (VERIFIED:
+            SearchInput has no intrinsic width of its own). */}
+        <ToolbarItem style={{ width: "18rem" }}>
+          <SearchInput
+            aria-label="Search users by username"
+            placeholder="Search by username…"
+            value={searchInput}
+            onChange={(_event, value) => setSearchInput(value)}
+            onSearch={() => setSearch(searchInput)}
+            onClear={() => {
+              setSearchInput("");
+              setSearch("");
+            }}
+          />
+        </ToolbarItem>
+        <ToolbarItem align={{ default: "alignEnd" }}>
+          <Pagination
+            itemCount={usersQuery.data?.count ?? 0}
+            page={pagination.page}
+            perPage={pagination.perPage}
+            onSetPage={pagination.onSetPage}
+            onPerPageSelect={pagination.onPerPageSelect}
+            isCompact
+          />
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
+  );
+
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search users by username"
-                placeholder="Search by username…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={usersQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
         {usersQuery.isPending ? <LoadingState label="Loading users" /> : null}
         {usersQuery.isError ? (
           <ErrorState error={usersQuery.error} onRetry={() => usersQuery.refetch()} />
         ) : null}
-        {usersQuery.isSuccess && usersQuery.data.results.length === 0 ? (
+        {usersQuery.isSuccess && usersQuery.data.results.length === 0 && !isFiltered ? (
           <EmptyState
             variant="sm"
             title="No users yet"
             body="Create a Pulp account above so someone else can log in."
           />
         ) : null}
+        {usersQuery.isSuccess && usersQuery.data.results.length === 0 && isFiltered ? (
+          <>
+            {toolbar}
+            <EmptyState
+              variant="sm"
+              title="No matching users"
+              body="Try a different search, or clear it to see every user."
+            />
+          </>
+        ) : null}
         {usersQuery.isSuccess && usersQuery.data.results.length > 0 ? (
-          <Table aria-label="Users" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Username</Th>
-                <Th>Name</Th>
-                <Th>Email</Th>
-                <Th>Status</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {usersQuery.data.results.map((user) => (
-                <Tr key={user.pulp_href}>
-                  <Td dataLabel="Username">
-                    <Link to={`/access/users/${encodeURIComponent(user.username)}`}>
-                      {user.username}
-                    </Link>
-                  </Td>
-                  <Td dataLabel="Name">
-                    {[user.first_name, user.last_name].filter(Boolean).join(" ") || "—"}
-                  </Td>
-                  <Td dataLabel="Email">{user.email || "—"}</Td>
-                  <Td dataLabel="Status">
-                    <Flex spaceItems={{ default: "spaceItemsSm" }}>
-                      <FlexItem>
-                        {user.is_active ? (
-                          <StatusIndicator color="green" isCompact>
-                            Active
-                          </StatusIndicator>
-                        ) : (
-                          <StatusIndicator color="grey" isCompact>
-                            Inactive
-                          </StatusIndicator>
-                        )}
-                      </FlexItem>
-                      {user.is_staff ? (
-                        <FlexItem>
-                          <StatusIndicator color="blue" isCompact>
-                            Staff
-                          </StatusIndicator>
-                        </FlexItem>
-                      ) : null}
-                    </Flex>
-                  </Td>
-                  <Td dataLabel="Actions" isActionCell>
-                    <Button
-                      variant="link"
-                      isDanger
-                      onClick={() => setPendingDelete(user)}
-                    >
-                      Delete
-                    </Button>
-                  </Td>
+          <>
+            {toolbar}
+            <Table aria-label="Users" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Username</Th>
+                  <Th>Name</Th>
+                  <Th>Email</Th>
+                  <Th>Status</Th>
+                  <Th screenReaderText="Actions" />
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {usersQuery.data.results.map((user) => (
+                  <Tr key={user.pulp_href}>
+                    <Td dataLabel="Username">
+                      <Link to={`/access/users/${encodeURIComponent(user.username)}`}>
+                        {user.username}
+                      </Link>
+                    </Td>
+                    <Td dataLabel="Name">
+                      {[user.first_name, user.last_name].filter(Boolean).join(" ") || "—"}
+                    </Td>
+                    <Td dataLabel="Email">{user.email || "—"}</Td>
+                    <Td dataLabel="Status">
+                      <Flex spaceItems={{ default: "spaceItemsSm" }}>
+                        <FlexItem>
+                          {user.is_active ? (
+                            <StatusIndicator color="green" isCompact>
+                              Active
+                            </StatusIndicator>
+                          ) : (
+                            <StatusIndicator color="grey" isCompact>
+                              Inactive
+                            </StatusIndicator>
+                          )}
+                        </FlexItem>
+                        {user.is_staff ? (
+                          <FlexItem>
+                            <StatusIndicator color="blue" isCompact>
+                              Staff
+                            </StatusIndicator>
+                          </FlexItem>
+                        ) : null}
+                      </Flex>
+                    </Td>
+                    <Td dataLabel="Actions" isActionCell>
+                      <Button
+                        variant="link"
+                        isDanger
+                        onClick={() => setPendingDelete(user)}
+                      >
+                        Delete
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </>
         ) : null}
       </PageSection>
 

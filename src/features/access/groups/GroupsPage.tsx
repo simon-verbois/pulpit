@@ -45,80 +45,97 @@ export function GroupsPage() {
   );
   useAdministrationHeaderAction("groups", createButton);
 
+  const isFiltered = search !== "";
+
+  const toolbar = (
+    <Toolbar>
+      <ToolbarContent>
+        {/* Fixed width - without it, the bar grows/shrinks as the clear
+            ("x") button appears/disappears with typed text (VERIFIED:
+            SearchInput has no intrinsic width of its own). */}
+        <ToolbarItem style={{ width: "18rem" }}>
+          <SearchInput
+            aria-label="Search groups by name"
+            placeholder="Search by name…"
+            value={searchInput}
+            onChange={(_event, value) => setSearchInput(value)}
+            onSearch={() => setSearch(searchInput)}
+            onClear={() => {
+              setSearchInput("");
+              setSearch("");
+            }}
+          />
+        </ToolbarItem>
+        <ToolbarItem align={{ default: "alignEnd" }}>
+          <Pagination
+            itemCount={groupsQuery.data?.count ?? 0}
+            page={pagination.page}
+            perPage={pagination.perPage}
+            onSetPage={pagination.onSetPage}
+            onPerPageSelect={pagination.onPerPageSelect}
+            isCompact
+          />
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
+  );
+
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search groups by name"
-                placeholder="Search by name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={groupsQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
         {groupsQuery.isPending ? <LoadingState label="Loading groups" /> : null}
         {groupsQuery.isError ? (
           <ErrorState error={groupsQuery.error} onRetry={() => groupsQuery.refetch()} />
         ) : null}
-        {groupsQuery.isSuccess && groupsQuery.data.results.length === 0 ? (
+        {groupsQuery.isSuccess && groupsQuery.data.results.length === 0 && !isFiltered ? (
           <EmptyState
             variant="sm"
             title="No groups yet"
             body="Create a group above to manage roles for several users at once."
           />
         ) : null}
+        {groupsQuery.isSuccess && groupsQuery.data.results.length === 0 && isFiltered ? (
+          <>
+            {toolbar}
+            <EmptyState
+              variant="sm"
+              title="No matching groups"
+              body="Try a different search, or clear it to see every group."
+            />
+          </>
+        ) : null}
         {groupsQuery.isSuccess && groupsQuery.data.results.length > 0 ? (
-          <Table aria-label="Groups" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {groupsQuery.data.results.map((group) => (
-                <Tr key={group.pulp_href}>
-                  <Td dataLabel="Name">
-                    <Link to={`/access/groups/${encodeURIComponent(group.name)}`}>
-                      {group.name}
-                    </Link>
-                  </Td>
-                  <Td dataLabel="Actions" isActionCell>
-                    <Button
-                      variant="link"
-                      isDanger
-                      onClick={() => setPendingDelete(group)}
-                    >
-                      Delete
-                    </Button>
-                  </Td>
+          <>
+            {toolbar}
+            <Table aria-label="Groups" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th screenReaderText="Actions" />
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {groupsQuery.data.results.map((group) => (
+                  <Tr key={group.pulp_href}>
+                    <Td dataLabel="Name">
+                      <Link to={`/access/groups/${encodeURIComponent(group.name)}`}>
+                        {group.name}
+                      </Link>
+                    </Td>
+                    <Td dataLabel="Actions" isActionCell>
+                      <Button
+                        variant="link"
+                        isDanger
+                        onClick={() => setPendingDelete(group)}
+                      >
+                        Delete
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </>
         ) : null}
       </PageSection>
 

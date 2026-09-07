@@ -41,10 +41,6 @@ export async function getDebRepositoryByName(name: string): Promise<DebRepositor
   return page.results[0] ?? null;
 }
 
-export function getDebRepository(href: string): Promise<DebRepository> {
-  return pulpFetch<DebRepository>(href);
-}
-
 export function createDebRepository(data: DebRepositoryCreate): Promise<DebRepository> {
   return pulpFetch<DebRepository>(BASE, {
     method: "POST",
@@ -90,8 +86,4 @@ export function listRepositoryVersions(
   params: ListRepositoryVersionsParams,
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
-}
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }

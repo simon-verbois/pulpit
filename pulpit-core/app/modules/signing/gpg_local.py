@@ -26,11 +26,10 @@ key_manager.py). Security properties (task section 15), concretely:
   only the fingerprint/keyid/return code are (see _run).
 """
 
-import json
 import re
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.modules.signing.key_manager import GeneratedKey, KeyManager
@@ -180,9 +179,9 @@ class LocalGPGKeyManager(KeyManager):
             fields = line.split(":")
             if fields[0] == "pub":
                 key_id = fields[4]
-                created_at = datetime.fromtimestamp(int(fields[5]), tz=timezone.utc)
+                created_at = datetime.fromtimestamp(int(fields[5]), tz=UTC)
                 expires_at = (
-                    datetime.fromtimestamp(int(fields[6]), tz=timezone.utc) if fields[6] else None
+                    datetime.fromtimestamp(int(fields[6]), tz=UTC) if fields[6] else None
                 )
             elif fields[0] == "fpr" and fingerprint is None:
                 fingerprint = fields[9]

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.pulp.client import get_pulp_client
 from app.adapters.pulp.exceptions import PulpAdapterError
+from app.core.config import get_settings
 from app.core.jobs.registry import job_registry
 from app.modules.fixture_seed import service
 from app.modules.fixture_seed.fixtures import FIXTURES, PluginFixture
@@ -58,6 +59,14 @@ def _seed_one(client, fixture: PluginFixture) -> str:
 
 
 def seed_sample_fixtures_job(db: Session, _payload: dict) -> dict:
+    # Belt-and-suspenders alongside module.py's scheduling gate: that gate
+    # already keeps this job from ever being scheduled when disabled, but a
+    # stray/manual enqueue of JOB_TYPE (e.g. a leftover row from before the
+    # setting was flipped) should still no-op rather than reach out to eight
+    # public fixture hosts with privileged Pulp credentials.
+    if not get_settings().fixture_seed_enabled:
+        return {"skipped": True, "reason": "fixture_seed disabled (PULPIT_CORE_FIXTURE_SEED_ENABLED)"}
+
     if service.has_seeded(db):
         return {"skipped": True, "reason": "already seeded"}
 

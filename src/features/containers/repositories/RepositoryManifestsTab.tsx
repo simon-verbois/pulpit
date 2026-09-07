@@ -43,21 +43,6 @@ export function RepositoryManifestsTab({
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={manifestsQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-
       {manifestsQuery.isPending ? <LoadingState label="Loading manifests" /> : null}
       {manifestsQuery.isError ? (
         <ErrorState
@@ -73,30 +58,46 @@ export function RepositoryManifestsTab({
         />
       ) : null}
       {manifestsQuery.isSuccess && manifestsQuery.data.results.length > 0 ? (
-        <Table aria-label="Manifests" variant="compact">
-          <Thead>
-            <Tr>
-              <Th>Digest</Th>
-              <Th>Media type</Th>
-              <Th>Architecture</Th>
-              <Th>OS</Th>
-              <Th>Size</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {manifestsQuery.data.results.map((manifest) => (
-              <Tr key={manifest.pulp_href}>
-                <Td dataLabel="Digest">
-                  <code>{manifest.digest}</code>
-                </Td>
-                <Td dataLabel="Media type">{manifest.media_type}</Td>
-                <Td dataLabel="Architecture">{manifest.architecture ?? "—"}</Td>
-                <Td dataLabel="OS">{manifest.os ?? "—"}</Td>
-                <Td dataLabel="Size">{formatSize(manifest.compressed_image_size)}</Td>
+        <>
+          <Toolbar>
+            <ToolbarContent>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={manifestsQuery.data?.count ?? 0}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+          <Table aria-label="Manifests" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Digest</Th>
+                <Th>Media type</Th>
+                <Th>Architecture</Th>
+                <Th>OS</Th>
+                <Th>Size</Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {manifestsQuery.data.results.map((manifest) => (
+                <Tr key={manifest.pulp_href}>
+                  <Td dataLabel="Digest">
+                    <code>{manifest.digest}</code>
+                  </Td>
+                  <Td dataLabel="Media type">{manifest.media_type}</Td>
+                  <Td dataLabel="Architecture">{manifest.architecture ?? "—"}</Td>
+                  <Td dataLabel="OS">{manifest.os ?? "—"}</Td>
+                  <Td dataLabel="Size">{formatSize(manifest.compressed_image_size)}</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </>
       ) : null}
     </>
   );

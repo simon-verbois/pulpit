@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Nav, NavExpandable, NavItem, NavList } from "@patternfly/react-core";
 
 import { deriveCapabilities } from "../../api/capabilities";
 import { useStatusQuery } from "../../hooks/useStatusQuery";
 import { useNavVisibilityQuery } from "../../hooks/useNavVisibilityQuery";
-import { NAV_TREE, type NavLeaf } from "./navTree";
+import { NAV_TREE, type NavGroup, type NavLeaf } from "./navTree";
 
 function renderNavItem(leaf: NavLeaf, pathname: string) {
   const isActive = leaf.path === "/" ? pathname === "/" : pathname.startsWith(leaf.path);
@@ -15,10 +16,48 @@ function renderNavItem(leaf: NavLeaf, pathname: string) {
   );
 }
 
+/** id of whichever top-level group's own children contain this path, if
+ * any - group membership only, unrelated to capability/nav-visibility
+ * filtering (a hidden group still "contains" its own paths for this
+ * purpose, it just never renders). */
+function groupIdContaining(pathname: string): string | undefined {
+  return NAV_TREE.find(
+    (node): node is NavGroup =>
+      node.type === "group" && node.children.some((leaf) => pathname.startsWith(leaf.path)),
+  )?.id;
+}
+
 export function AppNav() {
   const location = useLocation();
   const statusQuery = useStatusQuery();
   const navVisibilityQuery = useNavVisibilityQuery();
+  // Per-group expand/collapse, independent of every other group - BUG
+  // FOUND LIVE: driving `isExpanded` off `containsCurrentPage` alone
+  // collapses every *other* open group (even one auto-opened just because
+  // it held the current page, not manually clicked) the moment you
+  // navigate to a page outside of it - that group's own
+  // `containsCurrentPage` flips true -> false, and NavExpandable re-syncs
+  // to the new prop value. This map is the actual source of truth for
+  // every group's expanded state instead: seeded once for whichever group
+  // holds the initial route, and updated by two things only - explicitly
+  // clicking a group's header (onExpand below, which can both open and
+  // close), or the render-time check further down that ADDS the
+  // newly-entered group on a route change without ever removing another
+  // one. Route changes only ever grow this map, never shrink it, so
+  // several sections can stay open across navigation exactly as if you'd
+  // clicked each one open by hand.
+  const [manuallyExpanded, setManuallyExpanded] = useState<Record<string, boolean>>(() => {
+    const initialGroupId = groupIdContaining(location.pathname);
+    return initialGroupId ? { [initialGroupId]: true } : {};
+  });
+  const [lastPathname, setLastPathname] = useState(location.pathname);
+  if (location.pathname !== lastPathname) {
+    setLastPathname(location.pathname);
+    const enteredGroupId = groupIdContaining(location.pathname);
+    if (enteredGroupId && !manuallyExpanded[enteredGroupId]) {
+      setManuallyExpanded((prev) => ({ ...prev, [enteredGroupId]: true }));
+    }
+  }
 
   // Fail open: while status is loading, or if it fails, show every nav
   // group rather than hiding real navigation over a transient/unrelated
@@ -57,6 +96,7 @@ export function AppNav() {
           const containsCurrentPage = node.children.some((leaf) =>
             location.pathname.startsWith(leaf.path),
           );
+          const isExpanded = manuallyExpanded[node.id] ?? containsCurrentPage;
           return (
             <NavExpandable
               key={node.label}
@@ -64,11 +104,14 @@ export function AppNav() {
               isActive={containsCurrentPage}
               // Expanded by default whenever the current route lives inside
               // this group, so landing on (or reloading) a page under e.g.
-              // /access/... never collapses its own section - PatternFly's
-              // NavExpandable only re-syncs its internal expanded state when
-              // this prop's value actually changes, so manually
-              // expanding/collapsing an unrelated group still works normally.
-              isExpanded={containsCurrentPage}
+              // /access/... never collapses its own section - but once a
+              // group has been manually toggled, that explicit choice wins
+              // (see manuallyExpanded above), independent of every other
+              // group and independent of route changes elsewhere.
+              isExpanded={isExpanded}
+              onExpand={(_event, val) =>
+                setManuallyExpanded((prev) => ({ ...prev, [node.id]: val }))
+              }
             >
               {node.children.map((leaf) => renderNavItem(leaf, location.pathname))}
             </NavExpandable>

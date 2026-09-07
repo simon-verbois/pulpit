@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   Button,
-  ClipboardCopy,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -92,12 +91,8 @@ export function RepositoryDistributionsTab({
                 <Tr key={distribution.pulp_href}>
                   <Td dataLabel="Name">{distribution.name}</Td>
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
-                  <Td dataLabel="URL">
-                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-                      {distribution.base_url}
-                    </ClipboardCopy>
-                  </Td>
-                  <Td dataLabel="Actions" isActionCell>
+                  <Td dataLabel="URL">{distribution.base_url}</Td>
+                  <Td dataLabel="Actions" isActionCell hasAction>
                     <Button
                       variant="link"
                       isDanger

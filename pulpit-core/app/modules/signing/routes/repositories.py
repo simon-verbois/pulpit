@@ -30,10 +30,20 @@ router = APIRouter(prefix="/repositories")
 
 
 @router.get("/policy", response_model=RepositorySigningStatus)
-def get_current_policy(db: Session = Depends(get_db)) -> RepositorySigningStatus:
+def get_current_policy(
+    db: Session = Depends(get_db),
+    _user: CurrentUser = Depends(require_authenticated_user),
+) -> RepositorySigningStatus:
     """What Pulpit's RPM repository create/edit form (task section 10) uses
     to pre-fill the Signing section from the current global policy, instead
-    of making an administrator type a fingerprint by hand."""
+    of making an administrator type a fingerprint by hand.
+
+    `_user` (previously absent): this route had NO auth dependency at all -
+    unlike its siblings below (`/configure` takes `require_authenticated_user`,
+    `/apply-to-all` takes the stricter `require_staff_user`), it was
+    reachable with no session/credentials whatsoever. Just needs
+    authentication, not staff, like `/configure` - this only reveals the
+    current global signing policy, never enqueues anything."""
     settings_row = service.get_settings_row(db)
     active_key = service.get_active_key(db)
 

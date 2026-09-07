@@ -73,6 +73,11 @@ export function RemotesPage() {
         }
       />
       <PageSection hasBodyWrapper={false}>
+        {/* The Standard/ULN toggle switches between two entirely different
+            backing resources (not a filter on one list) - it's the only way
+            to reach ULN remotes at all, so it stays visible even when the
+            active kind's list is empty. Search and pagination, which act on
+            the current list, are gated on it being non-empty. */}
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem>
@@ -89,32 +94,36 @@ export function RemotesPage() {
                 />
               </ToggleGroup>
             </ToolbarItem>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search remotes by name"
-                placeholder="Search by name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={activeQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
+            {activeQuery.isSuccess && activeQuery.data.results.length > 0 ? (
+              <>
+                {/* Fixed width - without it, the bar grows/shrinks as the clear
+                    ("x") button appears/disappears with typed text (VERIFIED:
+                    SearchInput has no intrinsic width of its own). */}
+                <ToolbarItem style={{ width: "18rem" }}>
+                  <SearchInput
+                    aria-label="Search remotes by name"
+                    placeholder="Search by name…"
+                    value={searchInput}
+                    onChange={(_event, value) => setSearchInput(value)}
+                    onSearch={() => setSearch(searchInput)}
+                    onClear={() => {
+                      setSearchInput("");
+                      setSearch("");
+                    }}
+                  />
+                </ToolbarItem>
+                <ToolbarItem align={{ default: "alignEnd" }}>
+                  <Pagination
+                    itemCount={activeQuery.data?.count ?? 0}
+                    page={pagination.page}
+                    perPage={pagination.perPage}
+                    onSetPage={pagination.onSetPage}
+                    onPerPageSelect={pagination.onPerPageSelect}
+                    isCompact
+                  />
+                </ToolbarItem>
+              </>
+            ) : null}
           </ToolbarContent>
         </Toolbar>
 

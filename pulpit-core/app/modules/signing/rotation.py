@@ -12,7 +12,7 @@ Lifecycle (task section 6):
         -> key_retention_days after retiring_at: RETIRED
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.modules.signing.models import SigningKey, SigningSettings
 
@@ -56,4 +56,4 @@ def is_expiring_soon(key: SigningKey, warn_days: int, now: datetime) -> bool:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)

@@ -31,36 +31,38 @@ export function AdvisoriesPage() {
         description="Security, bugfix, and enhancement updates (errata) across every RPM repository."
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search advisories"
-                placeholder="Search…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={advisoriesQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        {advisoriesQuery.isSuccess && advisoriesQuery.data.results.length > 0 ? (
+          <Toolbar>
+            <ToolbarContent>
+              {/* Fixed width - without it, the bar grows/shrinks as the clear
+                  ("x") button appears/disappears with typed text (VERIFIED:
+                  SearchInput has no intrinsic width of its own). */}
+              <ToolbarItem style={{ width: "18rem" }}>
+                <SearchInput
+                  aria-label="Search advisories"
+                  placeholder="Search…"
+                  value={searchInput}
+                  onChange={(_event, value) => setSearchInput(value)}
+                  onSearch={() => setSearch(searchInput)}
+                  onClear={() => {
+                    setSearchInput("");
+                    setSearch("");
+                  }}
+                />
+              </ToolbarItem>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={advisoriesQuery.data?.count ?? 0}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+        ) : null}
 
         <AdvisoriesTable
           isPending={advisoriesQuery.isPending}

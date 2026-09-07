@@ -2,11 +2,13 @@
 (task section 16: "public key endpoint", "coexistence of old/new public
 keys during rotation")."""
 
+from datetime import UTC
+
 import pytest
 from fastapi.testclient import TestClient
 
 import app.main as main_module
-from app.core.auth import CurrentUser, require_authenticated_user
+from app.core.auth import CurrentUser, FullUser, get_full_user, require_authenticated_user
 from app.core.database import get_db
 
 
@@ -18,8 +20,21 @@ def client(db):
     def _override_auth():
         return CurrentUser(username="admin", pulp_href="/pulp/api/v3/users/1/")
 
+    def _override_full_user():
+        # Staff by default: a couple of routes exercised through this
+        # fixture (default_settings PATCH /settings, GET /proxy-credentials
+        # - see their own module docstrings) are staff-gated, and without
+        # this override `require_staff_user`'s own `get_full_user` dependency
+        # would fall through to a real (failing, in tests) Pulp lookup
+        # instead of the fake session `_override_auth` above already
+        # provides. Tests that specifically exercise the non-staff-rejected
+        # path use their own dedicated client (see
+        # test_default_settings_staff_gating below).
+        return FullUser(username="admin", pulp_href="/pulp/api/v3/users/1/", is_staff=True)
+
     main_module.app.dependency_overrides[get_db] = _override_db
     main_module.app.dependency_overrides[require_authenticated_user] = _override_auth
+    main_module.app.dependency_overrides[get_full_user] = _override_full_user
     try:
         yield TestClient(main_module.app)
     finally:
@@ -178,6 +193,59 @@ def test_patch_default_settings_proxy_password_without_secret_key_is_503(client,
     assert response.status_code == 200
 
 
+def _non_staff_client(db):
+    """A caller who is authenticated but not staff - for the two routes
+    default_settings/routes/proxy_credentials.py and settings.py's PATCH
+    gate to require_staff_user (instance-wide proxy credentials, same blast
+    radius as apply_proxy.py's own staff-only bulk action)."""
+
+    def _override_db():
+        yield db
+
+    def _override_auth():
+        return CurrentUser(username="not-staff", pulp_href="/pulp/api/v3/users/2/")
+
+    def _override_full_user():
+        return FullUser(username="not-staff", pulp_href="/pulp/api/v3/users/2/", is_staff=False)
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    main_module.app.dependency_overrides[require_authenticated_user] = _override_auth
+    main_module.app.dependency_overrides[get_full_user] = _override_full_user
+    return TestClient(main_module.app)
+
+
+def test_patch_default_settings_rejects_non_staff(db):
+    client = _non_staff_client(db)
+    try:
+        response = client.patch(
+            "/api/v1/default_settings/settings", json={"proxy_url": "http://proxy:3128"}
+        )
+        assert response.status_code == 403
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+
+def test_get_default_settings_allows_non_staff(db):
+    """Unlike PATCH above, plain GET never returns the raw password (see
+    schemas.py's DefaultSettingsRead) so it stays open to any authenticated
+    user - no staff gate on this one."""
+    client = _non_staff_client(db)
+    try:
+        response = client.get("/api/v1/default_settings/settings")
+        assert response.status_code == 200
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+
+def test_proxy_credentials_rejects_non_staff(db):
+    client = _non_staff_client(db)
+    try:
+        response = client.get("/api/v1/default_settings/proxy-credentials")
+        assert response.status_code == 403
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+
 def test_proxy_credentials_requires_auth(db):
     def _override_db():
         yield db
@@ -300,7 +368,7 @@ def test_public_key_endpoint_serves_only_the_active_key(client, db):
     """Single active key model (task requirement: "je veux une seule cle
     active ... on expose toujours la meme") - a RETIRING key's public key is
     NOT included, unlike the earlier coexistence design."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from app.modules.signing.models import KeyState, SigningKey
 
@@ -319,7 +387,7 @@ def test_public_key_endpoint_serves_only_the_active_key(client, db):
         identity_name="Test",
         algorithm="rsa4096",
         public_key_armor="-----BEGIN PGP PUBLIC KEY BLOCK-----\nRETIRING\n-----END PGP PUBLIC KEY BLOCK-----\n",
-        retiring_at=datetime.now(timezone.utc) - timedelta(days=1),
+        retiring_at=datetime.now(UTC) - timedelta(days=1),
     )
     db.add_all([active, retiring])
     db.flush()
@@ -329,3 +397,52 @@ def test_public_key_endpoint_serves_only_the_active_key(client, db):
     assert "ACTIVE" in response.text
     assert "RETIRING" not in response.text
     assert response.headers["content-type"].startswith("application/pgp-keys")
+
+
+def test_public_key_by_fingerprint_requires_authentication(db):
+    """Unlike GET /keys/<filename> above, this diagnostic/audit lookup
+    (routes/public_key.py) is NOT part of the documented public surface -
+    it must reject a caller with no session at all."""
+
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/keys/by-fingerprint/" + "A" * 40)
+    finally:
+        main_module.app.dependency_overrides.clear()
+    assert response.status_code == 401
+
+
+def test_public_key_by_fingerprint_rejects_non_staff(db):
+    client = _non_staff_client(db)
+    try:
+        response = client.get("/keys/by-fingerprint/" + "A" * 40)
+        assert response.status_code == 403
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+
+def test_public_key_by_fingerprint_allows_staff(client, db):
+    """`client` is staff by default (see the fixture above) - can look up
+    even a RETIRING key by fingerprint, unlike the public /{filename} route."""
+    from datetime import datetime, timedelta
+
+    from app.modules.signing.models import KeyState, SigningKey
+
+    retiring = SigningKey(
+        state=KeyState.RETIRING,
+        key_id="BBBB",
+        fingerprint="B" * 40,
+        identity_name="Test",
+        algorithm="rsa4096",
+        public_key_armor="-----BEGIN PGP PUBLIC KEY BLOCK-----\nRETIRING\n-----END PGP PUBLIC KEY BLOCK-----\n",
+        retiring_at=datetime.now(UTC) - timedelta(days=1),
+    )
+    db.add(retiring)
+    db.flush()
+
+    response = client.get("/keys/by-fingerprint/" + "B" * 40)
+    assert response.status_code == 200
+    assert response.json()["fingerprint"] == "B" * 40

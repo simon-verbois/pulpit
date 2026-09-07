@@ -30,21 +30,6 @@ export function RepositoryVersionsTab({ repository }: { repository: FileReposito
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={versionsQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-
       {versionsQuery.isPending ? (
         <LoadingState label="Loading repository versions" />
       ) : null}
@@ -59,40 +44,58 @@ export function RepositoryVersionsTab({ repository }: { repository: FileReposito
         />
       ) : null}
       {versionsQuery.isSuccess && versionsQuery.data.results.length > 0 ? (
-        <Table aria-label="Repository versions" variant="compact">
-          <Thead>
-            <Tr>
-              <Th>Version</Th>
-              <Th>Created</Th>
-              <Th>Content</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {versionsQuery.data.results.map((version) => {
-              const isCurrent = version.pulp_href === repository.latest_version_href;
-              const fileCount = version.content_summary?.present?.["file.file"]?.count;
-              return (
-                <Tr key={version.pulp_href}>
-                  <Td dataLabel="Version">
-                    Version {version.number}
-                    {isCurrent ? (
-                      <>
-                        {" "}
-                        <StatusIndicator color="blue" isCompact>
-                          Current
-                        </StatusIndicator>
-                      </>
-                    ) : null}
-                  </Td>
-                  <Td dataLabel="Created">{formatRelativeTime(version.pulp_created)}</Td>
-                  <Td dataLabel="Content">
-                    {fileCount !== undefined ? `${fileCount} files` : "—"}
-                  </Td>
-                </Tr>
-              );
-            })}
-          </Tbody>
-        </Table>
+        <>
+          <Toolbar>
+            <ToolbarContent>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={versionsQuery.data?.count ?? 0}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+          <Table aria-label="Repository versions" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Version</Th>
+                <Th>Created</Th>
+                <Th>Content</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {versionsQuery.data.results.map((version) => {
+                const isCurrent = version.pulp_href === repository.latest_version_href;
+                const fileCount = version.content_summary?.present?.["file.file"]?.count;
+                return (
+                  <Tr key={version.pulp_href}>
+                    <Td dataLabel="Version">
+                      Version {version.number}
+                      {isCurrent ? (
+                        <>
+                          {" "}
+                          <StatusIndicator color="blue" isCompact>
+                            Current
+                          </StatusIndicator>
+                        </>
+                      ) : null}
+                    </Td>
+                    <Td dataLabel="Created">
+                      {formatRelativeTime(version.pulp_created)}
+                    </Td>
+                    <Td dataLabel="Content">
+                      {fileCount !== undefined ? `${fileCount} files` : "—"}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </Tbody>
+          </Table>
+        </>
       ) : null}
     </>
   );

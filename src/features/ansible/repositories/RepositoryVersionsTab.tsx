@@ -38,21 +38,6 @@ export function RepositoryVersionsTab({ repository }: { repository: AnsibleRepos
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={versionsQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-
       {versionsQuery.isPending ? (
         <LoadingState label="Loading repository versions" />
       ) : null}
@@ -67,52 +52,73 @@ export function RepositoryVersionsTab({ repository }: { repository: AnsibleRepos
         />
       ) : null}
       {versionsQuery.isSuccess && versionsQuery.data.results.length > 0 ? (
-        <Table aria-label="Repository versions" variant="compact">
-          <Thead>
-            <Tr>
-              <Th>Version</Th>
-              <Th>Created</Th>
-              <Th>Content</Th>
-              <Th screenReaderText="Actions" />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {versionsQuery.data.results.map((version) => {
-              const isCurrent = version.pulp_href === repository.latest_version_href;
-              const collectionCount =
-                version.content_summary?.present?.["ansible.collection_version"]?.count;
-              const roleCount = version.content_summary?.present?.["ansible.role"]?.count;
-              const parts = [
-                collectionCount !== undefined ? `${collectionCount} collections` : null,
-                roleCount !== undefined ? `${roleCount} roles` : null,
-              ].filter(Boolean);
-              return (
-                <Tr key={version.pulp_href}>
-                  <Td dataLabel="Version">
-                    Version {version.number}
-                    {isCurrent ? (
-                      <>
-                        {" "}
-                        <StatusIndicator color="blue" isCompact>
-                          Current
-                        </StatusIndicator>
-                      </>
-                    ) : null}
-                  </Td>
-                  <Td dataLabel="Created">{formatRelativeTime(version.pulp_created)}</Td>
-                  <Td dataLabel="Content">{parts.length > 0 ? parts.join(", ") : "—"}</Td>
-                  <Td dataLabel="Actions" isActionCell>
-                    {isCurrent ? (
-                      <Button variant="link" onClick={() => setIsCopyOpen(true)}>
-                        Copy to…
-                      </Button>
-                    ) : null}
-                  </Td>
-                </Tr>
-              );
-            })}
-          </Tbody>
-        </Table>
+        <>
+          <Toolbar>
+            <ToolbarContent>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={versionsQuery.data?.count ?? 0}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+          <Table aria-label="Repository versions" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Version</Th>
+                <Th>Created</Th>
+                <Th>Content</Th>
+                <Th screenReaderText="Actions" />
+              </Tr>
+            </Thead>
+            <Tbody>
+              {versionsQuery.data.results.map((version) => {
+                const isCurrent = version.pulp_href === repository.latest_version_href;
+                const collectionCount =
+                  version.content_summary?.present?.["ansible.collection_version"]?.count;
+                const roleCount =
+                  version.content_summary?.present?.["ansible.role"]?.count;
+                const parts = [
+                  collectionCount !== undefined ? `${collectionCount} collections` : null,
+                  roleCount !== undefined ? `${roleCount} roles` : null,
+                ].filter(Boolean);
+                return (
+                  <Tr key={version.pulp_href}>
+                    <Td dataLabel="Version">
+                      Version {version.number}
+                      {isCurrent ? (
+                        <>
+                          {" "}
+                          <StatusIndicator color="blue" isCompact>
+                            Current
+                          </StatusIndicator>
+                        </>
+                      ) : null}
+                    </Td>
+                    <Td dataLabel="Created">
+                      {formatRelativeTime(version.pulp_created)}
+                    </Td>
+                    <Td dataLabel="Content">
+                      {parts.length > 0 ? parts.join(", ") : "—"}
+                    </Td>
+                    <Td dataLabel="Actions" isActionCell>
+                      {isCurrent ? (
+                        <Button variant="link" onClick={() => setIsCopyOpen(true)}>
+                          Copy to…
+                        </Button>
+                      ) : null}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </Tbody>
+          </Table>
+        </>
       ) : null}
 
       {isCopyOpen ? (

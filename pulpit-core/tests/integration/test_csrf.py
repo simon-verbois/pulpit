@@ -21,6 +21,8 @@ def _client_with_fake_pulp_login(db):
 
 def test_patch_without_csrf_header_is_rejected(db):
     client = _client_with_fake_pulp_login(db)
+    client.cookies.set("sessionid", "fake")
+    client.cookies.set("csrftoken", "abc123")
     try:
         with respx.mock:
             respx.get("http://pulp:80/pulp/api/v3/login/").mock(
@@ -29,7 +31,6 @@ def test_patch_without_csrf_header_is_rejected(db):
             response = client.patch(
                 "/api/v1/signing/settings",
                 json={"identity_name": "New Name"},
-                cookies={"sessionid": "fake", "csrftoken": "abc123"},
             )
         assert response.status_code == 403
     finally:
@@ -38,6 +39,8 @@ def test_patch_without_csrf_header_is_rejected(db):
 
 def test_patch_with_matching_csrf_header_is_accepted(db):
     client = _client_with_fake_pulp_login(db)
+    client.cookies.set("sessionid", "fake")
+    client.cookies.set("csrftoken", "abc123")
     try:
         with respx.mock:
             respx.get("http://pulp:80/pulp/api/v3/login/").mock(
@@ -46,7 +49,6 @@ def test_patch_with_matching_csrf_header_is_accepted(db):
             response = client.patch(
                 "/api/v1/signing/settings",
                 json={"identity_name": "New Name"},
-                cookies={"sessionid": "fake", "csrftoken": "abc123"},
                 headers={"X-CSRFToken": "abc123"},
             )
         assert response.status_code == 200
@@ -56,6 +58,8 @@ def test_patch_with_matching_csrf_header_is_accepted(db):
 
 def test_patch_with_mismatched_csrf_header_is_rejected(db):
     client = _client_with_fake_pulp_login(db)
+    client.cookies.set("sessionid", "fake")
+    client.cookies.set("csrftoken", "abc123")
     try:
         with respx.mock:
             respx.get("http://pulp:80/pulp/api/v3/login/").mock(
@@ -64,7 +68,6 @@ def test_patch_with_mismatched_csrf_header_is_rejected(db):
             response = client.patch(
                 "/api/v1/signing/settings",
                 json={"identity_name": "New Name"},
-                cookies={"sessionid": "fake", "csrftoken": "abc123"},
                 headers={"X-CSRFToken": "wrong-token"},
             )
         assert response.status_code == 403
@@ -74,12 +77,13 @@ def test_patch_with_mismatched_csrf_header_is_rejected(db):
 
 def test_get_never_requires_csrf(db):
     client = _client_with_fake_pulp_login(db)
+    client.cookies.set("sessionid", "fake")
     try:
         with respx.mock:
             respx.get("http://pulp:80/pulp/api/v3/login/").mock(
                 return_value=httpx.Response(200, json={"pulp_href": "/x/", "username": "admin"})
             )
-            response = client.get("/api/v1/signing/settings", cookies={"sessionid": "fake"})
+            response = client.get("/api/v1/signing/settings")
         assert response.status_code == 200
     finally:
         main_module.app.dependency_overrides.clear()

@@ -8,7 +8,6 @@ export interface ListHuggingFaceContentParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
   offset: number;
-  relative_path__icontains?: string;
   repository_version?: string;
 }
 
@@ -16,6 +15,19 @@ export function listHuggingFaceContent(
   params: ListHuggingFaceContentParams,
 ): Promise<PulpPage<HuggingFaceContent>> {
   return pulpFetch<PulpPage<HuggingFaceContent>>(`${BASE}${buildQuery(params)}`);
+}
+
+/** VERIFIED live: this endpoint has no `relative_path__contains`/
+ * `relative_path__icontains` at all - only an exact-match `relative_path`
+ * filter - so a partial-text search box can't be implemented as a
+ * server-side query param the way every other list page in this app does.
+ * Fetches every file in one large page instead, for client-side search
+ * (src/hooks/useClientSideSearch.ts) - bounded, not a true
+ * unbounded-catalog fetch, which is a realistic assumption at the
+ * self-hosted scale this app targets (CLAUDE.md "Stay 100% local"). */
+export async function listAllHuggingFaceContent(): Promise<HuggingFaceContent[]> {
+  const page = await listHuggingFaceContent({ limit: 10000, offset: 0 });
+  return page.results;
 }
 
 /**

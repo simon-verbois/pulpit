@@ -9,16 +9,46 @@ this is a separate directory from `deployment/kube/`" below). See `docs/DEPLOYME
 ## Deploying
 
 ```sh
-cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
-# edit deployment/podman/00-secret.yaml - replace every REPLACE_ME value
-# (openssl rand -hex 32 for both key/password fields)
-
 systemctl --user start podman.socket   # rootless
 ./deployment/podman/deploy.sh up
 ```
 
+The first time `deployment/podman/00-secret.yaml` doesn't exist yet, `up` generates it
+automatically (`PULP_SECRET_KEY`/`PULPIT_CORE_SECRET_KEY` via `openssl rand`, a random
+`PULP_ADMIN_PASSWORD`), printing the admin password once so you can log in - no manual
+secret-editing step needed for a first deploy. Prefer to set your own values instead? Run this
+before `deploy.sh up` and it'll be left alone:
+
+```sh
+cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
+# edit deployment/podman/00-secret.yaml - replace every REPLACE_ME value
+# (openssl rand -hex 32 for both key/password fields)
+```
+
 Open `http://localhost:8080/`. Tear down with `./deployment/podman/deploy.sh down` (named
 volumes/PVCs are kept - `podman volume rm` them yourself for a truly clean slate).
+
+## Pinning versions and overriding config
+
+`deploy.sh` substitutes a handful of `__PLACEHOLDER__` tokens in the YAML from environment
+variables at apply time (`podman play kube` itself has no `${VAR}` interpolation) - same
+names/defaults as Compose's own `.env` (see `.env.example`, `docs/DEPLOYMENT.md`
+"CSRF_TRUSTED_ORIGINS"):
+
+```sh
+# Pin specific image versions instead of the default "latest":
+PULP_PULPIT_IMAGE_TAG=2026.36.1 PULPIT_IMAGE_TAG=2026.36.1 ./deployment/podman/deploy.sh up
+
+# Deploying somewhere other than http://localhost:8080 (a different hostPort in
+# pulpit.yaml, a different hostname, a reverse proxy in front, etc.) - get this wrong and
+# logins will work but every subsequent action (including logout) 403s:
+PULPIT_PUBLIC_ORIGIN=http://pulpit.example.internal:8080 ./deployment/podman/deploy.sh up
+```
+
+Applying the YAML files directly without `deploy.sh` (not recommended, but possible) means
+none of this substitution happens - edit the `__PULP_PULPIT_IMAGE_TAG__`/`__PULPIT_IMAGE_TAG__`
+placeholders in `pulp.yaml`/`pulpit.yaml` and the `__PULPIT_PUBLIC_ORIGIN__` placeholder in
+`00-configmap.yaml` directly instead.
 
 ## Why this is a separate directory from `deployment/kube/`
 
@@ -42,16 +72,22 @@ local Podman engine - VERIFIED live, not assumed:
   separate `Job` pod can't do this instead: it would need to reach `pulp`'s own _internal_
   Postgres (`/var/lib/pgsql`, bundled inside that one container, never network-exposed) to
   run `pulpcore-manager reset-admin-password` itself. `deploy.sh` runs the same script
-  (`../docker/pulp/init-admin-password.sh`, bind-mounted via `hostPath`) with `podman exec`
-  instead, once `pulp` is healthy - the same idea as `compose.yml`'s `post_start` hook, just
+  content (a verbatim copy of `../docker/pulp/init-admin-password.sh`, baked into the
+  `pulp-init-admin-password-script` ConfigMap in `pulp.yaml`) with `podman exec` instead,
+  once `pulp` is healthy - the same idea as `compose.yml`'s `post_start` hook, just
   orchestrated by a script rather than expressible in the YAML.
 - **SELinux confinement blocks more than Docker's default does**, VERIFIED with
-  `ausearch -m avc`, not guessed - `pulp.yaml` (reading a plain `hostPath`-mounted file)
-  needs `securityContext.seLinuxOptions.type: spc_t` on an SELinux-enforcing host
-  (Fedora/RHEL, Podman's own primary ecosystem) - a no-op elsewhere.
+  `ausearch -m avc`, not guessed - a plain `hostPath`-mounted file stays labeled with
+  whatever SELinux context the host filesystem gave it, which a confined `container_t`
+  process can't read at all on an SELinux-enforcing host (Fedora/RHEL, Podman's own primary
+  ecosystem). `pulp.yaml` no longer bind-mounts `init-admin-password.sh` from the host for
+  exactly this reason - it's a ConfigMap-backed volume instead (see that file's own
+  comments), which has no host-file label to fight and so needs no SELinux workaround at
+  all. Worth knowing about if you add your own `hostPath` mount to these manifests later.
 - **No variable interpolation in YAML at all** (unlike Compose's `${VAR}`) - `deploy.sh`
-  substitutes the one placeholder that needs a real path (`__PULPIT_REPO_ROOT__`) into a
-  temporary copy of `pulp.yaml` before applying.
+  substitutes a handful of `__PLACEHOLDER__` tokens (image tags, public origin - see
+  "Pinning versions and overriding config" above) into temporary copies of the YAML before
+  applying.
 
 None of this is a real Kubernetes cluster's RBAC/Ingress/Service model, so
 `deployment/kube/`'s manifests are not reusable here as-is - hence a genuinely separate,

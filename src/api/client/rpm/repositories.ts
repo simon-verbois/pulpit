@@ -110,7 +110,3 @@ export function listRepositoryVersions(
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
 }
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
-}

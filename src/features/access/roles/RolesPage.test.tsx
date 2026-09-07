@@ -47,17 +47,33 @@ describe("RolesPage", () => {
     expect(within(row).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 
-  it("shows an empty state when there are no custom roles", async () => {
+  it("shows an empty state when there are no custom roles, keeping the filter toolbar", async () => {
+    // Only the "Custom" filter (locked=false) is empty here - "All" and
+    // "Built-in" still have roles, so the toolbar (with the filter toggle)
+    // must stay visible rather than being replaced by a full-page empty
+    // state, otherwise the user couldn't switch back to see them.
     server.use(
-      http.get(BASE, () =>
-        HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
-      ),
+      http.get(BASE, ({ request }) => {
+        const locked = new URL(request.url).searchParams.get("locked");
+        if (locked === "false") {
+          return HttpResponse.json({ count: 0, next: null, previous: null, results: [] });
+        }
+        return HttpResponse.json({
+          count: 2,
+          next: null,
+          previous: null,
+          results: [ACCESS_CUSTOM_ROLE_FIXTURE, ACCESS_LOCKED_ROLE_FIXTURE],
+        });
+      }),
     );
 
     renderApp(<RolesPage />, { withAdministrationHeaderAction: "roles" });
 
+    await screen.findByText(ACCESS_CUSTOM_ROLE_FIXTURE.name);
     fireEvent.click(screen.getByRole("button", { name: "Custom" }));
+
     expect(await screen.findByText("No custom roles yet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
   });
 
   it("shows a generic empty state for the default All filter", async () => {

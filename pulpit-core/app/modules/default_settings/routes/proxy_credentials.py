@@ -1,15 +1,20 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.auth import require_authenticated_user
+from app.core.auth import require_staff_user
 from app.core.crypto import decrypt_secret
 from app.core.database import get_db
 from app.modules.default_settings import service
 from app.modules.default_settings.schemas import ProxyCredentials
 
-router = APIRouter(
-    prefix="/proxy-credentials", dependencies=[Depends(require_authenticated_user)]
-)
+# Staff-only: this is the one endpoint in the module that returns the real,
+# decrypted proxy password (see docstring below) rather than just
+# proxy_password_is_set - readable by every authenticated user would let any
+# logged-in account harvest the instance-wide proxy credentials used to
+# reach every plugin's every Remote, matching the staff-only bar
+# apply_proxy.py already sets for the same "instance-wide proxy" blast
+# radius.
+router = APIRouter(prefix="/proxy-credentials", dependencies=[Depends(require_staff_user)])
 
 
 @router.get("", response_model=ProxyCredentials)

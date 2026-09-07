@@ -8,7 +8,7 @@ export interface ListPythonContentParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
   offset: number;
-  name__icontains?: string;
+  name__contains?: string;
   repository_version?: string;
 }
 

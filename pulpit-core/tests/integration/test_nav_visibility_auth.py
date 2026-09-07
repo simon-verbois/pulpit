@@ -26,6 +26,7 @@ def test_me_resolves_using_the_real_self_lookup(db):
     special-casing left - see service.py's own docstring), so this needs no
     `_USER_URL` mock at all, unlike the settings tests below."""
     client = _client(db)
+    client.cookies.set("sessionid", "fake")
     try:
         with respx.mock:
             respx.get(_LOGIN_URL).mock(
@@ -33,9 +34,7 @@ def test_me_resolves_using_the_real_self_lookup(db):
                     200, json={"pulp_href": "/pulp/api/v3/users/1/", "username": "bob"}
                 )
             )
-            response = client.get(
-                "/api/v1/nav_visibility/me", cookies={"sessionid": "fake"}
-            )
+            response = client.get("/api/v1/nav_visibility/me")
         assert response.status_code == 200
         assert response.json() == {"visible_module_ids": None}
     finally:
@@ -44,6 +43,7 @@ def test_me_resolves_using_the_real_self_lookup(db):
 
 def test_settings_rejects_a_non_staff_user(db):
     client = _client(db)
+    client.cookies.set("sessionid", "fake")
     try:
         with respx.mock:
             respx.get(_LOGIN_URL).mock(
@@ -56,9 +56,7 @@ def test_settings_rejects_a_non_staff_user(db):
                     200, json={"username": "bob", "is_staff": False}
                 )
             )
-            response = client.get(
-                "/api/v1/nav_visibility/settings", cookies={"sessionid": "fake"}
-            )
+            response = client.get("/api/v1/nav_visibility/settings")
         assert response.status_code == 403
     finally:
         main_module.app.dependency_overrides.clear()
@@ -66,6 +64,7 @@ def test_settings_rejects_a_non_staff_user(db):
 
 def test_settings_accepts_a_staff_user(db):
     client = _client(db)
+    client.cookies.set("sessionid", "fake")
     try:
         with respx.mock:
             respx.get(_LOGIN_URL).mock(
@@ -78,9 +77,7 @@ def test_settings_accepts_a_staff_user(db):
                     200, json={"username": "admin", "is_staff": True}
                 )
             )
-            response = client.get(
-                "/api/v1/nav_visibility/settings", cookies={"sessionid": "fake"}
-            )
+            response = client.get("/api/v1/nav_visibility/settings")
         assert response.status_code == 200
     finally:
         main_module.app.dependency_overrides.clear()

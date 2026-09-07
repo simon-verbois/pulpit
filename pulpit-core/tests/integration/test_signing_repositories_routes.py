@@ -5,7 +5,7 @@ test_default_settings_routes.py."""
 from fastapi.testclient import TestClient
 
 import app.main as main_module
-from app.core.auth import FullUser, get_full_user
+from app.core.auth import CurrentUser, FullUser, get_full_user, require_authenticated_user
 from app.core.database import get_db
 
 
@@ -19,6 +19,37 @@ def _client(db, *, is_staff: bool):
     main_module.app.dependency_overrides[get_db] = _override_db
     main_module.app.dependency_overrides[get_full_user] = _override_full_user
     return TestClient(main_module.app)
+
+
+def test_get_current_policy_requires_auth(db):
+    """Previously had no auth dependency at all - see the route's own
+    docstring."""
+
+    def _override_db():
+        yield db
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    try:
+        response = TestClient(main_module.app).get("/api/v1/signing/repositories/policy")
+        assert response.status_code == 401
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+
+def test_get_current_policy_allows_any_authenticated_user(db):
+    def _override_db():
+        yield db
+
+    def _override_auth():
+        return CurrentUser(username="admin", pulp_href="/pulp/api/v3/users/1/")
+
+    main_module.app.dependency_overrides[get_db] = _override_db
+    main_module.app.dependency_overrides[require_authenticated_user] = _override_auth
+    try:
+        response = TestClient(main_module.app).get("/api/v1/signing/repositories/policy")
+        assert response.status_code == 200
+    finally:
+        main_module.app.dependency_overrides.clear()
 
 
 def test_apply_to_all_requires_staff(db):

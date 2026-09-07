@@ -15,6 +15,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { useUrlTab } from "../../../hooks/useUrlTab";
 import { useUserByUsernameQuery } from "./useUserByUsernameQuery";
 import { useDeleteUserMutation } from "./useDeleteUserMutation";
 import { UserOverviewTab } from "./UserOverviewTab";
@@ -23,7 +24,7 @@ import { EditUserModal } from "./EditUserModal";
 
 export function UserDetailPage() {
   const { username = "" } = useParams<{ username: string }>();
-  const [activeTab, setActiveTab] = useState<string | number>("overview");
+  const [activeTab, setActiveTab] = useUrlTab("overview");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const navigate = useNavigate();

@@ -9,11 +9,17 @@ import { OverviewPage } from "./OverviewPage";
 describe("OverviewPage", () => {
   it("renders real Pulp status data once loaded", async () => {
     renderApp(<OverviewPage />);
-    expect(await screen.findByText("core")).toBeInTheDocument();
-    expect(screen.getByText("3.116.0")).toBeInTheDocument();
+    expect(await screen.findByText("rpm")).toBeInTheDocument();
+    expect(screen.getByText("3.38.5")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument(); // database
     expect(screen.getByText("Disconnected")).toBeInTheDocument(); // redis
     expect(screen.getByText(/\d+(\.\d+)? [A-Z]?B \/ \d+(\.\d+)? [A-Z]?B/)).toBeInTheDocument(); // storage
+  });
+
+  it("never shows a row for core - it isn't a content plugin, always a dash for Repositories/Size (by request)", async () => {
+    renderApp(<OverviewPage />);
+    await screen.findByText("rpm");
+    expect(screen.queryByRole("row", { name: /^core\b/ })).not.toBeInTheDocument();
   });
 
   it("shows a normalized error state when Pulp is unavailable", async () => {
@@ -44,16 +50,9 @@ describe("OverviewPage", () => {
       "href",
       "/containers/repositories",
     );
-
-    // A component Pulpit has no Repositories page for at all (e.g. core,
-    // pulpcore-core itself) shows a plain dash in that column, not a
-    // broken/empty cell. (Two dashes on this row: Repositories and Size -
-    // core never gets a content_size entry either, see next test.)
-    const coreRow = screen.getByRole("row", { name: /^core\b/ });
-    expect(within(coreRow).getAllByText("—")).toHaveLength(2);
   });
 
-  it("shows a dash for every component's repository count when the instance reports no plugins at all", async () => {
+  it("shows no component table at all when the instance reports only components Pulpit doesn't list (e.g. only core)", async () => {
     server.use(
       http.get("/pulp/api/v3/status/", () =>
         HttpResponse.json({
@@ -64,8 +63,8 @@ describe("OverviewPage", () => {
 
     renderApp(<OverviewPage />);
 
-    const coreRow = await screen.findByRole("row", { name: /^core\b/ });
-    expect(within(coreRow).getAllByText("—").length).toBeGreaterThan(0);
+    await screen.findByText("No compatibility issues detected."); // page has loaded
+    expect(screen.queryByRole("table", { name: "Pulp components" })).not.toBeInTheDocument();
   });
 
   it("shows each installed plugin's content size inline in the component table, dash for one with none", async () => {
@@ -79,14 +78,9 @@ describe("OverviewPage", () => {
 
     const containerRow = screen.getByRole("row", { name: /^container\b/ });
     expect(within(containerRow).getByText("51.0 KB")).toBeInTheDocument();
-
-    // core never gets a content_size entry (see COMPONENT_CONTENT_SIZES_FIXTURE) -
-    // its Size cell is a plain dash, not a fabricated 0.
-    const coreRow = screen.getByRole("row", { name: /^core\b/ });
-    expect(within(coreRow).getAllByText("—")).toHaveLength(2);
   });
 
-  it("hides a plugin's row when nav visibility restricts it, but keeps core (no nav module of its own)", async () => {
+  it("hides a plugin's row when nav visibility restricts it (core is never shown regardless, see the dedicated test above)", async () => {
     server.use(
       http.get("/pulpit-core/api/v1/nav_visibility/me", () =>
         HttpResponse.json({ visible_module_ids: ["ansible", "container"] }),
@@ -96,7 +90,6 @@ describe("OverviewPage", () => {
     renderApp(<OverviewPage />);
 
     expect(await screen.findByRole("row", { name: /^ansible\b/ })).toBeInTheDocument();
-    expect(screen.getByRole("row", { name: /^core\b/ })).toBeInTheDocument();
     expect(screen.queryByRole("row", { name: /^rpm\b/ })).not.toBeInTheDocument();
   });
 

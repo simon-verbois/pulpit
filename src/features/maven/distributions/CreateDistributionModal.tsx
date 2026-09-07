@@ -13,10 +13,10 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
-  TextInput,
 } from "@patternfly/react-core";
 
 import { listAllMavenRemotes } from "../../../api/client/maven/remotes";
+import { BasePathField } from "../../../components/BasePathField";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreateMavenDistributionMutation } from "./useCreateMavenDistributionMutation";
 
@@ -39,7 +39,6 @@ export function CreateDistributionModal({
   repositoryName,
   onClose,
 }: CreateDistributionModalProps) {
-  const [name, setName] = useState("");
   const [basePath, setBasePath] = useState("");
   const [remote, setRemote] = useState("");
   const createMutation = useCreateMavenDistributionMutation();
@@ -50,9 +49,12 @@ export function CreateDistributionModal({
   });
 
   const handleSubmit = () => {
+    // Pulp requires a `name` distinct from `base_path`, but both are
+    // globally-unique free-text identifiers (VERIFIED live) - reusing the
+    // base path as the name avoids asking for the same thing twice.
     createMutation.mutate(
       {
-        name,
+        name: basePath,
         base_path: basePath,
         repository: repositoryHref,
         remote: remote || undefined,
@@ -85,21 +87,14 @@ export function CreateDistributionModal({
               }
             />
           ) : null}
-          <FormGroup label="Name" isRequired fieldId="distribution-name">
-            <TextInput
-              id="distribution-name"
-              isRequired
-              value={name}
-              onChange={(_event, value) => setName(value)}
-            />
-          </FormGroup>
           <FormGroup label="Base path" isRequired fieldId="distribution-base-path">
-            <TextInput
+            <BasePathField
               id="distribution-base-path"
               isRequired
-              placeholder="e.g. my-repo"
+              prefix={`${window.location.origin}/pulp/content/`}
+              placeholder="my-repo"
               value={basePath}
-              onChange={(_event, value) => setBasePath(value)}
+              onChange={setBasePath}
             />
           </FormGroup>
           <FormGroup label="Pull-through remote" fieldId="distribution-remote">
@@ -126,7 +121,7 @@ export function CreateDistributionModal({
           <FlexItem>
             <Button
               variant="primary"
-              isDisabled={!name || !basePath || createMutation.isPending}
+              isDisabled={!basePath || createMutation.isPending}
               isLoading={createMutation.isPending}
               onClick={handleSubmit}
             >

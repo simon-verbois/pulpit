@@ -42,10 +42,6 @@ export async function getPythonRepositoryByName(
   return page.results[0] ?? null;
 }
 
-export function getPythonRepository(href: string): Promise<PythonRepository> {
-  return pulpFetch<PythonRepository>(href);
-}
-
 export function createPythonRepository(
   data: PythonRepositoryCreate,
 ): Promise<PythonRepository> {
@@ -93,8 +89,4 @@ export function listRepositoryVersions(
   params: ListRepositoryVersionsParams,
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
-}
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }

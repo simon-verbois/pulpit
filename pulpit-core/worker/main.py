@@ -22,7 +22,7 @@ Celery-beat were not pulled in for this.
 import logging
 import signal
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.core.config import get_settings
 from app.core.database import session_scope
@@ -49,13 +49,20 @@ def _handle_signal(signum, frame) -> None:  # noqa: ANN001 - stdlib signal signa
 
 
 def _run_one_job() -> bool:
-    settings = get_settings()
     with session_scope() as db:
         job = claim_next_job(db, job_registry.known_types())
         if job is None:
             return False
         logger.info("Running job %s (%s), attempt %s", job.id, job.job_type, job.attempts)
         handler = job_registry.get(job.job_type)
+        if handler is None:
+            # Shouldn't happen in practice - claim_next_job only claims job
+            # types job_registry.known_types() already reported above - but
+            # guard against it explicitly rather than crashing the whole
+            # worker loop on a None call if it ever does (e.g. a registry
+            # mutated between the two calls).
+            mark_failed(db, job, f"No handler registered for job type {job.job_type!r}")
+            return True
         try:
             result = handler(db, job.payload)
             mark_succeeded(db, job, result)
@@ -70,7 +77,7 @@ def _run_one_job() -> bool:
 
 
 def _maybe_schedule(job_type: str, interval_seconds: int, last_check: datetime) -> datetime:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if (now - last_check).total_seconds() < interval_seconds:
         return last_check
     with session_scope() as db:
@@ -92,7 +99,7 @@ def main() -> None:
     logger.info("pulpit-worker started, known job types: %s", job_registry.known_types())
 
     scheduled_jobs = build_scheduled_jobs()
-    epoch = datetime.fromtimestamp(0, tz=timezone.utc)
+    epoch = datetime.fromtimestamp(0, tz=UTC)
     last_checked: dict[str, datetime] = {job_type: epoch for job_type, _ in scheduled_jobs}
     poll_interval = get_settings().job_poll_interval_seconds
     while not _SHUTDOWN:

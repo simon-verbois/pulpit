@@ -30,14 +30,29 @@ server {
     # reading /etc/resolv.conf is what makes this portable across all three.
     resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
 
-    # RPM package uploads and container image layers can be large;
-    # let each location's own limits apply rather than nginx's small default.
-    client_max_body_size 0;
+    # Sane finite default for the server as a whole (nginx's own built-in
+    # default is 1m, small enough to reject some legitimate API request
+    # bodies) - only the specific locations below that actually receive
+    # package/image/collection uploads (VERIFIED against docs/PULP_API.md:
+    # artifact/package/collection uploads all land under /pulp/api/;
+    # /pulp/content/ and /pulp/container/ are content-serving, and /v2/ is
+    # the container registry push/pull path) override this to unlimited.
+    # Previously `client_max_body_size 0` (unlimited) here applied to EVERY
+    # path on this server, including pulpit-core's own JSON API and the
+    # static SPA - no request body anywhere on this origin had any size
+    # ceiling at all.
+    client_max_body_size 10m;
 
     location /pulp/api/ {
         set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
-        proxy_set_header Host $host;
+        # $http_host (not $host): nginx's $host strips the port, so a
+        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
+        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
+        # anything Pulp itself builds from request.get_host() (VERIFIED
+        # live: pulp_container's `registry_path` field came back as
+        # "localhost/<base_path>", missing ":8080", with $host here).
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -48,15 +63,30 @@ server {
         # sends Basic auth itself, once, from its own login form), so it's
         # hidden here rather than fighting the browser for control of the 401.
         proxy_hide_header WWW-Authenticate;
+        # Package/artifact uploads are real file uploads that can be large
+        # (RPM packages, generic artifacts, Ansible collection tarballs -
+        # docs/PULP_API.md's "Package upload"/"Collection version upload"
+        # sections), unlike the rest of Pulp's JSON API on this same prefix.
+        client_max_body_size 0;
     }
 
     location /pulp/content/ {
         set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
-        proxy_set_header Host $host;
+        # $http_host (not $host): nginx's $host strips the port, so a
+        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
+        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
+        # anything Pulp itself builds from request.get_host() (VERIFIED
+        # live: pulp_container's `registry_path` field came back as
+        # "localhost/<base_path>", missing ":8080", with $host here).
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Content-serving path for large package/artifact downloads - kept
+        # unlimited to match the upload side above rather than risk rejecting
+        # a legitimate large request here too.
+        client_max_body_size 0;
     }
 
     # Container registry (pulp_container). Registry clients push/pull large,
@@ -65,13 +95,21 @@ server {
     location /v2/ {
         set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
-        proxy_set_header Host $host;
+        # $http_host (not $host): nginx's $host strips the port, so a
+        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
+        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
+        # anything Pulp itself builds from request.get_host() (VERIFIED
+        # live: pulp_container's `registry_path` field came back as
+        # "localhost/<base_path>", missing ":8080", with $host here).
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_request_buffering off;
         proxy_read_timeout 300s;
         proxy_send_timeout 300s;
+        # Image layer pushes can be large - see the block comment above.
+        client_max_body_size 0;
     }
 
     # pulp_container's "atomic" signature extension API (podman/docker
@@ -84,7 +122,13 @@ server {
     location /extensions/v2/ {
         set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
-        proxy_set_header Host $host;
+        # $http_host (not $host): nginx's $host strips the port, so a
+        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
+        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
+        # anything Pulp itself builds from request.get_host() (VERIFIED
+        # live: pulp_container's `registry_path` field came back as
+        # "localhost/<base_path>", missing ":8080", with $host here).
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -103,13 +147,22 @@ server {
     location /pulp/container/ {
         set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
-        proxy_set_header Host $host;
+        # $http_host (not $host): nginx's $host strips the port, so a
+        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
+        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
+        # anything Pulp itself builds from request.get_host() (VERIFIED
+        # live: pulp_container's `registry_path` field came back as
+        # "localhost/<base_path>", missing ":8080", with $host here).
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_request_buffering off;
         proxy_read_timeout 300s;
         proxy_send_timeout 300s;
+        # Large blob downloads land here (see the block comment above) - same
+        # unlimited scoping as /v2/.
+        client_max_body_size 0;
     }
 
     # pulp_ansible's own Galaxy-v3-compatible API (per-distribution content
@@ -124,10 +177,21 @@ server {
     location /pulp_ansible/ {
         set $pulp_upstream http://${PULP_UPSTREAM};
         proxy_pass $pulp_upstream;
-        proxy_set_header Host $host;
+        # $http_host (not $host): nginx's $host strips the port, so a
+        # non-default PULPIT_HTTP_PORT (or any port at all, dev default
+        # 8080) would otherwise reach Pulp as plain "localhost" - breaking
+        # anything Pulp itself builds from request.get_host() (VERIFIED
+        # live: pulp_container's `registry_path` field came back as
+        # "localhost/<base_path>", missing ":8080", with $host here).
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # This mount also serves the Galaxy-v3 collection publish endpoint
+        # real `ansible-galaxy` clients push tarballs to directly (docs/
+        # PULP_API.md "Ansible endpoints") - same unlimited scoping as the
+        # upload path under /pulp/api/ above.
+        client_max_body_size 0;
     }
 
     # pulpit-core's authenticated module API (ADR 0006, docs/signing.md).

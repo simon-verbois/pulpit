@@ -43,9 +43,40 @@ spec:
       labels:
         app: pulpit
     spec:
+      # Waits for `pulp` to actually answer before starting the main
+      # container - mirrors compose.yml's `depends_on: pulp: condition:
+      # service_healthy` and deployment/podman/pulpit.yaml's own
+      # `wait-for-pulp` initContainer (VERIFIED live there that
+      # `initContainers` run and block correctly). Not strictly required
+      # (the worker loop's own scheduled jobs simply fail-and-retry on
+      # their next poll if Pulp isn't up yet - app/core/jobs), but avoids a
+      # burst of confusing "Connection refused" log lines on every fresh
+      # deploy.
+      initContainers:
+        - name: wait-for-pulp
+          image: docker.io/pulp/pulp:stable
+          command:
+            - sh
+            - -c
+            - |
+              until curl -sf http://pulp:80/pulp/api/v3/status/ >/dev/null 2>&1; do
+                echo "waiting for pulp..."
+                sleep 5
+              done
       containers:
         - name: pulpit
-          image: docker.io/simonverbois/pulpit:latest
+          # __PULPIT_IMAGE_TAG__ is substituted by ./deploy.sh at apply time
+          # from the PULPIT_IMAGE_TAG env var (defaulting to "latest" - same
+          # name/default Compose's .env.example uses) - edit this directly
+          # to a real tag instead if you apply this file without deploy.sh.
+          image: docker.io/simonverbois/pulpit:__PULPIT_IMAGE_TAG__
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
           envFrom:
             - configMapRef:
                 name: pulpit-config

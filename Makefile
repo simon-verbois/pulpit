@@ -1,5 +1,5 @@
 .PHONY: help install dev build lint lint-fix format format-check typecheck test test-watch test-e2e check \
-	compose-up compose-down compose-build compose-logs \
+	env-init compose-up compose-down compose-build compose-logs \
 	pulp-status pulp-versions pulp-migrations pulp-migrate pulp-reset-admin pulp-reset-hard \
 	api-fetch api-generate \
 	pulpit-core-install pulpit-core-test pulpit-core-migrate pulpit-logs \
@@ -50,6 +50,9 @@ test-e2e: ## Run Playwright end-to-end tests against a running stack
 check: format-check lint typecheck test build ## Full quality gate: format + lint + typecheck + test + build
 
 ## --- Docker Compose ---------------------------------------------------------
+
+env-init: ## Generate a local .env with fresh secrets (refuses to overwrite an existing one)
+	./deployment/docker/generate-env.sh
 
 # deployment/docker/compose-dev.yml (not compose.yml) - it builds `pulpit`
 # from local source instead of pulling the published image, see that

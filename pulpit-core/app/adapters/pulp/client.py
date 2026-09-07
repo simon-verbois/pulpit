@@ -54,7 +54,7 @@ class PulpClient:
     # --- Signing services (read-only in Pulp's own API - docs/PULP_API.md) ---
 
     def list_signing_services(self, *, name: str | None = None) -> list[dict]:
-        params = {"limit": 100}
+        params: dict[str, Any] = {"limit": 100}
         if name:
             params["name"] = name
         response = self._request("GET", f"{self._api_base}/signing-services/", params=params)

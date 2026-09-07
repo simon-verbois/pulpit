@@ -1,8 +1,8 @@
 import { useState } from "react";
 import {
   Button,
-  ClipboardCopy,
-  ClipboardCopyVariant,
+  CodeBlock,
+  CodeBlockCode,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -25,9 +25,9 @@ import { CreateDistributionModal } from "../distributions/CreateDistributionModa
 
 /** The ansible.cfg snippet an `ansible-galaxy`/Automation Hub client needs
  * to pull content from this distribution - built from the distribution's
- * own `client_url` (VERIFIED live schema field), the same "copyable client
- * config" idea as RPM's copyable distribution URL, but Ansible's own
- * tooling expects a config block rather than a bare URL. */
+ * own `client_url` (VERIFIED live schema field). Ansible's own tooling
+ * expects a config block rather than a bare URL, unlike every other
+ * plugin's distribution in this app. */
 function galaxyConfigSnippet(distribution: AnsibleDistribution): string {
   return `[galaxy]\nserver_list = ${distribution.name}\n\n[galaxy_server.${distribution.name}]\nurl=${distribution.client_url}`;
 }
@@ -103,17 +103,11 @@ export function RepositoryDistributionsTab({
                   <Td dataLabel="Name">{distribution.name}</Td>
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
                   <Td dataLabel="Client configuration">
-                    <ClipboardCopy
-                      isReadOnly
-                      isCode
-                      variant={ClipboardCopyVariant.expansion}
-                      hoverTip="Copy"
-                      clickTip="Copied"
-                    >
-                      {galaxyConfigSnippet(distribution)}
-                    </ClipboardCopy>
+                    <CodeBlock>
+                      <CodeBlockCode>{galaxyConfigSnippet(distribution)}</CodeBlockCode>
+                    </CodeBlock>
                   </Td>
-                  <Td dataLabel="Actions" isActionCell>
+                  <Td dataLabel="Actions" isActionCell hasAction>
                     <Button
                       variant="link"
                       isDanger

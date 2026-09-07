@@ -12,9 +12,7 @@ describe("RepositoryDistributionsTab", () => {
     renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />);
 
     expect(await screen.findByText(RPM_DISTRIBUTION_FIXTURE.name)).toBeInTheDocument();
-    expect(
-      screen.getByDisplayValue(RPM_DISTRIBUTION_FIXTURE.base_url),
-    ).toBeInTheDocument();
+    expect(screen.getByText(RPM_DISTRIBUTION_FIXTURE.base_url)).toBeInTheDocument();
   });
 
   it("shows an empty state when this repository has no distributions", async () => {
@@ -52,16 +50,16 @@ describe("RepositoryDistributionsTab", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).queryByLabelText(/Repository/i)).not.toBeInTheDocument();
-    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
-      target: { value: "new-dist" },
-    });
+    expect(within(dialog).queryByLabelText("Name", { exact: false })).not.toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(await screen.findByText("new-dist")).toBeInTheDocument();
+    // Name and base path are now the same value (no separate Name field),
+    // so this text renders twice - once per column.
+    expect(await screen.findAllByText("new-dist-path")).toHaveLength(2);
   });
 
   it("deletes a distribution after confirmation", async () => {

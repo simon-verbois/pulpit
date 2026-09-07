@@ -42,7 +42,32 @@ spec:
           done
   containers:
     - name: pulpit
-      image: docker.io/simonverbois/pulpit:latest
+      # __PULPIT_IMAGE_TAG__ is substituted by ./deploy.sh at apply time
+      # (defaults to "latest", same PULPIT_IMAGE_TAG convention as
+      # compose.yml/.env.example - see README.md "Pinning versions and
+      # overriding config") -
+      # edit this directly to a real tag instead if you apply this file
+      # without deploy.sh.
+      image: docker.io/simonverbois/pulpit:__PULPIT_IMAGE_TAG__
+      # allowPrivilegeEscalation/capabilities: deployment/docker/pulpit/
+      # entrypoint.sh runs as root initially to chown/chmod /var/lib/pulpit
+      # and the shared signing volumes, then drops to unprivileged users via
+      # `su`/`setpriv` for the three actual processes (nginx, uvicorn,
+      # worker) - see that file for the full reasoning. Deliberately NOT
+      # `runAsNonRoot: true` - that would stop the container from ever
+      # reaching that root-then-drop startup code at all. Capped to just the
+      # capabilities that dance plausibly needs: CHOWN/DAC_OVERRIDE for the
+      # chown/chmod calls, SETUID/SETGID for su/setpriv themselves.
+      # Unverified against a real running container in this sandbox (no
+      # live podman host available here) - if the entrypoint fails after
+      # this change, check its logs for a denied syscall and add the
+      # specific missing capability back rather than reverting to no
+      # securityContext at all.
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+          add: ["CHOWN", "DAC_OVERRIDE", "SETUID", "SETGID"]
       envFrom:
         - configMapRef:
             name: pulpit-config
@@ -67,6 +92,18 @@ spec:
           mountPath: /var/lib/pulpit-signing/gnupg
         - name: pulpit-signing-scripts
           mountPath: /var/lib/pulpit-signing/scripts
+      # Conservative self-hosted defaults - this is a single-instance,
+      # single-host deployment (see CLAUDE.md "Stay 100% local"), not a
+      # multi-tenant cluster, so these just guard against one runaway
+      # container starving the others on the same box. Adjust to your own
+      # hardware/workload.
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "1"
+          memory: "1Gi"
       # Through nginx, not pulpit-core's own port directly - VERIFIED this
       # exercises the whole proxy chain (nginx -> pulpit-core), not just
       # one of the two.

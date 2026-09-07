@@ -3,7 +3,7 @@ RETIRED state transitions") against a real database. GPG itself is stubbed
 out here for speed/determinism - test_gpg_local_integration.py below
 exercises the real LocalGPGKeyManager end-to-end separately."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -12,7 +12,12 @@ from app.core.jobs.service import claim_next_job, mark_failed, mark_succeeded
 from app.modules.signing import jobs as signing_jobs
 from app.modules.signing import service
 from app.modules.signing.key_manager import GeneratedKey
-from app.modules.signing.models import KeyState, PulpServicePurpose, PulpServiceStatus, SigningPulpService
+from app.modules.signing.models import (
+    KeyState,
+    PulpServicePurpose,
+    PulpServiceStatus,
+    SigningPulpService,
+)
 
 
 def _drain_jobs(db, *, max_jobs: int = 20) -> list[str]:
@@ -42,7 +47,7 @@ class _FakeKeyManager:
 
     def generate_key(self, *, identity_name, identity_email, algorithm, validity_days):
         self.counter += 1
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return GeneratedKey(
             fingerprint=f"{self.counter:040d}".replace("0", "A")[:40],
             key_id=f"KEYID{self.counter}",
@@ -55,7 +60,7 @@ class _FakeKeyManager:
         return f"-----BEGIN PGP PUBLIC KEY BLOCK-----\n{fingerprint}\n-----END PGP PUBLIC KEY BLOCK-----\n"
 
     def extend_expiration(self, fingerprint, new_validity_days):
-        return datetime.now(timezone.utc) + timedelta(days=new_validity_days)
+        return datetime.now(UTC) + timedelta(days=new_validity_days)
 
 
 @pytest.fixture(autouse=True)
@@ -115,7 +120,7 @@ def test_retire_key_job_transitions_retiring_to_retired(db):
     _drain_jobs(db)
     key = service.get_key(db, result["key_id"])
     key.state = KeyState.RETIRING
-    key.retiring_at = datetime.now(timezone.utc) - timedelta(days=1)
+    key.retiring_at = datetime.now(UTC) - timedelta(days=1)
     db.flush()
 
     outcome = signing_jobs.retire_key_job(db, {"key_id": str(key.id)})

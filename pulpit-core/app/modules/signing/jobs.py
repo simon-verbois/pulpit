@@ -12,7 +12,7 @@ image has the `gpg`/`rpm`/`rpmsign` binaries and the GNUPGHOME volume at all.
 
 import logging
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -263,13 +263,18 @@ def publish_key_job(db: Session, payload: dict) -> dict:
         return {"status": "waiting_on_manual_pulp_setup"}
 
     old_active = service.get_active_key(db)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     repos_to_resign: list[str] = []
     repos_to_republish: set[str] = set()
 
     if package_row is not None and package_row.status == PulpServiceStatus.ACTIVE:
-        repos_to_resign = _apply_package_fingerprint_everywhere(pulp, package_row.pulp_href, key.fingerprint)
+        # pulp_href is only nullable before a service is registered
+        # (refresh_pulp_service_status sets it) - ACTIVE implies registered.
+        assert package_row.pulp_href is not None
+        repos_to_resign = _apply_package_fingerprint_everywhere(
+            pulp, package_row.pulp_href, key.fingerprint
+        )
         repos_to_republish.update(repos_to_resign)
 
     if metadata_row is not None and metadata_row.status == PulpServiceStatus.ACTIVE:
@@ -281,6 +286,8 @@ def publish_key_job(db: Session, payload: dict) -> dict:
                 .filter(SigningPulpService.signing_key_id == old_active.id)
                 .first()
             )
+        # Same ACTIVE-implies-registered invariant as package_row above.
+        assert metadata_row.pulp_href is not None
         repos_to_republish.update(
             _repoint_metadata_service(
                 pulp,
@@ -329,7 +336,7 @@ def retire_key_job(db: Session, payload: dict) -> dict:
     if key is None or key.state != KeyState.RETIRING:
         return {"status": "skipped"}
     key.state = KeyState.RETIRED
-    key.retired_at = datetime.now(timezone.utc)
+    key.retired_at = datetime.now(UTC)
     db.add(SigningRotation(triggered_by=payload.get("triggered_by", "schedule"), phase="retired", to_key_id=key.id))
     event_bus.publish(db, SIGNING_KEY_RETIRED, {"key_id": str(key.id)}, source_module=MODULE)
     return {"status": "retired"}
@@ -540,8 +547,13 @@ def rotation_check_job(db: Session, payload: dict) -> dict:
                 enqueue_job(db, "signing.generate_key", {"triggered_by": "schedule"})
                 actions.append("generate_key")
             if rotation.should_activate_next(active_key, next_key, settings_row, now):
+                # should_activate_next only returns True when next_key isn't
+                # None (see rotation.py).
+                assert next_key is not None
                 enqueue_job(
-                    db, "signing.publish_key", {"key_id": str(next_key.id), "triggered_by": "schedule"}
+                    db,
+                    "signing.publish_key",
+                    {"key_id": str(next_key.id), "triggered_by": "schedule"},
                 )
                 actions.append("publish_key")
 

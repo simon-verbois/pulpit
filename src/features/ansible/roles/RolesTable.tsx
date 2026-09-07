@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 import { LoadingState } from "../../../components/LoadingState";
@@ -16,6 +17,10 @@ interface RolesTableProps {
   /** Set by a repository-detail tab caller (nested in a bigger page) -
    * unset for the equivalent top-level list page, which stays full-page. */
   emptyStateVariant?: "sm";
+  /** Rendered as the empty state's own call to action - used by callers
+   * whose toolbar action (e.g. "Upload role") is hidden while the list is
+   * empty, so the empty state stays the sole CTA. */
+  emptyAction?: ReactNode;
 }
 
 export function RolesTable({
@@ -27,6 +32,7 @@ export function RolesTable({
   emptyTitle,
   emptyBody,
   emptyStateVariant,
+  emptyAction,
 }: RolesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading roles" />;
@@ -35,7 +41,14 @@ export function RolesTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!roles || roles.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
+    return (
+      <EmptyState
+        title={emptyTitle}
+        body={emptyBody}
+        variant={emptyStateVariant}
+        action={emptyAction}
+      />
+    );
   }
 
   return (

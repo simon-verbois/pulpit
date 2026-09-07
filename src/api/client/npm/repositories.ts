@@ -23,13 +23,6 @@ export function listNpmRepositories(
   return pulpFetch<PulpPage<NpmRepository>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every repository page - used to populate small "repository"
- * selects (e.g. the distribution create form). */
-export async function listAllNpmRepositories(): Promise<NpmRepository[]> {
-  const page = await listNpmRepositories({ limit: 100, offset: 0 });
-  return page.results;
-}
-
 /**
  * Repository hrefs are opaque and only known once you already have the
  * object (docs/PULP_API.md "Repository href semantics") - Pulpit's routes
@@ -45,10 +38,6 @@ export async function getNpmRepositoryByName(name: string): Promise<NpmRepositor
   // turn a legitimate "no such repository" result into a generic error
   // state instead of the intended not-found UI (see RepositoryDetailPage).
   return page.results[0] ?? null;
-}
-
-export function getNpmRepository(href: string): Promise<NpmRepository> {
-  return pulpFetch<NpmRepository>(href);
 }
 
 export function createNpmRepository(data: NpmRepositoryCreate): Promise<NpmRepository> {
@@ -96,8 +85,4 @@ export function listRepositoryVersions(
   params: ListRepositoryVersionsParams,
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
-}
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }

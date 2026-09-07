@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Avatar,
   Button,
+  Flex,
+  FlexItem,
   FormSelect,
   FormSelectOption,
   Pagination,
@@ -69,6 +71,11 @@ export function NamespacesPage() {
         }
       />
       <PageSection hasBodyWrapper={false}>
+        {/* The distribution picker isn't a filter on an existing list - it's
+            the required first step before any namespace list can be fetched
+            at all, so it stays visible even when the selected distribution
+            has no namespaces yet. Pagination, which acts on the current
+            list, is gated on it being non-empty. */}
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem style={{ width: "18rem" }}>
@@ -87,7 +94,9 @@ export function NamespacesPage() {
                 ))}
               </FormSelect>
             </ToolbarItem>
-            {distributionBasePath ? (
+            {distributionBasePath &&
+            namespacesQuery.isSuccess &&
+            namespacesQuery.data.results.length > 0 ? (
               <ToolbarItem align={{ default: "alignEnd" }}>
                 <Pagination
                   itemCount={namespacesQuery.data?.count ?? 0}
@@ -153,16 +162,29 @@ export function NamespacesPage() {
                   <Td dataLabel="Company">{namespace.company || "—"}</Td>
                   <Td dataLabel="Email">{namespace.email || "—"}</Td>
                   <Td dataLabel="Actions" isActionCell>
-                    <Button variant="link" onClick={() => setEditingNamespace(namespace)}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="link"
-                      isDanger
-                      onClick={() => setPendingDelete(namespace)}
+                    <Flex
+                      flexWrap={{ default: "nowrap" }}
+                      spaceItems={{ default: "spaceItemsNone" }}
+                      justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
-                      Delete
-                    </Button>
+                      <FlexItem>
+                        <Button
+                          variant="link"
+                          onClick={() => setEditingNamespace(namespace)}
+                        >
+                          Edit
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button
+                          variant="link"
+                          isDanger
+                          onClick={() => setPendingDelete(namespace)}
+                        >
+                          Delete
+                        </Button>
+                      </FlexItem>
+                    </Flex>
                   </Td>
                 </Tr>
               ))}

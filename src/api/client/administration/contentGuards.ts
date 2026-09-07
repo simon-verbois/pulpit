@@ -1,20 +1,6 @@
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type {
-  CertContentGuard,
-  CertContentGuardWrite,
-  CompositeContentGuard,
-  CompositeContentGuardWrite,
-  ContentGuardKind,
-  ContentGuardSummary,
-  ContentRedirectContentGuard,
-  ContentRedirectContentGuardWrite,
-  HeaderContentGuard,
-  HeaderContentGuardWrite,
-  PulpPage,
-  RBACContentGuard,
-  RBACContentGuardWrite,
-} from "./types";
+import type { ContentGuardKind, ContentGuardSummary, PulpPage } from "./types";
 
 const GENERIC_BASE = apiPath("/contentguards/");
 const HEADER_BASE = apiPath("/contentguards/core/header/");
@@ -113,120 +99,12 @@ export async function listAllContentGuards(): Promise<ContentGuardSummary[]> {
   return page.results;
 }
 
-export function createHeaderContentGuard(
-  data: HeaderContentGuardWrite,
-): Promise<HeaderContentGuard> {
-  return pulpFetch<HeaderContentGuard>(HEADER_BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-export function updateHeaderContentGuard(
-  href: string,
-  data: Partial<HeaderContentGuardWrite>,
-): Promise<HeaderContentGuard> {
-  return pulpFetch<HeaderContentGuard>(href, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export function createRbacContentGuard(
-  data: RBACContentGuardWrite,
-): Promise<RBACContentGuard> {
-  return pulpFetch<RBACContentGuard>(RBAC_BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-export function updateRbacContentGuard(
-  href: string,
-  data: Partial<RBACContentGuardWrite>,
-): Promise<RBACContentGuard> {
-  return pulpFetch<RBACContentGuard>(href, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export function createContentRedirectContentGuard(
-  data: ContentRedirectContentGuardWrite,
-): Promise<ContentRedirectContentGuard> {
-  return pulpFetch<ContentRedirectContentGuard>(CONTENT_REDIRECT_BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-export function updateContentRedirectContentGuard(
-  href: string,
-  data: Partial<ContentRedirectContentGuardWrite>,
-): Promise<ContentRedirectContentGuard> {
-  return pulpFetch<ContentRedirectContentGuard>(href, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export function createCompositeContentGuard(
-  data: CompositeContentGuardWrite,
-): Promise<CompositeContentGuard> {
-  return pulpFetch<CompositeContentGuard>(COMPOSITE_BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-export function updateCompositeContentGuard(
-  href: string,
-  data: Partial<CompositeContentGuardWrite>,
-): Promise<CompositeContentGuard> {
-  return pulpFetch<CompositeContentGuard>(href, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export function createX509ContentGuard(
-  data: CertContentGuardWrite,
-): Promise<CertContentGuard> {
-  return pulpFetch<CertContentGuard>(X509_BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-export function updateX509ContentGuard(
-  href: string,
-  data: Partial<CertContentGuardWrite>,
-): Promise<CertContentGuard> {
-  return pulpFetch<CertContentGuard>(href, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export function createRhsmContentGuard(
-  data: CertContentGuardWrite,
-): Promise<CertContentGuard> {
-  return pulpFetch<CertContentGuard>(RHSM_BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-export function updateRhsmContentGuard(
-  href: string,
-  data: Partial<CertContentGuardWrite>,
-): Promise<CertContentGuard> {
-  return pulpFetch<CertContentGuard>(href, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
 /** Generic create/update dispatch by kind - used by CreateContentGuardModal/
  * EditContentGuardModal so they don't need a switch over every flavor's own
- * function themselves. `data` is intentionally loosely typed here (each
- * flavor's modal builds the exact shape its own kind expects); the
- * kind-specific functions above remain the precisely-typed entry points for
- * any other call site. */
+ * shape themselves. `data` is intentionally loosely typed here (each
+ * flavor's modal builds the exact shape its own kind expects) - there are no
+ * flavor-specific typed create/update functions to fall back to; every
+ * current and past call site has gone through this dispatcher. */
 export function createContentGuardByKind(
   kind: ContentGuardKind,
   data: Record<string, unknown>,

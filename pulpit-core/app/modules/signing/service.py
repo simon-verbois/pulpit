@@ -4,7 +4,7 @@ job (jobs.py), never called synchronously from a request handler (task
 section 12: "Long-running work must be asynchronous")."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -74,5 +74,5 @@ def public_key_url(key: SigningKey, filename: str) -> str:
 def days_until(dt: datetime | None) -> int | None:
     if dt is None:
         return None
-    delta = dt - datetime.now(timezone.utc)
+    delta = dt - datetime.now(UTC)
     return delta.days

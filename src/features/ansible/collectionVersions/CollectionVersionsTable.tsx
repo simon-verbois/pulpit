@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Label } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
@@ -17,6 +18,10 @@ interface CollectionVersionsTableProps {
   /** Set by a repository-detail tab caller (nested in a bigger page) -
    * unset for the equivalent top-level list page, which stays full-page. */
   emptyStateVariant?: "sm";
+  /** Rendered as the empty state's own call to action - used by callers
+   * whose toolbar action (e.g. "Upload collection") is hidden while the
+   * list is empty, so the empty state stays the sole CTA. */
+  emptyAction?: ReactNode;
 }
 
 export function CollectionVersionsTable({
@@ -28,6 +33,7 @@ export function CollectionVersionsTable({
   emptyTitle,
   emptyBody,
   emptyStateVariant,
+  emptyAction,
 }: CollectionVersionsTableProps) {
   if (isPending) {
     return <LoadingState label="Loading collections" />;
@@ -36,7 +42,14 @@ export function CollectionVersionsTable({
     return <ErrorState error={error} onRetry={onRetry} />;
   }
   if (!collectionVersions || collectionVersions.length === 0) {
-    return <EmptyState title={emptyTitle} body={emptyBody} variant={emptyStateVariant} />;
+    return (
+      <EmptyState
+        title={emptyTitle}
+        body={emptyBody}
+        variant={emptyStateVariant}
+        action={emptyAction}
+      />
+    );
   }
 
   return (

@@ -7,6 +7,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { useUrlTab } from "../../../hooks/useUrlTab";
 import { useGroupByNameQuery } from "./useGroupByNameQuery";
 import { useDeleteGroupMutation } from "./useDeleteGroupMutation";
 import { GroupMembersTab } from "./GroupMembersTab";
@@ -14,7 +15,7 @@ import { GroupRolesTab } from "./GroupRolesTab";
 
 export function GroupDetailPage() {
   const { name = "" } = useParams<{ name: string }>();
-  const [activeTab, setActiveTab] = useState<string | number>("members");
+  const [activeTab, setActiveTab] = useUrlTab("members");
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const navigate = useNavigate();
 

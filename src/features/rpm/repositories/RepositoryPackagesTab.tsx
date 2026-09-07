@@ -26,23 +26,25 @@ export function RepositoryPackagesTab({ repository }: { repository: RpmRepositor
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Button onClick={() => setIsUploadOpen(true)}>Upload package</Button>
-          </ToolbarItem>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={packagesQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
+      {packagesQuery.isSuccess && packagesQuery.data.results.length > 0 ? (
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <Button onClick={() => setIsUploadOpen(true)}>Upload package</Button>
+            </ToolbarItem>
+            <ToolbarItem align={{ default: "alignEnd" }}>
+              <Pagination
+                itemCount={packagesQuery.data?.count ?? 0}
+                page={pagination.page}
+                perPage={pagination.perPage}
+                onSetPage={pagination.onSetPage}
+                onPerPageSelect={pagination.onPerPageSelect}
+                isCompact
+              />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+      ) : null}
 
       <PackagesTable
         isPending={packagesQuery.isPending}
@@ -53,6 +55,9 @@ export function RepositoryPackagesTab({ repository }: { repository: RpmRepositor
         emptyTitle="No packages in this repository yet"
         emptyBody="Sync a remote or upload a package to add content to this repository."
         emptyStateVariant="sm"
+        emptyAction={
+          <Button onClick={() => setIsUploadOpen(true)}>Upload package</Button>
+        }
       />
 
       {isUploadOpen ? (

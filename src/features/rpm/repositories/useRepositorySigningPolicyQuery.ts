@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { getRepositorySigningPolicy } from "../../../api/client/pulpitCore/signing";
+import { repositorySigningPolicyKey } from "../../administration/repositorySigning/queryKeys";
 
 /** The current global signing policy (pulpit-core, docs/signing.md), used to
  * pre-fill a repository's Signing section without making an administrator
@@ -10,7 +11,7 @@ import { getRepositorySigningPolicy } from "../../../api/client/pulpitCore/signi
  * block repository creation/editing. */
 export function useRepositorySigningPolicyQuery() {
   return useQuery({
-    queryKey: ["pulpit-core", "signing", "repositories", "policy"],
+    queryKey: repositorySigningPolicyKey,
     queryFn: getRepositorySigningPolicy,
     retry: false,
   });

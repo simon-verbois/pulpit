@@ -35,9 +35,7 @@ describe("RepositoryDistributionsTab", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
 
     const dialog = await screen.findByRole("dialog");
-    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
-      target: { value: "new-dist" },
-    });
+    expect(within(dialog).queryByLabelText("Name", { exact: false })).not.toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
     });
@@ -45,7 +43,9 @@ describe("RepositoryDistributionsTab", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(await screen.findByText("new-dist")).toBeInTheDocument();
+    // Name and base path are now the same value (no separate Name field),
+    // so this text renders twice - once per column.
+    expect(await screen.findAllByText("new-dist-path")).toHaveLength(2);
   });
 
   it("deletes a distribution after confirmation", async () => {

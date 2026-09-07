@@ -65,23 +65,72 @@ envsubst '${NGINX_LOCAL_RESOLVERS} ${PULP_UPSTREAM}' \
 #     their ownership flips between `pulpit` and `700` across a container's
 #     startup (each side's first connection can recreate them) - a single
 #     chmod pass immediately after migrations is a race against whichever
-#     of uvicorn/the worker loop connects for the first time next. A second
-#     pass a few seconds after both are running (below) catches the loser
-#     of that race; steady-state operation afterward reuses the same
-#     already-open connections and doesn't re-trigger it.
+#     of uvicorn/the worker loop connects for the first time next. Rather
+#     than guess a fixed timing window for when that race is over, the
+#     settle loop started near the bottom of this script (once both
+#     processes are actually running) polls and re-applies the same chmod
+#     fix on a short interval, stopping only once several consecutive
+#     passes in a row find nothing left to fix (i.e. it has converged) or a
+#     bounded timeout elapses - deterministic on any host regardless of how
+#     fast/slow uvicorn and the worker loop each open their first
+#     connection. Steady-state operation afterward reuses the same
+#     already-open connections and doesn't re-trigger it, so the loop does
+#     not need to run for the container's whole lifetime, just long enough
+#     to observe both sides' startup connections settle.
 mkdir -p /var/lib/pulpit
 chown pulpit:700 /var/lib/pulpit
 chmod 2770 /var/lib/pulpit
 su pulpit -c "cd /app && alembic upgrade head"
 
-# No-ops (harmlessly, both here and in fix_pulpit_data_perms below) if
-# PULPIT_CORE_DATABASE_URL was overridden to a real Postgres instead - none
-# of these files exist in that case.
+# No-ops (harmlessly, both here and in pulpit_data_perms_ok/settle_pulpit_data_perms
+# below) if PULPIT_CORE_DATABASE_URL was overridden to a real Postgres instead -
+# none of these files exist in that case.
 fix_pulpit_data_perms() {
     chmod 0660 /var/lib/pulpit/pulpit-core.db 2>/dev/null || true
     chmod 0660 /var/lib/pulpit/pulpit-core.db-wal /var/lib/pulpit/pulpit-core.db-shm 2>/dev/null || true
 }
 fix_pulpit_data_perms
+
+# True (exit 0) only if every one of the main db file and its WAL-mode
+# sidecar files that currently exist already has the expected 0660 mode -
+# i.e. nothing for fix_pulpit_data_perms to do right now. A file that
+# doesn't exist yet (including all three, on the Postgres-backend no-op
+# case above) is treated as fine rather than a reason to keep polling.
+pulpit_data_perms_ok() {
+    local f
+    for f in /var/lib/pulpit/pulpit-core.db /var/lib/pulpit/pulpit-core.db-wal /var/lib/pulpit/pulpit-core.db-shm; do
+        [ -e "${f}" ] || continue
+        [ "$(stat -c '%a' "${f}" 2>/dev/null)" = "660" ] || return 1
+    done
+    return 0
+}
+
+# Deterministic replacement for the old fixed "sleep 3; fix; sleep 5; fix"
+# guesswork: re-applies fix_pulpit_data_perms roughly once a second, for up
+# to ${max_wait}s total, and stops early once ${stable_passes_needed}
+# consecutive checks in a row already find nothing to fix - i.e. once it has
+# actually converged, rather than assuming any particular timing window is
+# long enough. Runs in the background (settle_pid below) so it doesn't
+# delay starting nginx/uvicorn/the worker loop; self-terminating once
+# converged or the timeout elapses, not an ongoing background daemon.
+settle_pulpit_data_perms() {
+    local max_wait=30
+    local interval=1
+    local stable_passes_needed=3
+    local stable_count=0
+    local elapsed=0
+    while [ "${elapsed}" -lt "${max_wait}" ]; do
+        fix_pulpit_data_perms
+        if pulpit_data_perms_ok; then
+            stable_count=$((stable_count + 1))
+            [ "${stable_count}" -ge "${stable_passes_needed}" ] && return 0
+        else
+            stable_count=0
+        fi
+        sleep "${interval}"
+        elapsed=$((elapsed + interval))
+    done
+}
 
 # --- shared signing volume prep (pulpit-worker) ----------------------------
 # Identical to the pre-merge pulpit-worker/entrypoint.sh - see
@@ -111,10 +160,10 @@ core_pid=$!
 setpriv --reuid=700 --regid=700 --clear-groups -- python3 -m worker.main &
 worker_pid=$!
 
-# Settles the startup race described above, once both of the above have
-# had a chance to open their own first SQLite connection - self-terminating,
-# not an ongoing background daemon.
-(sleep 3; fix_pulpit_data_perms; sleep 5; fix_pulpit_data_perms) &
+# Settles the startup race described above (see settle_pulpit_data_perms
+# and pulpit_data_perms_ok, defined earlier) - polls/re-fixes until
+# converged or its own bounded timeout elapses, rather than a fixed sleep.
+settle_pulpit_data_perms &
 settle_pid=$!
 
 terminate() {

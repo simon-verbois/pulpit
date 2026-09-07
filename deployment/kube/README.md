@@ -27,17 +27,55 @@ Run every command below from the repo root.
 ## Deploying
 
 ```sh
+./deployment/kube/deploy.sh up -n <your-namespace>
+```
+
+Use `deployment/kube/deploy.sh`, not a raw `kubectl apply -f deployment/kube/`
+one-liner - that directory glob would also pick up
+`00-secret.example.yaml` (literal `REPLACE_ME` placeholder values) if it
+were ever present, creating a real Secret from it. `deploy.sh` applies
+every manifest by an explicit filename list instead, and the first time
+`deployment/kube/00-secret.yaml` doesn't exist yet, `up` generates it
+automatically (`PULP_SECRET_KEY`/`PULPIT_CORE_SECRET_KEY` via `openssl
+rand`, a random `PULP_ADMIN_PASSWORD`), printing the admin password once so
+you can log in - no manual secret-editing step needed for a first deploy.
+Prefer to set your own values instead? Run this before `deploy.sh up` and
+it'll be left alone:
+
+```sh
 cp deployment/kube/00-secret.example.yaml deployment/kube/00-secret.yaml
 # edit deployment/kube/00-secret.yaml - replace every REPLACE_ME value (openssl rand -hex 32
 # for the two key fields - see that file's own comments)
-
-kubectl apply -n <your-namespace> -f deployment/kube/
 ```
+
+`deploy.sh` also substitutes a few placeholders the plain YAML can't
+express by itself (image tags, the public origin used for
+`CSRF_TRUSTED_ORIGINS`) from environment variables before applying -
+matching Compose's `.env.example` naming/defaults for consistency across
+all three deployment targets:
+
+| Env var                  | Default                 | Used in                          |
+| ------------------------ | ------------------------ | --------------------------------- |
+| `PULP_PULPIT_IMAGE_TAG`  | `latest`                 | `pulp.yaml`'s image tag           |
+| `PULPIT_IMAGE_TAG`       | `latest`                 | `pulpit.yaml`'s image tag         |
+| `PULPIT_PUBLIC_ORIGIN`   | `http://localhost:8080`  | `00-configmap.yaml`'s `PULP_CSRF_TRUSTED_ORIGINS` |
+
+```sh
+PULPIT_PUBLIC_ORIGIN=https://pulpit.example.com \
+PULP_PULPIT_IMAGE_TAG=1.2.3 \
+PULPIT_IMAGE_TAG=1.2.3 \
+  ./deployment/kube/deploy.sh up -n <your-namespace>
+```
+
+Tear down with `./deployment/kube/deploy.sh down -n <your-namespace>`
+(deletes the PVCs declared inline in `pulp.yaml`/`pulpit.yaml` too - back
+up data first if you need to keep it; there's no equivalent of Podman's
+named-volume persistence here).
 
 Numeric prefixes (`00-configmap.yaml`, `00-secret.yaml`) only exist so they
 sort before the files that reference them when eyeballing the directory -
-`kubectl apply -f deployment/kube/` applies every file in one pass regardless of name,
-so ordering here is cosmetic, not load-bearing.
+`deploy.sh` applies files in a fixed, explicit order regardless of name,
+so the prefixes are cosmetic, not load-bearing.
 
 ## What's intentionally different from compose.yml
 
@@ -60,16 +98,19 @@ so ordering here is cosmetic, not load-bearing.
   script (inlined into a ConfigMap - see that file's own comment on why).
 - **Health checks** use `httpGet` readiness+liveness probes instead of
   Compose `healthcheck:` blocks - same checks, Kubernetes' own idiom.
-- **No hardcoded namespace anywhere** - `pulpit.yaml` reads its own
-  namespace from the Kubernetes Downward API
-  (`fieldRef: metadata.namespace`), so `kubectl apply -n <anything>` just
-  works without editing any file.
+  `pulpit.yaml`'s `wait-for-pulp` `initContainer` reproduces Compose's
+  `depends_on: pulp: condition: service_healthy` the same way
+  `deployment/podman/pulpit.yaml` does.
+- **No hardcoded namespace anywhere** - none of these manifests set
+  `metadata.namespace` on any object, so every object simply takes on
+  whatever namespace it's applied into (`kubectl apply -n <anything>` /
+  `deploy.sh up -n <anything>`) without editing any file.
 
 ## Known gaps
 
 - Single replica everywhere (`pulp` and `pulpit`'s embedded SQLite are both
   genuinely single-instance in this bootstrap - same scope as Compose).
-- No NetworkPolicies, PodDisruptionBudgets, resource requests/limits, or
-  HorizontalPodAutoscalers - add what your cluster's own conventions expect.
+- No NetworkPolicies, PodDisruptionBudgets, or HorizontalPodAutoscalers -
+  add what your cluster's own conventions expect.
 - `pulpit.yaml`'s Ingress is a minimal example (no TLS) - adapt it to your
   ingress controller and certificate setup.

@@ -20,9 +20,30 @@ data:
 
   # Must be a JSON array, not a bare string (dynaconf otherwise iterates it
   # character-by-character - VERIFIED, docs/DEPLOYMENT.md "CSRF_TRUSTED_
-  # ORIGINS"). Edit this to match wherever pulpit.yaml's Ingress/Service
-  # actually exposes the app publicly.
-  PULP_CSRF_TRUSTED_ORIGINS: '["http://localhost:8080"]'
+  # ORIGINS"). __PULPIT_PUBLIC_ORIGIN__ is substituted by ./deploy.sh at
+  # apply time from the PULPIT_PUBLIC_ORIGIN env var (defaulting to
+  # http://localhost:8080 - same name/default Compose's .env.example uses)
+  # - edit this directly instead if you apply this file without deploy.sh.
+  # Must match wherever pulpit.yaml's Ingress/Service actually exposes the
+  # app publicly, or logins work but every subsequent action 403s.
+  PULP_CSRF_TRUSTED_ORIGINS: '["__PULPIT_PUBLIC_ORIGIN__"]'
+
+  # Without CONTENT_ORIGIN set, pulpcore has no scheme+host to prepend and
+  # a Distribution's `base_url` comes back as a bare path instead of a URL
+  # a user can actually paste into `dnf`/a `.repo` file - same origin CSRF
+  # above already trusts, since Pulp is only ever reached through Pulpit's
+  # own reverse proxy. Same __PULPIT_PUBLIC_ORIGIN__ substitution as
+  # CSRF_TRUSTED_ORIGINS above, just a bare string here (no JSON-array
+  # wrapping needed).
+  PULP_CONTENT_ORIGIN: "__PULPIT_PUBLIC_ORIGIN__"
+  # pulp_ansible and pulp_python each have their OWN hostname setting for
+  # the API root their distributions' URLs are built from (pulp_ansible's
+  # `client_url`, pulp_python's PyPI-compatible index URL) - VERIFIED live:
+  # neither falls back to CONTENT_ORIGIN, and both default to "https://" +
+  # the container's own hostname if unset, producing an unreachable
+  # https://<container-id>/... URL otherwise.
+  PULP_ANSIBLE_API_HOSTNAME: "__PULPIT_PUBLIC_ORIGIN__"
+  PULP_PYPI_API_HOSTNAME: "__PULPIT_PUBLIC_ORIGIN__"
 
   PULP_CACHE_ENABLED: "true"
   PULP_REDIS_HOST: "redis"

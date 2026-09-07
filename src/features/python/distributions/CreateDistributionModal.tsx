@@ -10,9 +10,9 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
-  TextInput,
 } from "@patternfly/react-core";
 
+import { BasePathField } from "../../../components/BasePathField";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreatePythonDistributionMutation } from "./useCreatePythonDistributionMutation";
 
@@ -30,13 +30,15 @@ export function CreateDistributionModal({
   repositoryName,
   onClose,
 }: CreateDistributionModalProps) {
-  const [name, setName] = useState("");
   const [basePath, setBasePath] = useState("");
   const createMutation = useCreatePythonDistributionMutation();
 
   const handleSubmit = () => {
+    // Pulp requires a `name` distinct from `base_path`, but both are
+    // globally-unique free-text identifiers (VERIFIED live) - reusing the
+    // base path as the name avoids asking for the same thing twice.
     createMutation.mutate(
-      { name, base_path: basePath, repository: repositoryHref },
+      { name: basePath, base_path: basePath, repository: repositoryHref },
       { onSuccess: () => onClose() },
     );
   };
@@ -65,21 +67,14 @@ export function CreateDistributionModal({
               }
             />
           ) : null}
-          <FormGroup label="Name" isRequired fieldId="distribution-name">
-            <TextInput
-              id="distribution-name"
-              isRequired
-              value={name}
-              onChange={(_event, value) => setName(value)}
-            />
-          </FormGroup>
           <FormGroup label="Base path" isRequired fieldId="distribution-base-path">
-            <TextInput
+            <BasePathField
               id="distribution-base-path"
               isRequired
-              placeholder="e.g. my-repo"
+              prefix={`${window.location.origin}/pypi/`}
+              placeholder="my-repo"
               value={basePath}
-              onChange={(_event, value) => setBasePath(value)}
+              onChange={setBasePath}
             />
           </FormGroup>
         </Form>
@@ -94,7 +89,7 @@ export function CreateDistributionModal({
           <FlexItem>
             <Button
               variant="primary"
-              isDisabled={!name || !basePath || createMutation.isPending}
+              isDisabled={!basePath || createMutation.isPending}
               isLoading={createMutation.isPending}
               onClick={handleSubmit}
             >

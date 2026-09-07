@@ -19,7 +19,7 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     test.setTimeout(60_000);
 
     // --- Create a user (synchronous, VERIFIED live: 201, no task) ----------
-    await page.goto("/access/users");
+    await page.goto("/admin?tab=access&subtab=users");
     await page.getByRole("button", { name: "Create user" }).click();
     await page.locator("#user-username").fill(USERNAME);
     await page.locator("#user-password").fill("TestPass123!");
@@ -35,7 +35,7 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     await expect(page.getByText("E2E", { exact: true })).toBeVisible();
 
     // --- Create a custom role with one permission ---------------------------
-    await page.goto("/access/roles");
+    await page.goto("/admin?tab=access&subtab=roles");
     await page.getByRole("button", { name: "Create role" }).click();
     const createRoleDialog = page.getByRole("dialog");
     await createRoleDialog.locator("#role-name").fill(ROLENAME);
@@ -61,7 +61,7 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     await expect(page.getByText("Global")).toBeVisible();
 
     // --- Create a group, add the user as a member ---------------------------
-    await page.goto("/access/groups");
+    await page.goto("/admin?tab=access&subtab=groups");
     await page.getByRole("button", { name: "Create group" }).click();
     await page.locator("#group-name").fill(GROUPNAME);
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
@@ -117,7 +117,7 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    await page.goto("/access/groups");
+    await page.goto("/admin?tab=access&subtab=groups");
     await page
       .getByRole("row", { name: new RegExp(GROUPNAME) })
       .getByRole("button", { name: "Delete" })
@@ -125,7 +125,7 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    await page.goto("/access/roles");
+    await page.goto("/admin?tab=access&subtab=roles");
     await page
       .getByRole("row", { name: new RegExp(ROLENAME) })
       .getByRole("button", { name: "Delete" })
@@ -133,7 +133,7 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    await page.goto("/access/users");
+    await page.goto("/admin?tab=access&subtab=users");
     await page
       .getByRole("row", { name: new RegExp(USERNAME) })
       .getByRole("button", { name: "Delete" })

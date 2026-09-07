@@ -53,108 +53,125 @@ export function ContentGuardsPage() {
   );
   useAdministrationHeaderAction("content-guards", createButton);
 
+  const isFiltered = search !== "";
+
+  const toolbar = (
+    <Toolbar>
+      <ToolbarContent>
+        {/* Fixed width - without it, the bar grows/shrinks as the clear
+            ("x") button appears/disappears with typed text (VERIFIED:
+            SearchInput has no intrinsic width of its own). */}
+        <ToolbarItem style={{ width: "18rem" }}>
+          <SearchInput
+            aria-label="Search content guards by name"
+            placeholder="Search by name…"
+            value={searchInput}
+            onChange={(_event, value) => setSearchInput(value)}
+            onSearch={() => setSearch(searchInput)}
+            onClear={() => {
+              setSearchInput("");
+              setSearch("");
+            }}
+          />
+        </ToolbarItem>
+        <ToolbarItem align={{ default: "alignEnd" }}>
+          <Pagination
+            itemCount={guardsQuery.data?.count ?? 0}
+            page={pagination.page}
+            perPage={pagination.perPage}
+            onSetPage={pagination.onSetPage}
+            onPerPageSelect={pagination.onPerPageSelect}
+            isCompact
+          />
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
+  );
+
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search content guards by name"
-                placeholder="Search by name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={guardsQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
         {guardsQuery.isPending ? <LoadingState label="Loading content guards" /> : null}
         {guardsQuery.isError ? (
           <ErrorState error={guardsQuery.error} onRetry={() => guardsQuery.refetch()} />
         ) : null}
-        {guardsQuery.isSuccess && guardsQuery.data.results.length === 0 ? (
+        {guardsQuery.isSuccess && guardsQuery.data.results.length === 0 && !isFiltered ? (
           <EmptyState
             variant="sm"
             title="No content guards yet"
             body="Create one above, then set it as a repository distribution's content guard to restrict who can pull from it."
           />
         ) : null}
+        {guardsQuery.isSuccess && guardsQuery.data.results.length === 0 && isFiltered ? (
+          <>
+            {toolbar}
+            <EmptyState
+              variant="sm"
+              title="No matching content guards"
+              body="Try a different search, or clear it to see every content guard."
+            />
+          </>
+        ) : null}
         {guardsQuery.isSuccess && guardsQuery.data.results.length > 0 ? (
-          <Table aria-label="Content guards" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Type</Th>
-                <Th>Description</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {guardsQuery.data.results.map((guard) => {
-                const kindInfo = contentGuardKindFromPrn(guard.prn);
-                return (
-                  <Tr key={guard.pulp_href}>
-                    <Td dataLabel="Name">{guard.name}</Td>
-                    <Td dataLabel="Type">
-                      <Label isCompact>{kindInfo?.label ?? "Unknown"}</Label>
-                    </Td>
-                    <Td dataLabel="Description">{guard.description ?? "—"}</Td>
-                    <Td dataLabel="Actions" isActionCell>
-                      <Flex
-                        flexWrap={{ default: "nowrap" }}
-                        spaceItems={{ default: "spaceItemsNone" }}
-                        justifyContent={{ default: "justifyContentFlexEnd" }}
-                      >
-                        {kindInfo?.kind === "rbac" ? (
+          <>
+            {toolbar}
+            <Table aria-label="Content guards" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Type</Th>
+                  <Th>Description</Th>
+                  <Th screenReaderText="Actions" />
+                </Tr>
+              </Thead>
+              <Tbody>
+                {guardsQuery.data.results.map((guard) => {
+                  const kindInfo = contentGuardKindFromPrn(guard.prn);
+                  return (
+                    <Tr key={guard.pulp_href}>
+                      <Td dataLabel="Name">{guard.name}</Td>
+                      <Td dataLabel="Type">
+                        <Label isCompact>{kindInfo?.label ?? "Unknown"}</Label>
+                      </Td>
+                      <Td dataLabel="Description">{guard.description ?? "—"}</Td>
+                      <Td dataLabel="Actions" isActionCell>
+                        <Flex
+                          flexWrap={{ default: "nowrap" }}
+                          spaceItems={{ default: "spaceItemsNone" }}
+                          justifyContent={{ default: "justifyContentFlexEnd" }}
+                        >
+                          {kindInfo?.kind === "rbac" ? (
+                            <FlexItem>
+                              <Button
+                                variant="link"
+                                onClick={() => setManagingAccessGuard(guard)}
+                              >
+                                Access
+                              </Button>
+                            </FlexItem>
+                          ) : null}
+                          <FlexItem>
+                            <Button variant="link" onClick={() => setEditingGuard(guard)}>
+                              Edit
+                            </Button>
+                          </FlexItem>
                           <FlexItem>
                             <Button
                               variant="link"
-                              onClick={() => setManagingAccessGuard(guard)}
+                              isDanger
+                              onClick={() => setPendingDelete(guard)}
                             >
-                              Access
+                              Delete
                             </Button>
                           </FlexItem>
-                        ) : null}
-                        <FlexItem>
-                          <Button variant="link" onClick={() => setEditingGuard(guard)}>
-                            Edit
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button
-                            variant="link"
-                            isDanger
-                            onClick={() => setPendingDelete(guard)}
-                          >
-                            Delete
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </Tbody>
-          </Table>
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          </>
         ) : null}
       </PageSection>
 

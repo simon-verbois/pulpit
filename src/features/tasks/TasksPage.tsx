@@ -58,6 +58,53 @@ export function TasksPage() {
     name__contains: search || undefined,
   });
 
+  const isFiltered = search !== "" || stateFilter !== "";
+
+  const toolbar = (
+    <Toolbar>
+      <ToolbarContent>
+        <ToolbarItem>
+          <FormSelect
+            aria-label="Filter by state"
+            value={stateFilter}
+            onChange={(_event, value) => setStateFilter(value as PulpTaskState | "")}
+          >
+            {STATE_OPTIONS.map((option) => (
+              <FormSelectOption
+                key={option.value}
+                value={option.value}
+                label={option.label}
+              />
+            ))}
+          </FormSelect>
+        </ToolbarItem>
+        <ToolbarItem style={{ width: "18rem" }}>
+          <SearchInput
+            aria-label="Search tasks by name"
+            placeholder="Search by task name…"
+            value={searchInput}
+            onChange={(_event, value) => setSearchInput(value)}
+            onSearch={() => setSearch(searchInput)}
+            onClear={() => {
+              setSearchInput("");
+              setSearch("");
+            }}
+          />
+        </ToolbarItem>
+        <ToolbarItem align={{ default: "alignEnd" }}>
+          <Pagination
+            itemCount={tasksQuery.data?.count ?? 0}
+            page={pagination.page}
+            perPage={pagination.perPage}
+            onSetPage={pagination.onSetPage}
+            onPerPageSelect={pagination.onPerPageSelect}
+            isCompact
+          />
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
+  );
+
   return (
     <>
       <PageHeader
@@ -65,100 +112,70 @@ export function TasksPage() {
         description="The full history of asynchronous Pulp operations, as tracked by Pulp itself."
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem>
-              <FormSelect
-                aria-label="Filter by state"
-                value={stateFilter}
-                onChange={(_event, value) => setStateFilter(value as PulpTaskState | "")}
-              >
-                {STATE_OPTIONS.map((option) => (
-                  <FormSelectOption
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
-                  />
-                ))}
-              </FormSelect>
-            </ToolbarItem>
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search tasks by name"
-                placeholder="Search by task name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={tasksQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
         {tasksQuery.isPending ? <LoadingState label="Loading tasks" /> : null}
         {tasksQuery.isError ? (
           <ErrorState error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />
         ) : null}
-        {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 ? (
+        {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && !isFiltered ? (
           <EmptyState
             title="No tasks found"
             body="Tasks appear here once an asynchronous Pulp operation runs, such as a repository sync."
           />
         ) : null}
+        {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && isFiltered ? (
+          <>
+            {toolbar}
+            <EmptyState
+              variant="sm"
+              title="No matching tasks"
+              body="Try a different search or state filter."
+            />
+          </>
+        ) : null}
         {tasksQuery.isSuccess && tasksQuery.data.results.length > 0 ? (
-          <Table aria-label="Tasks" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>State</Th>
-                <Th>Created by</Th>
-                <Th>Created</Th>
-                <Th>Finished</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {tasksQuery.data.results.map((task) => (
-                <Tr key={task.pulp_href}>
-                  <Td dataLabel="Name">
-                    <code>{task.name ?? "—"}</code>
-                  </Td>
-                  <Td dataLabel="State">
-                    <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>
-                      {task.state}
-                    </StatusIndicator>
-                  </Td>
-                  <Td dataLabel="Created by">
-                    <CreatedByCell createdBy={task.created_by} />
-                  </Td>
-                  <Td dataLabel="Created">
-                    {task.pulp_created ? formatRelativeTime(task.pulp_created) : "—"}
-                  </Td>
-                  <Td dataLabel="Finished">
-                    {task.finished_at ? formatRelativeTime(task.finished_at) : "—"}
-                  </Td>
-                  <Td dataLabel="Actions" isActionCell>
-                    <Button variant="link" onClick={() => setViewingTask(task)}>
-                      View details
-                    </Button>
-                  </Td>
+          <>
+            {toolbar}
+            <Table aria-label="Tasks" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>State</Th>
+                  <Th>Created by</Th>
+                  <Th>Created</Th>
+                  <Th>Finished</Th>
+                  <Th screenReaderText="Actions" />
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {tasksQuery.data.results.map((task) => (
+                  <Tr key={task.pulp_href}>
+                    <Td dataLabel="Name">
+                      <code>{task.name ?? "—"}</code>
+                    </Td>
+                    <Td dataLabel="State">
+                      <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>
+                        {task.state}
+                      </StatusIndicator>
+                    </Td>
+                    <Td dataLabel="Created by">
+                      <CreatedByCell createdBy={task.created_by} />
+                    </Td>
+                    <Td dataLabel="Created">
+                      {task.pulp_created ? formatRelativeTime(task.pulp_created) : "—"}
+                    </Td>
+                    <Td dataLabel="Finished">
+                      {task.finished_at ? formatRelativeTime(task.finished_at) : "—"}
+                    </Td>
+                    <Td dataLabel="Actions" isActionCell>
+                      <Button variant="link" onClick={() => setViewingTask(task)}>
+                        View details
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </>
         ) : null}
       </PageSection>
 

@@ -5,7 +5,6 @@ import { server } from "../../../test/mswServer";
 import { RPM_REPO_FIXTURE, RPM_VERSION_FIXTURES } from "../../../test/handlers";
 import {
   createRpmRepository,
-  deleteRepositoryVersion,
   deleteRpmRepository,
   getRpmRepository,
   getRpmRepositoryByName,
@@ -151,10 +150,5 @@ describe("rpm repositories adapter", () => {
       offset: 0,
     });
     expect(page.results).toEqual(RPM_VERSION_FIXTURES);
-  });
-
-  it("deletes a repository version and returns a task href", async () => {
-    const result = await deleteRepositoryVersion(RPM_VERSION_FIXTURES[0].pulp_href);
-    expect(result.task).toMatch(/^\/pulp\/api\/v3\/tasks\//);
   });
 });

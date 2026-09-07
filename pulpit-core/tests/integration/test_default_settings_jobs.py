@@ -64,7 +64,7 @@ def test_applies_the_stored_proxy_to_every_remote(db, fake_pulp):
     assert result["updated_count"] == 2
     assert sorted(result["updated"]) == ["aaa", "bbb"]
     assert result["failed"] == []
-    for href, body in fake_pulp.patched:
+    for _href, body in fake_pulp.patched:
         assert body["proxy_url"] == "http://proxy.example.com:3128"
         assert body["proxy_username"] == "proxyuser"
         assert body["proxy_password"] == "s3cret"

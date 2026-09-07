@@ -1,7 +1,13 @@
-"""Public, unauthenticated key distribution (task section 7). Mounted at the
-bare `/keys/...` path (see app/modules/registry.py build_public_router and
-app/main.py) - `deployment/docker/nginx/pulpit.conf.template` proxies it straight
-through with no auth check, exactly like DNF expects for a `gpgkey=` URL.
+"""Public, unauthenticated key distribution (task section 7): `GET
+/{filename}` below. Mounted at the bare `/keys/...` path (see
+app/modules/registry.py build_public_router and app/main.py) -
+`deployment/docker/nginx/pulpit.conf.template` proxies it straight through
+with no auth check, exactly like DNF expects for a `gpgkey=` URL.
+
+`GET /by-fingerprint/{fingerprint}` shares this router/prefix (so the
+diagnostic lookup lives next to the URL it's a diagnostic companion for) but
+is its own, staff-gated exception to "public, unauthenticated" - see its own
+docstring below.
 
 Single active key model (task requirement: "je veux une seule cle active
 ... on expose toujours la meme"): this URL always serves exactly the
@@ -25,10 +31,11 @@ publish will fail verification until it re-imports the new key.
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from app.core.auth import FullUser, require_staff_user
 from app.core.database import get_db
 from app.modules.signing import service
-from app.modules.signing.schemas import SigningKeyPublic
 from app.modules.signing.models import SigningKey
+from app.modules.signing.schemas import SigningKeyPublic
 
 router = APIRouter(prefix="/keys")
 
@@ -52,10 +59,26 @@ def get_public_key(filename: str, db: Session = Depends(get_db)) -> Response:
 
 
 @router.get("/by-fingerprint/{fingerprint}", response_model=SigningKeyPublic)
-def get_public_key_by_fingerprint(fingerprint: str, db: Session = Depends(get_db)) -> SigningKeyPublic:
+def get_public_key_by_fingerprint(
+    fingerprint: str,
+    db: Session = Depends(get_db),
+    _user: FullUser = Depends(require_staff_user),
+) -> SigningKeyPublic:
     """Not the stable client-facing URL (that's `/{filename}` above, always
     the current active key only) - a diagnostic/audit lookup for any key,
-    including retired ones, by its exact fingerprint."""
+    including retired ones, by its exact fingerprint.
+
+    Unlike `/{filename}` above, this is deliberately NOT part of the public,
+    unauthenticated surface docs/signing.md documents ("Public key
+    distribution") - it can return a RETIRED/RETIRING key's public material
+    too, which DNF/rpm clients never need and no doc promises. It only
+    happens to live on this module's public_key.router (mounted
+    unauthenticated at bare `/keys/...` - module.py) alongside the genuinely
+    public route, so the staff gate is applied directly on this one route
+    rather than moved to another router - same require_staff_user dependency
+    repositories.py's own staff-only `/apply-to-all` route uses, since this
+    is diagnostic/audit-oriented per its own docstring above, not something
+    every authenticated user needs."""
     key = db.query(SigningKey).filter(SigningKey.fingerprint == fingerprint).first()
     db.commit()
     if key is None:

@@ -27,6 +27,8 @@ dev = [
   "pytest>=8.3,<9",
   "pytest-asyncio>=0.24,<0.25",
   "respx>=0.21,<0.22",
+  "ruff>=0.8,<0.9",
+  "mypy>=1.13,<2",
 ]
 
 [tool.setuptools.packages.find]
@@ -35,3 +37,40 @@ include = ["app*", "worker*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+# E501 (line-too-long) is ignored for now: the codebase already carries many
+# long, deliberately-detailed inline comments/docstrings (see e.g.
+# app/modules/signing/jobs.py) documenting VERIFIED-live Pulp API behavior -
+# rewrapping dozens of pre-existing comment blocks is unrelated churn, not a
+# real code-quality signal. Revisit (e.g. per-file-ignores, or wrapping the
+# worst offenders) as a follow-up rather than a blocker for having the rest
+# of the gate (E/F/I/B/UP) in place.
+ignore = ["E501"]
+
+# FastAPI's own dependency-injection idiom is `param: T = Depends(...)` - the
+# call is deliberately evaluated once at route-registration time, not per
+# request (B008 exists to catch accidental mutable-default bugs, which this
+# isn't), so it's the one call bugbear should treat as an intentional
+# "immutable" default rather than flagging as function-call-in-default-argument.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Body", "fastapi.Path"]
+
+[tool.mypy]
+python_version = "3.12"
+# warn_return_any is off for now: app/adapters/pulp/client.py's methods all
+# return the raw `.json()` of a Pulp response (Any) by design - there's no
+# typed Pulp response model yet (see docs/PULP_API.md's "VERIFIED live"
+# comments, which document shapes informally instead), so enabling this
+# would surface ~20 pre-existing "Any" returns there that all need the same
+# unrelated fix (typed response models) rather than a quick annotation.
+# Revisit once/if Pulp responses get typed models.
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

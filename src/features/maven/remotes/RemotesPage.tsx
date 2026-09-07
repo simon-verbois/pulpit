@@ -54,37 +54,6 @@ export function RemotesPage() {
         actions={<Button onClick={() => setIsCreateOpen(true)}>Create remote</Button>}
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search remotes by name"
-                placeholder="Search by name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={remotesQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
         {remotesQuery.isPending ? <LoadingState label="Loading remotes" /> : null}
         {remotesQuery.isError ? (
           <ErrorState error={remotesQuery.error} onRetry={() => remotesQuery.refetch()} />
@@ -97,53 +66,83 @@ export function RemotesPage() {
           />
         ) : null}
         {remotesQuery.isSuccess && remotesQuery.data.results.length > 0 ? (
-          <Table aria-label="Maven remotes" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>URL</Th>
-                <Th>Policy</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {remotesQuery.data.results.map((remote) => (
-                <Tr key={remote.pulp_href}>
-                  <Td dataLabel="Name">{remote.name}</Td>
-                  <Td dataLabel="URL">{remote.url}</Td>
-                  <Td dataLabel="Policy">{remote.policy}</Td>
-                  <Td dataLabel="Actions" isActionCell>
-                    <Flex
-                      flexWrap={{ default: "nowrap" }}
-                      spaceItems={{ default: "spaceItemsNone" }}
-                      justifyContent={{ default: "justifyContentFlexEnd" }}
-                    >
-                      <FlexItem>
-                        <Button variant="link" onClick={() => setEditingRemote(remote)}>
-                          Edit
-                        </Button>
-                      </FlexItem>
-                      <FlexItem>
-                        <Button
-                          variant="link"
-                          isDanger
-                          onClick={() => setPendingDelete(remote)}
-                        >
-                          Delete
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                  </Td>
+          <>
+            <Toolbar>
+              <ToolbarContent>
+                {/* Fixed width - without it, the bar grows/shrinks as the clear
+                    ("x") button appears/disappears with typed text (VERIFIED:
+                    SearchInput has no intrinsic width of its own). */}
+                <ToolbarItem style={{ width: "18rem" }}>
+                  <SearchInput
+                    aria-label="Search remotes by name"
+                    placeholder="Search by name…"
+                    value={searchInput}
+                    onChange={(_event, value) => setSearchInput(value)}
+                    onSearch={() => setSearch(searchInput)}
+                    onClear={() => {
+                      setSearchInput("");
+                      setSearch("");
+                    }}
+                  />
+                </ToolbarItem>
+                <ToolbarItem align={{ default: "alignEnd" }}>
+                  <Pagination
+                    itemCount={remotesQuery.data?.count ?? 0}
+                    page={pagination.page}
+                    perPage={pagination.perPage}
+                    onSetPage={pagination.onSetPage}
+                    onPerPageSelect={pagination.onPerPageSelect}
+                    isCompact
+                  />
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
+            <Table aria-label="Maven remotes" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>URL</Th>
+                  <Th>Policy</Th>
+                  <Th screenReaderText="Actions" />
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {remotesQuery.data.results.map((remote) => (
+                  <Tr key={remote.pulp_href}>
+                    <Td dataLabel="Name">{remote.name}</Td>
+                    <Td dataLabel="URL">{remote.url}</Td>
+                    <Td dataLabel="Policy">{remote.policy}</Td>
+                    <Td dataLabel="Actions" isActionCell>
+                      <Flex
+                        flexWrap={{ default: "nowrap" }}
+                        spaceItems={{ default: "spaceItemsNone" }}
+                        justifyContent={{ default: "justifyContentFlexEnd" }}
+                      >
+                        <FlexItem>
+                          <Button variant="link" onClick={() => setEditingRemote(remote)}>
+                            Edit
+                          </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <Button
+                            variant="link"
+                            isDanger
+                            onClick={() => setPendingDelete(remote)}
+                          >
+                            Delete
+                          </Button>
+                        </FlexItem>
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </>
         ) : null}
       </PageSection>
 
-      {isCreateOpen ? (
-        <CreateRemoteModal onClose={() => setIsCreateOpen(false)} />
-      ) : null}
+      {isCreateOpen ? <CreateRemoteModal onClose={() => setIsCreateOpen(false)} /> : null}
       {editingRemote ? (
         <EditRemoteModal remote={editingRemote} onClose={() => setEditingRemote(null)} />
       ) : null}

@@ -5,19 +5,13 @@ import { server } from "../../../test/mswServer";
 import { HEADER_GUARD_FIXTURE, RBAC_GUARD_FIXTURE } from "../../../test/handlers";
 import {
   contentGuardKindFromPrn,
-  createCompositeContentGuard,
   createContentGuardByKind,
-  createHeaderContentGuard,
-  createRbacContentGuard,
-  createRhsmContentGuard,
-  createX509ContentGuard,
   deleteContentGuard,
   getContentGuardByName,
   getContentGuardDetail,
   listAllContentGuards,
   listContentGuards,
   updateContentGuardByKind,
-  updateHeaderContentGuard,
 } from "./contentGuards";
 import type { HeaderContentGuard } from "./types";
 
@@ -114,54 +108,6 @@ describe("content guards adapter", () => {
       HEADER_GUARD_FIXTURE.pulp_href,
     );
     expect(detail.header_name).toBe(HEADER_GUARD_FIXTURE.header_name);
-  });
-
-  it("creates a header guard synchronously (VERIFIED live: 201, no task)", async () => {
-    const guard = await createHeaderContentGuard({
-      name: "new-header-guard",
-      header_name: "X-Custom",
-      header_value: "abc",
-    });
-    expect(guard.header_name).toBe("X-Custom");
-  });
-
-  it("updates a header guard synchronously (VERIFIED live: 200)", async () => {
-    const guard = await updateHeaderContentGuard(HEADER_GUARD_FIXTURE.pulp_href, {
-      header_value: "updated",
-    });
-    expect(guard.header_value).toBe("updated");
-  });
-
-  it("creates an rbac guard with no extra fields beyond name/description", async () => {
-    const guard = await createRbacContentGuard({ name: "new-rbac-guard" });
-    expect(guard.name).toBe("new-rbac-guard");
-  });
-
-  it("creates a composite guard combining other guards by href", async () => {
-    const guard = await createCompositeContentGuard({
-      name: "new-composite-guard",
-      guards: [HEADER_GUARD_FIXTURE.pulp_href, RBAC_GUARD_FIXTURE.pulp_href],
-    });
-    expect(guard.guards).toEqual([
-      HEADER_GUARD_FIXTURE.pulp_href,
-      RBAC_GUARD_FIXTURE.pulp_href,
-    ]);
-  });
-
-  it("creates an X.509 cert guard with a PEM certificate", async () => {
-    const guard = await createX509ContentGuard({
-      name: "new-x509-guard",
-      ca_certificate: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-    });
-    expect(guard.ca_certificate).toContain("BEGIN CERTIFICATE");
-  });
-
-  it("creates an RHSM cert guard the same way as X.509", async () => {
-    const guard = await createRhsmContentGuard({
-      name: "new-rhsm-guard",
-      ca_certificate: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-    });
-    expect(guard.name).toBe("new-rhsm-guard");
   });
 
   it("dispatches create/update by kind for the generic modal call sites", async () => {

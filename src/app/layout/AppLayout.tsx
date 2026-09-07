@@ -8,9 +8,11 @@ import {
   MastheadContent,
   MastheadLogo,
   MastheadMain,
+  MastheadToggle,
   Page,
   PageSidebar,
   PageSidebarBody,
+  PageToggleButton,
   SkipToContent,
 } from "@patternfly/react-core";
 
@@ -106,10 +108,23 @@ function AppShell() {
   const masthead = (
     <Masthead>
       <MastheadMain>
-        {/* No nav-toggle button (removed by request) - the icon sits in its
-            place, at the masthead's leading edge, and the sidebar
-            (isManagedSidebar on <Page> below) is always shown rather than
-            manually collapsible. */}
+        {/* BUG FOUND LIVE: the nav-toggle button was previously removed on
+            the assumption the sidebar (isManagedSidebar on <Page> below)
+            is "always shown" - true above PatternFly's own responsive
+            breakpoint, but PatternFly's own CSS hides the sidebar entirely
+            below it regardless of isManagedSidebar's JS state, and with no
+            toggle button there was then no way to bring it back at all.
+            PageToggleButton only renders (is only visible) at/below that
+            same breakpoint, matching the CSS hide exactly - it never
+            re-adds a button at wide viewports where the sidebar already
+            behaves as before. */}
+        <MastheadToggle>
+          <PageToggleButton
+            id="pulpit-nav-toggle"
+            aria-label="Toggle navigation"
+            isHamburgerButton
+          />
+        </MastheadToggle>
         <MastheadBrand>
           <MastheadLogo
             component={(props) => <Link to="/" {...props} />}

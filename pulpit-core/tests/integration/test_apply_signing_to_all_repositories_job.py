@@ -10,7 +10,12 @@ import respx
 from app.core.jobs.models import Job
 from app.modules.signing import jobs as signing_jobs
 from app.modules.signing import service
-from app.modules.signing.models import KeyState, PulpServicePurpose, PulpServiceStatus, SigningPulpService
+from app.modules.signing.models import (
+    KeyState,
+    PulpServicePurpose,
+    PulpServiceStatus,
+    SigningPulpService,
+)
 
 PACKAGE_SERVICE_HREF = "/pulp/api/v3/signing-services/pkg/"
 METADATA_SERVICE_HREF = "/pulp/api/v3/signing-services/meta/"

@@ -69,15 +69,14 @@ different about each.
 ```sh
 git clone https://github.com/simon-verbois/pulpit.git
 cd pulpit
-cp .env.example .env
-openssl rand -hex 32   # paste the result into .env as PULP_SECRET_KEY
+./deployment/docker/generate-env.sh   # generates .env with fresh secrets, prints the admin password once
 docker compose -f deployment/docker/compose.yml --env-file .env up -d --build
 ```
 
-Open `http://localhost:8080/` and log in. Pulp's all-in-one image creates an `admin` account with
-a random password on first boot; either set `PULP_ADMIN_PASSWORD` in `.env` _before_ first bringing
-the stack up (so you have a known password to log in with), or run `make pulp-reset-admin`
-afterwards — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+Open `http://localhost:8080/` and log in as `admin` with the password the script printed. (Prefer to
+set values by hand instead? `cp .env.example .env` and fill in `PULP_SECRET_KEY`
+(`openssl rand -hex 32`) and `PULP_ADMIN_PASSWORD` yourself — see
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).)
 
 ### Configuration
 

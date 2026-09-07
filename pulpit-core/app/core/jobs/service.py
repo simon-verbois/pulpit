@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
@@ -20,7 +20,7 @@ def enqueue_job(
         job_type=job_type,
         payload=payload or {},
         status=JobStatus.QUEUED,
-        scheduled_at=run_at or datetime.now(timezone.utc),
+        scheduled_at=run_at or datetime.now(UTC),
         max_attempts=get_settings().job_max_attempts,
         requested_by=requested_by,
     )
@@ -58,7 +58,7 @@ def claim_next_job(db: Session, job_types: list[str]) -> Job | None:
     docs/adr/0006-pulpit-core-backend.md "Job system" for why this was
     chosen over adding Redis/RQ or a broker for this).
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stmt = (
         select(Job)
         .where(Job.status == JobStatus.QUEUED, Job.scheduled_at <= now, Job.job_type.in_(job_types))
@@ -79,7 +79,7 @@ def claim_next_job(db: Session, job_types: list[str]) -> Job | None:
 def mark_succeeded(db: Session, job: Job, result: dict | None = None) -> None:
     job.status = JobStatus.SUCCESS
     job.result = result or {}
-    job.finished_at = datetime.now(timezone.utc)
+    job.finished_at = datetime.now(UTC)
     db.flush()
 
 
@@ -87,12 +87,12 @@ def mark_failed(db: Session, job: Job, error: str) -> None:
     """Fails the job, or requeues it with backoff if attempts remain."""
     if job.attempts < job.max_attempts:
         job.status = JobStatus.QUEUED
-        job.scheduled_at = datetime.now(timezone.utc) + timedelta(
+        job.scheduled_at = datetime.now(UTC) + timedelta(
             seconds=min(60, 2**job.attempts)
         )
         job.error = error
     else:
         job.status = JobStatus.FAILED
         job.error = error
-        job.finished_at = datetime.now(timezone.utc)
+        job.finished_at = datetime.now(UTC)
     db.flush()

@@ -20,9 +20,7 @@ describe("Container RepositoryDistributionsTab", () => {
       2,
     );
     expect(
-      screen.getByDisplayValue(
-        `podman pull ${CONTAINER_DISTRIBUTION_FIXTURE.registry_path}`,
-      ),
+      screen.getByText(`podman pull ${CONTAINER_DISTRIBUTION_FIXTURE.registry_path}`),
     ).toBeInTheDocument();
   });
 
@@ -47,16 +45,16 @@ describe("Container RepositoryDistributionsTab", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
 
     const dialog = await screen.findByRole("dialog");
-    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
-      target: { value: "new-dist" },
-    });
+    expect(within(dialog).queryByLabelText("Name", { exact: false })).not.toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(await screen.findByText('Create distribution "new-dist"')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Create distribution "new-dist-path"'),
+    ).toBeInTheDocument();
   });
 
   it(

@@ -283,12 +283,15 @@ title is invisible to that navigation. Caught the same way: `HelpPanel`'s title 
 `<span className="pf-v6-c-title pf-m-lg">`, inconsistent with `TasksDrawer`'s real `<h1>` from
 `NotificationDrawerHeader`'s `title` prop — fixed to `<Title headingLevel="h1" size="lg">`.
 
-`e2e/a11y.spec.ts` runs `@axe-core/playwright` (WCAG 2.1 A/AA) across every route, the login page,
-one representative page in dark theme, and a couple of key dialogs/panels, plus a handful of
-manual keyboard/focus-management checks automated scanning can't do on its own. Static JSX
-accessibility linting (`eslint-plugin-jsx-a11y`, already wired into `eslint.config.js`) is the
-first line of defense; this suite is the second, catching things only visible in the rendered,
-computed DOM.
+`e2e/a11y.spec.ts` runs `@axe-core/playwright` (WCAG 2.1 A/AA) across a representative sample of
+routes - every content-type plugin's Repositories page, Tasks, and every `/admin` tab/sub-tab
+(including the merged Access sub-tabs, docs/adr/0010-merged-administration-page.md) - plus the
+login page, one representative page in dark theme, and a couple of key dialogs/panels, plus a
+handful of manual keyboard/focus-management checks automated scanning can't do on its own. It does
+not scan every single route (e.g. per-plugin Remotes/Content/detail pages aren't each scanned
+separately - the same PatternFly components repeat across those). Static JSX accessibility linting
+(`eslint-plugin-jsx-a11y`, already wired into `eslint.config.js`) is the first line of defense; this
+suite is the second, catching things only visible in the rendered, computed DOM.
 
 ## Responsive behavior
 

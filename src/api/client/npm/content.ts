@@ -8,12 +8,24 @@ export interface ListNpmContentParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
   offset: number;
-  name__icontains?: string;
   repository_version?: string;
 }
 
 export function listNpmContent(params: ListNpmContentParams): Promise<PulpPage<NpmContent>> {
   return pulpFetch<PulpPage<NpmContent>>(`${BASE}${buildQuery(params)}`);
+}
+
+/** VERIFIED live: this endpoint has no `name__contains`/`name__icontains`
+ * at all (not even `name__contains`) - only an exact-match `name` filter -
+ * so a partial-text search box can't be implemented as a server-side
+ * query param the way every other list page in this app does. Fetches
+ * every package in one large page instead, for client-side search
+ * (src/hooks/useClientSideSearch.ts) - bounded, not a true
+ * unbounded-catalog fetch, which is a realistic assumption at the
+ * self-hosted scale this app targets (CLAUDE.md "Stay 100% local"). */
+export async function listAllNpmContent(): Promise<NpmContent[]> {
+  const page = await listNpmContent({ limit: 10000, offset: 0 });
+  return page.results;
 }
 
 /**

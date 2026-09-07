@@ -15,6 +15,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { useUrlTab } from "../../../hooks/useUrlTab";
 import { useGemRepositoryByNameQuery } from "./useGemRepositoryByNameQuery";
 import { useDeleteGemRepositoryMutation } from "./useDeleteGemRepositoryMutation";
 import { RepositoryOverviewTab } from "./RepositoryOverviewTab";
@@ -26,7 +27,7 @@ import { EditRepositoryModal } from "./EditRepositoryModal";
 
 export function RepositoryDetailPage() {
   const { name = "" } = useParams<{ name: string }>();
-  const [activeTab, setActiveTab] = useState<string | number>("overview");
+  const [activeTab, setActiveTab] = useUrlTab("overview");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const navigate = useNavigate();

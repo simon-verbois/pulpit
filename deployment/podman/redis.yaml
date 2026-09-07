@@ -16,6 +16,19 @@ spec:
     - name: redis
       image: docker.io/library/redis:8-alpine
       args: ["redis-server", "--save", "", "--appendonly", "no"]
+      # Conservative self-hosted defaults - this is a single-instance,
+      # single-host deployment (see CLAUDE.md "Stay 100% local"), not a
+      # multi-tenant cluster, so these just guard against one runaway
+      # container starving the others on the same box. Adjust to your own
+      # hardware/workload; redis here is only an HTTP response cache (see
+      # this file's own top comment), so it needs the least of the three.
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "64Mi"
+        limits:
+          cpu: "500m"
+          memory: "256Mi"
       readinessProbe:
         exec:
           command: ["redis-cli", "ping"]

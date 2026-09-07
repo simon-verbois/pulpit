@@ -86,6 +86,19 @@ class Settings(BaseSettings):
     # --- Public key distribution ---------------------------------------------
     public_key_url_prefix: str = "/keys"
 
+    # --- Fixture seed module (app/modules/fixture_seed/) ------------------------
+    # Defaults to True to preserve the "new instance isn't a totally empty
+    # shell" onboarding UX ADR 0011 was written for. A production deployment
+    # with restricted/metered egress may not want its very first boot making
+    # outbound HTTP calls (using the privileged pulp_service_username/password
+    # above) to eight public fixture hosts (fixtures.pulpproject.org,
+    # nginx.org, registry-1.docker.io, galaxy.ansible.com, pypi.org,
+    # index.rubygems.org, repo1.maven.org, huggingface.co) with no prior
+    # opt-in - set PULPIT_CORE_FIXTURE_SEED_ENABLED=false there (see
+    # docs/DEPLOYMENT.md). Checked once at process/worker startup
+    # (fixture_seed/module.py's `scheduled_jobs`), not re-read per request.
+    fixture_seed_enabled: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

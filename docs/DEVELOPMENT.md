@@ -26,7 +26,7 @@ below can reach it directly — this is a local dev convenience and is not used 
 workflow (Mode B), where `pulp`'s port isn't published to the host at all.
 
 ```sh
-cp .env.example .env   # first time only
+./deployment/docker/generate-env.sh   # first time only - generates .env with fresh secrets
 docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d pulp
 ```
 
@@ -48,7 +48,7 @@ Compose, built from local source — see `docs/DEPLOYMENT.md` for the full walkt
 against `compose.yml`'s published-image variant, but the topology and env vars are the same).
 
 ```sh
-cp .env.example .env   # then set PULP_SECRET_KEY, see docs/DEPLOYMENT.md
+./deployment/docker/generate-env.sh   # skip if you already have a .env from Mode A
 docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d --build
 ```
 

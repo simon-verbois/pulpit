@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Button,
   Content,
@@ -15,7 +16,8 @@ import {
 
 import { PageHeader } from "../../../components/PageHeader";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
-import { useCollectionVersionsQuery } from "./useCollectionVersionsQuery";
+import { useClientSideSearch } from "../../../hooks/useClientSideSearch";
+import { listAllCollectionVersions } from "../../../api/client/ansible/collectionVersions";
 import { useCollectionDeprecationsQuery } from "./useCollectionDeprecationsQuery";
 import { CollectionVersionsTable } from "./CollectionVersionsTable";
 import { DeprecateCollectionModal } from "./DeprecateCollectionModal";
@@ -26,11 +28,19 @@ export function CollectionVersionsPage() {
   const [isDeprecateOpen, setIsDeprecateOpen] = useState(false);
   const pagination = usePulpPagination();
 
-  const collectionVersionsQuery = useCollectionVersionsQuery({
-    limit: pagination.limit,
-    offset: pagination.offset,
-    name__icontains: search || undefined,
+  // No server-side `name__contains` exists for this endpoint (VERIFIED
+  // live) - listAllCollectionVersions's own comment explains why this
+  // fetches everything and filters/paginates client-side instead.
+  const collectionVersionsQuery = useQuery({
+    queryKey: ["pulp", "ansible", "collectionVersions", "all"],
+    queryFn: listAllCollectionVersions,
   });
+  const { paged, totalCount } = useClientSideSearch(
+    collectionVersionsQuery.data,
+    search,
+    (cv) => cv.name,
+    pagination,
+  );
   const deprecationsQuery = useCollectionDeprecationsQuery();
 
   return (
@@ -63,43 +73,45 @@ export function CollectionVersionsPage() {
             </Flex>
           </Content>
         ) : null}
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search collections by name"
-                placeholder="Search by name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={collectionVersionsQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        {collectionVersionsQuery.isSuccess && totalCount > 0 ? (
+          <Toolbar>
+            <ToolbarContent>
+              {/* Fixed width - without it, the bar grows/shrinks as the clear
+                  ("x") button appears/disappears with typed text (VERIFIED:
+                  SearchInput has no intrinsic width of its own). */}
+              <ToolbarItem style={{ width: "18rem" }}>
+                <SearchInput
+                  aria-label="Search collections by name"
+                  placeholder="Search by name…"
+                  value={searchInput}
+                  onChange={(_event, value) => setSearchInput(value)}
+                  onSearch={() => setSearch(searchInput)}
+                  onClear={() => {
+                    setSearchInput("");
+                    setSearch("");
+                  }}
+                />
+              </ToolbarItem>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={totalCount}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+        ) : null}
 
         <CollectionVersionsTable
           isPending={collectionVersionsQuery.isPending}
           isError={collectionVersionsQuery.isError}
           error={collectionVersionsQuery.error}
           onRetry={() => collectionVersionsQuery.refetch()}
-          collectionVersions={collectionVersionsQuery.data?.results}
+          collectionVersions={paged}
           emptyTitle="No collections yet"
           emptyBody="Collections appear here once a repository has synced content or a collection has been uploaded."
         />

@@ -31,36 +31,38 @@ export function ContentPage() {
         description="Packages across every Debian repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Fixed width - without it, the bar grows/shrinks as the clear
-                ("x") button appears/disappears with typed text (VERIFIED:
-                SearchInput has no intrinsic width of its own). */}
-            <ToolbarItem style={{ width: "18rem" }}>
-              <SearchInput
-                aria-label="Search packages by name"
-                placeholder="Search by package name…"
-                value={searchInput}
-                onChange={(_event, value) => setSearchInput(value)}
-                onSearch={() => setSearch(searchInput)}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearch("");
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={contentQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        {contentQuery.isSuccess && contentQuery.data.results.length > 0 ? (
+          <Toolbar>
+            <ToolbarContent>
+              {/* Fixed width - without it, the bar grows/shrinks as the clear
+                  ("x") button appears/disappears with typed text (VERIFIED:
+                  SearchInput has no intrinsic width of its own). */}
+              <ToolbarItem style={{ width: "18rem" }}>
+                <SearchInput
+                  aria-label="Search packages by name"
+                  placeholder="Search by package name…"
+                  value={searchInput}
+                  onChange={(_event, value) => setSearchInput(value)}
+                  onSearch={() => setSearch(searchInput)}
+                  onClear={() => {
+                    setSearchInput("");
+                    setSearch("");
+                  }}
+                />
+              </ToolbarItem>
+              <ToolbarItem align={{ default: "alignEnd" }}>
+                <Pagination
+                  itemCount={contentQuery.data?.count ?? 0}
+                  page={pagination.page}
+                  perPage={pagination.perPage}
+                  onSetPage={pagination.onSetPage}
+                  onPerPageSelect={pagination.onPerPageSelect}
+                  isCompact
+                />
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+        ) : null}
 
         <ContentTable
           isPending={contentQuery.isPending}

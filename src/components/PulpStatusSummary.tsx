@@ -174,7 +174,11 @@ export function PulpStatusSummary({
   // Pulpit has a verified baseline for (src/lib/pulpCompatibility.ts) - the
   // ones it actually has a UI for - are shown; a real compatibility issue
   // among THESE still surfaces via CompatibilityWarnings, unaffected by
-  // this filter.
+  // this filter. "core" is the same kind of noise (always a dash for
+  // Repositories/Size too - it isn't a content plugin) even though it does
+  // have a verified baseline - excluded from the table by request, but its
+  // entry in VERIFIED_VERSIONS stays so CompatibilityWarnings below still
+  // catches a real pulpcore version mismatch.
   //
   // A plugin's own nav module can still be hidden on top of that (an
   // explicit nav-visibility restriction, or the sidebar's capability gate
@@ -183,6 +187,7 @@ export function PulpStatusSummary({
   // can't actually navigate to from the sidebar.
   const implementedVersions = (status.versions ?? []).filter(
     (v) =>
+      v.component !== "core" &&
       v.component in VERIFIED_VERSIONS &&
       (!NAV_MODULE_IDS.has(v.component) ||
         visibleModuleIds == null ||

@@ -23,14 +23,6 @@ export function listGemRepositories(
   return pulpFetch<PulpPage<GemRepository>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every repository page - used to populate small "repository"
- * selects (e.g. the distribution create form) - see the equivalent
- * listAllGemRemotes for the same rationale. */
-export async function listAllGemRepositories(): Promise<GemRepository[]> {
-  const page = await listGemRepositories({ limit: 100, offset: 0 });
-  return page.results;
-}
-
 /**
  * Repository hrefs are opaque and only known once you already have the
  * object (docs/PULP_API.md "Repository href semantics") - Pulpit's routes
@@ -46,10 +38,6 @@ export async function getGemRepositoryByName(name: string): Promise<GemRepositor
   // turn a legitimate "no such repository" result into a generic error
   // state instead of the intended not-found UI (see RepositoryDetailPage).
   return page.results[0] ?? null;
-}
-
-export function getGemRepository(href: string): Promise<GemRepository> {
-  return pulpFetch<GemRepository>(href);
 }
 
 export function createGemRepository(data: GemRepositoryCreate): Promise<GemRepository> {
@@ -107,8 +95,4 @@ export function listRepositoryVersions(
   params: ListRepositoryVersionsParams,
 ): Promise<PulpPage<RepositoryVersion>> {
   return pulpFetch<PulpPage<RepositoryVersion>>(`${versionsHref}${buildQuery(params)}`);
-}
-
-export function deleteRepositoryVersion(href: string): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }
