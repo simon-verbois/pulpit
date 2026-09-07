@@ -5,6 +5,56 @@ Pulpit's own calendar scheme (`YYYY.WW.PATCH` — the ISO year/week of the relea
 counter for same-week releases), tracked in [`VERSION`](VERSION) and shown in the app's own
 footer.
 
+## 2026.37.4 — 2026-09-07
+
+### Added
+
+- Administration → TLS: HTTPS on port 8443 alongside the existing 8080, with an
+  automatically-generated (and auto-renewed before expiry) self-signed certificate out of the box
+  — no configuration needed to get an encrypted connection.
+- Manual certificate upload for port 8443, validated on submit (a mismatched key/certificate pair,
+  an already-expired certificate, or unparseable PEM are all rejected with a specific reason); its
+  expiry now surfaces as an Overview-page warning since there's no key material Pulpit can renew on
+  its own behalf.
+- A FreeIPA certificate provider: request and auto-renew a certificate from a FreeIPA CA using a
+  dedicated automation account (password/session auth, not Kerberos/keytabs), with a guided setup
+  wizard (one-time IPA administrator credentials, never persisted — only the new automation
+  account it creates is saved) and documented manual setup steps for anyone who'd rather not hand
+  over an admin password even transiently ([`docs/tls.md`](docs/tls.md)).
+- Administration → LDAP: configure Pulp's own LDAP authentication backend (server/bind/user and
+  group search/attribute mapping), applied via the same colocated-reconciler mechanism already
+  used for repository signing, plus a "Test connection" check that binds directly against the
+  directory before you apply anything.
+- `GET /pulpit-core/api/v1/health` now reports per-component status (database, Pulp, background
+  worker) instead of a bare "ok", for external monitoring — the HTTP status code itself still
+  reflects only the database, so an external Pulp outage can't trip Kubernetes/Podman's liveness
+  probe into restarting Pulpit over a problem restarting it can't fix.
+
+### Changed
+
+- The FreeIPA and LDAP settings forms (and the FreeIPA guided-setup wizard) now collapse everything
+  but the essential fields into an "Advanced settings" section instead of showing every field at
+  once.
+- The Overview page's Warnings card now aggregates multiple sources (Pulp version compatibility, an
+  expiring TLS certificate) instead of only ever showing Pulp compatibility issues.
+- `fixture_seed` (sample content on first boot) now defaults to disabled instead of enabled —
+  opt in with `PULPIT_CORE_FIXTURE_SEED_ENABLED=true` if you want it.
+- Every "Create distribution" modal's URL preview now uses Pulp's actual configured
+  `CONTENT_ORIGIN` instead of assuming the browser's own origin, so it matches what Pulp really
+  assigns whenever the two differ.
+- Repository version lists and repository-by-name lookups across every content type, the signing
+  keys list, and repository content-size totals now poll every 15 seconds, so a change triggered
+  elsewhere (another session, the Pulp scheduler, an API caller) shows up without a manual refresh.
+- The "Generate signing key" dialog now closes itself once the new key appears instead of waiting
+  for the admin to click Close, and the repository-signing "pending Pulp setup" warning now only
+  appears once a service has been stuck past its normal ~30s registration window instead of
+  immediately.
+
+### Fixed
+
+- A PatternFly v6 layout gap where a page shorter than the browser viewport left the outer page
+  background visible below the content card, all the way down to the footer.
+
 ## 2026.37.2 — 2026-09-07
 
 ### Added
