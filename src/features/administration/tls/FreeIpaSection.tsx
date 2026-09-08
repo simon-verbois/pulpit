@@ -23,7 +23,10 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useJob } from "../../../api/client/pulpitCore/useJob";
-import type { FreeIpaTestConnectionResult, TlsFreeIpaSettings } from "../../../api/client/pulpitCore/types";
+import type {
+  FreeIpaTestConnectionResult,
+  TlsFreeIpaSettings,
+} from "../../../api/client/pulpitCore/types";
 import { useFreeIpaSettingsQuery } from "./useFreeIpaSettingsQuery";
 import { useUpdateFreeIpaSettingsMutation } from "./useUpdateFreeIpaSettingsMutation";
 import { useTestFreeIpaConnectionMutation } from "./useTestFreeIpaConnectionMutation";
@@ -45,11 +48,18 @@ export function FreeIpaSection() {
         </Content>
       </StackItem>
       <StackItem>
-        {settingsQuery.isPending ? <LoadingState label="Loading FreeIPA settings" /> : null}
-        {settingsQuery.isError ? (
-          <ErrorState error={settingsQuery.error} onRetry={() => settingsQuery.refetch()} />
+        {settingsQuery.isPending ? (
+          <LoadingState label="Loading FreeIPA settings" />
         ) : null}
-        {settingsQuery.data ? <FreeIpaSettingsForm settings={settingsQuery.data} /> : null}
+        {settingsQuery.isError ? (
+          <ErrorState
+            error={settingsQuery.error}
+            onRetry={() => settingsQuery.refetch()}
+          />
+        ) : null}
+        {settingsQuery.data ? (
+          <FreeIpaSettingsForm settings={settingsQuery.data} />
+        ) : null}
       </StackItem>
     </Stack>
   );
@@ -116,7 +126,9 @@ function FreeIpaSettingsForm({ settings }: { settings: TlsFreeIpaSettings }) {
 
   const testResult = testJob.data?.result as FreeIpaTestConnectionResult | undefined;
   const testIsRunning =
-    testConnection.isPending || testJob.data?.status === "queued" || testJob.data?.status === "running";
+    testConnection.isPending ||
+    testJob.data?.status === "queued" ||
+    testJob.data?.status === "running";
   const requestCertIsRunning =
     requestCert.isPending ||
     requestCertJob.data?.status === "queued" ||
@@ -164,11 +176,7 @@ function FreeIpaSettingsForm({ settings }: { settings: TlsFreeIpaSettings }) {
               onChange={(_event, value) => setBaseUrl(value)}
             />
           </FormGroup>
-          <FormGroup
-            label="Common name"
-            isRequired
-            fieldId="freeipa-common-name"
-          >
+          <FormGroup label="Common name" isRequired fieldId="freeipa-common-name">
             <TextInput
               id="freeipa-common-name"
               placeholder="pulpit.example.com"
@@ -178,7 +186,9 @@ function FreeIpaSettingsForm({ settings }: { settings: TlsFreeIpaSettings }) {
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem>The hostname the issued certificate covers.</HelperTextItem>
+                <HelperTextItem>
+                  The hostname the issued certificate covers.
+                </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
@@ -219,7 +229,10 @@ function FreeIpaSettingsForm({ settings }: { settings: TlsFreeIpaSettings }) {
               onChange={(_event, value) => setServiceUsername(value)}
             />
           </FormGroup>
-          <FormGroup label="Automation account password" fieldId="freeipa-service-password">
+          <FormGroup
+            label="Automation account password"
+            fieldId="freeipa-service-password"
+          >
             <TextInput
               id="freeipa-service-password"
               type="password"
@@ -269,7 +282,9 @@ function FreeIpaSettingsForm({ settings }: { settings: TlsFreeIpaSettings }) {
               />
               <FormHelperText>
                 <HelperText>
-                  <HelperTextItem>Leave blank to use FreeIPA's own default profile.</HelperTextItem>
+                  <HelperTextItem>
+                    Leave blank to use FreeIPA's own default profile.
+                  </HelperTextItem>
                 </HelperText>
               </FormHelperText>
             </FormGroup>
@@ -281,7 +296,10 @@ function FreeIpaSettingsForm({ settings }: { settings: TlsFreeIpaSettings }) {
                 onChange={(_event, checked) => setAutoRenewEnabled(checked)}
               />
             </FormGroup>
-            <FormGroup label="Renew this many days before expiry" fieldId="freeipa-renew-before-days">
+            <FormGroup
+              label="Renew this many days before expiry"
+              fieldId="freeipa-renew-before-days"
+            >
               <NumberInput
                 id="freeipa-renew-before-days"
                 value={renewBeforeDays}

@@ -100,9 +100,9 @@ terminated there**). These belong in the production nginx config documented in
 
 ## Development vs. production differences
 
-| Concern           | Development (Compose)       | Production                                |
-| ----------------- | --------------------------- | ----------------------------------------- |
+| Concern           | Development (Compose)                 | Production                                                                      |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
 | Transport         | HTTP (8080), self-signed HTTPS (8443) | HTTPS with a real certificate (manual upload or FreeIPA - Administration > TLS) |
-| Secrets           | `.env` (local, untracked)   | Real secret manager / orchestrator secret |
-| `PULP_SECRET_KEY` | Generated locally, dev-only | Managed secret, never reused from dev     |
-| Security headers  | Minimal                     | Full hardening set, HSTS enabled          |
+| Secrets           | `.env` (local, untracked)             | Real secret manager / orchestrator secret                                       |
+| `PULP_SECRET_KEY` | Generated locally, dev-only           | Managed secret, never reused from dev                                           |
+| Security headers  | Minimal                               | Full hardening set, HSTS enabled                                                |

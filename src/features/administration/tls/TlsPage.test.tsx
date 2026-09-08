@@ -45,7 +45,9 @@ const FREEIPA_SETTINGS = {
 };
 
 function mockActive(overrides: Partial<typeof ACTIVE_CERT> = {}) {
-  server.use(http.get(ACTIVE_URL, () => HttpResponse.json({ ...ACTIVE_CERT, ...overrides })));
+  server.use(
+    http.get(ACTIVE_URL, () => HttpResponse.json({ ...ACTIVE_CERT, ...overrides })),
+  );
 }
 
 function mockHistory(entries: unknown[]) {
@@ -54,10 +56,17 @@ function mockHistory(entries: unknown[]) {
 
 function mockFreeIpaSettings(overrides: Partial<typeof FREEIPA_SETTINGS> = {}) {
   server.use(
-    http.get(FREEIPA_SETTINGS_URL, () => HttpResponse.json({ ...FREEIPA_SETTINGS, ...overrides })),
+    http.get(FREEIPA_SETTINGS_URL, () =>
+      HttpResponse.json({ ...FREEIPA_SETTINGS, ...overrides }),
+    ),
     http.patch(FREEIPA_SETTINGS_URL, async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>;
-      return HttpResponse.json({ ...FREEIPA_SETTINGS, ...overrides, ...body, service_password_is_set: true });
+      return HttpResponse.json({
+        ...FREEIPA_SETTINGS,
+        ...overrides,
+        ...body,
+        service_password_is_set: true,
+      });
     }),
   );
 }
@@ -142,11 +151,11 @@ describe("TlsPage overview", () => {
     // fingerprint before clicking, matching what a real regenerate does.
     mockActive({ fingerprint_sha256: "cd".repeat(32) });
 
-    fireEvent.click(screen.getByRole("button", { name: "Regenerate self-signed certificate" }));
-
-    await waitFor(() =>
-      expect(screen.getByText("cd".repeat(32))).toBeInTheDocument(),
+    fireEvent.click(
+      screen.getByRole("button", { name: "Regenerate self-signed certificate" }),
     );
+
+    await waitFor(() => expect(screen.getByText("cd".repeat(32))).toBeInTheDocument());
   });
 
   it("shows recorded certificate history", async () => {
@@ -204,7 +213,9 @@ describe("TlsPage manual sub-tab", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Install certificate" }));
 
     await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Upload certificate" })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole("dialog", { name: "Upload certificate" }),
+      ).not.toBeInTheDocument(),
     );
   });
 
@@ -213,7 +224,10 @@ describe("TlsPage manual sub-tab", () => {
     mockHistory([]);
     server.use(
       http.post(MANUAL_URL, () =>
-        HttpResponse.json({ detail: "The private key does not match the certificate." }, { status: 400 }),
+        HttpResponse.json(
+          { detail: "The private key does not match the certificate." },
+          { status: 400 },
+        ),
       ),
     );
 
@@ -221,14 +235,20 @@ describe("TlsPage manual sub-tab", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Manual" }));
     fireEvent.click(await screen.findByRole("button", { name: "Upload certificate" }));
 
-    fireEvent.change(screen.getByLabelText("Certificate (PEM)", { exact: false }), { target: { value: "cert" } });
-    fireEvent.change(screen.getByLabelText("Private key (PEM)", { exact: false }), { target: { value: "key" } });
+    fireEvent.change(screen.getByLabelText("Certificate (PEM)", { exact: false }), {
+      target: { value: "cert" },
+    });
+    fireEvent.change(screen.getByLabelText("Private key (PEM)", { exact: false }), {
+      target: { value: "key" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Install certificate" }));
 
     expect(
       await screen.findByText("The private key does not match the certificate."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Upload certificate" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Upload certificate" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -259,8 +279,16 @@ describe("TlsPage freeipa sub-tab", () => {
         return HttpResponse.json({
           success: true,
           steps: [
-            { step: "Authenticate as the IPA administrator", status: "created", detail: "" },
-            { step: 'Create service "HTTP/pulpit.example.com@EXAMPLE.COM"', status: "created", detail: "" },
+            {
+              step: "Authenticate as the IPA administrator",
+              status: "created",
+              detail: "",
+            },
+            {
+              step: 'Create service "HTTP/pulpit.example.com@EXAMPLE.COM"',
+              status: "created",
+              detail: "",
+            },
           ],
         });
       }),
@@ -271,15 +299,24 @@ describe("TlsPage freeipa sub-tab", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Guided setup…" }));
 
     const dialog = await screen.findByRole("dialog", { name: "FreeIPA guided setup" });
-    fireEvent.change(within(dialog).getByLabelText("FreeIPA base URL", { exact: false }), {
-      target: { value: "https://ipa.example.test" },
-    });
-    fireEvent.change(within(dialog).getByLabelText("IPA administrator username", { exact: false }), {
-      target: { value: "admin" },
-    });
-    fireEvent.change(within(dialog).getByLabelText("IPA administrator password", { exact: false }), {
-      target: { value: "super-secret-admin-password" },
-    });
+    fireEvent.change(
+      within(dialog).getByLabelText("FreeIPA base URL", { exact: false }),
+      {
+        target: { value: "https://ipa.example.test" },
+      },
+    );
+    fireEvent.change(
+      within(dialog).getByLabelText("IPA administrator username", { exact: false }),
+      {
+        target: { value: "admin" },
+      },
+    );
+    fireEvent.change(
+      within(dialog).getByLabelText("IPA administrator password", { exact: false }),
+      {
+        target: { value: "super-secret-admin-password" },
+      },
+    );
     fireEvent.change(within(dialog).getByLabelText("Common name", { exact: false }), {
       target: { value: "pulpit.example.com" },
     });
@@ -288,7 +325,9 @@ describe("TlsPage freeipa sub-tab", () => {
     // auto-derived/constant defaults (Advanced settings, collapsed).
     fireEvent.click(within(dialog).getByRole("button", { name: "Run setup" }));
 
-    expect(await within(dialog).findByText("Authenticate as the IPA administrator")).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText("Authenticate as the IPA administrator"),
+    ).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("super-secret-admin-password");
   });
 
@@ -307,7 +346,9 @@ describe("TlsPage freeipa sub-tab", () => {
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "Advanced settings" }));
 
-    const principalInput = within(dialog).getByLabelText("Target service principal", { exact: false });
+    const principalInput = within(dialog).getByLabelText("Target service principal", {
+      exact: false,
+    });
     expect(principalInput).toHaveValue("HTTP/pulpit.example.com@EXAMPLE.COM");
 
     // Changing the common name keeps re-deriving it...

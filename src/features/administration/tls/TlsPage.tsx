@@ -1,4 +1,11 @@
-import { PageSection, Stack, StackItem, Tab, TabTitleText, Tabs } from "@patternfly/react-core";
+import {
+  PageSection,
+  Stack,
+  StackItem,
+  Tab,
+  TabTitleText,
+  Tabs,
+} from "@patternfly/react-core";
 
 import { TlsCertificateSection } from "./TlsCertificateSection";
 import { TlsCertificateHistorySection } from "./TlsCertificateHistorySection";

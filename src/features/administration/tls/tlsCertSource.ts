@@ -6,8 +6,9 @@ export const TLS_CERT_SOURCE_LABEL: Record<TlsCertSource, string> = {
   freeipa: "FreeIPA",
 };
 
-export const TLS_CERT_SOURCE_COLOR: Record<TlsCertSource, "orange" | "blue" | "purple"> = {
-  self_signed: "orange",
-  manual: "blue",
-  freeipa: "purple",
-};
+export const TLS_CERT_SOURCE_COLOR: Record<TlsCertSource, "orange" | "blue" | "purple"> =
+  {
+    self_signed: "orange",
+    manual: "blue",
+    freeipa: "purple",
+  };

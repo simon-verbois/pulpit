@@ -80,7 +80,10 @@ export function OverviewPage() {
                 </GridItem>
                 <GridItem md={6} style={{ alignSelf: "start" }}>
                   <OverviewWarnings
-                    sources={[buildCompatibilityWarnings(statusQuery.data), tlsCertWarning]}
+                    sources={[
+                      buildCompatibilityWarnings(statusQuery.data),
+                      tlsCertWarning,
+                    ]}
                   />
                 </GridItem>
               </Grid>

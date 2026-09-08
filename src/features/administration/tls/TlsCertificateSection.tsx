@@ -59,12 +59,19 @@ export function TlsCertificateSection() {
           ) : null}
           {activeQuery.isError ? (
             <StackItem>
-              <ErrorState error={activeQuery.error} onRetry={() => activeQuery.refetch()} />
+              <ErrorState
+                error={activeQuery.error}
+                onRetry={() => activeQuery.refetch()}
+              />
             </StackItem>
           ) : null}
           {regenerateMutation.isError ? (
             <StackItem>
-              <Alert variant="danger" isInline title="Could not queue certificate regeneration." />
+              <Alert
+                variant="danger"
+                isInline
+                title="Could not queue certificate regeneration."
+              />
             </StackItem>
           ) : null}
 
@@ -91,7 +98,9 @@ export function TlsCertificateSection() {
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Subject</DescriptionListTerm>
-                    <DescriptionListDescription>{activeQuery.data.subject}</DescriptionListDescription>
+                    <DescriptionListDescription>
+                      {activeQuery.data.subject}
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Fingerprint (SHA-256)</DescriptionListTerm>

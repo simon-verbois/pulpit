@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Button, Card, CardBody, CardTitle, Content, Flex, FlexItem } from "@patternfly/react-core";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardTitle,
+  Content,
+  Flex,
+  FlexItem,
+} from "@patternfly/react-core";
 
 import { UploadCertificateModal } from "./UploadCertificateModal";
 
@@ -28,8 +36,9 @@ export function ManualCertificateSection() {
       <CardBody>
         <Content component="small">
           Paste a PEM certificate and its matching, unencrypted private key. Installed
-          immediately as the active certificate for port 8443. Not auto-renewed - re-upload a
-          new one before this one expires (the Overview page warns as it nears expiry).
+          immediately as the active certificate for port 8443. Not auto-renewed -
+          re-upload a new one before this one expires (the Overview page warns as it nears
+          expiry).
         </Content>
       </CardBody>
       {showUploadModal ? (

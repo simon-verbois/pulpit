@@ -25,10 +25,7 @@ export function UploadCertificateModal({ onClose }: { onClose: () => void }) {
   const uploadMutation = useUploadManualCertificateMutation();
 
   const handleUpload = () => {
-    uploadMutation.mutate(
-      { cert_pem: certPem, key_pem: keyPem },
-      { onSuccess: onClose },
-    );
+    uploadMutation.mutate({ cert_pem: certPem, key_pem: keyPem }, { onSuccess: onClose });
   };
 
   return (
@@ -57,7 +54,9 @@ export function UploadCertificateModal({ onClose }: { onClose: () => void }) {
                   rows={8}
                   resizeOrientation="vertical"
                   autoComplete="off"
-                  placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
+                  placeholder={
+                    "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+                  }
                   value={certPem}
                   onChange={(_event, value) => setCertPem(value)}
                 />
@@ -68,7 +67,9 @@ export function UploadCertificateModal({ onClose }: { onClose: () => void }) {
                   rows={8}
                   resizeOrientation="vertical"
                   autoComplete="off"
-                  placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
+                  placeholder={
+                    "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+                  }
                   value={keyPem}
                   onChange={(_event, value) => setKeyPem(value)}
                 />
