@@ -4,6 +4,7 @@ only acts on a self-signed certificate nearing expiry, manual upload
 validates and installs synchronously, and the staff-gated routes behave the
 same way signing's own routes do."""
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
@@ -179,7 +180,7 @@ def test_regenerate_selfsigned_enqueues_a_job_for_staff(db):
         assert body["job_type"] == "tls.generate_selfsigned"
         assert body["status"] == "queued"
         assert body["requested_by"] == "admin"
-        assert get_job(db, body["id"]) is not None
+        assert get_job(db, uuid.UUID(body["id"])) is not None
     finally:
         main_module.app.dependency_overrides.clear()
 
