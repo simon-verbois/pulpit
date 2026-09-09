@@ -58,10 +58,11 @@ export function CreateDistributionModal({
   const handleSubmit = () => {
     // Pulp requires a `name` distinct from `base_path`, but both are
     // globally-unique free-text identifiers (VERIFIED live) - reusing the
-    // base path as the name avoids asking for the same thing twice.
+    // user-entered suffix as the name avoids asking for the same thing
+    // twice, without the "npm/" module prefix that only `base_path` needs.
     createMutation.mutate(
       {
-        name: basePath,
+        name: basePathSuffix,
         base_path: basePath,
         repository: repositoryHref,
         remote: remote || undefined,

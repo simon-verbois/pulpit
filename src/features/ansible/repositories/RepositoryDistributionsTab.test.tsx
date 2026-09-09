@@ -64,8 +64,11 @@ describe("Ansible RepositoryDistributionsTab", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    // The task label uses just the user-entered suffix (this is also the
+    // distribution's `name`), without the "ansible/" module prefix that
+    // only `base_path` needs.
     expect(
-      await screen.findByText('Create distribution "ansible/new-dist-path"'),
+      await screen.findByText('Create distribution "new-dist-path"'),
     ).toBeInTheDocument();
   });
 

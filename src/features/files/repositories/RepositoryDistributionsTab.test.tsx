@@ -59,9 +59,11 @@ describe("RepositoryDistributionsTab", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    // Name and base path are now the same value (no separate Name field),
-    // so this text renders twice - once per column.
-    expect(await screen.findAllByText("file/new-dist-path")).toHaveLength(2);
+    // Base path keeps the "file/" module prefix...
+    expect(await screen.findByText("file/new-dist-path")).toBeInTheDocument();
+    // ...but Name reuses just the user-entered suffix (no separate Name
+    // field in this form), without that prefix.
+    expect(await screen.findByText("new-dist-path")).toBeInTheDocument();
   });
 
   it("deletes a distribution after confirmation", async () => {

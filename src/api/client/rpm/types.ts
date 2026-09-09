@@ -29,8 +29,15 @@ export interface RpmRepository {
   latest_version_href: string;
   pulp_created: string;
   /** VERIFIED live (docs/signing.md): an href to a core.SigningService of
-   * class RpmPackageSigningService, or null. Package signing is on-upload
-   * only - see docs/signing.md "Known limitations". Optional here (rather
+   * class RpmPackageSigningService, or null. Only applies to content that is
+   * synced/uploaded AFTER this is set (docs/signing.md "Known limitations") -
+   * VERIFIED live by downloading a package that predated this being
+   * configured on a real repository: `rpm -Kv` showed "Signature: (none)".
+   * Content already in the repository stays exactly as it was (original
+   * upstream signature, or none) until pulpit's own explicit
+   * resign_repository_packages job runs (Administration → Repository
+   * Signing "Sign all repositories…", or a key rotation) - setting this
+   * field alone does not retroactively sign anything. Optional here (rather
    * than required-but-nullable) so the many existing repository fixtures
    * that predate the signing feature don't all need updating just to
    * satisfy the type - a real Pulp response always includes it. */
@@ -41,8 +48,41 @@ export interface RpmRepository {
    * is accepted on write. Treated as an opaque string everywhere in this app. */
   package_signing_fingerprint?: string | null;
   /** VERIFIED live: an href to a core.SigningService of class
-   * AsciiArmoredDetachedSigningService, or null. */
+   * AsciiArmoredDetachedSigningService, or null. Unlike package signing,
+   * VERIFIED live this one really does cover the whole repository the
+   * moment it's set and the repository is (re)published: `repomd.xml`
+   * itself is regenerated on every publish, so there is no "content that
+   * predates this" case the way there is for package signing above. */
   metadata_signing_service?: string | null;
+  /** A JSON document controlling pulp_rpm's native generated `config.repo` -
+   * see `RpmRepoConfig` below. Defaults to `{}` (VERIFIED live) - a
+   * repository response always includes it, but a fixture predating this
+   * field is still valid, hence optional here. */
+  repo_config?: RpmRepoConfig;
+}
+
+/** The JSON document controlling pulp_rpm's native generated `config.repo`
+ * (VERIFIED live: `RpmRepository.repo_config`, read by
+ * `RpmDistribution.content_handler` whenever `generate_repo_config` is on -
+ * see distributions.ts). Pulp forces `name=`/`baseurl=` itself (any `name`/
+ * `baseurl` keys here are silently dropped) and defaults `gpgcheck`/
+ * `repo_gpgcheck` to `0` and `enabled` to `1` when absent - VERIFIED live:
+ * setting `package_signing_service`/`metadata_signing_service` on the
+ * repository does NOT turn these on by itself, they must be set here
+ * explicitly. `gpgkey` is added automatically by Pulp (pointing at this
+ * repository's own `repodata/repomd.xml.key`) whenever
+ * `metadata_signing_service` is set - only needed here for a repository
+ * that has package signing but not metadata signing. Any other key (e.g.
+ * `sslverify`) is passed through verbatim into the generated file, in an
+ * order Pulp itself decides (VERIFIED live: not simply insertion order -
+ * never rely on line order beyond the fixed name/baseurl/gpgcheck/
+ * repo_gpgcheck/enabled/gpgkey ones). */
+export interface RpmRepoConfig {
+  gpgcheck?: 0 | 1;
+  repo_gpgcheck?: 0 | 1;
+  sslverify?: 0 | 1;
+  gpgkey?: string;
+  [key: string]: unknown;
 }
 
 export interface RpmRepositoryCreate {
@@ -54,6 +94,7 @@ export interface RpmRepositoryCreate {
   package_signing_service?: string | null;
   package_signing_fingerprint?: string | null;
   metadata_signing_service?: string | null;
+  repo_config?: RpmRepoConfig;
 }
 
 /** PATCH body - every field optional (partial update). */
@@ -65,6 +106,7 @@ export interface RpmRepositoryUpdate {
   package_signing_service?: string | null;
   package_signing_fingerprint?: string | null;
   metadata_signing_service?: string | null;
+  repo_config?: RpmRepoConfig;
 }
 
 export type RemotePolicy = "immediate" | "on_demand" | "streamed";
@@ -156,12 +198,26 @@ export interface RpmDistribution {
   repository: string | null;
   publication: string | null;
   pulp_created: string;
+  /** Serves a Pulp-generated `config.repo` (dnf/yum-ready) at
+   * `<base_url>config.repo` when true - VERIFIED live, built from
+   * `RpmRepository.repo_config` at publish time (see RpmRepoConfig above).
+   * Defaults to `false` on Pulp's side. */
+  generate_repo_config: boolean;
 }
 
 export interface RpmDistributionCreate {
   name: string;
   base_path: string;
   repository?: string | null;
+  generate_repo_config?: boolean;
+}
+
+/** PATCH body - every field optional (partial update). */
+export interface RpmDistributionUpdate {
+  name?: string;
+  base_path?: string;
+  repository?: string | null;
+  generate_repo_config?: boolean;
 }
 
 export interface ContentSummary {
@@ -358,6 +414,10 @@ type _RpmSchemaDriftChecks = {
     components["schemas"]["rpm.RpmDistribution"],
     RpmDistributionCreate
   >;
+  RpmDistributionUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedrpm.RpmDistribution"],
+    RpmDistributionUpdate
+  >;
   ContentSummary: AssertFieldsExist<
     components["schemas"]["ContentSummaryResponse"],
     ContentSummary
@@ -433,6 +493,7 @@ const _rpmSchemaDriftChecks: _RpmSchemaDriftChecks = {
   RpmUlnRemoteCreate: true,
   RpmDistribution: true,
   RpmDistributionCreate: true,
+  RpmDistributionUpdate: true,
   ContentSummary: true,
   RepositoryVersion: true,
   RpmPackage: true,

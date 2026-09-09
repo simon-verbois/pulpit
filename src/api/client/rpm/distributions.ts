@@ -1,6 +1,11 @@
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type { PulpPage, RpmDistribution, RpmDistributionCreate } from "./types";
+import type {
+  PulpPage,
+  RpmDistribution,
+  RpmDistributionCreate,
+  RpmDistributionUpdate,
+} from "./types";
 
 const BASE = apiPath("/distributions/rpm/rpm/");
 
@@ -29,4 +34,15 @@ export function createRpmDistribution(
 
 export function deleteRpmDistribution(href: string): Promise<{ task: string }> {
   return pulpFetch<{ task: string }>(href, { method: "DELETE" });
+}
+
+/** VERIFIED live: like every other RPM PATCH in this app, asynchronous (202 + task). */
+export function updateRpmDistribution(
+  href: string,
+  data: RpmDistributionUpdate,
+): Promise<{ task: string }> {
+  return pulpFetch<{ task: string }>(href, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }

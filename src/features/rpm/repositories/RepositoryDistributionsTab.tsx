@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Button,
+  CodeBlock,
+  CodeBlockCode,
+  Content,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -13,10 +17,73 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
+import { fetchRpmConfigRepo } from "../../../api/client/rpm/repoConfig";
 import type { RpmDistribution, RpmRepository } from "../../../api/client/rpm/types";
 import { useRpmDistributionsQuery } from "../distributions/useRpmDistributionsQuery";
 import { useDeleteRpmDistributionMutation } from "../distributions/useDeleteRpmDistributionMutation";
+import { useUpdateRpmDistributionMutation } from "../distributions/useUpdateRpmDistributionMutation";
 import { CreateDistributionModal } from "../distributions/CreateDistributionModal";
+
+/** The "Repo config" column - a cleaner, at-a-glance view of what used to
+ * require reading `RpmDistribution.generate_repo_config`/
+ * `RpmRepository.repo_config` directly. When generation is off, this is
+ * just a one-click way to turn it on (VERIFIED live: the flag itself takes
+ * effect immediately, no republish needed - see repoConfig.ts). When it's
+ * on, this fetches and shows the *real* `dnf`/`yum`-ready `config.repo`
+ * Pulp serves at this distribution's own URL (which is why there's no
+ * separate URL column - it's the first line of this) - the same "complete
+ * repo config" idea as Ansible's per-distribution client configuration
+ * snippet, just sourced from Pulp's own generator instead of a hand-built
+ * string (see fetchRpmConfigRepo's own doc comment for why). */
+function RepoConfigCell({ distribution }: { distribution: RpmDistribution }) {
+  const updateDistributionMutation = useUpdateRpmDistributionMutation();
+  const configQuery = useQuery({
+    queryKey: ["pulp", "rpm", "distributions", distribution.pulp_href, "config.repo"],
+    queryFn: () => fetchRpmConfigRepo(distribution.base_url),
+    enabled: distribution.generate_repo_config,
+  });
+
+  if (!distribution.generate_repo_config) {
+    return (
+      <Button
+        variant="link"
+        isInline
+        isLoading={updateDistributionMutation.isPending}
+        onClick={() =>
+          updateDistributionMutation.mutate({
+            href: distribution.pulp_href,
+            name: distribution.name,
+            data: { generate_repo_config: true },
+          })
+        }
+      >
+        Enable
+      </Button>
+    );
+  }
+
+  if (configQuery.isPending) {
+    return <LoadingState label="Loading config.repo" />;
+  }
+
+  if (configQuery.isError) {
+    return (
+      <Content component="small">
+        Couldn't load it - open{" "}
+        <a href={`${distribution.base_url}config.repo`} target="_blank" rel="noreferrer">
+          {distribution.base_url}config.repo
+        </a>{" "}
+        directly (this repository may not have been published yet).
+      </Content>
+    );
+  }
+
+  return (
+    <CodeBlock>
+      <CodeBlockCode>{configQuery.data}</CodeBlockCode>
+    </CodeBlock>
+  );
+}
 
 export function RepositoryDistributionsTab({
   repository,
@@ -79,7 +146,7 @@ export function RepositoryDistributionsTab({
               <Tr>
                 <Th>Name</Th>
                 <Th>Base path</Th>
-                <Th>URL</Th>
+                <Th>Repo config</Th>
                 <Th screenReaderText="Actions" />
               </Tr>
             </Thead>
@@ -88,7 +155,9 @@ export function RepositoryDistributionsTab({
                 <Tr key={distribution.pulp_href}>
                   <Td dataLabel="Name">{distribution.name}</Td>
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
-                  <Td dataLabel="URL">{distribution.base_url}</Td>
+                  <Td dataLabel="Repo config">
+                    <RepoConfigCell distribution={distribution} />
+                  </Td>
                   <Td dataLabel="Actions" isActionCell hasAction>
                     <Button
                       variant="link"
@@ -107,8 +176,7 @@ export function RepositoryDistributionsTab({
 
       {isCreateOpen ? (
         <CreateDistributionModal
-          repositoryHref={repository.pulp_href}
-          repositoryName={repository.name}
+          repository={repository}
           onClose={() => setIsCreateOpen(false)}
         />
       ) : null}

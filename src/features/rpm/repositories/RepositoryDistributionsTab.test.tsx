@@ -12,7 +12,7 @@ describe("RepositoryDistributionsTab", () => {
     renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />);
 
     expect(await screen.findByText(RPM_DISTRIBUTION_FIXTURE.name)).toBeInTheDocument();
-    expect(screen.getByText(RPM_DISTRIBUTION_FIXTURE.base_url)).toBeInTheDocument();
+    expect(screen.getByText(RPM_DISTRIBUTION_FIXTURE.base_path)).toBeInTheDocument();
   });
 
   it("shows an empty state when this repository has no distributions", async () => {
@@ -67,9 +67,11 @@ describe("RepositoryDistributionsTab", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    // Name and base path are now the same value (no separate Name field),
-    // so this text renders twice - once per column.
-    expect(await screen.findAllByText("rpm/new-dist-path")).toHaveLength(2);
+    // Base path keeps the "rpm/" module prefix...
+    expect(await screen.findByText("rpm/new-dist-path")).toBeInTheDocument();
+    // ...but Name reuses just the user-entered suffix (no separate Name
+    // field in this form), without that prefix.
+    expect(await screen.findByText("new-dist-path")).toBeInTheDocument();
   });
 
   it("deletes a distribution after confirmation", async () => {

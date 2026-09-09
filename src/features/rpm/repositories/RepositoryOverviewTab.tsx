@@ -21,7 +21,7 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
   const publishMutation = usePublishRpmRepositoryMutation();
 
   return (
-    <DescriptionList isHorizontal>
+    <DescriptionList isHorizontal termWidth="20ch">
       <DescriptionListGroup>
         <DescriptionListTerm>Name</DescriptionListTerm>
         <DescriptionListDescription>{repository.name}</DescriptionListDescription>
