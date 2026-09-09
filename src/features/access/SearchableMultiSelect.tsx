@@ -28,6 +28,13 @@ interface SearchableMultiSelectProps {
 }
 
 const NO_RESULTS = "__pulpit_no_results__";
+const TOO_MANY_MATCHES = "__pulpit_too_many_matches__";
+// Renders at most this many options at once - an org with hundreds of
+// users/groups/roles otherwise means rendering (and re-rendering on every
+// keystroke) an unbounded, unvirtualized list. Filtering itself still
+// searches every option; only what's actually painted is capped, with a
+// hint to narrow the search further when truncated.
+const RENDER_LIMIT = 100;
 
 /** PatternFly multi-typeahead used for known Pulp resources. Values can only
  * be selected from the supplied options: free-form names are deliberately not
@@ -51,13 +58,18 @@ export function SearchableMultiSelect({
     () => [...new Set(options)].sort((a, b) => a.localeCompare(b)),
     [options],
   );
-  const visibleOptions = useMemo(() => {
+  const matchingOptions = useMemo(() => {
     const normalizedFilter = filter.trim().toLocaleLowerCase();
     if (!normalizedFilter) return sortedOptions;
     return sortedOptions.filter((option) =>
       option.toLocaleLowerCase().includes(normalizedFilter),
     );
   }, [filter, sortedOptions]);
+  const visibleOptions = useMemo(
+    () => matchingOptions.slice(0, RENDER_LIMIT),
+    [matchingOptions],
+  );
+  const hiddenMatchCount = matchingOptions.length - visibleOptions.length;
   const listboxId = `${id}-listbox`;
   const activeOptionId =
     focusedIndex === null || !visibleOptions[focusedIndex]
@@ -188,7 +200,12 @@ export function SearchableMultiSelect({
       isOpen={isOpen}
       selected={selected}
       onSelect={(_event, value) => {
-        if (typeof value === "string" && value !== NO_RESULTS) toggleSelection(value);
+        if (
+          typeof value === "string" &&
+          value !== NO_RESULTS &&
+          value !== TOO_MANY_MATCHES
+        )
+          toggleSelection(value);
       }}
       onOpenChange={(open) => {
         if (!open) closeMenu();
@@ -218,6 +235,11 @@ export function SearchableMultiSelect({
             </SelectOption>
           ))
         )}
+        {hiddenMatchCount > 0 ? (
+          <SelectOption value={TOO_MANY_MATCHES} isAriaDisabled>
+            {`+${hiddenMatchCount} more - keep typing to narrow down`}
+          </SelectOption>
+        ) : null}
       </SelectList>
     </Select>
   );

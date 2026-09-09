@@ -26,6 +26,9 @@ interface SearchableSingleSelectProps {
 }
 
 const NO_RESULTS = "__pulpit_no_results__";
+const TOO_MANY_MATCHES = "__pulpit_too_many_matches__";
+// Same render cap as SearchableMultiSelect.tsx - see its own comment.
+const RENDER_LIMIT = 100;
 
 /** Single-select counterpart to SearchableMultiSelect (e.g. Role pickers) -
  * same typeahead search-then-pick-from-a-known-list behavior, but for
@@ -49,13 +52,18 @@ export function SearchableSingleSelect({
     () => [...new Set(options)].sort((a, b) => a.localeCompare(b)),
     [options],
   );
-  const visibleOptions = useMemo(() => {
+  const matchingOptions = useMemo(() => {
     const normalizedFilter = filter.trim().toLocaleLowerCase();
     if (!normalizedFilter) return sortedOptions;
     return sortedOptions.filter((option) =>
       option.toLocaleLowerCase().includes(normalizedFilter),
     );
   }, [filter, sortedOptions]);
+  const visibleOptions = useMemo(
+    () => matchingOptions.slice(0, RENDER_LIMIT),
+    [matchingOptions],
+  );
+  const hiddenMatchCount = matchingOptions.length - visibleOptions.length;
   const listboxId = `${id}-listbox`;
   const activeOptionId =
     focusedIndex === null || !visibleOptions[focusedIndex]
@@ -166,7 +174,12 @@ export function SearchableSingleSelect({
       isOpen={isOpen}
       selected={selected}
       onSelect={(_event, value) => {
-        if (typeof value === "string" && value !== NO_RESULTS) selectOption(value);
+        if (
+          typeof value === "string" &&
+          value !== NO_RESULTS &&
+          value !== TOO_MANY_MATCHES
+        )
+          selectOption(value);
       }}
       onOpenChange={(open) => {
         if (!open) closeMenu();
@@ -196,6 +209,11 @@ export function SearchableSingleSelect({
             </SelectOption>
           ))
         )}
+        {hiddenMatchCount > 0 ? (
+          <SelectOption value={TOO_MANY_MATCHES} isAriaDisabled>
+            {`+${hiddenMatchCount} more - keep typing to narrow down`}
+          </SelectOption>
+        ) : null}
       </SelectList>
     </Select>
   );

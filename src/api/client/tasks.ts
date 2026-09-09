@@ -14,6 +14,14 @@ export const TERMINAL_TASK_STATES: ReadonlySet<PulpTaskState> = new Set([
   "skipped",
 ]);
 
+/** How often a non-terminal task is re-polled (useTask.ts, TasksIndicator.tsx -
+ * up to one such poll per tracked task, MAX_TRACKED_TASKS at once). Kept a
+ * few seconds rather than sub-2s: still feels responsive for a human
+ * watching a task's status, but meaningfully cuts round-trips over a slow/
+ * high-latency connection (e.g. a remote-desktop/bastion session) when
+ * several tasks are tracked at once. */
+export const TASK_POLL_INTERVAL_MS = 3000;
+
 export interface PulpTask {
   pulp_href: string;
   name?: string;

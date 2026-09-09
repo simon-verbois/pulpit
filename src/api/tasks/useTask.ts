@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getTask, TERMINAL_TASK_STATES } from "../client/tasks";
+import { getTask, TASK_POLL_INTERVAL_MS, TERMINAL_TASK_STATES } from "../client/tasks";
 
 /**
  * Polls a single Pulp task until it reaches a terminal state. See the
@@ -13,7 +13,7 @@ export function useTask(href: string | undefined) {
     enabled: Boolean(href),
     refetchInterval: (query) => {
       const state = query.state.data?.state;
-      return state && TERMINAL_TASK_STATES.has(state) ? false : 2000;
+      return state && TERMINAL_TASK_STATES.has(state) ? false : TASK_POLL_INTERVAL_MS;
     },
   });
 }

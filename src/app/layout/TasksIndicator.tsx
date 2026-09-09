@@ -4,6 +4,7 @@ import { Badge, Button } from "@patternfly/react-core";
 import { useTasksContext } from "../../api/tasks/TasksContext";
 import {
   getTask,
+  TASK_POLL_INTERVAL_MS,
   TERMINAL_TASK_STATES,
   type PulpTaskState,
 } from "../../api/client/tasks";
@@ -18,7 +19,7 @@ function useInFlightCount(): number {
       queryFn: () => getTask(task.href),
       refetchInterval: (query: { state: { data?: { state: PulpTaskState } } }) => {
         const state = query.state.data?.state;
-        return state && TERMINAL_TASK_STATES.has(state) ? false : 2000;
+        return state && TERMINAL_TASK_STATES.has(state) ? false : TASK_POLL_INTERVAL_MS;
       },
     })),
   });

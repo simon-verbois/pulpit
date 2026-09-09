@@ -1,5 +1,26 @@
 /* Small layout glue only - PatternFly owns component styling (ADR 0002). */
 
+/* PatternFly v6's own animation/transition durations (modal fade, drawer/
+   backdrop slide-in-out, dropdown/menu open-close, tab underline, ...) are
+   all driven by these global tokens (base.css) rather than hardcoded
+   per-component, so capping them here is a single, framework-native change
+   that reaches every PF6 component at once - never overriding a component's
+   own CSS directly. Left as-is: --duration--50 (already 50ms) and --100
+   (already 100ms, used by --motion--duration--sm), both already inside the
+   ~100-150ms target below. Snappier everywhere without deleting any
+   animation outright (unlike PatternFly's own opt-in `.pf-v6-m-no-motion`
+   class, which forces every duration to 1ms - not applied here, since the
+   goal is faster motion, not none) - noticeably reduces perceived lag over
+   a slow/high-latency connection (e.g. a remote-desktop/bastion session)
+   without changing how anything looks once settled. */
+:root {
+  --pf-t--global--duration--200: 120ms;
+  --pf-t--global--duration--300: 150ms;
+  --pf-t--global--duration--400: 150ms;
+  --pf-t--global--duration--500: 150ms;
+  --pf-t--global--duration--600: 150ms;
+}
+
 html,
 body,
 #root {
