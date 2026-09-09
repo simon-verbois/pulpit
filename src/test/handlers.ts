@@ -379,6 +379,7 @@ export const RPM_DISTRIBUTION_FIXTURE = {
   repository: RPM_REPO_FIXTURE.pulp_href,
   publication: null,
   pulp_created: "2026-08-20T10:00:00.000000Z",
+  generate_repo_config: false,
 };
 
 function seedRepositories(): RpmRepository[] {
@@ -672,6 +673,7 @@ const rpmHandlers = [
       name: string;
       base_path: string;
       repository?: string;
+      generate_repo_config?: boolean;
     };
     const id = freshId();
     const distribution = {
@@ -682,6 +684,7 @@ const rpmHandlers = [
       repository: body.repository ?? null,
       publication: null,
       pulp_created: "2026-08-20T11:00:00.000000Z",
+      generate_repo_config: body.generate_repo_config ?? false,
     };
     const task = registerTask(`Create distribution "${body.name}"`);
     distributions = [...distributions, distribution];
@@ -692,6 +695,24 @@ const rpmHandlers = [
     distributions = distributions.filter((d) => d.pulp_href !== href);
     return HttpResponse.json(
       { task: registerTask("Delete distribution") },
+      { status: 202 },
+    );
+  }),
+  http.patch(`${DIST_BASE}:id/`, async ({ params, request }) => {
+    const href = `${DIST_BASE}${params.id}/`;
+    const body = (await request.json()) as { generate_repo_config?: boolean };
+    distributions = distributions.map((d) =>
+      d.pulp_href === href
+        ? {
+            ...d,
+            ...(body.generate_repo_config !== undefined
+              ? { generate_repo_config: body.generate_repo_config }
+              : {}),
+          }
+        : d,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update distribution") },
       { status: 202 },
     );
   }),
@@ -2653,6 +2674,12 @@ export const PYTHON_REMOTE_FIXTURE: PythonRemote = {
   proxy_url: null,
   tls_validation: true,
   ca_cert: null,
+  includes: [],
+  excludes: [],
+  prereleases: false,
+  package_types: [],
+  keep_latest_packages: 0,
+  exclude_platforms: [],
   hidden_fields: [
     { name: "proxy_username", is_set: false },
     { name: "proxy_password", is_set: false },
@@ -2843,6 +2870,12 @@ const pythonHandlers = [
       proxy_url: body.proxy_url ?? null,
       tls_validation: body.tls_validation ?? true,
       ca_cert: body.ca_cert ?? null,
+      includes: body.includes ?? [],
+      excludes: body.excludes ?? [],
+      prereleases: body.prereleases ?? false,
+      package_types: body.package_types ?? [],
+      keep_latest_packages: body.keep_latest_packages ?? 0,
+      exclude_platforms: body.exclude_platforms ?? [],
       hidden_fields: [
         { name: "proxy_username", is_set: Boolean(body.proxy_username) },
         { name: "proxy_password", is_set: Boolean(body.proxy_password) },
@@ -2881,6 +2914,18 @@ const pythonHandlers = [
           ? { tls_validation: body.tls_validation }
           : {}),
         ...(body.ca_cert !== undefined ? { ca_cert: body.ca_cert } : {}),
+        ...(body.includes !== undefined ? { includes: body.includes } : {}),
+        ...(body.excludes !== undefined ? { excludes: body.excludes } : {}),
+        ...(body.prereleases !== undefined ? { prereleases: body.prereleases } : {}),
+        ...(body.package_types !== undefined
+          ? { package_types: body.package_types }
+          : {}),
+        ...(body.keep_latest_packages !== undefined
+          ? { keep_latest_packages: body.keep_latest_packages }
+          : {}),
+        ...(body.exclude_platforms !== undefined
+          ? { exclude_platforms: body.exclude_platforms }
+          : {}),
         hidden_fields: hiddenFields,
       };
     });
@@ -2993,6 +3038,8 @@ export const DEB_REMOTE_FIXTURE: DebRemote = {
   name: "test-deb-fixture",
   url: "http://deb.debian.org/debian",
   distributions: "bookworm",
+  components: null,
+  architectures: null,
   policy: "immediate",
   pulp_created: "2026-08-20T10:00:00.000000Z",
   proxy_url: null,
@@ -3183,6 +3230,8 @@ const debHandlers = [
       name: body.name,
       url: body.url,
       distributions: body.distributions,
+      components: body.components ?? null,
+      architectures: body.architectures ?? null,
       policy: body.policy ?? "immediate",
       pulp_created: "2026-08-20T11:00:00.000000Z",
       proxy_url: body.proxy_url ?? null,
@@ -3222,6 +3271,10 @@ const debHandlers = [
         ...(body.url !== undefined ? { url: body.url } : {}),
         ...(body.distributions !== undefined
           ? { distributions: body.distributions }
+          : {}),
+        ...(body.components !== undefined ? { components: body.components } : {}),
+        ...(body.architectures !== undefined
+          ? { architectures: body.architectures }
           : {}),
         ...(body.policy !== undefined ? { policy: body.policy } : {}),
         ...(body.proxy_url !== undefined ? { proxy_url: body.proxy_url } : {}),
@@ -4802,6 +4855,18 @@ const pulpitCoreHandlers = [
     }),
   ),
   http.get("/pulpit-core/api/v1/tls/history", () => HttpResponse.json([])),
+
+  // A clean check by default - the Overview page calls this unconditionally
+  // (useApiCompatibilityWarning). Tests exercising the warning itself
+  // override this with server.use(...).
+  http.get("/pulpit-core/api/v1/api_compatibility/latest", () =>
+    HttpResponse.json({
+      checked_at: "2026-01-01T00:00:00Z",
+      pulp_reachable: true,
+      missing_endpoints: [],
+      error: null,
+    }),
+  ),
 ];
 
 export const handlers = [

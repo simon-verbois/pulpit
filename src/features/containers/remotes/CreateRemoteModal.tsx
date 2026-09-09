@@ -48,11 +48,16 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
   const [upstreamName, setUpstreamName] = useState("");
   const [policy, setPolicy] = useState<RemotePolicy>("immediate");
   const [includeTags, setIncludeTags] = useState("");
+  const [excludeTags, setExcludeTags] = useState("");
   const [connectionSettings, setConnectionSettings] = useState(EMPTY_CONNECTION_SETTINGS);
   const createMutation = useCreateContainerRemoteMutation();
 
   const handleSubmit = () => {
     const includes = includeTags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    const excludes = excludeTags
       .split(",")
       .map((tag) => tag.trim())
       .filter(Boolean);
@@ -63,6 +68,7 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         upstream_name: upstreamName,
         policy,
         includes: includes.length > 0 ? includes : undefined,
+        excludes: excludes.length > 0 ? excludes : undefined,
         proxy_url: connectionSettings.proxy_url || undefined,
         proxy_username: connectionSettings.proxy_username || undefined,
         proxy_password: connectionSettings.proxy_password || undefined,
@@ -154,7 +160,23 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
                 <HelperTextItem>
                   Comma-separated glob patterns - limits sync to matching tags instead of
                   every tag the upstream image has (some registries rate-limit large
-                  syncs).
+                  syncs). Evaluated before "Exclude tags".
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+          <FormGroup label="Exclude tags" fieldId="remote-exclude-tags">
+            <TextInput
+              id="remote-exclude-tags"
+              placeholder="e.g. *-rc, nightly"
+              value={excludeTags}
+              onChange={(_event, value) => setExcludeTags(value)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Comma-separated glob patterns - tags matching these are skipped, even if
+                  they also match "Include tags".
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>

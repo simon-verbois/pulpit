@@ -6,8 +6,11 @@ import {
   FlexItem,
   Form,
   FormGroup,
+  FormHelperText,
   FormSelect,
   FormSelectOption,
+  HelperText,
+  HelperTextItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -47,6 +50,8 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [distributions, setDistributions] = useState("");
+  const [components, setComponents] = useState("");
+  const [architectures, setArchitectures] = useState("");
   const [policy, setPolicy] = useState<RemotePolicy>("immediate");
   const [connectionSettings, setConnectionSettings] = useState(EMPTY_CONNECTION_SETTINGS);
   const createMutation = useCreateDebRemoteMutation();
@@ -57,6 +62,8 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         name,
         url,
         distributions,
+        components: components || undefined,
+        architectures: architectures || undefined,
         policy,
         proxy_url: connectionSettings.proxy_url || undefined,
         proxy_username: connectionSettings.proxy_username || undefined,
@@ -117,6 +124,38 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
               value={distributions}
               onChange={(_event, value) => setDistributions(value)}
             />
+          </FormGroup>
+          <FormGroup label="Components" fieldId="remote-components">
+            <TextInput
+              id="remote-components"
+              placeholder="e.g. main contrib"
+              value={components}
+              onChange={(_event, value) => setComponents(value)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Whitespace-separated list. Leave blank to sync every component the
+                  distribution has.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+          <FormGroup label="Architectures" fieldId="remote-architectures">
+            <TextInput
+              id="remote-architectures"
+              placeholder="e.g. amd64 arm64"
+              value={architectures}
+              onChange={(_event, value) => setArchitectures(value)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Whitespace-separated list. Leave blank to sync every architecture the
+                  Release file lists.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
           </FormGroup>
           <FormGroup label="Sync policy" fieldId="remote-policy">
             <FormSelect

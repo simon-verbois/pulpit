@@ -69,6 +69,21 @@ export interface HiddenRemoteField {
   is_set: boolean;
 }
 
+/** VERIFIED live: the package types pulp_python recognizes on a distribution
+ * (matches Python's own wheel/sdist/bdist_* tags). */
+export type PythonPackageType =
+  | "bdist_dmg"
+  | "bdist_dumb"
+  | "bdist_egg"
+  | "bdist_msi"
+  | "bdist_rpm"
+  | "bdist_wheel"
+  | "bdist_wininst"
+  | "sdist";
+
+/** VERIFIED live: platforms `exclude_platforms` can skip. */
+export type PythonExcludePlatform = "windows" | "macos" | "freebsd" | "linux";
+
 export interface PythonRemote {
   pulp_href: string;
   name: string;
@@ -79,6 +94,18 @@ export interface PythonRemote {
   tls_validation: boolean;
   ca_cert: string | null;
   hidden_fields: HiddenRemoteField[];
+  /** Project specifiers (e.g. "django>=4,<5") to include - VERIFIED live: a
+   * plain string array, optional (can be absent, not just empty). Absent/empty
+   * includes every project. */
+  includes?: string[];
+  /** Project specifiers to exclude, evaluated after `includes`. */
+  excludes?: string[];
+  prereleases?: boolean;
+  package_types?: PythonPackageType[];
+  /** 0 (the API default) keeps every version of a synced package - unlike
+   * the other filter fields above, VERIFIED live this one is NOT optional. */
+  keep_latest_packages: number;
+  exclude_platforms?: PythonExcludePlatform[];
 }
 
 /** Advanced connection settings shared by create/update payloads - all
@@ -100,6 +127,12 @@ export interface PythonRemoteCreate extends PythonRemoteConnectionSettings {
   name: string;
   url: string;
   policy?: RemotePolicy;
+  includes?: string[];
+  excludes?: string[];
+  prereleases?: boolean;
+  package_types?: PythonPackageType[];
+  keep_latest_packages?: number;
+  exclude_platforms?: PythonExcludePlatform[];
 }
 
 /** PATCH body - every field optional (partial update). */
@@ -107,6 +140,12 @@ export interface PythonRemoteUpdate extends PythonRemoteConnectionSettings {
   name?: string;
   url?: string;
   policy?: RemotePolicy;
+  includes?: string[];
+  excludes?: string[];
+  prereleases?: boolean;
+  package_types?: PythonPackageType[];
+  keep_latest_packages?: number;
+  exclude_platforms?: PythonExcludePlatform[];
 }
 
 export interface PythonDistribution {

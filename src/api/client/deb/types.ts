@@ -88,6 +88,14 @@ export interface DebRemote {
    * a plain string, not an array) - required, this plugin has no way to
    * sync without knowing which distribution(s) to fetch. */
   distributions: string;
+  /** Whitespace-separated components to sync (e.g. "main contrib") - VERIFIED
+   * live: a plain string, not an array. Empty/omitted syncs every component
+   * the distribution has. */
+  components: string | null;
+  /** Whitespace-separated architectures to sync (e.g. "amd64 arm64") -
+   * VERIFIED live: a plain string, not an array. Empty/omitted syncs every
+   * architecture the Release file lists ("all" is always synced regardless). */
+  architectures: string | null;
   pulp_created: string;
   proxy_url: string | null;
   tls_validation: boolean;
@@ -114,6 +122,8 @@ export interface DebRemoteCreate extends DebRemoteConnectionSettings {
   name: string;
   url: string;
   distributions: string;
+  components?: string | null;
+  architectures?: string | null;
   policy?: RemotePolicy;
 }
 
@@ -125,6 +135,8 @@ export interface DebRemoteUpdate extends DebRemoteConnectionSettings {
   name?: string;
   url?: string;
   distributions?: string;
+  components?: string | null;
+  architectures?: string | null;
   policy?: RemotePolicy;
 }
 

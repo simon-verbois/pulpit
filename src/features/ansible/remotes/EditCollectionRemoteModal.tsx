@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Alert,
   Button,
+  Checkbox,
   ExpandableSection,
   Flex,
   FlexItem,
@@ -16,6 +17,7 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
+  NumberInput,
   TextArea,
   TextInput,
 } from "@patternfly/react-core";
@@ -49,6 +51,11 @@ export function EditCollectionRemoteModal({
   );
   const [authUrl, setAuthUrl] = useState(remote.auth_url ?? "");
   const [token, setToken] = useState("");
+  const [syncDependencies, setSyncDependencies] = useState(remote.sync_dependencies);
+  const [signedOnly, setSignedOnly] = useState(remote.signed_only);
+  const [syncHighestVersions, setSyncHighestVersions] = useState<number | undefined>(
+    remote.sync_highest_versions ?? undefined,
+  );
   const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
   // proxy/origin/token credentials start blank - Pulp never echoes them back
   // (VERIFIED live, see CollectionRemote.hidden_fields); blank on submit
@@ -77,6 +84,9 @@ export function EditCollectionRemoteModal({
           requirements_file: requirementsFile || null,
           auth_url: authUrl || null,
           token: token || undefined,
+          sync_dependencies: syncDependencies,
+          signed_only: signedOnly,
+          sync_highest_versions: syncHighestVersions ?? null,
           proxy_url: connectionSettings.proxy_url || null,
           proxy_username: connectionSettings.proxy_username || undefined,
           proxy_password: connectionSettings.proxy_password || undefined,
@@ -198,6 +208,50 @@ export function EditCollectionRemoteModal({
                   </HelperText>
                 </FormHelperText>
               ) : null}
+            </FormGroup>
+            <FormGroup fieldId="collection-remote-edit-sync-dependencies">
+              <Checkbox
+                id="collection-remote-edit-sync-dependencies"
+                label="Sync dependencies"
+                description="Also sync collections listed as dependencies of the ones in the requirements file."
+                isChecked={syncDependencies}
+                onChange={(_event, checked) => setSyncDependencies(checked)}
+              />
+            </FormGroup>
+            <FormGroup fieldId="collection-remote-edit-signed-only">
+              <Checkbox
+                id="collection-remote-edit-signed-only"
+                label="Signed collections only"
+                description="Skip any collection version that doesn't have a signature."
+                isChecked={signedOnly}
+                onChange={(_event, checked) => setSignedOnly(checked)}
+              />
+            </FormGroup>
+            <FormGroup
+              label="Highest versions to sync per collection"
+              fieldId="collection-remote-edit-sync-highest-versions"
+            >
+              <NumberInput
+                id="collection-remote-edit-sync-highest-versions"
+                value={syncHighestVersions}
+                min={1}
+                onMinus={() =>
+                  setSyncHighestVersions((v) => (v ? Math.max(1, v - 1) : v))
+                }
+                onPlus={() => setSyncHighestVersions((v) => (v ? v + 1 : 1))}
+                onChange={(event) => {
+                  const value = Number((event.target as HTMLInputElement).value);
+                  setSyncHighestVersions(Number.isNaN(value) ? undefined : value);
+                }}
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Leave blank to sync every version. 1 syncs only the latest version of
+                    each collection.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
             </FormGroup>
           </ExpandableSection>
           <RemoteConnectionSettingsFields

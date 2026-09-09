@@ -44,6 +44,7 @@ export function EditRemoteModal({
   const [upstreamName, setUpstreamName] = useState(remote.upstream_name);
   const [policy, setPolicy] = useState<RemotePolicy>(remote.policy);
   const [includeTags, setIncludeTags] = useState((remote.includes ?? []).join(", "));
+  const [excludeTags, setExcludeTags] = useState((remote.excludes ?? []).join(", "));
   // proxy_username/proxy_password/username/password start blank - Pulp
   // never echoes them back (VERIFIED live, see ContainerRemote.hidden_fields);
   // blank on submit means "leave unchanged", not "clear".
@@ -63,6 +64,10 @@ export function EditRemoteModal({
       .split(",")
       .map((tag) => tag.trim())
       .filter(Boolean);
+    const excludes = excludeTags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
     updateMutation.mutate(
       {
         href: remote.pulp_href,
@@ -73,6 +78,7 @@ export function EditRemoteModal({
           upstream_name: upstreamName,
           policy,
           includes,
+          excludes,
           proxy_url: connectionSettings.proxy_url || null,
           proxy_username: connectionSettings.proxy_username || undefined,
           proxy_password: connectionSettings.proxy_password || undefined,
@@ -157,7 +163,24 @@ export function EditRemoteModal({
               <HelperText>
                 <HelperTextItem>
                   Comma-separated glob patterns - limits sync to matching tags instead of
-                  every tag the upstream image has. Empty means every tag.
+                  every tag the upstream image has. Empty means every tag. Evaluated
+                  before "Exclude tags".
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+          <FormGroup label="Exclude tags" fieldId="remote-edit-exclude-tags">
+            <TextInput
+              id="remote-edit-exclude-tags"
+              placeholder="e.g. *-rc, nightly"
+              value={excludeTags}
+              onChange={(_event, value) => setExcludeTags(value)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Comma-separated glob patterns - tags matching these are skipped, even if
+                  they also match "Include tags".
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
