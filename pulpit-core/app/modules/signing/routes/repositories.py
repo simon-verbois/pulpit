@@ -1,6 +1,6 @@
-"""Per-repository signing actions (task section 10). These only ever
-enqueue a job - repository signing wiring is a Pulp API call plus a Pulp
-task, never something worth blocking an HTTP request on.
+"""Per-repository signing actions. Configuration is submitted to Pulp with
+the caller's credentials. Any returned task is followed by a background
+job; synchronous responses are recorded as completed jobs immediately.
 
 Signing is fully automatic per repository (no per-repository opt-in
 exposed in the UI): a repository's own create/edit form no longer offers a
@@ -14,15 +14,20 @@ resign_repository_packages`, jobs.py), not just a future-uploads-only field
 change.
 """
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+import re
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
+from app.adapters.pulp import PulpAdapterError, PulpClient
 from app.core.auth import CurrentUser, FullUser, require_authenticated_user, require_staff_user
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.jobs.schemas import JobRead
-from app.core.jobs.service import enqueue_job
+from app.core.jobs.service import enqueue_job, mark_succeeded
 from app.modules.signing import service
+from app.modules.signing.jobs import configure_repository_signing as apply_repository_signing
 from app.modules.signing.models import PulpServicePurpose, PulpServiceStatus, SigningPulpService
 from app.modules.signing.schemas import RepositorySigningStatus
 
@@ -78,19 +83,45 @@ class ConfigureRepositorySigningRequest(BaseModel):
     sign_packages: bool | None = None
     sign_metadata: bool | None = None
 
+    @field_validator("repository_href")
+    @classmethod
+    def valid_repository_href(cls, value: str) -> str:
+        base = re.escape(get_settings().pulp_api_base_path)
+        if not re.fullmatch(base + r"/repositories/rpm/rpm/[0-9a-fA-F-]{36}/", value):
+            raise ValueError("Expected a relative RPM repository href")
+        return value
+
 
 @router.post("/configure", response_model=JobRead, status_code=202)
 def configure_repository_signing(
     request: ConfigureRepositorySigningRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(require_authenticated_user),
 ) -> JobRead:
+    headers = {
+        name: value for name in ("cookie", "authorization", "x-csrftoken")
+        if (value := http_request.headers.get(name))
+    }
+    # Only the caller's credentials are used for GET/PATCH. Pulp itself
+    # enforces object permissions, including global and superuser roles.
+    pulp = PulpClient(get_settings(), caller_headers=headers)
+    try:
+        result = apply_repository_signing(db, request.model_dump(), pulp)
+    except PulpAdapterError as exc:
+        raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     job = enqueue_job(
         db,
         "signing.configure_repository_signing",
-        request.model_dump(),
+        result,
         requested_by=user.username,
     )
+    if result["pulp_task"] is None:
+        # Live Pulp can apply a field-only PATCH synchronously (200).
+        # Preserve the JobRead contract without queueing nonexistent work.
+        mark_succeeded(db, job, result)
     db.commit()
     return JobRead.model_validate(job)
 

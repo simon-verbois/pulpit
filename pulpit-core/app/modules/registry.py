@@ -10,7 +10,6 @@ app/core or any other module needs to change - this is the seam the task's
 
 from fastapi import APIRouter
 
-from app.modules.content_size import module as content_size_module
 from app.modules.default_settings import module as default_settings_module
 from app.modules.fixture_seed import module as fixture_seed_module
 from app.modules.ldap import module as ldap_module
@@ -20,7 +19,6 @@ from app.modules.tls import module as tls_module
 
 _MODULES = [
     signing_module,
-    content_size_module,
     default_settings_module,
     nav_visibility_module,
     fixture_seed_module,

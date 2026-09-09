@@ -18,7 +18,6 @@ import { StatusIndicator } from "../../../components/StatusIndicator";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import { SIGNING_KEY_STATE_COLOR, SIGNING_KEY_STATE_LABEL } from "./signingKeyState";
 import { KeyPulpServicesStatus } from "./KeyPulpServicesStatus";
-import { CopyableValue } from "./CopyableValue";
 
 function DateValue({ value }: { value: string | null }) {
   return value ? <span title={value}>{formatRelativeTime(value)}</span> : <>—</>;
@@ -55,7 +54,7 @@ export function SigningKeyDetailsModal({
           <DescriptionListGroup>
             <DescriptionListTerm>Fingerprint</DescriptionListTerm>
             <DescriptionListDescription>
-              <CopyableValue value={signingKey.fingerprint} />
+              <code style={{ overflowWrap: "anywhere" }}>{signingKey.fingerprint}</code>
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
@@ -121,10 +120,9 @@ export function SigningKeyDetailsModal({
             <DescriptionListTerm>Public key URL</DescriptionListTerm>
             <DescriptionListDescription>
               {signingKey.state === "active" ? (
-                <CopyableValue
-                  value={`${window.location.origin}${signingKey.public_key_url}`}
-                  isCode={false}
-                />
+                <span style={{ overflowWrap: "anywhere" }}>
+                  {`${window.location.origin}${signingKey.public_key_url}`}
+                </span>
               ) : (
                 <Content component="small">
                   Only the active key is served at the public key URL.

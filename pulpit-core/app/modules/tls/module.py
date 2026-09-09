@@ -6,7 +6,7 @@ module must never import them directly."""
 from fastapi import APIRouter
 
 from app.modules.tls import jobs as tls_jobs
-from app.modules.tls.routes import active, freeipa, manual, selfsigned
+from app.modules.tls.routes import active, manual, selfsigned
 
 name = "tls"
 
@@ -14,7 +14,6 @@ router = APIRouter()
 router.include_router(active.router)
 router.include_router(selfsigned.router)
 router.include_router(manual.router)
-router.include_router(freeipa.router)
 
 # (job_type, interval_seconds) - see app/modules/registry.py
 # build_scheduled_jobs() and worker/main.py's generic scheduler loop.

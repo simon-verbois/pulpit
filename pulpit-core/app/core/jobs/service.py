@@ -37,7 +37,7 @@ def has_pending_job(db: Session, job_type: str) -> bool:
     """True if a job of this type is already queued or running - lets a
     scheduler (worker/main.py) skip re-enqueueing a periodic job whose
     previous run is still in flight (a real possibility for a job that pages
-    through a large, unbounded Pulp dataset, e.g. content_size.refresh),
+    through a large, unbounded Pulp dataset, e.g. signing.apply_signing_to_all_repositories),
     rather than piling up duplicates that would all do the same expensive
     work concurrently."""
     stmt = select(
@@ -52,11 +52,8 @@ def has_pending_job(db: Session, job_type: str) -> bool:
 def claim_next_job(db: Session, job_types: list[str]) -> Job | None:
     """Atomically claims the oldest due, queued job of one of `job_types`.
 
-    Uses SELECT ... FOR UPDATE SKIP LOCKED so multiple pulpit-worker
-    replicas can safely share one queue without double-processing a job -
-    the standard pattern for a lightweight Postgres-backed queue (see
-    docs/adr/0006-pulpit-core-backend.md "Job system" for why this was
-    chosen over adding Redis/RQ or a broker for this).
+    The lifetime worker lock serializes claims on both SQLite and PostgreSQL.
+    PostgreSQL row locking additionally protects the claim transaction itself.
     """
     now = datetime.now(UTC)
     stmt = (
@@ -78,6 +75,7 @@ def claim_next_job(db: Session, job_types: list[str]) -> Job | None:
 
 def mark_succeeded(db: Session, job: Job, result: dict | None = None) -> None:
     job.status = JobStatus.SUCCESS
+    job.error = None
     job.result = result or {}
     job.finished_at = datetime.now(UTC)
     db.flush()

@@ -10,11 +10,9 @@ import {
 import { TlsCertificateSection } from "./TlsCertificateSection";
 import { TlsCertificateHistorySection } from "./TlsCertificateHistorySection";
 import { ManualCertificateSection } from "./ManualCertificateSection";
-import { FreeIpaSection } from "./FreeIpaSection";
 
 /** Administration > TLS, mirroring Access's own nested sub-tabs (Users/
- * Groups/Roles) - one sub-tab per certificate provider, plus an Overview
- * showing whichever one is currently active. */
+ * Groups/Roles) - an Overview plus manual certificate import. */
 export function TlsPage({
   activeSubTab,
   onSelectSubTab,
@@ -22,9 +20,11 @@ export function TlsPage({
   activeSubTab: string;
   onSelectSubTab: (subtab: string) => void;
 }) {
+  const selectedSubTab = activeSubTab === "manual" ? "manual" : "overview";
+
   return (
     <Tabs
-      activeKey={activeSubTab}
+      activeKey={selectedSubTab}
       onSelect={(_event, key) => onSelectSubTab(String(key))}
       mountOnEnter
     >
@@ -43,11 +43,6 @@ export function TlsPage({
       <Tab eventKey="manual" title={<TabTitleText>Manual</TabTitleText>}>
         <PageSection hasBodyWrapper={false}>
           <ManualCertificateSection />
-        </PageSection>
-      </Tab>
-      <Tab eventKey="freeipa" title={<TabTitleText>FreeIPA</TabTitleText>}>
-        <PageSection hasBodyWrapper={false}>
-          <FreeIpaSection />
         </PageSection>
       </Tab>
     </Tabs>

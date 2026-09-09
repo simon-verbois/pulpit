@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 
 import type { PulpStatus } from "../api/client/status";
 import type { PulpPage } from "../api/client/rpm/types";
-import type { ComponentContentSize } from "../api/client/pulpitCore/types";
+import type { ComponentContentSize } from "../api/client/contentSizes";
 import { formatBytes } from "../lib/formatBytes";
 import { VERIFIED_VERSIONS } from "../lib/pulpCompatibility";
 import { NAV_TREE } from "../app/layout/navTree";
@@ -88,7 +88,7 @@ function SizeCell({
   if (query.isPending) {
     return <Skeleton width="3rem" screenreaderText="Loading size" />;
   }
-  // A failed fetch of this one, hourly-refreshed value shouldn't take down
+  // A failed fetch of this derived value shouldn't take down
   // the rest of the table - same treatment as a failed repository count.
   if (query.isError) {
     return <>—</>;
@@ -105,10 +105,8 @@ function SizeCell({
  * (this component's only caller) always supplies both, but neither is about
  * infrastructure health (what `status` itself covers), so both stay
  * optional rather than required. Unlike `repositoryCounts` (one query per
- * plugin), size is a single
- * query for every component at once - pulpit-core precomputes it (an hourly
- * background job, see docs/UX.md "per-plugin storage-size breakdown"), so
- * there's nothing plugin-specific to gate this query on.
+ * plugin), size is one query that sums Pulp content visible to the caller.
+ * The derived data remains in the browser's TanStack Query cache.
  */
 export function PulpStatusSummary({
   status,

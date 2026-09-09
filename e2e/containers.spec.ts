@@ -7,6 +7,7 @@ const RUN_ID = Date.now();
 const REMOTE_NAME = `e2e-container-remote-${RUN_ID}`;
 const REPO_NAME = `e2e-container-repo-${RUN_ID}`;
 const DIST_NAME = `e2e-container-dist-${RUN_ID}`;
+const DIST_BASE_PATH = `container/${DIST_NAME}`;
 
 test.describe.configure({ mode: "serial" });
 
@@ -68,18 +69,16 @@ test.describe("Containers: remote -> repository -> sync -> tags/manifests -> dis
     // --- Create a distribution and check its pull command --------------------
     await page.getByRole("tab", { name: "Distributions" }).click();
     await page.getByRole("button", { name: "Create distribution" }).first().click();
-    await page.locator("#distribution-name").fill(DIST_NAME);
-    await page.locator("#distribution-base-path").fill(DIST_NAME);
+    await page
+      .getByRole("dialog")
+      .getByLabel("Base path", { exact: false })
+      .fill(DIST_NAME);
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
     const distRow = page.getByRole("row", { name: new RegExp(DIST_NAME) });
     await expect(distRow).toBeVisible({ timeout: 15_000 });
-    // The pull-command snippet is a ClipboardCopy textbox - its content is
-    // the input's value, not rendered text (getByText wouldn't find it).
-    await expect(distRow.getByRole("textbox")).toHaveValue(
-      new RegExp(`podman pull .*${DIST_NAME}`),
-    );
+    await expect(distRow).toContainText(new RegExp(`podman pull .*${DIST_BASE_PATH}`));
 
     // --- Global Tags page lists tags across every repository ----------------
     await page.goto("/containers/tags");

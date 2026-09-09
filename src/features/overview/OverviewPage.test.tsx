@@ -115,10 +115,7 @@ describe("OverviewPage", () => {
 
   it("shows a dash for size when the content-size fetch fails, without breaking the rest of the table", async () => {
     server.use(
-      http.get(
-        "/pulpit-core/api/v1/content_size/sizes",
-        () => new HttpResponse(null, { status: 502 }),
-      ),
+      http.get("/pulp/api/v3/content/", () => new HttpResponse(null, { status: 502 })),
     );
 
     renderApp(<OverviewPage />);

@@ -18,16 +18,10 @@ describe("Container RepositoriesPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the repository's cached content size, dash when none is cached yet", async () => {
+  it("shows the repository's content size computed from Pulp", async () => {
     server.use(
-      http.get("/pulpit-core/api/v1/content_size/repository-sizes", () =>
-        HttpResponse.json([
-          {
-            repository_href: CONTAINER_REPO_FIXTURE.pulp_href,
-            size_bytes: 52199,
-            updated_at: "2026-01-01T00:00:00Z",
-          },
-        ]),
+      http.get("/pulp/api/v3/repositories/", () =>
+        HttpResponse.json({ next: null, results: [CONTAINER_REPO_FIXTURE] }),
       ),
     );
 

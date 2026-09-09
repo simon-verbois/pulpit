@@ -27,6 +27,7 @@ Run every command below from the repo root.
 ## Deploying
 
 ```sh
+./deployment/kube/deploy.sh init -n <your-namespace>
 ./deployment/kube/deploy.sh up -n <your-namespace>
 ```
 
@@ -34,13 +35,13 @@ Use `deployment/kube/deploy.sh`, not a raw `kubectl apply -f deployment/kube/`
 one-liner - that directory glob would also pick up
 `00-secret.example.yaml` (literal `REPLACE_ME` placeholder values) if it
 were ever present, creating a real Secret from it. `deploy.sh` applies
-every manifest by an explicit filename list instead, and the first time
-`deployment/kube/00-secret.yaml` doesn't exist yet, `up` generates it
-automatically (`PULP_SECRET_KEY`/`PULPIT_CORE_SECRET_KEY` via `openssl
-rand`, a random `PULP_ADMIN_PASSWORD`), printing the admin password once so
-you can log in - no manual secret-editing step needed for a first deploy.
-Prefer to set your own values instead? Run this before `deploy.sh up` and
-it'll be left alone:
+every manifest by an explicit filename list instead. `init` generates
+`deployment/kube/00-secret.yaml` when it does not exist
+(`PULP_SECRET_KEY`/`PULPIT_CORE_SECRET_KEY` via `openssl rand`, plus a random
+`PULP_ADMIN_PASSWORD`) and prints the admin password once. It does not apply anything and never
+overwrites an existing file. `up` performs the same initialization automatically when needed.
+Prefer to set your own values instead? Run this before `deploy.sh init` or `deploy.sh up` and the
+file will be left alone:
 
 ```sh
 cp deployment/kube/00-secret.example.yaml deployment/kube/00-secret.yaml
@@ -51,22 +52,27 @@ cp deployment/kube/00-secret.example.yaml deployment/kube/00-secret.yaml
 `pulp.yaml`/`pulpit.yaml` pin images to `:latest` - edit those files directly to deploy a
 specific tag instead.
 
-`deploy.sh` also substitutes the public origin used for `CSRF_TRUSTED_ORIGINS` from an
-environment variable before applying:
+`deploy.sh` also substitutes the public origin from an environment variable before applying. The
+rendered ConfigMap exposes `PULPIT_PUBLIC_ORIGIN` explicitly and uses it for Pulp's CSRF, content,
+Ansible, and PyPI origins:
 
-| Env var                | Default                 | Used in                                           |
-| ---------------------- | ----------------------- | ------------------------------------------------- |
-| `PULPIT_PUBLIC_ORIGIN` | `http://localhost:8080` | `00-configmap.yaml`'s `PULP_CSRF_TRUSTED_ORIGINS` |
+| Env var                | Default                 | Used in                                               |
+| ---------------------- | ----------------------- | ----------------------------------------------------- |
+| `PULPIT_PUBLIC_ORIGIN` | `http://localhost:8080` | `00-configmap.yaml`'s public and Pulp origin settings |
 
 ```sh
 PULPIT_PUBLIC_ORIGIN=https://pulpit.example.com \
   ./deployment/kube/deploy.sh up -n <your-namespace>
 ```
 
-Tear down with `./deployment/kube/deploy.sh down -n <your-namespace>`
-(deletes the PVCs declared inline in `pulp.yaml`/`pulpit.yaml` too - back
-up data first if you need to keep it; there's no equivalent of Podman's
-named-volume persistence here).
+`./deployment/kube/deploy.sh down -n <your-namespace>` stops the workloads while preserving PVCs,
+configuration, secrets, and every local YAML file. Use `reset` for a clean cluster reset that also
+deletes PVC data and cluster-side configuration/secrets; local YAML files, including
+`00-secret.yaml`, remain untouched. Because reset is destructive, it requires typing `reset`; for
+automation, set `PULPIT_RESET_CONFIRM=yes`.
+
+Running `deploy.sh` without a command prints its built-in command reference. The available
+commands are `init`, `up`, `down`, and `reset`.
 
 Numeric prefixes (`00-configmap.yaml`, `00-secret.yaml`) only exist so they
 sort before the files that reference them when eyeballing the directory -

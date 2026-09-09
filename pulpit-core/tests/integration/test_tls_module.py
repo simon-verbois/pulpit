@@ -42,6 +42,8 @@ def test_generate_selfsigned_job_writes_cert_and_key_and_creates_active_row(
     assert active is not None
     assert active.source == TlsCertSource.SELF_SIGNED
     assert active.fingerprint_sha256 == result["fingerprint"]
+    validity = active.not_after - active.not_before
+    assert timedelta(days=729, hours=23) < validity <= timedelta(days=730)
 
 
 def test_renewal_check_noops_when_self_signed_cert_is_far_from_expiry(db, tmp_path, monkeypatch):

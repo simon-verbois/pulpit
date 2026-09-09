@@ -20,6 +20,7 @@ const RUN_ID = Date.now();
 const REMOTE_NAME = `e2e-ansible-remote-${RUN_ID}`;
 const REPO_NAME = `e2e-ansible-repo-${RUN_ID}`;
 const DIST_NAME = `e2e-ansible-dist-${RUN_ID}`;
+const DIST_BASE_PATH = `ansible/${DIST_NAME}`;
 // Role content is permanent (no delete step below, and re-uploading the same
 // namespace/name/version is a real, rejected duplicate - not just a leftover
 // artifact) - unique per run like everything else here.
@@ -146,24 +147,22 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     // --- Create a distribution and check its client config snippet --------
     await page.getByRole("tab", { name: "Distributions" }).click();
     await page.getByRole("button", { name: "Create distribution" }).first().click();
-    await page.locator("#distribution-name").fill(DIST_NAME);
-    await page.locator("#distribution-base-path").fill(DIST_NAME);
+    await page
+      .getByRole("dialog")
+      .getByLabel("Base path", { exact: false })
+      .fill(DIST_NAME);
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
     const distRow = page.getByRole("row", { name: new RegExp(DIST_NAME) });
     await expect(distRow).toBeVisible({ timeout: 15_000 });
-    // The client config snippet is a ClipboardCopy textbox - its content is
-    // the input's value, not rendered text (getByText wouldn't find it).
-    await expect(distRow.getByRole("textbox")).toHaveValue(
-      new RegExp(`server_list = ${DIST_NAME}`),
-    );
+    await expect(distRow).toContainText(new RegExp(`server_list = ${DIST_BASE_PATH}`));
 
     // --- Namespace management is scoped to this (brand new, so empty) distribution
     await page.goto("/ansible/namespaces");
     await page
       .getByRole("combobox", { name: "Distribution" })
-      .selectOption({ label: DIST_NAME });
+      .selectOption({ label: DIST_BASE_PATH });
     await expect(page.getByText("No namespaces yet")).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole("button", { name: "Create namespace" }).first().click();

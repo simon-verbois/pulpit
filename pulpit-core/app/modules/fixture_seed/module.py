@@ -1,6 +1,6 @@
 """fixture_seed module's public surface - the only file
 app/modules/registry.py imports from this package (same seam as signing,
-content_size, and default_settings; see app/modules/signing/module.py).
+signing and default_settings; see app/modules/signing/module.py).
 
 No routes: this module has no user-facing API surface at all, only a
 background job (jobs.py) - `router` stays empty because

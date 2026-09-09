@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
+
 export function MavenRepositoriesTopic() {
   return (
     <Content>
@@ -30,11 +32,12 @@ export function MavenRepositoriesTopic() {
       </Content>
       <Content component="p">
         Then go to the <strong>Distributions</strong> tab and click{" "}
-        <strong>Create distribution</strong> to get a real URL (shown with a copy button)
-        - it serves this repository's latest version immediately, with no publish step. It
-        can optionally also proxy a <strong>remote</strong> directly for pull-through
-        caching. <strong>Delete</strong> removes a distribution.
+        <strong>Create distribution</strong> to get a real, selectable URL - it serves
+        this repository's latest version immediately, with no publish step. It can
+        optionally also proxy a <strong>remote</strong> directly for pull-through caching.{" "}
+        <strong>Delete</strong> removes a distribution.
       </Content>
+      <DistributionBasePathConvention prefix="maven" />
 
       <Content component="h3">The Versions and Access tabs</Content>
       <Content component="p">

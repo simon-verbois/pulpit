@@ -157,6 +157,18 @@ its own to healthcheck separately).
 Full detail on the signing module itself — key generation, rotation, automating the Pulp
 signing-service registration step, trust model, backup/recovery — lives in `docs/signing.md`.
 
+## Distribution path namespaces
+
+The derived reference Pulp image installs `pulp-distribution-path-policy` (ADR 0012). Distribution
+base paths must start with their plugin's namespace, such as `rpm/`, `container/`, `ansible/`, or
+`python/`. The check runs inside Pulp rather than nginx, so it also covers API calls made from the
+host or cluster and Pulpit's own internal workers. Invalid create/update requests return HTTP 400.
+
+Existing distributions are not renamed during an upgrade. If they use unscoped paths, plan their
+URL migration explicitly before changing `base_path`. A deployment that points Pulpit at an
+external Pulp image must install an equivalent server-side policy if it needs the API guarantee;
+the browser UI still supplies the prefix, but cannot enforce behavior for other clients.
+
 ## Fixture seed (first-boot sample content, opt-in)
 
 `pulpit-worker` can seed one sample Repository+Remote(+Distribution) per plugin
@@ -334,8 +346,14 @@ cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
 # edit deployment/podman/00-secret.yaml - replace every REPLACE_ME value
 
 systemctl --user start podman.socket   # rootless
+./deployment/podman/deploy.sh init
 ./deployment/podman/deploy.sh up
 ```
+
+`init` only prepares the generated secrets file; `up` also does this automatically when needed.
+`down` stops the stack but preserves volumes and YAML configuration, while `reset` removes the
+Podman runtime resources, data volumes, and unused images declared by the manifests. It never
+deletes YAML files. Run the script without an option for its command reference.
 
 See `deployment/podman/README.md` for the full picture, including several real, VERIFIED-live
 differences from both Compose and a real Kubernetes cluster that shaped these manifests -
@@ -361,6 +379,11 @@ reconciles signing-service registration from _inside_ the pod itself - no Servic
 RoleBinding, or any other RBAC exists in `deployment/kube/` any more, and `pulpit` never talks to
 the Kubernetes API at all.
 
+The Kubernetes helper has the same `init`, `up`, `down`, and `reset` interface as Podman. `down`
+preserves PVCs and configuration; `reset` deletes cluster resources and PVC data but never the
+local YAML files. Node image caches remain the responsibility of the cluster runtime rather than
+`kubectl`.
+
 ## TLS
 
 nginx serves both plain HTTP (`PULPIT_HTTP_PORT`, default 8080 - unchanged) and HTTPS
@@ -372,9 +395,8 @@ On first boot, if no certificate has been installed yet, pulpit-core generates a
 (`app/modules/tls/bootstrap_selfsigned.py`) so 8443 always works out of the box - browsers will
 warn about it (expected for a self-signed certificate), but the connection is still encrypted.
 Administration > TLS shows the currently active certificate (source, subject, expiry) and lets you
-regenerate the self-signed fallback on demand, upload a real certificate manually, or hand
-certificate issuance/renewal to a FreeIPA CA - see the certificate's `source` field, one of
-`self_signed` / `manual` / `freeipa`, and `docs/tls.md` for setup steps for each.
+regenerate the self-signed fallback on demand or import a certificate manually. The certificate's
+`source` is either `self_signed` or `manual`; see `docs/tls.md` for both workflows.
 
 Certificate/key material lives in its own volume (`pulpit_tls` in Compose, a dedicated PVC in
 Kubernetes/Podman - `/var/lib/pulpit-tls` in the container), separate from `pulpit_data` (the

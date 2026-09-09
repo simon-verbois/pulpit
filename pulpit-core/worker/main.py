@@ -5,16 +5,14 @@ This is the ONLY process in the whole stack that:
 - actually calls into app.modules.signing.gpg_local (imported lazily inside
   job handler bodies - see jobs.py).
 
-It is a small polling loop, not a new infrastructure dependency (task
-section 12: "Do not introduce a large unrelated infrastructure dependency
-unless justified") - jobs live in pulpit-core's own Postgres database
-(app/core/jobs), claimed with `SELECT ... FOR UPDATE SKIP LOCKED` so
-multiple replicas of this process are safe to run.
+It is a small polling loop with one worker per database (worker/lock.py).
+Job claims and completion use short transactions; external work never holds
+an uncommitted RUNNING update. Interrupted jobs fail visibly on restart.
 
 Also runs every module's periodic heartbeat jobs (task section 6: "Rotation
 checks should be executed asynchronously/scheduled, not during ordinary HTTP
 requests" - the same reasoning now generalized to any module, e.g.
-content_size's hourly re-scan) - a plain interval timer per job_type is
+TLS certificate renewal) - a plain interval timer per job_type is
 enough for this project's scale; see docs/signing.md for why APScheduler/
 Celery-beat were not pulled in for this.
 """
@@ -26,6 +24,7 @@ from datetime import UTC, datetime
 
 from app.core.config import get_settings
 from app.core.database import session_scope
+from app.core.jobs.models import Job, JobStatus
 from app.core.jobs.registry import job_registry
 from app.core.jobs.service import (
     claim_next_job,
@@ -35,6 +34,7 @@ from app.core.jobs.service import (
     mark_succeeded,
 )
 from app.modules.registry import build_scheduled_jobs, register_all
+from worker.lock import worker_lock
 
 logging.basicConfig(level=get_settings().log_level)
 logger = logging.getLogger("pulpit-worker")
@@ -53,27 +53,38 @@ def _run_one_job() -> bool:
         job = claim_next_job(db, job_registry.known_types())
         if job is None:
             return False
-        logger.info("Running job %s (%s), attempt %s", job.id, job.job_type, job.attempts)
-        handler = job_registry.get(job.job_type)
+        job_id, job_type, payload = job.id, job.job_type, job.payload
+    # Publish RUNNING and release SQLite's writer before external work.
+    try:
+        handler = job_registry.get(job_type)
         if handler is None:
-            # Shouldn't happen in practice - claim_next_job only claims job
-            # types job_registry.known_types() already reported above - but
-            # guard against it explicitly rather than crashing the whole
-            # worker loop on a None call if it ever does (e.g. a registry
-            # mutated between the two calls).
-            mark_failed(db, job, f"No handler registered for job type {job.job_type!r}")
-            return True
-        try:
-            result = handler(db, job.payload)
+            raise ValueError(f"No handler registered for {job_type}")
+        with session_scope() as db, db.no_autoflush:
+            result = handler(db, payload)
+            job = db.get(Job, job_id)
+            if job is None:
+                raise RuntimeError("Claimed job disappeared") from None
             mark_succeeded(db, job, result)
-            logger.info("Job %s succeeded", job.id)
-        except Exception as exc:  # noqa: BLE001 - a job's own failure must never take the loop down
-            # Never log full exception context here if it could contain
-            # secret material (task section 15) - str(exc) only, GPG
-            # operation errors already truncate/redact (gpg_local.py).
-            logger.error("Job %s failed: %s", job.id, exc)
+    except Exception as exc:
+        logger.error("Job %s failed: %s", job_id, exc)
+        # The handler's failed transaction must be rolled back before
+        # persisting its failure, including IntegrityError failures.
+        with session_scope() as db:
+            job = db.get(Job, job_id)
+            if job is None:
+                raise RuntimeError("Claimed job disappeared") from None
             mark_failed(db, job, str(exc)[:2000])
-        return True
+    return True
+
+
+def _recover_interrupted_jobs() -> None:
+    with session_scope() as db:
+        for job in db.query(Job).filter(Job.status == JobStatus.RUNNING).all():
+            # External effects may already have happened. Never replay a
+            # key generation/rotation blindly after process termination.
+            job.status = JobStatus.FAILED
+            job.error = "Worker interrupted; inspect the operation before submitting it again."
+            job.finished_at = datetime.now(UTC)
 
 
 def _maybe_schedule(job_type: str, interval_seconds: int, last_check: datetime) -> datetime:
@@ -83,8 +94,7 @@ def _maybe_schedule(job_type: str, interval_seconds: int, last_check: datetime) 
     with session_scope() as db:
         # Skips re-enqueueing while a previous run of this same job_type is
         # still queued/running - matters for a job that could plausibly take
-        # longer than its own interval (content_size.refresh, paging an
-        # unbounded amount of Pulp content), not for a normally-fast one
+        # longer than its own interval (for example certificate renewal), not for a normally-fast one
         # like signing.rotation_check, but applying it uniformly is simpler
         # and harmless either way.
         if not has_pending_job(db, job_type):
@@ -92,8 +102,9 @@ def _maybe_schedule(job_type: str, interval_seconds: int, last_check: datetime) 
     return now
 
 
-def main() -> None:
+def _main_locked() -> None:
     register_all()
+    _recover_interrupted_jobs()
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
     logger.info("pulpit-worker started, known job types: %s", job_registry.known_types())
@@ -110,6 +121,11 @@ def main() -> None:
         worked = _run_one_job()
         if not worked:
             time.sleep(poll_interval)
+
+
+def main() -> None:
+    with worker_lock():
+        _main_locked()
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ import { RepositoryDistributionsTab } from "./RepositoryDistributionsTab";
 const DIST_BASE = "/pulp/api/v3/distributions/ansible/ansible/";
 
 describe("Ansible RepositoryDistributionsTab", () => {
-  it("renders only this repository's distributions, with a copyable ansible-galaxy client config", async () => {
+  it("renders only this repository's distributions with selectable ansible-galaxy client config text", async () => {
     renderApp(<RepositoryDistributionsTab repository={ANSIBLE_REPO_FIXTURE} />);
 
     // The fixture's name and base_path are equal strings, so both the
@@ -65,7 +65,7 @@ describe("Ansible RepositoryDistributionsTab", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(
-      await screen.findByText('Create distribution "new-dist-path"'),
+      await screen.findByText('Create distribution "ansible/new-dist-path"'),
     ).toBeInTheDocument();
   });
 

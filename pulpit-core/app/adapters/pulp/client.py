@@ -12,6 +12,7 @@ relies on and how they were confirmed.
 
 from functools import lru_cache
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -20,19 +21,34 @@ from app.core.config import Settings, get_settings
 
 
 class PulpClient:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, *, caller_headers: dict[str, str] | None = None):
+        self._caller_headers = caller_headers
         self._settings = settings
         self._base_url = settings.pulp_base_url
         self._api_base = settings.pulp_api_base_path
 
     def _url(self, path: str) -> str:
-        if path.startswith("http"):
-            return path
-        return f"{self._base_url}{path}"
+        base = httpx.URL(self._base_url)
+        if any(ord(char) < 32 for char in path) or "\\" in path:
+            raise PulpAdapterError("Invalid Pulp URL")
+        parsed = urlsplit(path)
+        if parsed.fragment or parsed.username or parsed.password:
+            raise PulpAdapterError("Invalid Pulp URL")
+        if parsed.scheme or parsed.netloc:
+            target = httpx.URL(path)
+        elif path.startswith("/") and not path.startswith("//"):
+            target = httpx.URL(f"{self._base_url}{path}")
+        else:
+            raise PulpAdapterError("Pulp paths must be absolute paths on the Pulp origin")
+        if (target.scheme, target.host, target.port) != (base.scheme, base.host, base.port):
+            raise PulpAdapterError("Refusing credentials outside the configured Pulp origin")
+        return str(target)
 
     def _client(self) -> httpx.Client:
         return httpx.Client(
-            auth=(self._settings.pulp_service_username, self._settings.pulp_service_password),
+            auth=(self._settings.pulp_service_username, self._settings.pulp_service_password)
+            if self._caller_headers is None else None,
+            headers=self._caller_headers,
             timeout=self._settings.pulp_request_timeout_seconds,
         )
 
@@ -89,9 +105,8 @@ class PulpClient:
         package_signing_fingerprint: str | None,
         metadata_signing_service: str | None,
     ) -> dict:
-        """PATCH is asynchronous even for plain field changes (VERIFIED,
-        docs/PULP_API.md) - returns {"task": <href>}, tracked like any other
-        Pulp task by the caller."""
+        """Returns a repository object or a task reference, depending on
+        Pulp's response. Callers must support both (docs/PULP_API.md)."""
         body = {
             "package_signing_service": package_signing_service,
             "package_signing_fingerprint": package_signing_fingerprint,
@@ -152,6 +167,12 @@ class PulpClient:
     # client resolves it. ---------------------------------------------------
 
     def get_content_bytes(self, url: str) -> bytes:
+        # Pulp distributions advertise the public content origin. Route the
+        # known content path through the configured internal Pulp origin;
+        # never send service credentials to a host supplied in metadata.
+        parsed = urlsplit(url)
+        if parsed.path.startswith("/pulp/content/"):
+            url = parsed.path + (f"?{parsed.query}" if parsed.query else "")
         with self._client() as client:
             try:
                 response = client.get(self._url(url))
@@ -197,65 +218,6 @@ class PulpClient:
             body["remove_content_units"] = remove_content_units
         return self._request("POST", f"{repository_href}modify/", json=body).json()
 
-    # --- Generic content/artifact listing (content_size module) -----------
-    #
-    # VERIFIED live against a real Pulp instance: `/pulp/api/v3/content/` is
-    # a single endpoint unifying every plugin's content units (not one
-    # per-plugin sub-endpoint) - each result carries its true type in its own
-    # `pulp_href` (".../content/<component>/<type>/<id>/") and an `artifacts`
-    # dict (relative filename -> artifact href), populated uniformly even for
-    # single-artifact content types like an RPM package. This is what makes a
-    # single generic summation possible instead of one hardcoded endpoint
-    # (and one verified size field name) per plugin.
-    #
-    # `pulp_created__gte` is NOT a valid filter here ("Invalid Filter" from a
-    # live 400) - there is no way to ask Pulp for only content created since
-    # last time, so content_size's periodic job necessarily re-sums
-    # everything on each run. See content_size/jobs.py for why that's still
-    # an acceptable tradeoff (never runs on a request path).
-    #
-    # `repository_version` IS a valid filter here too (VERIFIED live) -
-    # scopes the same generic listing to one repository version, which is
-    # what makes a per-repository size possible with the same endpoint and
-    # the same already-fetched artifact size map, no per-plugin repository
-    # content endpoint needed.
-
-    def list_content_page(
-        self, *, limit: int, offset: int, repository_version: str | None = None
-    ) -> dict:
-        params: dict[str, Any] = {"fields": "pulp_href,artifacts", "limit": limit, "offset": offset}
-        if repository_version is not None:
-            params["repository_version"] = repository_version
-        response = self._request("GET", f"{self._api_base}/content/", params=params)
-        return response.json()
-
-    def list_artifacts_page(self, *, limit: int, offset: int) -> dict:
-        response = self._request(
-            "GET",
-            f"{self._api_base}/artifacts/",
-            params={"fields": "pulp_href,size", "limit": limit, "offset": offset},
-        )
-        return response.json()
-
-    # --- Generic repository listing (content_size module) -----------------
-    #
-    # VERIFIED live: `/pulp/api/v3/repositories/` unifies every plugin's
-    # repositories the same way `/content/` unifies content - no per-plugin
-    # repository-type endpoint needed to enumerate "every repository that
-    # exists", regardless of plugin.
-
-    def list_repositories_page(self, *, limit: int, offset: int) -> dict:
-        response = self._request(
-            "GET",
-            f"{self._api_base}/repositories/",
-            params={
-                "fields": "pulp_href,latest_version_href",
-                "limit": limit,
-                "offset": offset,
-            },
-        )
-        return response.json()
-
     # --- Generic remote listing/update (default_settings module) ---------
     #
     # VERIFIED live: `/pulp/api/v3/remotes/` unifies every plugin's remotes
@@ -263,8 +225,8 @@ class PulpClient:
     # own `pulp_href` is already the concrete, type-specific URL (e.g.
     # ".../remotes/rpm/rpm/<id>/"), directly PATCHable with no per-plugin
     # remote-type endpoint needed to enumerate or update "every remote that
-    # exists". Unlike a Repository PATCH, a Remote PATCH is synchronous
-    # (VERIFIED live: 200 with the updated resource, never a task).
+    # exists". Remote PATCH is synchronous on the verified instance
+    # (200 with the updated resource).
 
     def list_remotes_page(self, *, limit: int, offset: int) -> dict:
         response = self._request(

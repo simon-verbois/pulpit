@@ -14,6 +14,10 @@ import {
 } from "@patternfly/react-core";
 
 import { BasePathField } from "../../../components/BasePathField";
+import {
+  buildDistributionBasePath,
+  distributionPathPrefix,
+} from "../../../api/distributions/basePath";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreateContainerDistributionMutation } from "./useCreateContainerDistributionMutation";
 
@@ -33,7 +37,8 @@ export function CreateDistributionModal({
   repositoryName,
   onClose,
 }: CreateDistributionModalProps) {
-  const [basePath, setBasePath] = useState("");
+  const [basePathSuffix, setBasePathSuffix] = useState("");
+  const basePath = buildDistributionBasePath("container", basePathSuffix);
   const [isPrivate, setIsPrivate] = useState(false);
   const createMutation = useCreateContainerDistributionMutation();
 
@@ -80,10 +85,10 @@ export function CreateDistributionModal({
             <BasePathField
               id="distribution-base-path"
               isRequired
-              prefix={`${window.location.host}/`}
+              prefix={`${window.location.host}/${distributionPathPrefix("container")}`}
               placeholder="my-team/my-image"
-              value={basePath}
-              onChange={setBasePath}
+              value={basePathSuffix}
+              onChange={setBasePathSuffix}
             />
           </FormGroup>
           <FormGroup fieldId="distribution-private">
@@ -110,7 +115,7 @@ export function CreateDistributionModal({
           <FlexItem>
             <Button
               variant="primary"
-              isDisabled={!basePath || createMutation.isPending}
+              isDisabled={!basePathSuffix || createMutation.isPending}
               isLoading={createMutation.isPending}
               onClick={handleSubmit}
             >

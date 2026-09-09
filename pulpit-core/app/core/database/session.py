@@ -16,9 +16,9 @@ if _engine.dialect.name == "sqlite":
     # journal mode only allows one writer at a time and fails fast
     # ("database is locked") rather than waiting, which the worker's every-
     # few-seconds polling would hit constantly. WAL mode allows concurrent
-    # readers alongside the one writer (this app's actual access pattern -
-    # never two writers at once in practice), and busy_timeout makes the
-    # rare genuine contention retry briefly instead of erroring immediately.
+    # readers alongside one writer; busy_timeout bounds contention
+    # between short transactions.
+    # WAL still permits only one writer: jobs commit their claim before I/O.
     # No-op for Postgres (this block never runs), which handles concurrent
     # writers natively.
     @event.listens_for(_engine, "connect")

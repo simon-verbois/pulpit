@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
+
 export function AnsibleRepositoriesTopic() {
   return (
     <Content>
@@ -79,13 +81,14 @@ export function AnsibleRepositoriesTopic() {
       <Content component="p">
         Unlike RPM, there's no separate "publish" step — creating a distribution on the{" "}
         <strong>Distributions</strong> tab makes the repository's content servable
-        immediately. <strong>Create distribution</strong> gives you a row with a
-        ready-to-copy <code>ansible.cfg</code> client-configuration snippet (under{" "}
+        immediately. <strong>Create distribution</strong> gives you a row with an
+        <code>ansible.cfg</code> client-configuration snippet (under{" "}
         <strong>Client configuration</strong>) built from the distribution's own URL, so{" "}
         <code>ansible-galaxy</code> or Automation Hub can point straight at it.{" "}
         <strong>Delete</strong> removes a distribution without touching the underlying
         repository content.
       </Content>
+      <DistributionBasePathConvention prefix="ansible" />
 
       <Content component="h3">Signing and marking content</Content>
       <Content component="p">

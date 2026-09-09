@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pulp-distribution-path-policy"
+version = "1.0.0"
+description = "Pulpit deployment policy for plugin-scoped distribution base paths"
+requires-python = ">=3.11"
+
+[project.entry-points."pulpcore.plugin"]
+pulp_distribution_path_policy = "pulp_distribution_path_policy:default_app_config"
+
+[tool.setuptools.packages.find]
+include = ["pulp_distribution_path_policy*"]

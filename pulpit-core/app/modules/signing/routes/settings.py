@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.auth import require_authenticated_user
+from app.core.auth import require_authenticated_user, require_staff_user
 from app.core.database import get_db
 from app.modules.signing import service
 from app.modules.signing.schemas import SigningSettingsRead, SigningSettingsUpdate
@@ -16,7 +16,7 @@ def read_settings(db: Session = Depends(get_db)) -> SigningSettingsRead:
     return SigningSettingsRead.model_validate(row)
 
 
-@router.patch("", response_model=SigningSettingsRead)
+@router.patch("", response_model=SigningSettingsRead, dependencies=[Depends(require_staff_user)])
 def patch_settings(
     changes: SigningSettingsUpdate, db: Session = Depends(get_db)
 ) -> SigningSettingsRead:

@@ -4,7 +4,7 @@ Proxy settings form (unlike `RemoteConnectionSettingsFields.tsx`'s own
 per-Remote opt-in, which only ever applies the default automatically to a
 *new* Remote). Runs as a job (app/core/jobs), not inline in the request,
 since it can page through an unbounded number of remotes across every
-plugin (same reasoning as content_size's own periodic job)."""
+plugin (same reasoning as signing's periodic jobs)."""
 
 from sqlalchemy.orm import Session
 
@@ -38,6 +38,7 @@ def _proxy_body(db: Session) -> dict:
 
 def apply_proxy_to_all_remotes_job(db: Session, _payload: dict) -> dict:
     body = _proxy_body(db)
+    db.commit()
     client = get_pulp_client()
 
     updated: list[str] = []

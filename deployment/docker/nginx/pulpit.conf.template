@@ -27,8 +27,8 @@ server {
 }
 
 # TLS - self-signed fallback generated automatically on first boot if
-# nothing else is configured (Administration > TLS tab: manual upload or the
-# FreeIPA provider both replace ${TLS_CERT_PATH}/${TLS_KEY_PATH} in place and
+# nothing else is configured (Administration > TLS: manual upload replaces
+# ${TLS_CERT_PATH}/${TLS_KEY_PATH} in place and
 # request a reload - see docs/DEPLOYMENT.md "TLS"). 8080 keeps working
 # unchanged; this is purely additive.
 server {

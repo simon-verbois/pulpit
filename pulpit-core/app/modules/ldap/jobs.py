@@ -9,6 +9,7 @@ all: it's a direct LDAP bind+search check from pulpit-worker itself
 through Pulp's own django-auth-ldap."""
 
 import logging
+import ssl
 import time
 
 import ldap3
@@ -53,6 +54,7 @@ def apply_config_job(db: Session, _payload: dict) -> dict:
     catch those - it binds against the real server directly."""
     settings = get_settings()
     row = service.get_settings_row(db)
+    db.commit()
     manifest = build_manifest(row)
     write_manifest(
         manifest,
@@ -80,7 +82,12 @@ def apply_config_job(db: Session, _payload: dict) -> dict:
 
 def _build_test_server(row_or_settings: LdapSettings, overrides: dict) -> tuple:
     resolved = service.resolve_test_settings(row_or_settings, overrides)
-    server = ldap3.Server(resolved.server_uri, use_ssl=resolved.server_uri.startswith("ldaps://"))
+    server = ldap3.Server(
+        resolved.server_uri,
+        use_ssl=resolved.server_uri.startswith("ldaps://"),
+        tls=ldap3.Tls(validate=ssl.CERT_REQUIRED),
+        connect_timeout=get_settings().ldap_test_connection_timeout_seconds,
+    )
     return resolved, server
 
 
@@ -91,6 +98,7 @@ def test_connection_job(db: Session, payload: dict) -> dict:
     request block on an external network call" convention as every other
     outbound-network job in this codebase (e.g. fixture_seed)."""
     row = service.get_settings_row(db)
+    db.commit()
     # `payload` is already exactly LdapTestConnectionRequest's own
     # exclude_unset dump (routes/test_connection.py) - the field names match
     # 1:1, no need to re-validate a second time here.

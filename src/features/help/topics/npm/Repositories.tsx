@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
+
 export function NpmRepositoriesTopic() {
   return (
     <Content>
@@ -31,6 +33,7 @@ export function NpmRepositoriesTopic() {
         proxy a <strong>remote</strong> directly for pull-through caching.{" "}
         <strong>Delete</strong> removes a distribution.
       </Content>
+      <DistributionBasePathConvention prefix="npm" />
 
       <Content component="h3">The Content tab</Content>
       <Content component="p">

@@ -39,9 +39,8 @@ class CurrentUser:
 class FullUser:
     """The caller's full Pulp user record - `is_staff`, which `/login/`'s
     narrow response (CurrentUser above) doesn't carry. Fetched by
-    `get_full_user` via the same self-lookup a user is always allowed to
-    perform on their own account (GET {pulp_href}, forwarding the caller's
-    own credentials - VERIFIED live: needs no elevated privilege), so this
+    `get_full_user` via a self-lookup (GET {pulp_href}, forwarding the caller's
+    own credentials). Pulp may deny this lookup for minimal users, so this
     costs one extra Pulp round trip and is only depended on by routes that
     actually need it (any `require_staff_user`-gated route, e.g.
     nav-visibility's admin settings route - its own `/me` resolution does
@@ -113,11 +112,11 @@ async def get_full_user(
         except httpx.HTTPError as exc:
             raise HTTPException(status_code=502, detail="Pulp is currently unavailable") from exc
 
+    if response.status_code == 403:
+        # A minimal Pulp user can authenticate yet lack permission to read
+        # even their own user record. Fail closed without claiming logout.
+        raise HTTPException(status_code=403, detail="Pulp does not permit checking staff access")
     if response.status_code != 200:
-        # The session was valid a moment ago (require_authenticated_user just
-        # confirmed it) but reading the full record failed regardless - treat
-        # it the same as a lost session rather than a permission error, since
-        # a user can always read their own record.
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     body = response.json()

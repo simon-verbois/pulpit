@@ -47,12 +47,10 @@ describe("SigningPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "View" }));
     const dialog = await screen.findByRole("dialog");
-    // ClipboardCopy's expansion variant renders its content as a textbox's
-    // value, not as plain text content (VERIFIED - same pattern already
-    // established for other ClipboardCopy usages in this app).
-    const textboxes = within(dialog).getAllByRole("textbox");
-    const values = textboxes.map((box) => (box as HTMLTextAreaElement).value);
-    expect(values.some((v) => v.includes("key-data"))).toBe(true);
-    expect(values.some((v) => v.includes("/var/lib/pulp/scripts/sign.sh"))).toBe(true);
+    expect(within(dialog).getByText(/key-data/)).toBeInTheDocument();
+    expect(within(dialog).getByText(FIXTURE.script)).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: /copy/i }),
+    ).not.toBeInTheDocument();
   });
 });

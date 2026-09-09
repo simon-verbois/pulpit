@@ -93,7 +93,7 @@ def test_test_connection_binds_and_searches(db, monkeypatch):
         def unbind(self):
             calls["unbound"] = True
 
-    monkeypatch.setattr(ldap_jobs.ldap3, "Server", lambda uri, use_ssl: uri)
+    monkeypatch.setattr(ldap_jobs.ldap3, "Server", lambda uri, **kwargs: uri)
     monkeypatch.setattr(ldap_jobs.ldap3, "Connection", _FakeConnection)
 
     result = ldap_jobs.test_connection_job(
@@ -125,7 +125,7 @@ def test_test_connection_reports_bind_failure(db, monkeypatch):
         def unbind(self):
             pass
 
-    monkeypatch.setattr(ldap_jobs.ldap3, "Server", lambda uri, use_ssl: uri)
+    monkeypatch.setattr(ldap_jobs.ldap3, "Server", lambda uri, **kwargs: uri)
     monkeypatch.setattr(ldap_jobs.ldap3, "Connection", _FakeConnection)
 
     result = ldap_jobs.test_connection_job(

@@ -10,6 +10,41 @@ const COMPOSITE_GUARD = `e2e-composite-guard-${RUN_ID}`;
 
 test.describe.configure({ mode: "serial" });
 
+test("Administration: TLS exposes only self-signed and manual certificate paths", async ({
+  page,
+}) => {
+  const pageErrors: Error[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error));
+
+  await page.setViewportSize({ width: 768, height: 900 });
+  // Old bookmarks used subtab=freeipa. They must land on Overview instead
+  // of leaving the TLS area blank after that provider's removal.
+  await page.goto("/admin?tab=tls&subtab=freeipa");
+
+  await expect(
+    page.getByRole("heading", { name: "Administration", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Overview", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Overview", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("tab", { name: "Manual", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "FreeIPA", exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText(/Self-signed|Manual/, { exact: true }).first(),
+  ).toBeVisible();
+
+  await page.getByRole("tab", { name: "Manual", exact: true }).click();
+  await page.getByRole("button", { name: "Upload certificate" }).click();
+  await expect(page.getByRole("dialog", { name: "Upload certificate" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const removedRoute = await page.request.get("/pulpit-core/api/v1/tls/freeipa/settings");
+  expect(removedRoute.status()).toBe(404);
+  expect(pageErrors).toEqual([]);
+});
+
 test.describe("Administration: signing services (read-only) and content guards", () => {
   test("Signing services page loads without crashing", async ({ page }) => {
     // The merged Administration page (docs/adr/0010-merged-administration-

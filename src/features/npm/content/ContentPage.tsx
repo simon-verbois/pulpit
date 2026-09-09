@@ -33,6 +33,7 @@ export function ContentPage() {
     (pkg) => pkg.name ?? "",
     pagination,
   );
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -41,7 +42,7 @@ export function ContentPage() {
         description="Packages across every NPM repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {contentQuery.isSuccess && totalCount > 0 ? (
+        {contentQuery.isSuccess && (totalCount > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -80,8 +81,12 @@ export function ContentPage() {
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
           content={paged}
-          emptyTitle="No NPM content yet"
-          emptyBody="Packages appear here once a repository has synced content or a package has been uploaded."
+          emptyTitle={isFiltered ? "No matching NPM content" : "No NPM content yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every package."
+              : "Packages appear here once a repository has synced content or a package has been uploaded."
+          }
         />
       </PageSection>
     </>

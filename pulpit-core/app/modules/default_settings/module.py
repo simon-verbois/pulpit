@@ -1,6 +1,6 @@
 """default_settings module's public surface - the only file
 app/modules/registry.py imports from this package (same seam as signing and
-content_size; see app/modules/signing/module.py)."""
+signing; see app/modules/signing/module.py)."""
 
 from fastapi import APIRouter
 

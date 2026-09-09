@@ -17,7 +17,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.adapters.pulp import PulpAdapterError, PulpClient, PulpNotFoundError, get_pulp_client
+from app.adapters.pulp import PulpAdapterError, PulpClient, get_pulp_client
 from app.core.config import get_settings
 from app.core.events import event_bus
 from app.core.events.types import (
@@ -106,6 +106,7 @@ def _ensure_pulp_service_row(
 
 def generate_key_job(db: Session, payload: dict) -> dict:
     settings_row = service.get_settings_row(db)
+    db.commit()
     validity_days = payload.get("validity_days") or settings_row.validity_days
     no_expiration = bool(payload.get("no_expiration"))
     if no_expiration:
@@ -244,6 +245,7 @@ def publish_key_job(db: Session, payload: dict) -> dict:
     if key is None:
         raise ValueError("Unknown key")
     settings_row = service.get_settings_row(db)
+    db.commit()
     pulp = get_pulp_client()
 
     package_row = (
@@ -564,6 +566,7 @@ def rotation_check_job(db: Session, payload: dict) -> dict:
     follow-up job so each step stays small, auditable, and independently
     retryable."""
     settings_row = service.get_settings_row(db)
+    db.commit()
     now = rotation.utcnow()
     actions: list[str] = []
 
@@ -599,21 +602,29 @@ def rotation_check_job(db: Session, payload: dict) -> dict:
 
 
 def configure_repository_signing_job(db: Session, payload: dict) -> dict:
+    # Old queued commands never bypass the new caller-authorized request path.
+    task_href = payload.get("pulp_task")
+    if not task_href:
+        raise ValueError("Please submit repository signing configuration again")
+    task = get_pulp_client().wait_for_task(task_href)
+    if task["state"] != "completed":
+        raise ValueError(f"Pulp signing configuration {task['state']}: {task.get('error')}")
+    return {"pulp_task": task_href}
+
+
+def configure_repository_signing(db: Session, payload: dict, pulp: PulpClient) -> dict:
     """The "Sign packages" / "Sign metadata" repository actions: applies the
     *current* global signing policy to one repository's Pulp fields. This
     only affects content signed from this point forward for packages
     (on-upload only); if the repository is switching metadata signing on,
     Pulp signs the very next publish, so no separate job is needed here."""
     settings_row = service.get_settings_row(db)
+    db.commit()
     active_key = service.get_active_key(db)
     if active_key is None:
         raise ValueError("No active signing key")
-    pulp = get_pulp_client()
     href = payload["repository_href"]
-    try:
-        repo = pulp.get_rpm_repository(href)
-    except PulpNotFoundError as exc:
-        raise ValueError("Repository not found in Pulp") from exc
+    repo = pulp.get_rpm_repository(href)
 
     package_row = (
         db.query(SigningPulpService)
@@ -675,6 +686,7 @@ def apply_signing_to_all_repositories_job(db: Session, payload: dict) -> dict:
     rotation repoint. A repository already correctly configured is left
     untouched (no needless PATCH/resign for something already signed)."""
     settings_row = service.get_settings_row(db)
+    db.commit()
     active_key = service.get_active_key(db)
     if active_key is None:
         return {

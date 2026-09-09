@@ -33,7 +33,7 @@ describe("TaskTrackers", () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       // No <TasksDrawer> is mounted anywhere in this test - if invalidation
       // depended on it (the pre-fix bug), this would never appear.
-      expect(await screen.findAllByText("tracked-only-path")).not.toHaveLength(0);
+      expect(await screen.findAllByText("rpm/tracked-only-path")).not.toHaveLength(0);
     },
   );
 });

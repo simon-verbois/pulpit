@@ -182,8 +182,8 @@ pulpit/
   from Administration → LDAP. SSO/reverse-proxy auth remain architecturally supported but
   unconfigured and unexercised in this environment ([`docs/ROADMAP.md`](docs/ROADMAP.md)
   Milestone 6).
-- TLS termination is implemented (self-signed by default, plus manual certificate upload and
-  FreeIPA CA integration — see [`docs/tls.md`](docs/tls.md)); secrets management and hardened
+- TLS termination is implemented (a two-year, automatically renewed self-signed certificate by
+  default, plus manual certificate import — see [`docs/tls.md`](docs/tls.md)); secrets management and hardened
   security headers are not implemented yet beyond what's documented in
   [`docs/SECURITY.md`](docs/SECURITY.md)/[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) as future
   work.

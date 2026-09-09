@@ -11,8 +11,6 @@ const ACTIVE_URL = "/pulpit-core/api/v1/tls/active";
 const HISTORY_URL = "/pulpit-core/api/v1/tls/history";
 const REGENERATE_URL = "/pulpit-core/api/v1/tls/selfsigned/regenerate";
 const MANUAL_URL = "/pulpit-core/api/v1/tls/manual";
-const FREEIPA_SETTINGS_URL = "/pulpit-core/api/v1/tls/freeipa/settings";
-const FREEIPA_WIZARD_URL = "/pulpit-core/api/v1/tls/freeipa/wizard/setup";
 
 const ACTIVE_CERT = {
   id: "11111111-1111-1111-1111-111111111111",
@@ -22,26 +20,9 @@ const ACTIVE_CERT = {
   not_before: "2026-01-01T00:00:00Z",
   not_after: "2028-01-01T00:00:00Z",
   created_at: "2026-01-01T00:00:00Z",
-  freeipa_principal: null,
   days_until_expiry: 365,
   warn_days: 30,
   is_expiring_soon: false,
-};
-
-const FREEIPA_SETTINGS = {
-  id: "44444444-4444-4444-4444-444444444444",
-  enabled: false,
-  base_url: "",
-  verify_tls: true,
-  common_name: "",
-  service_principal: "",
-  service_username: "",
-  service_password_is_set: false,
-  ca: "ipa",
-  profile: null,
-  auto_renew_enabled: true,
-  renew_before_days: 30,
-  updated_at: "2026-01-01T00:00:00Z",
 };
 
 function mockActive(overrides: Partial<typeof ACTIVE_CERT> = {}) {
@@ -54,23 +35,6 @@ function mockHistory(entries: unknown[]) {
   server.use(http.get(HISTORY_URL, () => HttpResponse.json(entries)));
 }
 
-function mockFreeIpaSettings(overrides: Partial<typeof FREEIPA_SETTINGS> = {}) {
-  server.use(
-    http.get(FREEIPA_SETTINGS_URL, () =>
-      HttpResponse.json({ ...FREEIPA_SETTINGS, ...overrides }),
-    ),
-    http.patch(FREEIPA_SETTINGS_URL, async ({ request }) => {
-      const body = (await request.json()) as Record<string, unknown>;
-      return HttpResponse.json({
-        ...FREEIPA_SETTINGS,
-        ...overrides,
-        ...body,
-        service_password_is_set: true,
-      });
-    }),
-  );
-}
-
 /** A stateful harness so tests can click between sub-tabs, since TlsPage
  * itself is a controlled component (AdministrationPage owns the state in
  * real usage). */
@@ -80,6 +44,19 @@ function TlsPageHarness({ initialSubTab = "overview" }: { initialSubTab?: string
 }
 
 describe("TlsPage overview", () => {
+  it("falls back to Overview for a removed or unknown sub-tab", async () => {
+    mockActive();
+    mockHistory([]);
+
+    renderApp(<TlsPageHarness initialSubTab="freeipa" />);
+
+    expect(await screen.findByText("Self-signed")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
   it("renders the active certificate's source, subject, and fingerprint", async () => {
     mockActive();
     mockHistory([]);
@@ -194,7 +171,6 @@ describe("TlsPage manual sub-tab", () => {
           not_before: "2026-01-01T00:00:00Z",
           not_after: "2027-01-01T00:00:00Z",
           created_at: "2026-01-01T00:00:00Z",
-          freeipa_principal: null,
         }),
       ),
     );
@@ -249,120 +225,5 @@ describe("TlsPage manual sub-tab", () => {
     expect(
       screen.getByRole("dialog", { name: "Upload certificate" }),
     ).toBeInTheDocument();
-  });
-});
-
-describe("TlsPage freeipa sub-tab", () => {
-  it("loads settings and saves a change", async () => {
-    mockActive();
-    mockHistory([]);
-    mockFreeIpaSettings();
-
-    renderApp(<TlsPageHarness />);
-    fireEvent.click(await screen.findByRole("tab", { name: "FreeIPA" }));
-
-    const baseUrlInput = await screen.findByLabelText("Base URL", { exact: false });
-    fireEvent.change(baseUrlInput, { target: { value: "https://ipa.example.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => expect(baseUrlInput).toHaveValue("https://ipa.example.com"));
-  });
-
-  it("runs the guided setup and shows per-step results without leaking the admin password", async () => {
-    mockActive();
-    mockHistory([]);
-    mockFreeIpaSettings();
-    server.use(
-      http.post(FREEIPA_WIZARD_URL, async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        expect(body.admin_password).toBe("super-secret-admin-password");
-        return HttpResponse.json({
-          success: true,
-          steps: [
-            {
-              step: "Authenticate as the IPA administrator",
-              status: "created",
-              detail: "",
-            },
-            {
-              step: 'Create service "HTTP/pulpit.example.com@EXAMPLE.COM"',
-              status: "created",
-              detail: "",
-            },
-          ],
-        });
-      }),
-    );
-
-    renderApp(<TlsPageHarness />);
-    fireEvent.click(await screen.findByRole("tab", { name: "FreeIPA" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Guided setup…" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "FreeIPA guided setup" });
-    fireEvent.change(
-      within(dialog).getByLabelText("FreeIPA base URL", { exact: false }),
-      {
-        target: { value: "https://ipa.example.test" },
-      },
-    );
-    fireEvent.change(
-      within(dialog).getByLabelText("IPA administrator username", { exact: false }),
-      {
-        target: { value: "admin" },
-      },
-    );
-    fireEvent.change(
-      within(dialog).getByLabelText("IPA administrator password", { exact: false }),
-      {
-        target: { value: "super-secret-admin-password" },
-      },
-    );
-    fireEvent.change(within(dialog).getByLabelText("Common name", { exact: false }), {
-      target: { value: "pulpit.example.com" },
-    });
-    // Target service principal and the automation account username are
-    // never touched here - they're expected to already be usable via their
-    // auto-derived/constant defaults (Advanced settings, collapsed).
-    fireEvent.click(within(dialog).getByRole("button", { name: "Run setup" }));
-
-    expect(
-      await within(dialog).findByText("Authenticate as the IPA administrator"),
-    ).toBeInTheDocument();
-    expect(document.body.textContent).not.toContain("super-secret-admin-password");
-  });
-
-  it("derives the target service principal from the common name until manually overridden", async () => {
-    mockActive();
-    mockHistory([]);
-    mockFreeIpaSettings();
-
-    renderApp(<TlsPageHarness />);
-    fireEvent.click(await screen.findByRole("tab", { name: "FreeIPA" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Guided setup…" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "FreeIPA guided setup" });
-    fireEvent.change(within(dialog).getByLabelText("Common name", { exact: false }), {
-      target: { value: "pulpit.example.com" },
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Advanced settings" }));
-
-    const principalInput = within(dialog).getByLabelText("Target service principal", {
-      exact: false,
-    });
-    expect(principalInput).toHaveValue("HTTP/pulpit.example.com@EXAMPLE.COM");
-
-    // Changing the common name keeps re-deriving it...
-    fireEvent.change(within(dialog).getByLabelText("Common name", { exact: false }), {
-      target: { value: "other.example.org" },
-    });
-    expect(principalInput).toHaveValue("HTTP/other.example.org@EXAMPLE.ORG");
-
-    // ...until the admin edits it directly, which then sticks even if the
-    // common name changes again.
-    fireEvent.change(principalInput, { target: { value: "HTTP/custom@CUSTOM.REALM" } });
-    fireEvent.change(within(dialog).getByLabelText("Common name", { exact: false }), {
-      target: { value: "yet-another.example.net" },
-    });
-    expect(principalInput).toHaveValue("HTTP/custom@CUSTOM.REALM");
   });
 });

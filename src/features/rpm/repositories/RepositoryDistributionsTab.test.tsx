@@ -59,7 +59,7 @@ describe("RepositoryDistributionsTab", () => {
     // window.location.origin, which can differ from it in a real deployment
     // where CONTENT_ORIGIN isn't configured to match the public origin.
     expect(
-      await within(dialog).findByText("http://pulp.example.com:8080/pulp/content/"),
+      await within(dialog).findByText("http://pulp.example.com:8080/pulp/content/rpm/"),
     ).toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
@@ -69,7 +69,7 @@ describe("RepositoryDistributionsTab", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     // Name and base path are now the same value (no separate Name field),
     // so this text renders twice - once per column.
-    expect(await screen.findAllByText("new-dist-path")).toHaveLength(2);
+    expect(await screen.findAllByText("rpm/new-dist-path")).toHaveLength(2);
   });
 
   it("deletes a distribution after confirmation", async () => {

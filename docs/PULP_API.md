@@ -89,6 +89,18 @@ list endpoint has no `created_by` filter at all, despite the field being present
   auditability") - distinct from the masthead Tasks drawer, which only tracks individual task
   hrefs returned by mutations made in the current browser tab (`src/api/tasks/TasksContext.tsx`).
 
+## Distribution base-path policy
+
+**VERIFIED in the derived reference Pulp image:** the `pulp-distribution-path-policy` extension
+requires every plugin distribution `base_path` to begin with that plugin's public namespace
+(`rpm/`, `container/`, `ansible/`, `file/`, `deb/`, `python/`, `gem/`, `maven/`, `npm/`,
+`hugging-face/`, `ostree/`, `openpgp/`, or `artifact/`). The prefix must be followed by a non-empty
+name. Validation runs before asynchronous dispatch, so an invalid POST, PUT, or base-path PATCH returns a synchronous
+field-level HTTP 400. PATCH requests that omit `base_path` remain valid for legacy distributions.
+
+This is a policy of Pulpit's derived reference image, not an upstream pulpcore guarantee. External
+Pulp deployments must install an equivalent extension if direct API enforcement is required.
+
 ## Pagination
 
 Pulp's list endpoints use limit/offset-style pagination with `count`/`next`/`previous` in the
@@ -443,3 +455,29 @@ by the same `status.versions` list:
   the version Pulpit's own milestones were last VERIFIED against, surfaced as a "Compatibility"
   column on the Overview page. A static, hand-maintained baseline - there's no live
   compatibility-matrix endpoint to fetch instead.
+
+### VERIFIED — caller-authorized signing and browser size queries (2026-09-08)
+
+Live instance: pulpcore 3.116.1, pulp_rpm 3.38.5. The RPM schema exposes
+`{rpm_rpm_repository_href}my_permissions/`, but the live admin response was
+`{"permissions": []}`. Do not infer that an empty list forbids a superuser's actions.
+Repository signing now sends its GET/PATCH with the caller's credentials and leaves
+permission enforcement to Pulp; the returned task is followed by a core job.
+
+The generic `/repositories/?fields=pulp_href,latest_version_href`,
+`/content/?fields=pulp_href,artifacts` and `/artifacts/?fields=pulp_href,size`
+queries return paginated JSON (200), verified live. `next` may contain the public
+absolute origin. Browser size calculations paginate using locally constructed
+limit/offset parameters, never forward credentials to a `next` hostname. Repository
+sizes use the existing `repository_version` content filter. No privileged backend
+cache is involved.
+
+VERIFIED during the same Compose validation: a freshly created non-staff user
+can authenticate through `/login/` but receives 403 on their own `/users/{id}/`
+record. Core staff checks therefore propagate a forbidden result, not 401/logout.
+
+VERIFIED follow-up: the live RPM repository PATCH used to clear signing fields
+returned 200 with the repository object, not a task. Core now handles both this
+synchronous response (JobRead already marked success) and a task response (queued
+polling job). Never infer asynchronous behavior solely from the PATCH method or
+from earlier plugin versions.

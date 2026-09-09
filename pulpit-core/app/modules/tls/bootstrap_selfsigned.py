@@ -3,9 +3,9 @@
 Run by deployment/docker/pulpit/entrypoint.sh, as the `pulpit` user, after
 migrations and before nginx starts - nginx hard-fails to start at all without
 something already at Settings.tls_cert_dir/active/{cert,key}.pem, and on a
-brand-new deployment nothing has written one yet (a manual/FreeIPA cert from
-a previous run takes precedence - entrypoint.sh only calls this when those
-files are missing).
+brand-new deployment nothing has written one yet (a manually imported cert
+from a previous run takes precedence - entrypoint.sh only calls this when
+those files are missing).
 """
 
 import logging

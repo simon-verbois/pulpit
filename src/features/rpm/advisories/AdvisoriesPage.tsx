@@ -23,6 +23,7 @@ export function AdvisoriesPage() {
     offset: pagination.offset,
     q: search || undefined,
   });
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -31,7 +32,8 @@ export function AdvisoriesPage() {
         description="Security, bugfix, and enhancement updates (errata) across every RPM repository."
       />
       <PageSection hasBodyWrapper={false}>
-        {advisoriesQuery.isSuccess && advisoriesQuery.data.results.length > 0 ? (
+        {advisoriesQuery.isSuccess &&
+        (advisoriesQuery.data.results.length > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -70,8 +72,12 @@ export function AdvisoriesPage() {
           error={advisoriesQuery.error}
           onRetry={() => advisoriesQuery.refetch()}
           advisories={advisoriesQuery.data?.results}
-          emptyTitle="No RPM advisories yet"
-          emptyBody="Advisories appear here once a repository has synced content that includes updateinfo."
+          emptyTitle={isFiltered ? "No matching RPM advisories" : "No RPM advisories yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every advisory."
+              : "Advisories appear here once a repository has synced content that includes updateinfo."
+          }
         />
       </PageSection>
     </>

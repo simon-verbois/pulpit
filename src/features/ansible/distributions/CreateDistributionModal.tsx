@@ -13,6 +13,10 @@ import {
 } from "@patternfly/react-core";
 
 import { BasePathField } from "../../../components/BasePathField";
+import {
+  buildDistributionBasePath,
+  distributionPathPrefix,
+} from "../../../api/distributions/basePath";
 import { useContentOrigin } from "../../../hooks/useContentOrigin";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useCreateAnsibleDistributionMutation } from "./useCreateAnsibleDistributionMutation";
@@ -34,7 +38,8 @@ export function CreateDistributionModal({
   repositoryName,
   onClose,
 }: CreateDistributionModalProps) {
-  const [basePath, setBasePath] = useState("");
+  const [basePathSuffix, setBasePathSuffix] = useState("");
+  const basePath = buildDistributionBasePath("ansible", basePathSuffix);
   const contentOrigin = useContentOrigin();
   const createMutation = useCreateAnsibleDistributionMutation();
 
@@ -76,10 +81,10 @@ export function CreateDistributionModal({
             <BasePathField
               id="distribution-base-path"
               isRequired
-              prefix={`${contentOrigin}/pulp_ansible/galaxy/`}
+              prefix={`${contentOrigin}/pulp_ansible/galaxy/${distributionPathPrefix("ansible")}`}
               placeholder="my-repo"
-              value={basePath}
-              onChange={setBasePath}
+              value={basePathSuffix}
+              onChange={setBasePathSuffix}
             />
           </FormGroup>
         </Form>
@@ -97,7 +102,7 @@ export function CreateDistributionModal({
           <FlexItem>
             <Button
               variant="primary"
-              isDisabled={!basePath || createMutation.isPending}
+              isDisabled={!basePathSuffix || createMutation.isPending}
               isLoading={createMutation.isPending}
               onClick={handleSubmit}
             >

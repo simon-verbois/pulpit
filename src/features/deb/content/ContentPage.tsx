@@ -23,6 +23,7 @@ export function ContentPage() {
     offset: pagination.offset,
     package__icontains: search || undefined,
   });
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -31,7 +32,8 @@ export function ContentPage() {
         description="Packages across every Debian repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {contentQuery.isSuccess && contentQuery.data.results.length > 0 ? (
+        {contentQuery.isSuccess &&
+        (contentQuery.data.results.length > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -70,8 +72,12 @@ export function ContentPage() {
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
           content={contentQuery.data?.results}
-          emptyTitle="No Debian content yet"
-          emptyBody="Packages appear here once a repository has synced content or a package has been uploaded."
+          emptyTitle={isFiltered ? "No matching Debian content" : "No Debian content yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every package."
+              : "Packages appear here once a repository has synced content or a package has been uploaded."
+          }
         />
       </PageSection>
     </>

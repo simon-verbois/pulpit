@@ -2,7 +2,7 @@
 instance isn't a totally empty shell - see fixtures.py for the per-plugin
 data and why pulp_npm is skipped entirely and pulp_maven/pulp_hugging_face
 only get a Remote. Runs as a scheduled job (module.py's `scheduled_jobs`,
-same mechanism as content_size.refresh) rather than inline at process
+same mechanism as signing.rotation_check) rather than inline at process
 startup, since it makes real outbound HTTP calls to public fixture servers
 that could be slow or briefly unreachable - never something a request (or
 app startup itself) should block on.
@@ -46,7 +46,11 @@ def _seed_one(client, fixture: PluginFixture) -> str:
     if fixture.distribution_type_path is not None:
         distribution = client.create_distribution(
             fixture.distribution_type_path,
-            {"name": fixture.name, "base_path": fixture.name, "repository": repo["pulp_href"]},
+            {
+                "name": fixture.distribution_base_path,
+                "base_path": fixture.distribution_base_path,
+                "repository": repo["pulp_href"],
+            },
         )
         if "task" in distribution:
             dist_task = client.wait_for_task(distribution["task"])

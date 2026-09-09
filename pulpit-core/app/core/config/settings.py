@@ -113,22 +113,15 @@ class Settings(BaseSettings):
     # Where the certificate/key nginx's 8443 server block reads live -
     # deployment/docker/pulpit/entrypoint.sh mounts this as its own volume
     # (distinct sensitivity/lifecycle from signing_gnupg_home or the embedded
-    # SQLite database). A self-signed fallback is generated here automatically
-    # on first boot if nothing else (a manual/FreeIPA certificate) is present.
+    # SQLite database). A self-signed fallback is generated automatically on
+    # first boot if no manually imported certificate is present.
     tls_cert_dir: Path = Path("/var/lib/pulpit-tls")
     # Both the Overview-page warning and the TLS admin tab use this same
     # threshold - never hardcoded twice on the frontend, it's part of the
     # GET /tls/active response.
     tls_warn_days: int = 30
-    tls_selfsigned_validity_days: int = 825  # ~ the max validity public CAs/browsers still accept
+    tls_selfsigned_validity_days: int = 730
     tls_selfsigned_common_name: str = "pulpit.local"
-
-    # --- TLS module: FreeIPA provider (service-account password/session
-    # auth, NOT Kerberos/keytabs - see app/adapters/freeipa/client.py) -------
-    # Per-instance connection settings (base_url, service account
-    # credentials, ...) live in the admin-editable TlsFreeIpaSettings DB row,
-    # not here - this is only the one infra-level knob common to every call.
-    ipa_request_timeout_seconds: float = 30.0
 
     # --- Health check (app/api/health.py) ----------------------------------------
     # Deliberately much shorter than pulp_request_timeout_seconds above: a

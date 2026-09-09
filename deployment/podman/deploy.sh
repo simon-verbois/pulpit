@@ -1,12 +1,14 @@
 #!/bin/bash
 # Applies deployment/podman/*.yaml in order via `podman play kube` and sets
 # Pulp's admin password (no postStart-hook equivalent exists under `podman
-# play kube`). `up` also auto-generates 00-secret.yaml the first time it's
-# missing; delete the file and re-run to get a fresh set.
+# play kube`). `init` and `up` auto-generate 00-secret.yaml the first time
+# it is missing; neither overwrites an existing secrets file.
 #
 # Usage:
-#   ./deployment/podman/deploy.sh up      # deploy (default)
-#   ./deployment/podman/deploy.sh down    # tear down (PVCs/volumes kept)
+#   ./deployment/podman/deploy.sh init    # generate secrets without deploying
+#   ./deployment/podman/deploy.sh up      # deploy
+#   ./deployment/podman/deploy.sh down    # stop (PVCs/volumes kept)
+#   ./deployment/podman/deploy.sh reset   # delete runtime resources and data
 #
 # Env vars (optional):
 #   PULPIT_PUBLIC_ORIGIN    public origin CSRF checks against (default: http://localhost:8080)
@@ -24,10 +26,26 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 
 PULPIT_PUBLIC_ORIGIN="${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}"
 
-sed "s#__PULPIT_PUBLIC_ORIGIN__#${PULPIT_PUBLIC_ORIGIN}#" \
-    "${SCRIPT_DIR}/00-configmap.yaml" > "${WORK_DIR}/00-configmap.yaml"
+render_configmap() {
+    sed "s#__PULPIT_PUBLIC_ORIGIN__#${PULPIT_PUBLIC_ORIGIN}#g" \
+        "${SCRIPT_DIR}/00-configmap.yaml" > "${WORK_DIR}/00-configmap.yaml"
+}
 
-action="${1:-up}"
+usage() {
+    cat <<EOF
+Usage: $0 <init|up|down|reset>
+
+Commands:
+  init   Generate the local secrets file without deploying anything.
+  up     Deploy or update Pulpit, preserving existing data.
+  down   Stop Pulpit, preserving volumes and the local secrets file.
+  reset  Stop Pulpit and permanently delete its volumes and images.
+
+Environment:
+  PULPIT_PUBLIC_ORIGIN   Public origin (default: http://localhost:8080)
+  PULPIT_RESET_CONFIRM  Set to yes to run reset non-interactively.
+EOF
+}
 
 wait_healthy() {
     local container="$1"
@@ -68,10 +86,23 @@ generate_secret_file() {
     echo >&2
 }
 
+init() {
+    if [ ! -f "${SCRIPT_DIR}/00-secret.yaml" ]; then
+        generate_secret_file
+    else
+        echo "Keeping existing ${SCRIPT_DIR}/00-secret.yaml."
+    fi
+
+    render_configmap
+    echo "Initialization complete for ${PULPIT_PUBLIC_ORIGIN}. Run '$0 up' to deploy."
+}
+
 up() {
     if [ ! -f "${SCRIPT_DIR}/00-secret.yaml" ]; then
         generate_secret_file
     fi
+
+    render_configmap
 
     # Podman ConfigMaps aren't standalone objects - each `play kube` call
     # must pass 00-configmap.yaml/00-secret.yaml in the SAME invocation as
@@ -88,7 +119,7 @@ up() {
     wait_healthy pulpit-pulpit
 
     echo
-    echo "Pulpit is up: http://localhost:8080/"
+    echo "Pulpit is up: ${PULPIT_PUBLIC_ORIGIN}/"
 }
 
 down() {
@@ -97,11 +128,86 @@ down() {
     podman play kube --down "${SCRIPT_DIR}/redis.yaml" 2>/dev/null || true
 }
 
+confirm_reset() {
+    echo "WARNING: reset permanently deletes every Pulp/Pulpit Podman volume and removes its images when unused." >&2
+    if [ "${PULPIT_RESET_CONFIRM:-}" = "yes" ]; then
+        return
+    fi
+    if [ ! -t 0 ]; then
+        echo "Refusing non-interactive reset. Set PULPIT_RESET_CONFIRM=yes to confirm." >&2
+        exit 1
+    fi
+    read -r -p "Type 'reset' to continue: " confirmation
+    if [ "${confirmation}" != "reset" ]; then
+        echo "Reset cancelled."
+        exit 0
+    fi
+}
+
+reset() {
+    confirm_reset
+
+    podman play kube --down --force "${SCRIPT_DIR}/pulpit.yaml" 2>/dev/null || true
+    podman play kube --down --force "${SCRIPT_DIR}/pulp.yaml" 2>/dev/null || true
+    podman play kube --down --force "${SCRIPT_DIR}/redis.yaml" 2>/dev/null || true
+
+    # Exact manifest-owned volume names only; this also covers partial stacks
+    # where a pod is already absent and `play kube --down --force` cannot
+    # discover every remaining PVC-backed volume.
+    local volume
+    for volume in \
+        pulpit-data \
+        pulpit-tls \
+        pulpit-signing-gnupghome \
+        pulpit-signing-scripts \
+        pulp-var-lib-containers \
+        pulp-var-lib-pgsql \
+        pulp-var-lib-pulp \
+        pulp-etc \
+        pulp-init-admin-password-script; do
+        if podman volume exists "${volume}"; then
+            podman volume rm --force "${volume}"
+        fi
+    done
+
+    local image
+    while IFS= read -r image; do
+        if podman image exists "${image}"; then
+            if ! podman image rm "${image}"; then
+                echo "Keeping image ${image}: another container still uses it." >&2
+            fi
+        fi
+    done < <(
+        awk '$1 == "image:" { gsub(/"/, "", $2); print $2 }' \
+            "${SCRIPT_DIR}/redis.yaml" \
+            "${SCRIPT_DIR}/pulp.yaml" \
+            "${SCRIPT_DIR}/pulpit.yaml" | sort -u
+    )
+
+    echo "Reset complete. Podman pods/containers and data volumes were permanently deleted; YAML files and secrets were preserved."
+}
+
+if [ "$#" -eq 0 ]; then
+    usage
+    exit 0
+fi
+
+action="$1"
+shift
+
+if [ "$#" -ne 0 ]; then
+    usage >&2
+    exit 1
+fi
+
 case "${action}" in
+    init) init ;;
     up) up ;;
     down) down ;;
+    reset) reset ;;
+    help|-h|--help) usage ;;
     *)
-        echo "Usage: $0 [up|down]" >&2
+        usage >&2
         exit 1
         ;;
 esac

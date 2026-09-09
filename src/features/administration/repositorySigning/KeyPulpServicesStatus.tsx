@@ -1,11 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  Alert,
-  ClipboardCopy,
-  ClipboardCopyVariant,
-  Content,
-  StackItem,
-} from "@patternfly/react-core";
+import { Alert, Content, StackItem } from "@patternfly/react-core";
 
 import { getSigningKeyPulpServices } from "../../../api/client/pulpitCore/signing";
 import { signingKeyPulpServicesKey } from "./queryKeys";
@@ -61,16 +55,16 @@ export function KeyPulpServicesStatus({ keyId }: { keyId: string }) {
           ); this page will detect the change automatically within a few minutes.
         </Content>
         {stuck.map((service) => (
-          <ClipboardCopy
+          <pre
             key={service.name}
-            isReadOnly
-            isCode
-            hoverTip="Copy"
-            clickTip="Copied"
-            variant={ClipboardCopyVariant.expansion}
+            style={{
+              marginBlockEnd: 0,
+              overflowWrap: "anywhere",
+              whiteSpace: "pre-wrap",
+            }}
           >
-            {service.bootstrap_command ?? ""}
-          </ClipboardCopy>
+            <code>{service.bootstrap_command ?? ""}</code>
+          </pre>
         ))}
       </Alert>
     </StackItem>

@@ -3,7 +3,7 @@
 substitute for a real CA-issued certificate, just enough for nginx to have
 something to bind to out of the box; replaced automatically whenever it
 nears expiry (jobs.renewal_check_job) or by an administrator installing a
-manual/FreeIPA certificate instead.
+manual certificate instead.
 """
 
 import ipaddress

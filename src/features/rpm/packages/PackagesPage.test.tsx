@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { server } from "../../../test/mswServer";
@@ -27,6 +27,38 @@ describe("PackagesPage", () => {
     renderApp(<PackagesPage />);
 
     expect(await screen.findByText("No RPM packages yet")).toBeInTheDocument();
+  });
+
+  it("keeps the search available when no package matches", async () => {
+    server.use(
+      http.get("/pulp/api/v3/content/rpm/packages/", ({ request }) => {
+        const search = new URL(request.url).searchParams.get("name__contains");
+        const results = search === "missing" ? [] : [RPM_PACKAGE_FIXTURE];
+        return HttpResponse.json({
+          count: results.length,
+          next: null,
+          previous: null,
+          results,
+        });
+      }),
+    );
+
+    renderApp(<PackagesPage />);
+
+    const searchInput = await screen.findByRole("textbox", {
+      name: "Search packages by name",
+    });
+    fireEvent.change(searchInput, { target: { value: "missing" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(await screen.findByText("No matching RPM packages")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Search packages by name" })).toHaveValue(
+      "missing",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+
+    expect(await screen.findByText(RPM_PACKAGE_FIXTURE.name)).toBeInTheDocument();
   });
 
   it("shows a normalized error state when the list request fails", async () => {

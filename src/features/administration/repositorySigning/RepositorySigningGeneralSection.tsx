@@ -19,7 +19,6 @@ import { ErrorState } from "../../../components/ErrorState";
 import type { SigningSettings } from "../../../api/client/pulpitCore/types";
 import { useSigningSettingsQuery } from "./useSigningSettingsQuery";
 import { useUpdateSigningSettingsMutation } from "./useUpdateSigningSettingsMutation";
-import { CopyableValue } from "./CopyableValue";
 import { ApplySigningToAllRepositoriesModal } from "./ApplySigningToAllRepositoriesModal";
 
 /** Just the two settings that matter every time, not just at key-generation
@@ -131,7 +130,7 @@ function RepositorySigningGeneralForm({
                 <Content component="small" style={{ margin: 0 }}>
                   Full URL where the public signing key is served.
                 </Content>
-                <CopyableValue value={publicKeyUrl} />
+                <code style={{ overflowWrap: "anywhere" }}>{publicKeyUrl}</code>
               </StackItem>
             </Stack>
           </CardBody>

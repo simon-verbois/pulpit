@@ -86,7 +86,7 @@ export interface RepositorySigningPolicy {
 // Mirrors pulpit-core/app/modules/tls/schemas.py. No field here has private
 // key material - see that module's models.py docstring for why there
 // structurally can't be one to add by mistake.
-export type TlsCertSource = "self_signed" | "manual" | "freeipa";
+export type TlsCertSource = "self_signed" | "manual";
 
 export interface TlsCertificate {
   id: string;
@@ -96,7 +96,6 @@ export interface TlsCertificate {
   not_before: string;
   not_after: string;
   created_at: string;
-  freeipa_principal: string | null;
 }
 
 export interface TlsActiveCertificate extends TlsCertificate {
@@ -119,80 +118,6 @@ export interface TlsCertificateHistoryEntry {
 export interface ManualCertificateUpload {
   cert_pem: string;
   key_pem: string;
-}
-
-// Mirrors TlsFreeIpaSettingsRead - `service_password_is_set` only, never the
-// raw value (same write-only convention as SigningSettings' bind_password
-// analog in the LDAP module).
-export interface TlsFreeIpaSettings {
-  id: string;
-  enabled: boolean;
-  base_url: string;
-  verify_tls: boolean;
-  common_name: string;
-  service_principal: string;
-  service_username: string;
-  service_password_is_set: boolean;
-  ca: string;
-  profile: string | null;
-  auto_renew_enabled: boolean;
-  renew_before_days: number;
-  updated_at: string;
-}
-
-export type TlsFreeIpaSettingsUpdate = Partial<
-  Omit<TlsFreeIpaSettings, "id" | "service_password_is_set" | "updated_at"> & {
-    service_password: string;
-  }
->;
-
-export interface FreeIpaTestConnectionResult {
-  success: boolean;
-  error?: string | null;
-}
-
-// The admin_password field exists only long enough to be sent in this one
-// request - never stored in query cache/component state beyond the form
-// itself, never logged. See docs/tls.md "Guided setup (wizard)".
-export interface FreeIpaWizardSetupRequest {
-  base_url: string;
-  verify_tls: boolean;
-  admin_username: string;
-  admin_password: string;
-  common_name: string;
-  target_principal: string;
-  service_account_username: string;
-  ca: string;
-  profile?: string | null;
-  renew_before_days: number;
-}
-
-export interface FreeIpaWizardStepResult {
-  step: string;
-  status: "created" | "already_exists" | "failed";
-  detail: string;
-}
-
-export interface FreeIpaWizardSetupResult {
-  success: boolean;
-  steps: FreeIpaWizardStepResult[];
-}
-
-// Mirrors pulpit-core/app/modules/content_size/schemas.py. A component with
-// no entry (not a 0-byte entry) means no content of that type has ever been
-// seen - see that module's models.py docstring.
-export interface ComponentContentSize {
-  component: string;
-  size_bytes: number;
-  updated_at: string;
-}
-
-// Same idea, one entry per repository (its latest version) - keyed by the
-// repository's own pulp_href, which every RepositoriesPage already has.
-export interface RepositoryContentSize {
-  repository_href: string;
-  size_bytes: number;
-  updated_at: string;
 }
 
 // Mirrors pulpit-core/app/modules/default_settings/schemas.py.

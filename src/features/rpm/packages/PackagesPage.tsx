@@ -28,6 +28,7 @@ export function PackagesPage() {
     // previous unfiltered page instead of an error state).
     name__contains: search || undefined,
   });
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -36,7 +37,8 @@ export function PackagesPage() {
         description="Package content across every RPM repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {packagesQuery.isSuccess && packagesQuery.data.results.length > 0 ? (
+        {packagesQuery.isSuccess &&
+        (packagesQuery.data.results.length > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -75,8 +77,12 @@ export function PackagesPage() {
           error={packagesQuery.error}
           onRetry={() => packagesQuery.refetch()}
           packages={packagesQuery.data?.results}
-          emptyTitle="No RPM packages yet"
-          emptyBody="Packages appear here once a repository has synced content or a package has been uploaded."
+          emptyTitle={isFiltered ? "No matching RPM packages" : "No RPM packages yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every package."
+              : "Packages appear here once a repository has synced content or a package has been uploaded."
+          }
         />
       </PageSection>
     </>

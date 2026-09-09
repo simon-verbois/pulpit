@@ -41,6 +41,7 @@ export function CollectionVersionsPage() {
     (cv) => cv.name,
     pagination,
   );
+  const isFiltered = search.trim() !== "";
   const deprecationsQuery = useCollectionDeprecationsQuery();
 
   return (
@@ -73,7 +74,7 @@ export function CollectionVersionsPage() {
             </Flex>
           </Content>
         ) : null}
-        {collectionVersionsQuery.isSuccess && totalCount > 0 ? (
+        {collectionVersionsQuery.isSuccess && (totalCount > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -112,8 +113,12 @@ export function CollectionVersionsPage() {
           error={collectionVersionsQuery.error}
           onRetry={() => collectionVersionsQuery.refetch()}
           collectionVersions={paged}
-          emptyTitle="No collections yet"
-          emptyBody="Collections appear here once a repository has synced content or a collection has been uploaded."
+          emptyTitle={isFiltered ? "No matching collections" : "No collections yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every collection."
+              : "Collections appear here once a repository has synced content or a collection has been uploaded."
+          }
         />
       </PageSection>
 

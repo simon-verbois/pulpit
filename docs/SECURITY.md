@@ -75,8 +75,7 @@ the two - no cross-container privilege of any kind; see ADR 0008 and `docs/signi
   default 8443) - 8080 keeps working unchanged, 8443 is purely additive. A self-signed certificate
   is generated automatically on first boot if nothing else is configured, so 8443 always works out
   of the box, in development and production alike - see `docs/DEPLOYMENT.md` "TLS" for the
-  Administration > TLS tab (manual certificate upload, with an expiry warning on the Overview page;
-  or the FreeIPA provider, which can issue and auto-renew a certificate).
+  Administration > TLS tab (manual certificate import, with an expiry warning on the Overview page).
 - A load balancer/ingress in front of nginx terminating TLS itself instead (and forwarding plain
   HTTP to 8080) remains a fully supported, common alternative topology - nothing here requires
   nginx itself to be the TLS termination point.
@@ -100,9 +99,32 @@ terminated there**). These belong in the production nginx config documented in
 
 ## Development vs. production differences
 
-| Concern           | Development (Compose)                 | Production                                                                      |
-| ----------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
-| Transport         | HTTP (8080), self-signed HTTPS (8443) | HTTPS with a real certificate (manual upload or FreeIPA - Administration > TLS) |
-| Secrets           | `.env` (local, untracked)             | Real secret manager / orchestrator secret                                       |
-| `PULP_SECRET_KEY` | Generated locally, dev-only           | Managed secret, never reused from dev                                           |
-| Security headers  | Minimal                               | Full hardening set, HSTS enabled                                                |
+| Concern           | Development (Compose)                 | Production                                                                    |
+| ----------------- | ------------------------------------- | ----------------------------------------------------------------------------- |
+| Transport         | HTTP (8080), self-signed HTTPS (8443) | HTTPS at an ingress/reverse proxy, or a manually imported certificate on 8443 |
+| Secrets           | `.env` (local, untracked)             | Real secret manager / orchestrator secret                                     |
+| `PULP_SECRET_KEY` | Generated locally, dev-only           | Managed secret, never reused from dev                                         |
+| Security headers  | Minimal                               | Full hardening set, HSTS enabled                                              |
+
+## Signing and derived-size authorization
+
+Signing settings and key lifecycle mutations require Pulp staff status. A single
+repository configuration PATCH runs with the interactive caller's Pulp credentials;
+Pulp enforces object permissions. Only its task href enters the job queue, never
+cookies or Basic credentials. The worker follows that task to its terminal state.
+Privileged Pulp clients reject other origins; distribution downloads use the known
+`/pulp/content/` path on the configured internal Pulp server.
+
+LDAP connection tests require a trusted certificate for LDAPS and STARTTLS, including
+hostname validation. Install the LDAP CA in the container's system trust store for
+private CAs; an untrusted certificate is an error, not a successful connection test.
+Both connect and receive operations have finite timeouts.
+
+The former `content_size` routes and worker scan are removed. Size calculations run
+in the browser against Pulp with the caller's permissions and live only in TanStack
+Query. Historical size tables remain unused for migration compatibility.
+
+CI runs `npm audit` and `pip-audit` against the full installed dependency list
+from `pip freeze --exclude-editable` (the local application is not a PyPI package).
+Python security floors include FastAPI, Starlette and cryptography. pip-audit is a
+development-only dependency.

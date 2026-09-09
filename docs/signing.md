@@ -468,3 +468,13 @@ Administration → Repository Signing.
 - **Automatic registration needs the derived Pulp image**: a deployment running vanilla
   `pulp/pulp:stable` instead of `docker.io/simonverbois/pulp-pulpit` gets the manual command flow
   (fully functional, just not automatic) - see "Automating the manual Pulp step" and ADR 0008.
+
+## Authorization and interrupted jobs
+
+Global signing configuration and key mutations require a Pulp staff account.
+Individual repository configuration uses the caller's own Pulp credentials for the
+PATCH; a background job tracks any returned task. A synchronous response is
+recorded as an already successful job. Credentials are not saved.
+A job interrupted by worker termination is reported failed at restart. Review the
+actual key and repository state before retrying; external effects may already exist.
+One worker per core database is enforced by a lifetime lock, including on PostgreSQL.

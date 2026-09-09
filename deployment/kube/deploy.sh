@@ -4,8 +4,10 @@
 # public-origin placeholder plain YAML can't express.
 #
 # Usage:
-#   ./deployment/kube/deploy.sh up [-n <namespace>]     # deploy (default)
-#   ./deployment/kube/deploy.sh down [-n <namespace>]   # tear down
+#   ./deployment/kube/deploy.sh init [-n <namespace>]   # generate secrets only
+#   ./deployment/kube/deploy.sh up [-n <namespace>]     # deploy
+#   ./deployment/kube/deploy.sh down [-n <namespace>]   # stop, preserving PVCs
+#   ./deployment/kube/deploy.sh reset [-n <namespace>]  # delete everything
 #
 # Namespace: pass -n <namespace>, or set KUBE_NAMESPACE. Falls back to
 # kubectl's current-context default namespace; must already exist.
@@ -21,7 +23,7 @@ cd "${REPO_ROOT}"
 
 PULPIT_PUBLIC_ORIGIN="${PULPIT_PUBLIC_ORIGIN:-http://localhost:8080}"
 
-action="up"
+action=""
 namespace="${KUBE_NAMESPACE:-}"
 
 if [ "${1:-}" != "" ] && [ "${1:-}" != "-n" ]; then
@@ -35,7 +37,7 @@ while [ "${1:-}" != "" ]; do
             shift 2
             ;;
         *)
-            echo "Usage: $0 [up|down] [-n <namespace>]" >&2
+            echo "Usage: $0 <init|up|down|reset> [-n <namespace>]" >&2
             exit 1
             ;;
     esac
@@ -48,6 +50,23 @@ fi
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
+
+usage() {
+    cat <<EOF
+Usage: $0 <init|up|down|reset> [-n <namespace>]
+
+Commands:
+  init   Generate the local secrets file without applying resources.
+  up     Apply or update Pulpit, preserving existing data.
+  down   Stop Pulpit, preserving PVCs, configuration, and local secrets.
+  reset  Delete all cluster resources and PVC data; keep local YAML files.
+
+Environment:
+  KUBE_NAMESPACE         Alternative to -n <namespace>.
+  PULPIT_PUBLIC_ORIGIN   Public origin (default: http://localhost:8080).
+  PULPIT_RESET_CONFIRM  Set to yes to run reset non-interactively.
+EOF
+}
 
 # Generates 00-secret.yaml from the .example file with real random values.
 # Only called when 00-secret.yaml doesn't exist yet - never overwrites one.
@@ -78,6 +97,17 @@ render_configmap() {
         "${SCRIPT_DIR}/00-configmap.yaml" > "${WORK_DIR}/00-configmap.yaml"
 }
 
+init() {
+    if [ ! -f "${SCRIPT_DIR}/00-secret.yaml" ]; then
+        generate_secret_file
+    else
+        echo "Keeping existing ${SCRIPT_DIR}/00-secret.yaml."
+    fi
+
+    render_configmap
+    echo "Initialization complete for ${PULPIT_PUBLIC_ORIGIN}. Run '$0 up${namespace:+ -n ${namespace}}' to deploy."
+}
+
 up() {
     if [ ! -f "${SCRIPT_DIR}/00-secret.yaml" ]; then
         generate_secret_file
@@ -96,27 +126,62 @@ up() {
 }
 
 down() {
-    if [ ! -f "${SCRIPT_DIR}/00-secret.yaml" ]; then
-        echo "Missing deployment/kube/00-secret.yaml - continuing anyway, deleting doesn't need real secret values." >&2
-    fi
-
-    render_configmap
-
-    # Also deletes the PersistentVolumeClaims - back up data first if needed.
-    kubectl delete "${kubectl_ns[@]}" -f "${SCRIPT_DIR}/pulpit.yaml" --ignore-not-found
-    kubectl delete "${kubectl_ns[@]}" -f "${SCRIPT_DIR}/pulp.yaml" --ignore-not-found
-    kubectl delete "${kubectl_ns[@]}" -f "${SCRIPT_DIR}/redis.yaml" --ignore-not-found
-    if [ -f "${SCRIPT_DIR}/00-secret.yaml" ]; then
-        kubectl delete "${kubectl_ns[@]}" -f "${SCRIPT_DIR}/00-secret.yaml" --ignore-not-found
-    fi
-    kubectl delete "${kubectl_ns[@]}" -f "${WORK_DIR}/00-configmap.yaml" --ignore-not-found
+    kubectl delete "${kubectl_ns[@]}" deployment pulpit pulp redis --ignore-not-found
+    kubectl delete "${kubectl_ns[@]}" service pulpit pulp redis --ignore-not-found
+    kubectl delete "${kubectl_ns[@]}" ingress pulpit --ignore-not-found
+    echo "Pulpit is stopped. PVC data, configuration, and secrets were preserved."
 }
 
+confirm_reset() {
+    echo "WARNING: reset permanently deletes all Pulp/Pulpit Kubernetes resources and PVC data." >&2
+    if [ "${PULPIT_RESET_CONFIRM:-}" = "yes" ]; then
+        return
+    fi
+    if [ ! -t 0 ]; then
+        echo "Refusing non-interactive reset. Set PULPIT_RESET_CONFIRM=yes to confirm." >&2
+        exit 1
+    fi
+    read -r -p "Type 'reset' to continue: " confirmation
+    if [ "${confirmation}" != "reset" ]; then
+        echo "Reset cancelled."
+        exit 0
+    fi
+}
+
+reset() {
+    confirm_reset
+    down
+
+    kubectl delete "${kubectl_ns[@]}" persistentvolumeclaim \
+        pulpit-data \
+        pulpit-tls \
+        pulpit-signing-gnupghome \
+        pulpit-signing-scripts \
+        pulp-var-lib-containers \
+        pulp-var-lib-pgsql \
+        pulp-var-lib-pulp \
+        pulp-etc \
+        --ignore-not-found
+    kubectl delete "${kubectl_ns[@]}" configmap \
+        pulpit-config pulp-init-admin-password-script --ignore-not-found
+    kubectl delete "${kubectl_ns[@]}" secret pulpit-secrets --ignore-not-found
+
+    echo "Reset complete. All Kubernetes resources and PVC data were permanently deleted; local YAML files were preserved."
+}
+
+if [ -z "${action}" ]; then
+    usage
+    exit 0
+fi
+
 case "${action}" in
+    init) init ;;
     up) up ;;
     down) down ;;
+    reset) reset ;;
+    help|-h|--help) usage ;;
     *)
-        echo "Usage: $0 [up|down] [-n <namespace>]" >&2
+        usage >&2
         exit 1
         ;;
 esac

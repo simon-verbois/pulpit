@@ -14,6 +14,7 @@ const RUN_ID = Date.now();
 const REMOTE_NAME = `e2e-remote-${RUN_ID}`;
 const REPO_NAME = `e2e-repo-${RUN_ID}`;
 const DIST_NAME = `e2e-dist-${RUN_ID}`;
+const DIST_BASE_PATH = `rpm/${DIST_NAME}`;
 
 test.describe.configure({ mode: "serial" });
 
@@ -93,8 +94,10 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     // global page - there's no repository picker to fill in). --------------
     await page.getByRole("tab", { name: "Distributions" }).click();
     await page.getByRole("button", { name: "Create distribution" }).first().click();
-    await page.locator("#distribution-name").fill(DIST_NAME);
-    await page.locator("#distribution-base-path").fill(DIST_NAME);
+    await page
+      .getByRole("dialog")
+      .getByLabel("Base path", { exact: false })
+      .fill(DIST_NAME);
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
@@ -102,8 +105,7 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     // repositories/remotes) - it only appears once its task completes.
     const distRow = page.getByRole("row", { name: new RegExp(DIST_NAME) });
     await expect(distRow).toBeVisible({ timeout: 15_000 });
-    const distributionUrl = await distRow.getByRole("textbox").inputValue();
-    expect(distributionUrl).toMatch(new RegExp(`/pulp/content/${DIST_NAME}/$`));
+    await expect(distRow).toContainText(`/pulp/content/${DIST_BASE_PATH}/`);
 
     // --- Clean up: distribution, repository, remote -------------------------
     await distRow.getByRole("button", { name: "Delete" }).click();
@@ -148,4 +150,17 @@ test("RPM packages page lists content across every repository", async ({ page })
       .getByRole("grid", { name: "RPM packages" })
       .or(page.getByText("No RPM packages yet")),
   ).toBeVisible();
+
+  const searchInput = page.getByRole("textbox", {
+    name: "Search packages by name",
+  });
+  if (await searchInput.isVisible()) {
+    const missingPackage = `no-such-package-${Date.now()}`;
+    await searchInput.fill(missingPackage);
+    await page.getByRole("button", { name: "Search" }).click();
+
+    await expect(page.getByText("No matching RPM packages")).toBeVisible();
+    await expect(searchInput).toBeVisible();
+    await expect(searchInput).toHaveValue(missingPackage);
+  }
 });

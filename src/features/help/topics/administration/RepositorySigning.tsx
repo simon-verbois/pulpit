@@ -12,6 +12,13 @@ export function AdministrationRepositorySigningTopic() {
         <code> docs/signing.md</code> for the full technical design if you need it.
       </Content>
 
+      <Content component="p">
+        Changing signing settings and generating, publishing or extending keys requires a
+        Pulp staff account. Configuring an individual repository uses your own Pulp
+        permissions. If a job is interrupted by a restart, inspect the keys and repository
+        state before submitting the operation again.
+      </Content>
+
       <Content component="h3">Page layout</Content>
       <Content component="p">
         The page has two cards. <strong>Signing</strong> holds the master on/off
@@ -38,9 +45,8 @@ export function AdministrationRepositorySigningTopic() {
         the public key URL shown right below it (e.g.{" "}
         <code>https://your-pulpit-host/keys/RPM-GPG-KEY-pulp</code>) - a full, absolute
         address you can paste straight into a repository's <code>gpgkey=</code> setting.
-        Both are plain, read/write text - not editable-looking clipboard widgets - with a
-        small copy button next to the URL. The rest of the new-key defaults (
-        <strong>Key name</strong>, <strong>Identity</strong>, <strong>Email</strong>,{" "}
+        Both are plain text that you can select normally. The rest of the new-key defaults
+        (<strong>Key name</strong>, <strong>Identity</strong>, <strong>Email</strong>,{" "}
         <strong>Algorithm</strong>, and the two signing service names) live inside the{" "}
         <strong>Generate key</strong> dialog instead, since they only matter at the moment
         you're about to generate a key. Every one of these is still a plain global default
@@ -139,8 +145,8 @@ export function AdministrationRepositorySigningTopic() {
         <code>https://your-pulpit-host/keys/RPM-GPG-KEY-pulp</code>) a repository's{" "}
         <code>gpgkey=</code> setting can point at permanently — the URL never changes
         across a key publish, only the key behind it does. It always serves the current
-        active key only; a key's own detail popup shows this same note instead of a
-        copyable URL for any key that isn't currently active.
+        active key only; a key's own detail popup shows this same note instead of the URL
+        for any key that isn't currently active.
       </Content>
       <Content component="p">
         Publishing the key here does not make DNF clients trust it automatically — the

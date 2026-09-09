@@ -4,6 +4,12 @@ export function OverviewTopic() {
   return (
     <Content>
       <Content component="p">
+        Size totals are calculated from content and artifacts your Pulp account can read,
+        and repository sizes cover the latest version. Loading can take longer on large
+        instances. A dash means the size is unavailable, not that the repository is empty.
+        Reload the page to request fresh totals.
+      </Content>
+      <Content component="p">
         PulpIT is where you manage the content on your Pulp server: repositories,
         packages, remotes, and more. Nothing is stored in PulpIT itself — every page reads
         and writes directly to Pulp, so what you see here always matches what's actually

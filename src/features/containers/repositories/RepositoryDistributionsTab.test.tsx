@@ -13,7 +13,7 @@ import { RepositoryDistributionsTab } from "./RepositoryDistributionsTab";
 const DIST_BASE = "/pulp/api/v3/distributions/container/container/";
 
 describe("Container RepositoryDistributionsTab", () => {
-  it("renders only this repository's distributions, with a copyable pull command", async () => {
+  it("renders only this repository's distributions with selectable pull command text", async () => {
     renderApp(<RepositoryDistributionsTab repository={CONTAINER_REPO_FIXTURE} />);
 
     expect(await screen.findAllByText(CONTAINER_DISTRIBUTION_FIXTURE.name)).toHaveLength(
@@ -55,7 +55,7 @@ describe("Container RepositoryDistributionsTab", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(
-      await screen.findByText('Create distribution "new-dist-path"'),
+      await screen.findByText('Create distribution "container/new-dist-path"'),
     ).toBeInTheDocument();
   });
 

@@ -13,6 +13,7 @@ data:
   # __PULPIT_PUBLIC_ORIGIN__ is substituted by ./deploy.sh at apply time from
   # the PULPIT_PUBLIC_ORIGIN env var - edit directly if applying without
   # deploy.sh. Must match wherever pulpit.yaml exposes the app publicly.
+  PULPIT_PUBLIC_ORIGIN: "__PULPIT_PUBLIC_ORIGIN__"
   PULP_CSRF_TRUSTED_ORIGINS: '["__PULPIT_PUBLIC_ORIGIN__"]'
   PULP_CONTENT_ORIGIN: "__PULPIT_PUBLIC_ORIGIN__"
   PULP_ANSIBLE_API_HOSTNAME: "__PULPIT_PUBLIC_ORIGIN__"

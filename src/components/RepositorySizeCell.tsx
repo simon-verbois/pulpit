@@ -1,15 +1,11 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Skeleton } from "@patternfly/react-core";
 
-import type { RepositoryContentSize } from "../api/client/pulpitCore/types";
+import type { RepositoryContentSize } from "../api/client/contentSizes";
 import { formatBytes } from "../lib/formatBytes";
 
-/** One shared cell for every RepositoriesPage's "Size" column - the same
- * hourly-refreshed pulpit-core query (useRepositoryContentSizesQuery),
- * looked up per row by the repository's own pulp_href. No entry (a brand
- * new repository not yet covered by a background run, since every
- * repository always has at least version 0 - see content_size/jobs.py)
- * renders "-", never a fabricated 0. */
+/** Shared size lookup from the caller's Pulp queries. Missing or inaccessible
+ * data renders a dash rather than claiming that the repository is empty. */
 export function RepositorySizeCell({
   query,
   repositoryHref,

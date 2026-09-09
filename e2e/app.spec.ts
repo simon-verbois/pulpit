@@ -12,21 +12,24 @@ test("primary navigation reaches the major sections", async ({ page }) => {
   // (TasksIndicator), so an unscoped locator would be ambiguous.
   const nav = page.getByRole("navigation", { name: "PulpIT navigation" });
 
-  // "Administration" and "Access" are collapsible NavExpandable groups
-  // (docs/UX.md) - their items aren't in the accessibility tree until expanded.
-  await nav.getByRole("button", { name: "Administration" }).click();
-  await nav.getByRole("link", { name: "Content guards" }).click();
-  await expect(page).toHaveURL(/\/admin\/content-guards$/);
+  await nav.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Content guards", level: 1 }),
+    page.getByRole("heading", { name: "Administration", level: 1 }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Content guards", exact: true }).click();
+  await expect(page).toHaveURL(/tab=content-guards/);
+  await expect(page.getByRole("grid", { name: "Content guards" })).toBeVisible();
 
-  await nav.getByRole("link", { name: "Tasks" }).click();
+  await nav.getByRole("link", { name: "Tasks", exact: true }).click();
   await expect(page).toHaveURL(/\/tasks$/);
 
-  await nav.getByRole("button", { name: "Access" }).click();
-  await nav.getByRole("link", { name: "Users" }).click();
-  await expect(page).toHaveURL(/\/access\/users$/);
+  await nav.getByRole("link", { name: "Administration", exact: true }).click();
+  await page.getByRole("tab", { name: "Access", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Users", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("grid", { name: "Users", exact: true })).toBeVisible();
 });
 
 test("clicking elsewhere in the app closes an open Tasks or Help panel", async ({
@@ -63,13 +66,15 @@ test("Overview page reaches the real Pulp status endpoint", async ({ page }) => 
   expect(response.ok()).toBeTruthy();
 
   await page.goto("/");
-  // Every Pulp status response reports at least the core component's version.
-  await expect(page.getByText("core")).toBeVisible();
-  // VERIFIED live: this dev instance's pulpcore/pulp_rpm/pulp_ansible/
-  // pulp_container versions match src/lib/pulpCompatibility.ts's baseline
-  // exactly, so core's row should read as a match.
-  const coreRow = page.getByRole("row", { name: /^core/ });
-  await expect(coreRow.getByText(/Matches verified/)).toBeVisible();
+  const status = await response.json();
+  const components = page.getByRole("grid", { name: "Pulp components" });
+  await expect(components).toBeVisible();
+  const rpm = status.versions.find(
+    (component: { component: string }) => component.component === "rpm",
+  );
+  const rpmRow = components.getByRole("row", { name: /^rpm\b/ });
+  await expect(rpmRow.getByText(rpm.version, { exact: true })).toBeVisible();
+  await expect(components.getByRole("row", { name: /^core\b/ })).toHaveCount(0);
 });
 
 test("Tasks page shows Pulp's real task history, not just this session's", async ({

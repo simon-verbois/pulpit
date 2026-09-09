@@ -1,8 +1,4 @@
-"""tls module business logic: reading the active certificate/history, and
-the filesystem side of "install a new certificate" (atomic write + request an
-nginx reload). Anything that talks to an external CA is a job (jobs.py),
-never called synchronously from a request handler (same "long-running work
-must be asynchronous" rule as signing/service.py)."""
+"""TLS certificate metadata and atomic installation of certificate files."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -47,14 +43,12 @@ def install_certificate(
     triggered_by: str,
     event: str = "installed",
     notes: str = "",
-    freeipa_request_id: str | None = None,
-    freeipa_principal: str | None = None,
     request_reload: bool = True,
 ) -> TlsCertificate:
     """Atomically replaces the on-disk cert/key, records the new active row
     plus a history entry, and (unless this is the very first boot, before
     nginx has even started) requests nginx pick it up. The one write path
-    every source - self-signed, manual, FreeIPA - goes through."""
+    both supported sources - self-signed and manual - go through."""
     _write_active_files(cert_pem, key_pem)
 
     row = TlsCertificate(
@@ -63,8 +57,6 @@ def install_certificate(
         fingerprint_sha256=fingerprint_sha256,
         not_before=not_before,
         not_after=not_after,
-        freeipa_request_id=freeipa_request_id,
-        freeipa_principal=freeipa_principal,
     )
     db.add(row)
     db.add(

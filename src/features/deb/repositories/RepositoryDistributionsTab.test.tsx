@@ -46,7 +46,7 @@ describe("RepositoryDistributionsTab", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     // Name and base path are now the same value (no separate Name field),
     // so this text renders twice - once per column.
-    expect(await screen.findAllByText("new-dist-path")).toHaveLength(2);
+    expect(await screen.findAllByText("deb/new-dist-path")).toHaveLength(2);
   });
 
   it("deletes a distribution after confirmation", async () => {

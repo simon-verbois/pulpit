@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.auth import CurrentUser, require_authenticated_user
+from app.core.auth import CurrentUser, require_authenticated_user, require_staff_user
 from app.core.database import get_db
 from app.core.jobs.schemas import JobRead
 from app.core.jobs.service import enqueue_job, get_job
@@ -63,7 +63,7 @@ def get_key_pulp_services(key_id: uuid.UUID, db: Session = Depends(get_db)) -> l
     ]
 
 
-@router.post("/generate", response_model=JobRead, status_code=202)
+@router.post("/generate", response_model=JobRead, status_code=202, dependencies=[Depends(require_staff_user)])
 def generate_key(
     request: GenerateKeyRequest,
     db: Session = Depends(get_db),
@@ -83,7 +83,7 @@ def generate_key(
     return JobRead.model_validate(job)
 
 
-@router.post("/{key_id}/publish", response_model=JobRead, status_code=202)
+@router.post("/{key_id}/publish", response_model=JobRead, status_code=202, dependencies=[Depends(require_staff_user)])
 def publish_key(
     key_id: uuid.UUID,
     request: PublishKeyRequest,
@@ -110,7 +110,7 @@ def publish_key(
     return JobRead.model_validate(job)
 
 
-@router.post("/{key_id}/extend-expiration", response_model=JobRead, status_code=202)
+@router.post("/{key_id}/extend-expiration", response_model=JobRead, status_code=202, dependencies=[Depends(require_staff_user)])
 def extend_expiration(
     key_id: uuid.UUID,
     request: ExtendExpirationRequest,

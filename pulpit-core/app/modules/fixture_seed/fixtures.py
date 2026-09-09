@@ -28,6 +28,19 @@ install.
 
 from dataclasses import dataclass, field
 
+PUBLIC_PATH_PREFIXES = {
+    "ansible": "ansible",
+    "container": "container",
+    "deb": "deb",
+    "file": "file",
+    "gem": "gem",
+    "hugging_face": "hugging-face",
+    "maven": "maven",
+    "npm": "npm",
+    "python": "python",
+    "rpm": "rpm",
+}
+
 
 @dataclass(frozen=True)
 class PluginFixture:
@@ -42,6 +55,10 @@ class PluginFixture:
     @property
     def name(self) -> str:
         return self.remote_body["name"]
+
+    @property
+    def distribution_base_path(self) -> str:
+        return f"{PUBLIC_PATH_PREFIXES[self.plugin]}/{self.name}"
 
 
 FIXTURES: list[PluginFixture] = [

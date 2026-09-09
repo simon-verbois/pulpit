@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
+
 export function ContainersRepositoriesTopic() {
   return (
     <Content>
@@ -49,10 +51,11 @@ export function ContainersRepositoriesTopic() {
         need a <strong>distribution</strong>, created on the repository's{" "}
         <strong>Distributions</strong> tab (<strong>Name</strong>,{" "}
         <strong>Base path</strong>, and an optional <strong>Private</strong> toggle
-        requiring authentication to pull). Once created, its row shows a ready-to-copy{" "}
+        requiring authentication to pull). Once created, its row shows a selectable{" "}
         <code>podman pull ...</code> command built from Pulp's own registry path. There is
         no separate publish step here, unlike RPM.
       </Content>
+      <DistributionBasePathConvention prefix="container" />
       <Content component="p">
         Deleting a distribution also deletes the repository it points at, including all
         its synced content — the confirmation dialog says so explicitly. This is specific

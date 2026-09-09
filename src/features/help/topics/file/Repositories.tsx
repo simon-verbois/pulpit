@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
+
 export function FileRepositoriesTopic() {
   return (
     <Content>
@@ -62,14 +64,15 @@ export function FileRepositoriesTopic() {
         </Content>
         <Content component="li">
           Then go to the <strong>Distributions</strong> tab and click{" "}
-          <strong>Create distribution</strong> to get a real URL (shown with a copy
-          button). <strong>Delete</strong> removes one.
+          <strong>Create distribution</strong> to get a real, selectable URL.{" "}
+          <strong>Delete</strong> removes one.
         </Content>
       </Content>
       <Content component="p">
         If a distribution's URL 404s, the repository almost certainly hasn't been
         published yet - publish it and try again.
       </Content>
+      <DistributionBasePathConvention prefix="file" />
 
       <Content component="h3">The Content tab</Content>
       <Content component="p">

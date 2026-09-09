@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
+
 export function PythonRepositoriesTopic() {
   return (
     <Content>
@@ -33,9 +35,10 @@ export function PythonRepositoriesTopic() {
       </Content>
       <Content component="p">
         Go to the <strong>Distributions</strong> tab and click{" "}
-        <strong>Create distribution</strong> to get a real URL (shown with a copy button).{" "}
+        <strong>Create distribution</strong> to get a real, selectable URL.{" "}
         <strong>Delete</strong> removes one.
       </Content>
+      <DistributionBasePathConvention prefix="python" />
 
       <Content component="h3">The Content tab</Content>
       <Content component="p">

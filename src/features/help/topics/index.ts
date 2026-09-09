@@ -68,6 +68,7 @@ import { AdministrationRepositorySigningTopic } from "./administration/Repositor
 import { AdministrationPulpSigningServicesTopic } from "./administration/PulpSigningServices";
 import { AdministrationContentGuardsTopic } from "./administration/ContentGuards";
 import { AdministrationDefaultSettingsTopic } from "./administration/DefaultSettings";
+import { AdministrationTlsTopic } from "./administration/Tls";
 
 export interface HelpPage {
   id: string;
@@ -448,6 +449,11 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         id: "content-guards",
         label: "Content guards",
         Component: AdministrationContentGuardsTopic,
+      },
+      {
+        id: "tls",
+        label: "TLS",
+        Component: AdministrationTlsTopic,
       },
       {
         id: "default-settings",

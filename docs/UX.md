@@ -126,10 +126,11 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
   envelope is read), or a plain "—" for every component Pulpit has no Repositories page for (deb,
   gem, core itself, ...). Originally tried as a separate stat-tile `Gallery` below the table, then
   moved inline into the existing table per direct user feedback ("je les voulais inline dans le
-  tableau des modules"). A per-plugin storage-size breakdown was considered and dropped - Pulp has
-  no such aggregate (repository versions only expose content _counts_ per type via
-  `content_summary`, never byte sizes), so it would mean summing every content unit's artifact
-  size client-side, expensive for a dashboard cell.
+  tableau des modules"). Size totals are calculated in the browser from Pulp's paginated content and
+  artifact APIs using the caller's credentials. Repository totals cover their latest
+  version. TanStack Query caches the derived values for five minutes; the backend
+  does not persist aggregates. Loading uses the existing skeleton and unavailable
+  data renders a dash. Large instances may take longer to finish the scan.
 
 ## Table conventions
 

@@ -28,6 +28,7 @@ export function ContentPage() {
     // error state).
     name__contains: search || undefined,
   });
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -36,7 +37,8 @@ export function ContentPage() {
         description="Packages across every Python repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {contentQuery.isSuccess && contentQuery.data.results.length > 0 ? (
+        {contentQuery.isSuccess &&
+        (contentQuery.data.results.length > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -75,8 +77,12 @@ export function ContentPage() {
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
           content={contentQuery.data?.results}
-          emptyTitle="No Python content yet"
-          emptyBody="Packages appear here once a repository has synced content or a package has been uploaded."
+          emptyTitle={isFiltered ? "No matching Python content" : "No Python content yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every package."
+              : "Packages appear here once a repository has synced content or a package has been uploaded."
+          }
         />
       </PageSection>
     </>

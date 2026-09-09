@@ -73,7 +73,7 @@ Browser -> Pulpit (nginx, static SPA - unchanged, still no backend of its own)
   Pulp session/Basic-auth header against `GET /pulp/api/v3/login/` (the same "who am I" endpoint
   Pulpit's own frontend already uses - `docs/AUTHENTICATION.md`), so Pulp remains the single
   identity source end to end (`app/core/auth.py`).
-- **Jobs**: a Postgres-backed queue (`SELECT ... FOR UPDATE SKIP LOCKED`) in pulpit-core's own
+- **Jobs**: originally a Postgres-backed queue (`SELECT ... FOR UPDATE SKIP LOCKED`) in pulpit-core's own
   database, not Redis. `redis` in this stack is Pulpcore's own optional HTTP cache
   (`docs/DEPLOYMENT.md` "Redis") and is not reused or repurposed by pulpit-core - keeping that
   service's existing role legible was more valuable than sharing infrastructure for a workload this
@@ -150,3 +150,11 @@ Browser -> Pulpit (nginx, static SPA - unchanged, still no backend of its own)
 - The frontend's own architecture is otherwise untouched: same build (Vite/React/PatternFly), same
   Dockerfile shape (static assets + nginx, no Node at runtime), same reverse-proxy pattern (ADR
   0005), same "no database, no GPG access" guarantee it always had.
+
+## Transaction update (2026-09-08)
+
+The queue also supports SQLite. A lifetime worker lock now enforces one consumer per
+core database, including PostgreSQL, to serialize signing side effects. RUNNING is
+committed before external work; completion is a separate short transaction. A worker
+restart marks interrupted jobs failed for operator review instead of replaying them.
+See `docs/ARCHITECTURE.md` for the current transaction boundaries.

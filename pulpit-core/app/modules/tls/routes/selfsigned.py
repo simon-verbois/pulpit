@@ -15,7 +15,7 @@ def regenerate_selfsigned(
     user: FullUser = Depends(require_staff_user),
 ) -> JobRead:
     """Replaces whatever certificate is currently active with a fresh
-    self-signed one - e.g. an administrator moving away from a manual/FreeIPA
+    self-signed one - e.g. an administrator moving away from a manual
     certificate back to the zero-config fallback."""
     job = enqueue_job(
         db,

@@ -19,7 +19,7 @@ import { TlsPage } from "./tls/TlsPage";
 
 const DEFAULT_TAB = "general";
 // Every tab with its own nested sub-tabs (Access: Users/Groups/Roles; TLS:
-// Overview/Manual/FreeIPA) needs a default subtab to land on when the URL
+// Overview/Manual) needs a default subtab to land on when the URL
 // names the tab but not a subtab - one shared map instead of a per-tab
 // branch, so a future tab gaining sub-tabs is a one-line addition here.
 const DEFAULT_SUBTAB_BY_TAB: Record<string, string> = {
@@ -33,7 +33,7 @@ const DEFAULT_SUBTAB_BY_TAB: Record<string, string> = {
  * 0010-merged-administration-page.md). "Administration" is now a single
  * flat nav link (AppNav.tsx/navTree.ts), and what used to be distinct
  * pages/sections are tabs here instead. Users/Groups/Roles (Access) and
- * the TLS certificate providers (TLS) are each merged into one top-level
+ * the TLS certificate options (TLS) are each merged into one top-level
  * tab with its own nested sub-tabs, rather than separate top-level tabs.
  *
  * The active tab (and, for tabs with sub-tabs, the active sub-tab) lives in

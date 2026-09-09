@@ -75,6 +75,10 @@ def test_seeds_every_fixture_once(db, fake_pulp):
     assert len(fake_pulp.created_distributions) == len(
         [f for f in syncable if f.distribution_type_path is not None]
     )
+    for _type_path, body in fake_pulp.created_distributions:
+        plugin = body["base_path"].split("/", 1)[0]
+        assert body["name"] == body["base_path"]
+        assert plugin in {"rpm", "file", "deb", "container", "ansible", "python"}
     assert remote_only  # sanity: maven/hugging_face really are remote-only fixtures
     assert service.has_seeded(db)
 

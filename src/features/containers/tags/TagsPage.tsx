@@ -33,6 +33,7 @@ export function TagsPage() {
     (tag) => tag.name,
     pagination,
   );
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -41,7 +42,7 @@ export function TagsPage() {
         description="Container image tags across every repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {tagsQuery.isSuccess && totalCount > 0 ? (
+        {tagsQuery.isSuccess && (totalCount > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -80,8 +81,12 @@ export function TagsPage() {
           error={tagsQuery.error}
           onRetry={() => tagsQuery.refetch()}
           tags={paged}
-          emptyTitle="No tags yet"
-          emptyBody="Tags appear here once a repository has synced content."
+          emptyTitle={isFiltered ? "No matching tags" : "No tags yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every tag."
+              : "Tags appear here once a repository has synced content."
+          }
         />
       </PageSection>
     </>

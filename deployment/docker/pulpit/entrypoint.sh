@@ -32,8 +32,8 @@ export NGINX_LOCAL_RESOLVERS="${NGINX_LOCAL_RESOLVERS:-127.0.0.11}"
 # speaks plain HTTP to Pulp on its own internal network, same trust
 # boundary as before the merge.
 export PULP_UPSTREAM="${PULP_UPSTREAM:-pulp:80}"
-# Fixed, well-known paths every certificate writer (self-signed bootstrap,
-# manual upload, FreeIPA issuance/renewal - app/modules/tls/service.py)
+# Fixed, well-known paths both certificate writers (self-signed bootstrap and
+# manual upload - app/modules/tls/service.py)
 # atomically replaces in place; nginx just always reads these two.
 export TLS_CERT_PATH="${PULPIT_CORE_TLS_CERT_DIR:-/var/lib/pulpit-tls}/active/cert.pem"
 export TLS_KEY_PATH="${PULPIT_CORE_TLS_CERT_DIR:-/var/lib/pulpit-tls}/active/key.pem"
@@ -97,7 +97,7 @@ su pulpit -c "cd /app && alembic upgrade head"
 # ${TLS_CERT_PATH}/${TLS_KEY_PATH} - a missing cert file is not a soft
 # warning it can start without. Owned pulpit:700 mode 2770 (setgid), same
 # convention as /var/lib/pulpit above: the bootstrap script below runs as
-# `pulpit`, later regeneration/renewal/manual-upload/FreeIPA jobs run as
+# `pulpit`, later regeneration/renewal/manual-upload operations run as
 # pulpit-worker (uid/gid 700) - both need write access to this one directory,
 # neither needs the other's supplementary group for anything else.
 TLS_DIR="${PULPIT_CORE_TLS_CERT_DIR:-/var/lib/pulpit-tls}"

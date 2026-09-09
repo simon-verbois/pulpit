@@ -10,14 +10,16 @@ this is a separate directory from `deployment/kube/`" below). See `docs/DEPLOYME
 
 ```sh
 systemctl --user start podman.socket   # rootless
+./deployment/podman/deploy.sh init
 ./deployment/podman/deploy.sh up
 ```
 
-The first time `deployment/podman/00-secret.yaml` doesn't exist yet, `up` generates it
-automatically (`PULP_SECRET_KEY`/`PULPIT_CORE_SECRET_KEY` via `openssl rand`, a random
-`PULP_ADMIN_PASSWORD`), printing the admin password once so you can log in - no manual
-secret-editing step needed for a first deploy. Prefer to set your own values instead? Run this
-before `deploy.sh up` and it'll be left alone:
+`init` generates `deployment/podman/00-secret.yaml` when it does not exist
+(`PULP_SECRET_KEY`/`PULPIT_CORE_SECRET_KEY` via `openssl rand`, plus a random
+`PULP_ADMIN_PASSWORD`) and prints the admin password once. It never deploys anything or
+overwrites an existing file. `up` performs the same initialization automatically when needed, so
+running `init` separately is optional. Prefer to set your own values instead? Run this before
+`deploy.sh init` or `deploy.sh up` and the file will be left alone:
 
 ```sh
 cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
@@ -25,8 +27,14 @@ cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
 # (openssl rand -hex 32 for both key/password fields)
 ```
 
-Open `http://localhost:8080/`. Tear down with `./deployment/podman/deploy.sh down` (named
-volumes/PVCs are kept - `podman volume rm` them yourself for a truly clean slate).
+Open `http://localhost:8080/`. `./deployment/podman/deploy.sh down` stops the stack while keeping
+named volumes and every YAML file. `./deployment/podman/deploy.sh reset` removes the stack's
+pods/containers, volumes and unused manifest images, but still keeps every YAML file, including
+`00-secret.yaml`. Because reset destroys all Pulp and Pulpit data, it requires typing `reset`; for
+automation, set `PULPIT_RESET_CONFIRM=yes`.
+
+Running `deploy.sh` without a command prints its built-in command reference. The available
+commands are `init`, `up`, `down`, and `reset`.
 
 ## Pinning versions and overriding config
 
@@ -34,7 +42,9 @@ volumes/PVCs are kept - `podman volume rm` them yourself for a truly clean slate
 specific tag instead.
 
 `deploy.sh` substitutes the `__PULPIT_PUBLIC_ORIGIN__` placeholder in `00-configmap.yaml` from
-an environment variable at apply time (`podman play kube` itself has no `${VAR}` interpolation):
+an environment variable at apply time (`podman play kube` itself has no `${VAR}` interpolation).
+The rendered ConfigMap exposes `PULPIT_PUBLIC_ORIGIN` explicitly and uses the same value for
+Pulp's CSRF, content, Ansible, and PyPI origins:
 
 ```sh
 # Deploying somewhere other than http://localhost:8080 (a different hostPort in

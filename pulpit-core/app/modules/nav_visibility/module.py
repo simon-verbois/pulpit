@@ -1,6 +1,6 @@
 """nav_visibility module's public surface - the only file
 app/modules/registry.py imports from this package (same seam as signing,
-content_size, and default_settings)."""
+signing and default_settings)."""
 
 from fastapi import APIRouter
 

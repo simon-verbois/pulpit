@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useTask } from "./useTask";
+import { contentSizeKeys } from "../client/contentSizes";
 import type { TrackedTask } from "./TasksContext";
 
 /**
@@ -19,6 +20,7 @@ export function useTrackedTask(task: TrackedTask) {
   useEffect(() => {
     if (query.data?.state === "completed" && !invalidatedRef.current) {
       invalidatedRef.current = true;
+      queryClient.invalidateQueries({ queryKey: contentSizeKeys.all });
       for (const queryKey of task.invalidateKeys ?? []) {
         queryClient.invalidateQueries({ queryKey });
       }

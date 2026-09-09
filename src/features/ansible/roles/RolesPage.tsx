@@ -33,6 +33,7 @@ export function RolesPage() {
     (role) => role.name,
     pagination,
   );
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -41,7 +42,7 @@ export function RolesPage() {
         description="Classic (pre-collections) Ansible roles across every repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {rolesQuery.isSuccess && totalCount > 0 ? (
+        {rolesQuery.isSuccess && (totalCount > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -80,8 +81,12 @@ export function RolesPage() {
           error={rolesQuery.error}
           onRetry={() => rolesQuery.refetch()}
           roles={paged}
-          emptyTitle="No roles yet"
-          emptyBody="Roles appear here once a repository has synced content or a role has been uploaded."
+          emptyTitle={isFiltered ? "No matching roles" : "No roles yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every role."
+              : "Roles appear here once a repository has synced content or a role has been uploaded."
+          }
         />
       </PageSection>
     </>

@@ -33,6 +33,7 @@ export function ContentPage() {
     (artifact) => artifact.group_id ?? "",
     pagination,
   );
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -41,7 +42,7 @@ export function ContentPage() {
         description="Artifacts across every Maven repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {contentQuery.isSuccess && totalCount > 0 ? (
+        {contentQuery.isSuccess && (totalCount > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -80,8 +81,12 @@ export function ContentPage() {
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
           content={paged}
-          emptyTitle="No Maven content yet"
-          emptyBody="Artifacts appear here once they've been uploaded to a repository."
+          emptyTitle={isFiltered ? "No matching Maven content" : "No Maven content yet"}
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every artifact."
+              : "Artifacts appear here once they've been uploaded to a repository."
+          }
         />
       </PageSection>
     </>

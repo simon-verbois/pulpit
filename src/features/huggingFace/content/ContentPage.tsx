@@ -33,6 +33,7 @@ export function ContentPage() {
     (file) => file.relative_path,
     pagination,
   );
+  const isFiltered = search.trim() !== "";
 
   return (
     <>
@@ -41,7 +42,7 @@ export function ContentPage() {
         description="Files across every Hugging Face repository Pulp knows about."
       />
       <PageSection hasBodyWrapper={false}>
-        {contentQuery.isSuccess && totalCount > 0 ? (
+        {contentQuery.isSuccess && (totalCount > 0 || isFiltered) ? (
           <Toolbar>
             <ToolbarContent>
               {/* Fixed width - without it, the bar grows/shrinks as the clear
@@ -80,8 +81,16 @@ export function ContentPage() {
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
           content={paged}
-          emptyTitle="No Hugging Face content yet"
-          emptyBody="Files appear here once a repository has synced content or a file has been uploaded."
+          emptyTitle={
+            isFiltered
+              ? "No matching Hugging Face content"
+              : "No Hugging Face content yet"
+          }
+          emptyBody={
+            isFiltered
+              ? "Try a different search, or clear it to see every file."
+              : "Files appear here once a repository has synced content or a file has been uploaded."
+          }
         />
       </PageSection>
     </>

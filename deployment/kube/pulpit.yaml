@@ -145,7 +145,7 @@ spec:
 # Routes to the Service's plain-HTTP 8080 port by default - the standard
 # pattern of terminating TLS at the Ingress/load balancer in front of
 # Pulpit, not at Pulpit itself. The Service above also exposes 8443 (Pulpit's
-# own self-signed/manual/FreeIPA certificate - Administration > TLS tab) if
+# own self-signed or manually imported certificate - Administration > TLS) if
 # you'd rather have this Ingress terminate TLS end-to-end at Pulpit instead:
 # point `backend.service.port.number` below at 8443 and add your ingress
 # controller's own "backend speaks HTTPS" annotation (e.g. ingress-nginx's

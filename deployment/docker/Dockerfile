@@ -90,7 +90,8 @@ COPY pulpit-core/app ./app
 COPY pulpit-core/worker ./worker
 COPY pulpit-core/migrations ./migrations
 COPY pulpit-core/alembic.ini ./
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir --upgrade "pip>=26.2.1,<27" \
+    && pip install --no-cache-dir .
 
 COPY pulpit-core/signing-scripts /opt/pulpit-signing-scripts
 RUN chmod 0755 /opt/pulpit-signing-scripts/*.sh
@@ -110,7 +111,7 @@ ENV PULP_UPSTREAM=pulp:80
 ENV PULPIT_CORE_DATABASE_URL=sqlite:////var/lib/pulpit/pulpit-core.db
 # Cert/key material for the 8443 TLS listener (nginx/pulpit-locations, both
 # templated from entrypoint.sh) - a self-signed fallback is generated here
-# automatically on first boot if nothing else (a manual/FreeIPA certificate)
+# automatically on first boot if no manually imported certificate
 # is already present. Own dedicated volume in compose.yml/kube/podman, not
 # folded into pulpit_data - different sensitivity/lifecycle than the SQLite
 # database.

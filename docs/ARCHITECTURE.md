@@ -30,11 +30,13 @@ flowchart TB
     end
     subgraph Pulp
         Pulpcore
+        PathPolicy["distribution path policy (ADR 0012)"]
         pulp_rpm
         pulp_container
         pulp_ansible
         Reconciler["pulpit-signing-reconciler (s6 longrun, ADR 0008)"]
         Pulpcore --> Postgres[(PostgreSQL, owned by Pulp)]
+        PathPolicy --> Pulpcore
         Reconciler -->|"pulpcore-manager (local)"| Pulpcore
     end
     PulpitWorker -.->|"shared GNUPGHOME + scripts volumes (incl. the signing-services manifest)"| Reconciler
@@ -94,6 +96,9 @@ ADR 0005, ADR 0006, ADR 0007, and `docs/DEPLOYMENT.md`.
 - All authentication and authorization decisions.
 - All async work (sync, publish, import) via its task system.
 - Its own PostgreSQL database — Pulpit never talks to a database directly.
+- The derived reference image also enforces Pulpit's cross-plugin distribution `base_path`
+  namespaces at Pulp's serializer boundary (ADR 0012), so browser, proxied API, and internal API
+  callers receive the same validation.
 
 **Pulpit**:
 
@@ -195,3 +200,19 @@ different Unix identities, and this boundary is deliberate, not incidental:
   response cache (`PULP_CACHE_ENABLED` on the `pulp` service — see `docs/DEPLOYMENT.md` "Redis"),
   configured and consumed entirely by pulpcore. Nothing in the `pulpit` container talks to it
   directly.
+
+### Derived content sizes
+
+Content sizes are computed by `src/api/client/contentSizes.ts` directly from Pulp
+using the browser session. The resulting server-derived values belong to TanStack
+Query and are fresh for five minutes. There is no active pulpit-core aggregation
+module or size API. Old size models remain only for historical database migrations.
+
+### Worker transaction boundaries
+
+One worker per core database holds a lifetime lock (file lock for SQLite, PostgreSQL
+advisory lock for PostgreSQL). It commits the RUNNING claim before calling a handler,
+and records success/failure in short transactions. Singleton initialization is
+committed before network waits. Automatic ORM autoflush is disabled during handlers.
+A restart marks interrupted RUNNING jobs failed instead of blindly repeating external
+signing effects. Inspect the actual key/repository state before manually resubmitting.

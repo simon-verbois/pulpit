@@ -125,12 +125,8 @@ describe("RepositorySigningPage", () => {
         /Waiting on a one-time manual step to finish publishing this key/i,
       ),
     ).toBeInTheDocument();
-    const textboxes = screen.getAllByRole("textbox");
-    expect(
-      textboxes.some((box) =>
-        (box as HTMLTextAreaElement).value.includes("add-signing-service"),
-      ),
-    ).toBe(true);
+    expect(screen.getByText(/add-signing-service/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /copy/i })).not.toBeInTheDocument();
   });
 
   it("saves a settings change via PATCH when a checkbox is toggled", async () => {
