@@ -9,12 +9,12 @@ import {
   PulpStatusSummary,
   type RepositoryCountEntry,
 } from "../../components/PulpStatusSummary";
-import { buildCompatibilityWarnings } from "../../lib/pulpCompatibility";
 import { useStatusQuery } from "../../hooks/useStatusQuery";
 import { useNavVisibilityQuery } from "../../hooks/useNavVisibilityQuery";
 import { RecentTasksCard } from "./RecentTasksCard";
 import { useRepositoryCounts } from "./useRepositoryCounts";
 import { useComponentSizesQuery } from "./useComponentSizesQuery";
+import { useApiCompatibilityWarning } from "./useApiCompatibilityWarning";
 import { useTlsCertWarning } from "./useTlsCertWarning";
 
 export function OverviewPage() {
@@ -26,6 +26,7 @@ export function OverviewPage() {
   const counts = useRepositoryCounts(capabilities);
   const componentSizesQuery = useComponentSizesQuery();
   const tlsCertWarning = useTlsCertWarning();
+  const apiCompatibilityWarning = useApiCompatibilityWarning();
 
   // Keyed by status.versions[].component, so PulpStatusSummary can look
   // each row's count up directly - only plugins Pulpit has a Repositories
@@ -79,12 +80,7 @@ export function OverviewPage() {
                   <RecentTasksCard />
                 </GridItem>
                 <GridItem md={6} style={{ alignSelf: "start" }}>
-                  <OverviewWarnings
-                    sources={[
-                      buildCompatibilityWarnings(statusQuery.data),
-                      tlsCertWarning,
-                    ]}
-                  />
+                  <OverviewWarnings sources={[tlsCertWarning, apiCompatibilityWarning]} />
                 </GridItem>
               </Grid>
             </StackItem>

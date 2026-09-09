@@ -10,6 +10,7 @@ app/core or any other module needs to change - this is the seam the task's
 
 from fastapi import APIRouter
 
+from app.modules.api_compatibility import module as api_compatibility_module
 from app.modules.default_settings import module as default_settings_module
 from app.modules.fixture_seed import module as fixture_seed_module
 from app.modules.ldap import module as ldap_module
@@ -24,6 +25,7 @@ _MODULES = [
     fixture_seed_module,
     ldap_module,
     tls_module,
+    api_compatibility_module,
 ]
 
 

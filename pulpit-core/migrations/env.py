@@ -11,6 +11,7 @@ from app.core.database.base import Base
 # logic, so this doesn't create a real coupling between modules.
 from app.core.events.models import EventLog  # noqa: F401
 from app.core.jobs.models import Job  # noqa: F401
+from app.modules.api_compatibility.models import ApiCompatibilityCheck  # noqa: F401
 from app.modules.content_size.models import (  # noqa: F401
     ComponentContentSize,
     RepositoryContentSize,

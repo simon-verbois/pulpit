@@ -270,3 +270,15 @@ export interface LdapApplyResult {
   pulp_api_healthy: boolean;
   error?: string;
 }
+
+// Mirrors pulpit-core/app/modules/api_compatibility/schemas.py. Result of
+// the one-shot startup check (pulpit-worker enqueues it exactly once per
+// container launch, never on a recurring schedule) comparing this app's
+// known Pulp API paths (scripts/api/extract-used-endpoints.mjs) against
+// the connected instance's own live OpenAPI schema.
+export interface ApiCompatibilityCheck {
+  checked_at: string;
+  pulp_reachable: boolean;
+  missing_endpoints: string[];
+  error: string | null;
+}

@@ -102,9 +102,22 @@ def _maybe_schedule(job_type: str, interval_seconds: int, last_check: datetime) 
     return now
 
 
+def _enqueue_startup_jobs() -> None:
+    """Jobs meant to run exactly once per container launch, never on a
+    recurring timer (contrast build_scheduled_jobs() below, which
+    re-enqueues on an interval for as long as the process keeps running).
+    worker_lock() (main(), below) already guarantees only one worker
+    process reaches here per launch, so this never double-enqueues across
+    replicas - a container restart running it again is the intended
+    behavior, not a bug."""
+    with session_scope() as db:
+        enqueue_job(db, "api_compatibility.check", {})
+
+
 def _main_locked() -> None:
     register_all()
     _recover_interrupted_jobs()
+    _enqueue_startup_jobs()
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
     logger.info("pulpit-worker started, known job types: %s", job_registry.known_types())

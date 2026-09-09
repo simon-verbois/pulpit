@@ -126,4 +126,55 @@ describe("OverviewPage", () => {
     expect(await within(rpmRow).findByRole("link", { name: "1" })).toBeInTheDocument();
     expect(within(rpmRow).getByText("—")).toBeInTheDocument();
   });
+
+  it("warns about a Pulp API path missing from the connected instance's schema", async () => {
+    server.use(
+      http.get("/pulpit-core/api/v1/api_compatibility/latest", () =>
+        HttpResponse.json({
+          checked_at: "2026-01-01T00:00:00Z",
+          pulp_reachable: true,
+          missing_endpoints: ["/repositories/rpm/rpm/"],
+          error: null,
+        }),
+      ),
+    );
+
+    renderApp(<OverviewPage />);
+
+    expect(
+      await screen.findByText(/Pulp API path\(s\) this app depends on/),
+    ).toBeInTheDocument();
+  });
+
+  it("warns when the startup compatibility check couldn't reach Pulp at all", async () => {
+    server.use(
+      http.get("/pulpit-core/api/v1/api_compatibility/latest", () =>
+        HttpResponse.json({
+          checked_at: "2026-01-01T00:00:00Z",
+          pulp_reachable: false,
+          missing_endpoints: [],
+          error: "Pulp returned 502",
+        }),
+      ),
+    );
+
+    renderApp(<OverviewPage />);
+
+    expect(
+      await screen.findByText(/Couldn't verify API compatibility with Pulp/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no warning at all when no compatibility check has run yet (404)", async () => {
+    server.use(
+      http.get(
+        "/pulpit-core/api/v1/api_compatibility/latest",
+        () => new HttpResponse(null, { status: 404 }),
+      ),
+    );
+
+    renderApp(<OverviewPage />);
+
+    expect(await screen.findByText("No issues detected.")).toBeInTheDocument();
+  });
 });

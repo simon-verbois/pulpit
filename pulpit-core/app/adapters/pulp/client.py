@@ -124,6 +124,18 @@ class PulpClient:
         that job's own docstring on what this can and can't verify)."""
         return self._request("GET", f"{self._api_base}/status/").json()
 
+    def get_openapi_schema(self) -> dict:
+        """Pulp's combined OpenAPI schema (docs/PULP_API.md "OpenAPI schema
+        discovery": `/pulp/api/v3/docs/api.json`, VERIFIED live -
+        unauthenticated on a stock instance, same as get_status above) -
+        used by api_compatibility.check_job to confirm every Pulp path this
+        app's frontend depends on (used_endpoints.json) still exists on the
+        connected instance. Combined, not `?component=`-scoped - VERIFIED
+        (ADR 0004/docs/PULP_API.md): ~4.8MB and acceptable for a one-shot
+        startup check, unlike the docs page's DOM-rendering problem that
+        motivated scoping it in scripts/api/fetch-schema.mjs."""
+        return self._request("GET", f"{self._api_base}/docs/api.json").json()
+
     def wait_for_task(self, task_href: str, *, poll_interval: float = 2.0, timeout: float = 600.0) -> dict:
         """Blocks (inside a pulpit-worker job, never an HTTP request - task
         section 12) until `task_href` leaves waiting/running. Used for the

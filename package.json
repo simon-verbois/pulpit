@@ -20,7 +20,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "api:fetch": "node scripts/api/fetch-schema.mjs",
-    "api:generate": "node scripts/api/generate-types.mjs"
+    "api:generate": "node scripts/api/generate-types.mjs",
+    "api:extract-endpoints": "node scripts/api/extract-used-endpoints.mjs"
   },
   "dependencies": {
     "@patternfly/react-core": "^6.6.1",
