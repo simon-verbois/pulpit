@@ -16,15 +16,24 @@ export function listRoles(params: ListRolesParams): Promise<PulpPage<Role>> {
   return pulpFetch<PulpPage<Role>>(`${BASE}${buildQuery(params)}`);
 }
 
+const PICKER_PAGE_SIZE = 100;
+
 /** Fetches every role page - used to populate "assign this role" pickers
  * and to derive the known-permissions list (see PermissionsPicker.tsx: no
  * dedicated "list all permissions" endpoint exists, so the permission
  * strings already used by *some* role - built-in or custom - are the best
- * available source). VERIFIED live: 184 built-in roles on a fresh
- * instance, well under one page at this limit. */
+ * available source). */
 export async function listAllRoles(): Promise<Role[]> {
-  const page = await listRoles({ limit: 500, offset: 0 });
-  return page.results;
+  const roles: Role[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await listRoles({ limit: PICKER_PAGE_SIZE, offset });
+    roles.push(...page.results);
+
+    if (roles.length >= page.count || page.results.length === 0) return roles;
+    offset += page.results.length;
+  }
 }
 
 /** Roles are identified by a numeric id in their href, but `name` is

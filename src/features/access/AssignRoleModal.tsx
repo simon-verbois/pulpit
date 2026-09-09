@@ -2,14 +2,13 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
+  AlertActionLink,
   Button,
   Flex,
   FlexItem,
   Form,
   FormGroup,
   FormHelperText,
-  FormSelect,
-  FormSelectOption,
   HelperText,
   HelperTextItem,
   Modal,
@@ -21,6 +20,7 @@ import {
 
 import { listAllRoles } from "../../api/client/access/roles";
 import { PulpApiError } from "../../api/errors/PulpApiError";
+import { SearchableSingleSelect } from "./SearchableSingleSelect";
 
 interface AssignRoleModalProps {
   /** "user" or "group" - only used for copy ("Assign a role to this user…"). */
@@ -83,17 +83,29 @@ export function AssignRoleModal({
               }
             />
           ) : null}
+          {rolesQuery.isError ? (
+            <Alert
+              variant="danger"
+              isInline
+              title="Could not load roles."
+              actionLinks={
+                <AlertActionLink onClick={() => rolesQuery.refetch()}>
+                  Retry
+                </AlertActionLink>
+              }
+            />
+          ) : null}
           <FormGroup label="Role" isRequired fieldId="assign-role-select">
-            <FormSelect
+            <SearchableSingleSelect
               id="assign-role-select"
-              value={role}
-              onChange={(_event, value) => setRole(value)}
-            >
-              <FormSelectOption key="" value="" label="Select a role…" />
-              {sortedRoles.map((r) => (
-                <FormSelectOption key={r.pulp_href} value={r.name} label={r.name} />
-              ))}
-            </FormSelect>
+              ariaLabel="Role"
+              placeholder={rolesQuery.isPending ? "Loading roles…" : "Select a role…"}
+              options={sortedRoles.map((r) => r.name)}
+              selected={role}
+              onChange={setRole}
+              noOptionsText="No roles are available."
+              isDisabled={rolesQuery.isError}
+            />
           </FormGroup>
           <FormGroup label="Scope to a specific object" fieldId="assign-role-object">
             <TextInput

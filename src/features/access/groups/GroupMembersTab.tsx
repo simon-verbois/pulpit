@@ -96,7 +96,6 @@ export function GroupMembersTab({ group }: { group: Group }) {
       {isAddOpen ? (
         <AddGroupMemberModal
           groupHref={group.pulp_href}
-          existingUsernames={(membersQuery.data?.results ?? []).map((m) => m.username)}
           onClose={() => setIsAddOpen(false)}
         />
       ) : null}

@@ -17,6 +17,13 @@ export function AccessOverviewTopic() {
         or scoped to one specific object (a repository, remote, distribution, etc.).
       </Content>
       <Content component="p">
+        When granting access from a repository or RBAC content guard, choose one role,
+        then search and select one or more existing users and groups. Start typing to
+        filter long lists; every selected name remains visible in the field and can be
+        removed before you submit. Pulpit only accepts names from these lists, so a typo
+        cannot create a broken grant.
+      </Content>
+      <Content component="p">
         Pick <strong>Users</strong>, <strong>Groups</strong>, or <strong>Roles</strong> on
         the left for exactly how each page works.
       </Content>

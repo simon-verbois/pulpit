@@ -12,10 +12,10 @@ export function AccessGroupsTopic() {
       <Content component="h3">Members</Content>
       <Content component="p">
         Open a group and use its <strong>Members</strong> tab.{" "}
-        <strong>Add member…</strong> picks from every user not already in the group;{" "}
-        <strong>Remove</strong> takes a user back out. Removing someone from a group only
-        affects what they inherit from that group's own role assignments — it never
-        deletes the user account itself.
+        <strong>Add member…</strong> lets you search and select one or more users from
+        every account not already in the group; <strong>Remove</strong> takes a user back
+        out. Removing someone from a group only affects what they inherit from that
+        group's own role assignments — it never deletes the user account itself.
       </Content>
 
       <Content component="h3">Granting the group permissions</Content>

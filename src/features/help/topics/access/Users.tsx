@@ -48,8 +48,8 @@ export function AccessUsersTopic() {
           object of every type.
         </Content>
         <Content component="li">
-          Paste an object's href (copyable from anywhere that object's own href is shown)
-          to scope the role to <strong>that object only</strong>. In practice it's usually
+          Paste an object's href (select it wherever that object's own href is shown) to
+          scope the role to <strong>that object only</strong>. In practice it's usually
           simpler to grant repository-level access from the repository's own{" "}
           <strong>Access</strong> tab instead (RPM/Containers/Ansible — see that section's
           help) rather than hunting down an href here.

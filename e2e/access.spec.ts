@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 // Unique per run so re-running this spec against a live, already-populated
 // dev stack doesn't collide with objects a previous run left behind (same
@@ -11,6 +11,18 @@ const ROLENAME = `e2e_access_role_${RUN_ID}`;
 const REPO_NAME = `e2e-access-repo-${RUN_ID}`;
 
 test.describe.configure({ mode: "serial" });
+
+// Real keystrokes and keyboard selection, not .fill()+click(): PatternFly's
+// typeahead menu never leaves its initial aria-hidden state when the value is
+// set programmatically, and its animated popper makes a mouse click on the
+// option flaky right after it appears. Waiting for the option before pressing
+// Enter avoids racing the users/groups list that's still loading.
+async function selectTypeaheadOption(page: Page, input: Locator, value: string) {
+  await input.pressSequentially(value);
+  await expect(page.getByRole("option", { name: value, exact: true })).toBeVisible();
+  await input.press("ArrowDown");
+  await input.press("Enter");
+}
 
 test.describe("Access: users -> roles -> groups -> object-level permissions", () => {
   test("exercises the full RBAC lifecycle against the live Pulp instance", async ({
@@ -54,7 +66,11 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
     await expect(page.getByText("No roles assigned yet")).toBeVisible();
     await page.getByRole("button", { name: "Assign role…" }).first().click();
     const assignDialog = page.getByRole("dialog");
-    await assignDialog.locator("#assign-role-select").selectOption({ label: ROLENAME });
+    await selectTypeaheadOption(
+      page,
+      assignDialog.locator("#assign-role-select"),
+      ROLENAME,
+    );
     await assignDialog.getByRole("button", { name: "Assign" }).click();
     await expect(assignDialog).not.toBeVisible();
     await expect(page.getByText(ROLENAME)).toBeVisible();
@@ -69,7 +85,11 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
 
     await page.getByRole("button", { name: "Add member…" }).first().click();
     const addMemberDialog = page.getByRole("dialog");
-    await addMemberDialog.locator("#add-member-user").selectOption({ label: USERNAME });
+    await selectTypeaheadOption(
+      page,
+      addMemberDialog.locator("#add-member-users"),
+      USERNAME,
+    );
     await addMemberDialog.getByRole("button", { name: "Add" }).click();
     await expect(addMemberDialog).not.toBeVisible();
     await expect(page.getByText(USERNAME)).toBeVisible();
@@ -92,20 +112,36 @@ test.describe("Access: users -> roles -> groups -> object-level permissions", ()
 
     await page.getByRole("button", { name: "Grant access…" }).first().click();
     const grantDialog = page.getByRole("dialog");
-    await grantDialog
-      .locator("#grant-access-role")
-      .selectOption({ label: "rpm.rpmrepository_viewer" });
-    await grantDialog.locator("#grant-access-users").fill(USERNAME);
+    await selectTypeaheadOption(
+      page,
+      grantDialog.locator("#grant-access-role"),
+      "rpm.rpmrepository_viewer",
+    );
+    await selectTypeaheadOption(
+      page,
+      grantDialog.locator("#grant-access-users"),
+      USERNAME,
+    );
+    await selectTypeaheadOption(
+      page,
+      grantDialog.locator("#grant-access-groups"),
+      GROUPNAME,
+    );
     await grantDialog.getByRole("button", { name: "Grant" }).click();
     await expect(grantDialog).not.toBeVisible();
 
     const accessRow = page.getByRole("row", { name: new RegExp(USERNAME) });
     await expect(accessRow).toBeVisible();
     await expect(accessRow.getByText("rpm.rpmrepository_viewer")).toBeVisible();
+    const groupAccessRow = page.getByRole("row", { name: new RegExp(GROUPNAME) });
+    await expect(groupAccessRow).toBeVisible();
+    await expect(groupAccessRow.getByText("rpm.rpmrepository_viewer")).toBeVisible();
 
     // Remove just this one - the auto-granted owner row for admin survives.
     await accessRow.getByRole("button", { name: "Remove" }).click();
     await expect(accessRow).not.toBeVisible();
+    await groupAccessRow.getByRole("button", { name: "Remove" }).click();
+    await expect(groupAccessRow).not.toBeVisible();
     await expect(page.getByText("rpm.rpmrepository_owner")).toBeVisible();
 
     // --- Clean up: repository, group, role, user ----------------------------

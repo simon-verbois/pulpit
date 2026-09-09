@@ -10,6 +10,7 @@ import {
   getGroupByName,
   groupUserId,
   listAllGroups,
+  listAllGroupUsers,
   listGroupRoles,
   listGroupUsers,
   listGroups,
@@ -49,7 +50,50 @@ describe("access groups adapter", () => {
   });
 
   it("fetches every page for listAllGroups", async () => {
-    expect(await listAllGroups()).toEqual([ACCESS_GROUP_FIXTURE]);
+    const secondGroup = {
+      ...ACCESS_GROUP_FIXTURE,
+      pulp_href: "/pulp/api/v3/groups/2/",
+      id: 2,
+      name: "second-group",
+    };
+    server.use(
+      http.get(BASE, ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get("offset"));
+        return HttpResponse.json({
+          count: 2,
+          next: offset === 0 ? `${BASE}?limit=100&offset=1` : null,
+          previous: offset === 0 ? null : `${BASE}?limit=100&offset=0`,
+          results: offset === 0 ? [ACCESS_GROUP_FIXTURE] : [secondGroup],
+        });
+      }),
+    );
+
+    expect(await listAllGroups()).toEqual([ACCESS_GROUP_FIXTURE, secondGroup]);
+  });
+
+  it("fetches every member page for listAllGroupUsers", async () => {
+    const membersBase = `${ACCESS_GROUP_FIXTURE.pulp_href}users/`;
+    const secondMember = {
+      ...ACCESS_USER_FIXTURE,
+      pulp_href: "/pulp/api/v3/users/2/",
+      username: "second-user",
+    };
+    server.use(
+      http.get(membersBase, ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get("offset"));
+        return HttpResponse.json({
+          count: 2,
+          next: offset === 0 ? `${membersBase}?limit=100&offset=1` : null,
+          previous: offset === 0 ? null : `${membersBase}?limit=100&offset=0`,
+          results:
+            offset === 0
+              ? [{ pulp_href: ACCESS_USER_FIXTURE.pulp_href, username: "test-user" }]
+              : [secondMember],
+        });
+      }),
+    );
+
+    expect(await listAllGroupUsers(ACCESS_GROUP_FIXTURE.pulp_href)).toHaveLength(2);
   });
 
   it("creates a group synchronously (VERIFIED live: 201, no task)", async () => {

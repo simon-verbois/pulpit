@@ -85,10 +85,11 @@ describe("UserDetailPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Assign role…" }));
 
     const dialog = await screen.findByRole("dialog");
-    await within(dialog).findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });
-    fireEvent.change(within(dialog).getByLabelText("Role", { exact: false }), {
-      target: { value: ACCESS_CUSTOM_ROLE_FIXTURE.name },
-    });
+    const roleInput = within(dialog).getByLabelText("Role", { exact: true });
+    fireEvent.change(roleInput, { target: { value: ACCESS_CUSTOM_ROLE_FIXTURE.name } });
+    await screen.findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });
+    fireEvent.keyDown(roleInput, { key: "ArrowDown" });
+    fireEvent.keyDown(roleInput, { key: "Enter" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Assign" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -104,10 +105,11 @@ describe("UserDetailPage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Assign role…" }));
 
     const dialog = await screen.findByRole("dialog");
-    await within(dialog).findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });
-    fireEvent.change(within(dialog).getByLabelText("Role", { exact: false }), {
-      target: { value: ACCESS_CUSTOM_ROLE_FIXTURE.name },
-    });
+    const roleInput = within(dialog).getByLabelText("Role", { exact: true });
+    fireEvent.change(roleInput, { target: { value: ACCESS_CUSTOM_ROLE_FIXTURE.name } });
+    await screen.findByRole("option", { name: ACCESS_CUSTOM_ROLE_FIXTURE.name });
+    fireEvent.keyDown(roleInput, { key: "ArrowDown" });
+    fireEvent.keyDown(roleInput, { key: "Enter" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Assign" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 

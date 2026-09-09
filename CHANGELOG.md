@@ -5,6 +5,31 @@ Pulpit's own calendar scheme (`YYYY.WW.PATCH` — the ISO year/week of the relea
 counter for same-week releases), tracked in [`VERSION`](VERSION) and shown in the app's own
 footer.
 
+## Unreleased
+
+### Added
+
+- Distribution base paths are now namespaced by content module (`rpm/`, `container/`,
+  `ansible/`, and the equivalent prefix for every installed plugin). The create forms display the
+  prefix as fixed URL text, while the derived Pulp image enforces the same rule for direct API
+  requests before dispatching a task.
+
+### Changed
+
+- The "Grant access…" (repository/content-guard), "Add member…" (group), and "Assign role…"
+  dialogs now use a searchable select for Users, Groups, and Roles instead of comma-separated
+  text fields or an unconstrained native dropdown (previously rendering all ~180 built-in roles
+  at once, unreadable on a shorter screen) — type to filter, selections stay visible as removable
+  chips, and values can only come from Pulp's actual list, so a typo can no longer produce a
+  broken grant.
+
+### Removed
+
+- The TLS FreeIPA provider, its certificate-request automation, guided setup, stored credentials,
+  API routes, and Administration UI. Existing FreeIPA-issued certificates are retained as manually
+  managed certificates during migration. TLS now has two paths: the two-year, automatically renewed
+  self-signed fallback and manual certificate import.
+
 ## 2026.37.4 — 2026-09-07
 
 ### Added

@@ -49,6 +49,19 @@ describe("access roles adapter", () => {
   });
 
   it("fetches every page for listAllRoles", async () => {
+    server.use(
+      http.get(BASE, ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get("offset"));
+        return HttpResponse.json({
+          count: 2,
+          next: offset === 0 ? `${BASE}?limit=100&offset=1` : null,
+          previous: offset === 0 ? null : `${BASE}?limit=100&offset=0`,
+          results:
+            offset === 0 ? [ACCESS_CUSTOM_ROLE_FIXTURE] : [ACCESS_LOCKED_ROLE_FIXTURE],
+        });
+      }),
+    );
+
     const roles = await listAllRoles();
     expect(roles).toEqual([ACCESS_CUSTOM_ROLE_FIXTURE, ACCESS_LOCKED_ROLE_FIXTURE]);
   });

@@ -22,10 +22,20 @@ export function listUsers(params: ListUsersParams): Promise<PulpPage<User>> {
   return pulpFetch<PulpPage<User>>(`${BASE}${buildQuery(params)}`);
 }
 
+const PICKER_PAGE_SIZE = 100;
+
 /** Fetches every user page - used to populate "assign to user" pickers. */
 export async function listAllUsers(): Promise<User[]> {
-  const page = await listUsers({ limit: 100, offset: 0 });
-  return page.results;
+  const users: User[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await listUsers({ limit: PICKER_PAGE_SIZE, offset });
+    users.push(...page.results);
+
+    if (users.length >= page.count || page.results.length === 0) return users;
+    offset += page.results.length;
+  }
 }
 
 /** Fetches a user directly by its own href, e.g. to resolve a task's

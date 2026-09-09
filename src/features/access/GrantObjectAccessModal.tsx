@@ -2,25 +2,26 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
+  AlertActionLink,
   Button,
   Flex,
   FlexItem,
   Form,
   FormGroup,
-  FormHelperText,
-  FormSelect,
-  FormSelectOption,
-  HelperText,
-  HelperTextItem,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
-  TextInput,
 } from "@patternfly/react-core";
 
+import { listAllGroups } from "../../api/client/access/groups";
 import { listAllRoles } from "../../api/client/access/roles";
+import { listAllUsers } from "../../api/client/access/users";
 import { PulpApiError } from "../../api/errors/PulpApiError";
+import { groupsQueryKey } from "./groups/queryKeys";
+import { SearchableMultiSelect } from "./SearchableMultiSelect";
+import { SearchableSingleSelect } from "./SearchableSingleSelect";
+import { usersQueryKey } from "./users/queryKeys";
 
 interface GrantObjectAccessModalProps {
   objectLabel: string;
@@ -28,13 +29,6 @@ interface GrantObjectAccessModalProps {
   isPending: boolean;
   error: unknown;
   onClose: () => void;
-}
-
-function splitList(value: string): string[] {
-  return value
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
 }
 
 /** Shared by every plugin's Repository "Access" tab (RPM/Ansible/Container -
@@ -50,8 +44,8 @@ export function GrantObjectAccessModal({
   onClose,
 }: GrantObjectAccessModalProps) {
   const [role, setRole] = useState("");
-  const [users, setUsers] = useState("");
-  const [groups, setGroups] = useState("");
+  const [users, setUsers] = useState<string[]>([]);
+  const [groups, setGroups] = useState<string[]>([]);
 
   const rolesQuery = useQuery({
     queryKey: ["pulp", "access", "roles", "all"],
@@ -60,12 +54,17 @@ export function GrantObjectAccessModal({
   const sortedRoles = [...(rolesQuery.data ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
-
-  const userList = splitList(users);
-  const groupList = splitList(groups);
+  const usersQuery = useQuery({
+    queryKey: usersQueryKey(),
+    queryFn: listAllUsers,
+  });
+  const groupsQuery = useQuery({
+    queryKey: groupsQueryKey(),
+    queryFn: listAllGroups,
+  });
 
   const handleSubmit = () => {
-    onGrant({ role, users: userList, groups: groupList });
+    onGrant({ role, users, groups });
   };
 
   return (
@@ -85,43 +84,77 @@ export function GrantObjectAccessModal({
               }
             />
           ) : null}
+          {rolesQuery.isError ? (
+            <Alert
+              variant="danger"
+              isInline
+              title="Could not load roles."
+              actionLinks={
+                <AlertActionLink onClick={() => rolesQuery.refetch()}>
+                  Retry
+                </AlertActionLink>
+              }
+            />
+          ) : null}
+          {usersQuery.isError ? (
+            <Alert
+              variant="danger"
+              isInline
+              title="Could not load users."
+              actionLinks={
+                <AlertActionLink onClick={() => usersQuery.refetch()}>
+                  Retry
+                </AlertActionLink>
+              }
+            />
+          ) : null}
+          {groupsQuery.isError ? (
+            <Alert
+              variant="danger"
+              isInline
+              title="Could not load groups."
+              actionLinks={
+                <AlertActionLink onClick={() => groupsQuery.refetch()}>
+                  Retry
+                </AlertActionLink>
+              }
+            />
+          ) : null}
           <FormGroup label="Role" isRequired fieldId="grant-access-role">
-            <FormSelect
+            <SearchableSingleSelect
               id="grant-access-role"
-              value={role}
-              onChange={(_event, value) => setRole(value)}
-            >
-              <FormSelectOption key="" value="" label="Select a role…" />
-              {sortedRoles.map((r) => (
-                <FormSelectOption key={r.pulp_href} value={r.name} label={r.name} />
-              ))}
-            </FormSelect>
+              ariaLabel="Role"
+              placeholder={rolesQuery.isPending ? "Loading roles…" : "Select a role…"}
+              options={sortedRoles.map((r) => r.name)}
+              selected={role}
+              onChange={setRole}
+              noOptionsText="No roles are available."
+              isDisabled={rolesQuery.isError}
+            />
           </FormGroup>
           <FormGroup label="Users" fieldId="grant-access-users">
-            <TextInput
+            <SearchableMultiSelect
               id="grant-access-users"
-              placeholder="e.g. alice, bob"
-              value={users}
-              onChange={(_event, value) => setUsers(value)}
+              ariaLabel="Users"
+              placeholder={usersQuery.isPending ? "Loading users…" : "Select users…"}
+              options={(usersQuery.data ?? []).map((user) => user.username)}
+              selected={users}
+              onChange={setUsers}
+              noOptionsText="No users are available."
+              isDisabled={usersQuery.isError}
             />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>Comma-separated usernames.</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
           </FormGroup>
           <FormGroup label="Groups" fieldId="grant-access-groups">
-            <TextInput
+            <SearchableMultiSelect
               id="grant-access-groups"
-              placeholder="e.g. release-team"
-              value={groups}
-              onChange={(_event, value) => setGroups(value)}
+              ariaLabel="Groups"
+              placeholder={groupsQuery.isPending ? "Loading groups…" : "Select groups…"}
+              options={(groupsQuery.data ?? []).map((group) => group.name)}
+              selected={groups}
+              onChange={setGroups}
+              noOptionsText="No groups are available."
+              isDisabled={groupsQuery.isError}
             />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>Comma-separated group names.</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
           </FormGroup>
         </Form>
       </ModalBody>
@@ -139,7 +172,7 @@ export function GrantObjectAccessModal({
             <Button
               variant="primary"
               isDisabled={
-                !role || (userList.length === 0 && groupList.length === 0) || isPending
+                !role || (users.length === 0 && groups.length === 0) || isPending
               }
               isLoading={isPending}
               onClick={handleSubmit}

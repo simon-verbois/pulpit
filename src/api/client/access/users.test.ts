@@ -55,8 +55,26 @@ describe("access users adapter", () => {
   });
 
   it("fetches every page for listAllUsers", async () => {
+    const secondUser = {
+      ...ACCESS_USER_FIXTURE,
+      pulp_href: "/pulp/api/v3/users/2/",
+      id: 2,
+      username: "second-user",
+    };
+    server.use(
+      http.get(BASE, ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get("offset"));
+        return HttpResponse.json({
+          count: 2,
+          next: offset === 0 ? `${BASE}?limit=100&offset=1` : null,
+          previous: offset === 0 ? null : `${BASE}?limit=100&offset=0`,
+          results: offset === 0 ? [ACCESS_USER_FIXTURE] : [secondUser],
+        });
+      }),
+    );
+
     const users = await listAllUsers();
-    expect(users).toEqual([ACCESS_USER_FIXTURE]);
+    expect(users).toEqual([ACCESS_USER_FIXTURE, secondUser]);
   });
 
   it("creates a user synchronously (VERIFIED live: 201, no task)", async () => {

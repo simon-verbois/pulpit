@@ -22,10 +22,20 @@ export function listGroups(params: ListGroupsParams): Promise<PulpPage<Group>> {
   return pulpFetch<PulpPage<Group>>(`${BASE}${buildQuery(params)}`);
 }
 
+const PICKER_PAGE_SIZE = 100;
+
 /** Fetches every group page - used to populate "assign to group" pickers. */
 export async function listAllGroups(): Promise<Group[]> {
-  const page = await listGroups({ limit: 100, offset: 0 });
-  return page.results;
+  const groups: Group[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await listGroups({ limit: PICKER_PAGE_SIZE, offset });
+    groups.push(...page.results);
+
+    if (groups.length >= page.count || page.results.length === 0) return groups;
+    offset += page.results.length;
+  }
 }
 
 /** Groups are identified by a numeric id in their href, but `name` is
@@ -62,6 +72,23 @@ export function listGroupUsers(
   params: ListParams,
 ): Promise<PulpPage<GroupUser>> {
   return pulpFetch<PulpPage<GroupUser>>(`${groupHref}users/${buildQuery(params)}`);
+}
+
+/** Fetches every member page so pickers never offer an existing member again. */
+export async function listAllGroupUsers(groupHref: string): Promise<GroupUser[]> {
+  const members: GroupUser[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await listGroupUsers(groupHref, {
+      limit: PICKER_PAGE_SIZE,
+      offset,
+    });
+    members.push(...page.results);
+
+    if (members.length >= page.count || page.results.length === 0) return members;
+    offset += page.results.length;
+  }
 }
 
 /** A GroupUser's own `pulp_href` is the *user's* href (VERIFIED live, e.g.

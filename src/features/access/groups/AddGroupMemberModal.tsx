@@ -2,45 +2,55 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
+  AlertActionLink,
   Button,
   Flex,
   FlexItem,
   Form,
   FormGroup,
-  FormSelect,
-  FormSelectOption,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
 } from "@patternfly/react-core";
 
+import { listAllGroupUsers } from "../../../api/client/access/groups";
 import { listAllUsers } from "../../../api/client/access/users";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
-import { useAddGroupUserMutation } from "./useGroupMembershipMutations";
+import { SearchableMultiSelect } from "../SearchableMultiSelect";
+import { usersQueryKey } from "../users/queryKeys";
+import { groupUsersKey } from "./queryKeys";
+import { useAddGroupUsersMutation } from "./useGroupMembershipMutations";
 
 export function AddGroupMemberModal({
   groupHref,
-  existingUsernames,
   onClose,
 }: {
   groupHref: string;
-  existingUsernames: string[];
   onClose: () => void;
 }) {
-  const [username, setUsername] = useState("");
-  const addMutation = useAddGroupUserMutation();
+  const [usernames, setUsernames] = useState<string[]>([]);
+  const addMutation = useAddGroupUsersMutation();
 
   const usersQuery = useQuery({
-    queryKey: ["pulp", "access", "users", "all"],
+    queryKey: usersQueryKey(),
     queryFn: listAllUsers,
   });
-  const candidates = (usersQuery.data ?? []).filter(
-    (u) => !existingUsernames.includes(u.username),
+  const membersQuery = useQuery({
+    queryKey: [...groupUsersKey(groupHref), "all"],
+    queryFn: () => listAllGroupUsers(groupHref),
+  });
+  const existingUsernames = new Set(
+    (membersQuery.data ?? []).map((member) => member.username),
   );
+  const candidates = (usersQuery.data ?? [])
+    .map((user) => user.username)
+    .filter((username) => !existingUsernames.has(username));
+  const isLoading = usersQuery.isPending || membersQuery.isPending;
+  const hasLoadError = usersQuery.isError || membersQuery.isError;
 
   const handleSubmit = () => {
-    addMutation.mutate({ groupHref, username }, { onSuccess: () => onClose() });
+    addMutation.mutate({ groupHref, usernames }, { onSuccess: () => onClose() });
   };
 
   return (
@@ -60,25 +70,38 @@ export function AddGroupMemberModal({
               title={
                 addMutation.error instanceof PulpApiError
                   ? addMutation.error.message
-                  : "Could not add the member."
+                  : "Could not add all selected members."
               }
             />
           ) : null}
-          <FormGroup label="User" isRequired fieldId="add-member-user">
-            <FormSelect
-              id="add-member-user"
-              value={username}
-              onChange={(_event, value) => setUsername(value)}
-            >
-              <FormSelectOption key="" value="" label="Select a user…" />
-              {candidates.map((u) => (
-                <FormSelectOption
-                  key={u.pulp_href}
-                  value={u.username}
-                  label={u.username}
-                />
-              ))}
-            </FormSelect>
+          {hasLoadError ? (
+            <Alert
+              variant="danger"
+              isInline
+              title="Could not load available users."
+              actionLinks={
+                <AlertActionLink
+                  onClick={() => {
+                    if (usersQuery.isError) usersQuery.refetch();
+                    if (membersQuery.isError) membersQuery.refetch();
+                  }}
+                >
+                  Retry
+                </AlertActionLink>
+              }
+            />
+          ) : null}
+          <FormGroup label="Users" isRequired fieldId="add-member-users">
+            <SearchableMultiSelect
+              id="add-member-users"
+              ariaLabel="Users"
+              placeholder={isLoading ? "Loading users…" : "Select users…"}
+              options={candidates}
+              selected={usernames}
+              onChange={setUsernames}
+              noOptionsText="Every user is already a member."
+              isDisabled={hasLoadError}
+            />
           </FormGroup>
         </Form>
       </ModalBody>
@@ -95,7 +118,7 @@ export function AddGroupMemberModal({
           <FlexItem>
             <Button
               variant="primary"
-              isDisabled={!username || addMutation.isPending}
+              isDisabled={usernames.length === 0 || addMutation.isPending}
               isLoading={addMutation.isPending}
               onClick={handleSubmit}
             >
