@@ -19,6 +19,9 @@ footer.
   shown as a short, human-readable label (e.g. "RPM synchronize" instead of
   `pulp_rpm.app.tasks.synchronizing.synchronize`) — the raw Python import path is still available
   in full on the task detail modal.
+- Overview page: repository count per plugin component is now refreshed by a scheduled
+  `pulpit-core` background job (every 5 minutes) and read from a database cache, instead of
+  ten separate live Pulp requests fired on every page load.
 
 ### Changed
 
@@ -35,6 +38,13 @@ footer.
   at once, unreadable on a shorter screen) — type to filter, selections stay visible as removable
   chips, and values can only come from Pulp's actual list, so a typo can no longer produce a
   broken grant.
+- Repository/component content size (Overview page, and every content type's Repositories page)
+  is now computed by a scheduled `pulpit-core` background job (hourly) and read from a database
+  cache, instead of scanning Pulp's content/artifact endpoints live in the browser on every page
+  load. Because this job (and the repository-count job above) runs with the service account's own
+  credentials rather than the viewer's, cached sizes and repository counts cover every repository
+  on the instance regardless of the viewer's own Pulp permissions — see `docs/SECURITY.md`
+  "Signing and derived-size authorization" for that tradeoff.
 
 ### Removed
 

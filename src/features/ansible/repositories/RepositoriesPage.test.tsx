@@ -18,13 +18,7 @@ describe("Ansible RepositoriesPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the repository's content size computed from Pulp", async () => {
-    server.use(
-      http.get("/pulp/api/v3/repositories/", () =>
-        HttpResponse.json({ next: null, results: [ANSIBLE_REPO_FIXTURE] }),
-      ),
-    );
-
+  it("shows the repository's backend-cached content size", async () => {
     renderApp(<RepositoriesPage />);
 
     const row = await screen.findByRole("row", {

@@ -13,8 +13,10 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { Link } from "react-router-dom";
 
 import type { PulpStatus } from "../api/client/status";
-import type { PulpPage } from "../api/client/rpm/types";
-import type { ComponentContentSize } from "../api/client/contentSizes";
+import type {
+  ComponentContentSize,
+  ComponentRepositoryCount,
+} from "../api/client/pulpitCore/types";
 import { formatBytes } from "../lib/formatBytes";
 import { VERIFIED_VERSIONS } from "../lib/pulpCompatibility";
 import { NAV_TREE } from "../app/layout/navTree";
@@ -58,24 +60,25 @@ function StorageUsage({ storage }: { storage: NonNullable<PulpStatus["storage"]>
   return `${formatBytes(storage.used)} / ${formatBytes(storage.total)}`;
 }
 
-export interface RepositoryCountEntry {
-  /** Where this component's Repositories page lives, e.g. "/rpm/repositories". */
-  path: string;
-  query: UseQueryResult<PulpPage<unknown>>;
-}
-
-function RepositoryCountCell({ entry }: { entry: RepositoryCountEntry | undefined }) {
-  if (!entry) {
-    return <>—</>;
-  }
-  if (entry.query.isPending) {
+function RepositoryCountCell({
+  query,
+  component,
+  path,
+}: {
+  query: UseQueryResult<ComponentRepositoryCount[]>;
+  component: string;
+  path: string | undefined;
+}) {
+  if (query.isPending) {
     return <Skeleton width="1.5rem" screenreaderText="Loading repository count" />;
   }
-  // A single failed count shouldn't take down the rest of the table.
-  if (entry.query.isError) {
+  // A failed fetch of this derived value shouldn't take down the rest of
+  // the table - same treatment as a failed size fetch.
+  if (query.isError || !path) {
     return <>—</>;
   }
-  return <Link to={entry.path}>{entry.query.data.count}</Link>;
+  const entry = query.data.find((row) => row.component === component);
+  return entry ? <Link to={path}>{entry.count}</Link> : <>—</>;
 }
 
 function SizeCell({
@@ -101,21 +104,25 @@ function SizeCell({
  * Renders only the fields Pulp's /status/ response actually included -
  * never a fabricated value (docs/ARCHITECTURE.md, docs/PULP_API.md).
  *
- * `repositoryCounts` and `componentSizesQuery` are optional - OverviewPage
- * (this component's only caller) always supplies both, but neither is about
- * infrastructure health (what `status` itself covers), so both stay
- * optional rather than required. Unlike `repositoryCounts` (one query per
- * plugin), size is one query that sums Pulp content visible to the caller.
- * The derived data remains in the browser's TanStack Query cache.
+ * `repositoryCountsQuery`/`repositoryPaths` and `componentSizesQuery` are
+ * optional - OverviewPage (this component's only caller) always supplies
+ * both, but neither is about infrastructure health (what `status` itself
+ * covers), so both stay optional rather than required. Both are single,
+ * backend-cached queries (pulpit-core's content_size module - see
+ * docs/ARCHITECTURE.md "Derived content sizes and repository counts"),
+ * cached further by the browser's TanStack Query on top of that.
  */
 export function PulpStatusSummary({
   status,
-  repositoryCounts,
+  repositoryCountsQuery,
+  repositoryPaths,
   componentSizesQuery,
   visibleModuleIds,
 }: {
   status: PulpStatus;
-  repositoryCounts?: Record<string, RepositoryCountEntry>;
+  repositoryCountsQuery?: UseQueryResult<ComponentRepositoryCount[]>;
+  /** Where each component's Repositories page lives, e.g. { rpm: "/rpm/repositories" }. */
+  repositoryPaths?: Record<string, string>;
   componentSizesQuery?: UseQueryResult<ComponentContentSize[]>;
   /** Same allow-list AppNav gates the sidebar with (undefined/null both mean
    * unrestricted - fails open the same way, e.g. while still loading) - so
@@ -212,7 +219,7 @@ export function PulpStatusSummary({
               <Tr>
                 <Th>Component</Th>
                 <Th>Version</Th>
-                {repositoryCounts ? <Th>Repositories</Th> : null}
+                {repositoryCountsQuery ? <Th>Repositories</Th> : null}
                 {componentSizesQuery ? <Th>Size</Th> : null}
               </Tr>
             </Thead>
@@ -221,9 +228,13 @@ export function PulpStatusSummary({
                 <Tr key={v.component}>
                   <Td dataLabel="Component">{v.component}</Td>
                   <Td dataLabel="Version">{v.version}</Td>
-                  {repositoryCounts ? (
+                  {repositoryCountsQuery ? (
                     <Td dataLabel="Repositories">
-                      <RepositoryCountCell entry={repositoryCounts[v.component]} />
+                      <RepositoryCountCell
+                        query={repositoryCountsQuery}
+                        component={v.component}
+                        path={repositoryPaths?.[v.component]}
+                      />
                     </Td>
                   ) : null}
                   {componentSizesQuery ? (

@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useTask } from "./useTask";
-import { contentSizeKeys } from "../client/contentSizes";
+import { contentSizeKeys } from "../client/pulpitCore/contentSize";
 import type { TrackedTask } from "./TasksContext";
 
 /**

@@ -3727,19 +3727,8 @@ const ansibleHandlers = [
 
   // Generic pulpcore Artifacts endpoint - used by role upload's
   // find-or-create-by-sha256 flow (src/api/client/ansible/roles.ts).
-  http.get(ARTIFACTS_BASE, ({ request }) =>
-    HttpResponse.json({
-      count: 0,
-      next: null,
-      previous: null,
-      results:
-        new URL(request.url).searchParams.get("fields") === "pulp_href,size"
-          ? COMPONENT_CONTENT_SIZES_FIXTURE.map((item) => ({
-              pulp_href: `/pulp/api/v3/artifacts/${item.component}/`,
-              size: item.size_bytes,
-            }))
-          : [],
-    }),
+  http.get(ARTIFACTS_BASE, () =>
+    HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
   ),
   http.post(ARTIFACTS_BASE, () =>
     HttpResponse.json({ pulp_href: `${ARTIFACTS_BASE}${freshId()}/` }, { status: 201 }),
@@ -4764,12 +4753,37 @@ const taskHistoryHandlers = [
 // suite (fail-closed - see that component's docstring); tests exercising
 // the Signing section override this per-test with `server.use(...)`.
 //
-// Generic Pulp content/artifact fixtures provide sizes for the populated
-// RPM/Ansible/Container plugins; core has no content units.
+// pulpit-core's content_size module (backend-cached, see
+// docs/ARCHITECTURE.md "Derived content sizes and repository counts")
+// provides sizes for the populated RPM/Ansible/Container plugins; core has
+// no content units.
 export const COMPONENT_CONTENT_SIZES_FIXTURE = [
   { component: "rpm", size_bytes: 200381, updated_at: "2026-01-01T00:00:00Z" },
   { component: "ansible", size_bytes: 2017, updated_at: "2026-01-01T00:00:00Z" },
   { component: "container", size_bytes: 52199, updated_at: "2026-01-01T00:00:00Z" },
+];
+
+// Same totals as above, keyed by the one seeded repository per plugin
+// (each fixture plugin seeds exactly one repository - RPM_REPO_FIXTURE etc.
+// above) rather than by component.
+export const REPOSITORY_CONTENT_SIZES_FIXTURE = [
+  { repository_href: RPM_REPO_FIXTURE.pulp_href, size_bytes: 200381, updated_at: "2026-01-01T00:00:00Z" },
+  { repository_href: ANSIBLE_REPO_FIXTURE.pulp_href, size_bytes: 2017, updated_at: "2026-01-01T00:00:00Z" },
+  { repository_href: CONTAINER_REPO_FIXTURE.pulp_href, size_bytes: 52199, updated_at: "2026-01-01T00:00:00Z" },
+];
+
+// One repository per plugin fixture (see each plugin's own seed*Repositories()).
+export const COMPONENT_REPOSITORY_COUNTS_FIXTURE = [
+  { component: "rpm", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "ansible", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "container", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "deb", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "file", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "gem", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "hugging_face", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "maven", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "npm", count: 1, updated_at: "2026-01-01T00:00:00Z" },
+  { component: "python", count: 1, updated_at: "2026-01-01T00:00:00Z" },
 ];
 
 const pulpitCoreHandlers = [
@@ -4783,21 +4797,16 @@ const pulpitCoreHandlers = [
     }),
   ),
 
-  http.get("/pulp/api/v3/content/", ({ request }) => {
-    const version = new URL(request.url).searchParams.get("repository_version");
-    const items = COMPONENT_CONTENT_SIZES_FIXTURE.filter(
-      (item) => !version || version.includes(`/${item.component}/`),
-    );
-    return HttpResponse.json({
-      next: null,
-      results: items.map((item) => ({
-        pulp_href: `/pulp/api/v3/content/${item.component}/test/1/`,
-        artifacts: { file: `/pulp/api/v3/artifacts/${item.component}/` },
-      })),
-    });
-  }),
-  http.get("/pulp/api/v3/repositories/", () =>
-    HttpResponse.json({ next: null, results: [] }),
+  // pulpit-core's content_size module - backend-cached sizes/counts (see
+  // docs/ARCHITECTURE.md "Derived content sizes and repository counts").
+  http.get("/pulpit-core/api/v1/content_size/sizes", () =>
+    HttpResponse.json(COMPONENT_CONTENT_SIZES_FIXTURE),
+  ),
+  http.get("/pulpit-core/api/v1/content_size/repository-sizes", () =>
+    HttpResponse.json(REPOSITORY_CONTENT_SIZES_FIXTURE),
+  ),
+  http.get("/pulpit-core/api/v1/content_size/repository-counts", () =>
+    HttpResponse.json(COMPONENT_REPOSITORY_COUNTS_FIXTURE),
   ),
 
   // No instance default proxy configured - every Create/Edit Remote modal

@@ -5,10 +5,7 @@ import { OverviewWarnings } from "../../components/OverviewWarnings";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingState } from "../../components/LoadingState";
 import { ErrorState } from "../../components/ErrorState";
-import {
-  PulpStatusSummary,
-  type RepositoryCountEntry,
-} from "../../components/PulpStatusSummary";
+import { PulpStatusSummary } from "../../components/PulpStatusSummary";
 import { useStatusQuery } from "../../hooks/useStatusQuery";
 import { useNavVisibilityQuery } from "../../hooks/useNavVisibilityQuery";
 import { RecentTasksCard } from "./RecentTasksCard";
@@ -23,13 +20,13 @@ export function OverviewPage() {
   const capabilities = statusQuery.data
     ? deriveCapabilities(statusQuery.data)
     : undefined;
-  const counts = useRepositoryCounts(capabilities);
+  const repositoryCountsQuery = useRepositoryCounts();
   const componentSizesQuery = useComponentSizesQuery();
   const tlsCertWarning = useTlsCertWarning();
   const apiCompatibilityWarning = useApiCompatibilityWarning();
 
   // Keyed by status.versions[].component, so PulpStatusSummary can look
-  // each row's count up directly - only plugins Pulpit has a Repositories
+  // each row's path up directly - only plugins Pulpit has a Repositories
   // page for appear here at all (docs/UX.md). Mirrors NAV_TREE's own path
   // for each plugin's Repositories page (navTree.ts).
   const REPOSITORY_PATHS: Record<string, string> = {
@@ -44,13 +41,10 @@ export function OverviewPage() {
     npm: "/npm/repositories",
     python: "/python/repositories",
   };
-  const repositoryCounts: Record<string, RepositoryCountEntry> = Object.fromEntries(
-    Object.entries(REPOSITORY_PATHS)
-      .filter(([component]) => capabilities?.[component as keyof typeof capabilities])
-      .map(([component, path]) => [
-        component,
-        { path, query: counts[component as keyof typeof counts] },
-      ]),
+  const repositoryPaths: Record<string, string> = Object.fromEntries(
+    Object.entries(REPOSITORY_PATHS).filter(
+      ([component]) => capabilities?.[component as keyof typeof capabilities],
+    ),
   );
 
   return (
@@ -69,7 +63,8 @@ export function OverviewPage() {
             <StackItem>
               <PulpStatusSummary
                 status={statusQuery.data}
-                repositoryCounts={repositoryCounts}
+                repositoryCountsQuery={repositoryCountsQuery}
+                repositoryPaths={repositoryPaths}
                 componentSizesQuery={componentSizesQuery}
                 visibleModuleIds={navVisibilityQuery.data?.visible_module_ids}
               />

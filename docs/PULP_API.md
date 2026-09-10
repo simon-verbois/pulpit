@@ -467,10 +467,12 @@ permission enforcement to Pulp; the returned task is followed by a core job.
 The generic `/repositories/?fields=pulp_href,latest_version_href`,
 `/content/?fields=pulp_href,artifacts` and `/artifacts/?fields=pulp_href,size`
 queries return paginated JSON (200), verified live. `next` may contain the public
-absolute origin. Browser size calculations paginate using locally constructed
-limit/offset parameters, never forward credentials to a `next` hostname. Repository
-sizes use the existing `repository_version` content filter. No privileged backend
-cache is involved.
+absolute origin. `pulpit-core`'s `content_size` worker jobs paginate using locally
+constructed limit/offset parameters, never forward credentials to a `next`
+hostname. Repository sizes use the existing `repository_version` content filter.
+These jobs run with the service account's own credentials and cache their results
+in pulpit-core's database (see docs/ARCHITECTURE.md "Derived content sizes and
+repository counts", docs/SECURITY.md "Signing and derived-size authorization").
 
 VERIFIED during the same Compose validation: a freshly created non-staff user
 can authenticate through `/login/` but receives 403 on their own `/users/{id}/`

@@ -120,9 +120,18 @@ hostname validation. Install the LDAP CA in the container's system trust store f
 private CAs; an untrusted certificate is an error, not a successful connection test.
 Both connect and receive operations have finite timeouts.
 
-The former `content_size` routes and worker scan are removed. Size calculations run
-in the browser against Pulp with the caller's permissions and live only in TanStack
-Query. Historical size tables remain unused for migration compatibility.
+The `content_size` module runs two scheduled worker jobs against Pulp with the
+service account's own credentials (never a caller's), and caches their results
+in `component_content_sizes`, `repository_content_sizes` and
+`component_repository_counts`. Its routes (`GET .../sizes`,
+`.../repository-sizes`, `.../repository-counts`) require only an authenticated
+pulpit-core session - unlike a live Pulp query, they are **not** filtered by
+the caller's own Pulp object permissions, so any authenticated user can see
+aggregate and per-repository totals for every repository on the instance,
+including ones they have no Pulp-level access to. This tradeoff was made
+deliberately in favor of fast, DB-cached reads instead of a live per-request
+Pulp scan; it should be revisited if repository-level access needs to stay
+confidential between pulpit-core users.
 
 CI runs `npm audit` and `pip-audit` against the full installed dependency list
 from `pip freeze --exclude-editable` (the local application is not a PyPI package).

@@ -1,7 +1,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Skeleton } from "@patternfly/react-core";
 
-import type { RepositoryContentSize } from "../api/client/contentSizes";
+import type { RepositoryContentSize } from "../api/client/pulpitCore/types";
 import { formatBytes } from "../lib/formatBytes";
 
 /** Shared size lookup from the caller's Pulp queries. Missing or inaccessible

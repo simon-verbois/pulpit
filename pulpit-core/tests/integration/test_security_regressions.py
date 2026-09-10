@@ -84,11 +84,6 @@ def test_repository_patch_uses_caller_permissions_and_never_saves_credentials(re
         assert job.status == ("queued" if status == 202 else "success")
 
 
-def test_legacy_privileged_size_endpoints_are_removed(reader):
-    for suffix in ("sizes", "repository-sizes"):
-        assert reader.get(f"/api/v1/content_size/{suffix}").status_code == 404
-
-
 def test_ldap_requires_trusted_certificate_and_connect_timeout():
     import ssl
 

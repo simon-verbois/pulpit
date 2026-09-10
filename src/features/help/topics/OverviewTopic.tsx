@@ -4,10 +4,11 @@ export function OverviewTopic() {
   return (
     <Content>
       <Content component="p">
-        Size totals are calculated from content and artifacts your Pulp account can read,
-        and repository sizes cover the latest version. Loading can take longer on large
-        instances. A dash means the size is unavailable, not that the repository is empty.
-        Reload the page to request fresh totals.
+        Size and repository-count totals are refreshed periodically in the background and
+        read instantly from a cache - they cover the whole Pulp instance, not just what your
+        own account can see, and repository sizes cover the latest version. A dash means no
+        total has been cached yet (or the last refresh failed), not that the repository is
+        empty.
       </Content>
       <Content component="p">
         PulpIT is where you manage the content on your Pulp server: repositories,

@@ -230,6 +230,69 @@ class PulpClient:
             body["remove_content_units"] = remove_content_units
         return self._request("POST", f"{repository_href}modify/", json=body).json()
 
+    # --- Generic content/artifact listing (content_size module) -----------
+    #
+    # VERIFIED live against a real Pulp instance: `/pulp/api/v3/content/` is
+    # a single endpoint unifying every plugin's content units (not one
+    # per-plugin sub-endpoint) - each result carries its true type in its own
+    # `pulp_href` (".../content/<component>/<type>/<id>/") and an `artifacts`
+    # dict (relative filename -> artifact href), populated uniformly even for
+    # single-artifact content types like an RPM package. This is what makes a
+    # single generic summation possible instead of one hardcoded endpoint
+    # (and one verified size field name) per plugin.
+    #
+    # `pulp_created__gte` is NOT a valid filter here ("Invalid Filter" from a
+    # live 400) - there is no way to ask Pulp for only content created since
+    # last time, so content_size's periodic job necessarily re-sums
+    # everything on each run. See content_size/jobs.py for why that's still
+    # an acceptable tradeoff (never runs on a request path).
+    #
+    # `repository_version` IS a valid filter here too (VERIFIED live) -
+    # scopes the same generic listing to one repository version, which is
+    # what makes a per-repository size possible with the same endpoint and
+    # the same already-fetched artifact size map, no per-plugin repository
+    # content endpoint needed.
+
+    def list_content_page(
+        self, *, limit: int, offset: int, repository_version: str | None = None
+    ) -> dict:
+        params: dict[str, Any] = {"fields": "pulp_href,artifacts", "limit": limit, "offset": offset}
+        if repository_version is not None:
+            params["repository_version"] = repository_version
+        response = self._request("GET", f"{self._api_base}/content/", params=params)
+        return response.json()
+
+    def list_artifacts_page(self, *, limit: int, offset: int) -> dict:
+        response = self._request(
+            "GET",
+            f"{self._api_base}/artifacts/",
+            params={"fields": "pulp_href,size", "limit": limit, "offset": offset},
+        )
+        return response.json()
+
+    # --- Generic repository listing (content_size module) -----------------
+    #
+    # VERIFIED live: `/pulp/api/v3/repositories/` unifies every plugin's
+    # repositories the same way `/content/` unifies content - no per-plugin
+    # repository-type endpoint needed to enumerate "every repository that
+    # exists", regardless of plugin. Used both for per-repository content
+    # size (needs `latest_version_href`) and for the cheap per-component
+    # repository count (needs only `pulp_href`, see jobs.py's
+    # `refresh_repository_counts_job` - a much cheaper pass than the size
+    # job since it never touches `/artifacts/` or `/content/`).
+
+    def list_repositories_page(self, *, limit: int, offset: int) -> dict:
+        response = self._request(
+            "GET",
+            f"{self._api_base}/repositories/",
+            params={
+                "fields": "pulp_href,latest_version_href",
+                "limit": limit,
+                "offset": offset,
+            },
+        )
+        return response.json()
+
     # --- Generic remote listing/update (default_settings module) ---------
     #
     # VERIFIED live: `/pulp/api/v3/remotes/` unifies every plugin's remotes

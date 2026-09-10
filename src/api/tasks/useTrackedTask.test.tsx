@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { expect, it } from "vitest";
 import { server } from "../../test/mswServer";
-import { contentSizeKeys } from "../client/contentSizes";
+import { contentSizeKeys } from "../client/pulpitCore/contentSize";
 import { useTrackedTask } from "./useTrackedTask";
 
 it("refreshes derived sizes when a Pulp task completes", async () => {

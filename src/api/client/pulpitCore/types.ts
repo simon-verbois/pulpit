@@ -120,6 +120,31 @@ export interface ManualCertificateUpload {
   key_pem: string;
 }
 
+// Mirrors pulpit-core/app/modules/content_size/schemas.py. A component with
+// no entry (not a 0-byte entry) means no content of that type has ever been
+// seen - see that module's models.py docstring.
+export interface ComponentContentSize {
+  component: string;
+  size_bytes: number;
+  updated_at: string;
+}
+
+// Same idea, one entry per repository (its latest version) - keyed by the
+// repository's own pulp_href, which every RepositoriesPage already has.
+export interface RepositoryContentSize {
+  repository_href: string;
+  size_bytes: number;
+  updated_at: string;
+}
+
+// Same idea, one entry per plugin component instead of per repository -
+// how many repositories of that component type currently exist.
+export interface ComponentRepositoryCount {
+  component: string;
+  count: number;
+  updated_at: string;
+}
+
 // Mirrors pulpit-core/app/modules/default_settings/schemas.py.
 // proxy_password is deliberately absent here too - GET never echoes it
 // back (VERIFIED, same write-only handling as Pulp's own Remote.

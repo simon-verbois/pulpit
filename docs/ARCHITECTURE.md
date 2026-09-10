@@ -201,12 +201,19 @@ different Unix identities, and this boundary is deliberate, not incidental:
   configured and consumed entirely by pulpcore. Nothing in the `pulpit` container talks to it
   directly.
 
-### Derived content sizes
+### Derived content sizes and repository counts
 
-Content sizes are computed by `src/api/client/contentSizes.ts` directly from Pulp
-using the browser session. The resulting server-derived values belong to TanStack
-Query and are fresh for five minutes. There is no active pulpit-core aggregation
-module or size API. Old size models remain only for historical database migrations.
+Component/repository content sizes and per-component repository counts are computed
+by pulpit-core's `content_size` module, not the browser. Two scheduled worker jobs
+(`content_size.refresh`, hourly; `content_size.refresh_repository_counts`, every
+5 minutes) page Pulp's generic `/artifacts/`, `/content/` and `/repositories/`
+endpoints with the service account's credentials and write the totals to
+`component_content_sizes` / `repository_content_sizes` / `component_repository_counts`.
+The frontend (`src/api/client/pulpitCore/contentSize.ts`) just reads those cached
+rows through `GET /api/v1/content_size/{sizes,repository-sizes,repository-counts}`,
+cached client-side by TanStack Query for 5 minutes on top of that. See
+docs/SECURITY.md "Signing and derived-size authorization" for the authorization
+tradeoff this implies (results aren't scoped to the caller's own Pulp permissions).
 
 ### Worker transaction boundaries
 

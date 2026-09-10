@@ -16,13 +16,7 @@ describe("RepositoriesPage", () => {
     expect(screen.getByText(RPM_REPO_FIXTURE.description as string)).toBeInTheDocument();
   });
 
-  it("shows the repository's content size computed from Pulp", async () => {
-    server.use(
-      http.get("/pulp/api/v3/repositories/", () =>
-        HttpResponse.json({ next: null, results: [RPM_REPO_FIXTURE] }),
-      ),
-    );
-
+  it("shows the repository's backend-cached content size", async () => {
     renderApp(<RepositoriesPage />);
 
     const row = await screen.findByRole("row", {
