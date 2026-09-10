@@ -337,33 +337,42 @@ own fields (still overridable per Remote under its own "Advanced connection sett
 
 ## Podman
 
-`deployment/podman/` runs this stack via `podman play kube` (plain Kubernetes-YAML Pod manifests
-Podman itself interprets directly, no `docker-compose`/`podman-compose` wrapper - explicit
-project choice) rather than Compose:
+`deployment/podman/` runs this stack as one **Podman Quadlet** unit (a `systemd --user` service
+backed by `podman kube play`, plain Kubernetes-YAML Pod manifests Podman itself interprets
+directly - no `docker-compose`/`podman-compose` wrapper, and no manually-run `podman play kube`
+either - explicit project choice) rather than Compose. Requires Podman >= 4.4 (ships the Quadlet
+generator):
 
 ```sh
 cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
 # edit deployment/podman/00-secret.yaml - replace every REPLACE_ME value
+# edit deployment/podman/00-configmap.yaml too if you're not on http://localhost:8080 -
+# deploy.sh does not template this file for you (see deployment/podman/README.md).
 
 systemctl --user start podman.socket   # rootless
 ./deployment/podman/deploy.sh init
 ./deployment/podman/deploy.sh up
 ```
 
-`init` only prepares the generated secrets file; `up` also does this automatically when needed.
-`down` stops the stack but preserves volumes and YAML configuration, while `reset` removes the
-Podman runtime resources, data volumes, and unused images declared by the manifests. It never
-deletes YAML files. Run the script without an option for its command reference.
+`init` only prepares the generated secrets file; `up` also does this automatically when needed, then
+(re)generates `~/.config/containers/systemd/pulpit-stack.kube` (Redis + Pulp + Pulpit together, one
+unit - see that README's "Why one unit, not one per component": the two published images are always
+released together, from the same commit, so they're auto-updated together too) and restarts it via
+`systemctl --user`. `update` pulls and restarts with any newer image found in the stack (`podman
+auto-update`). `down` stops the unit but preserves volumes, the unit, and YAML configuration, while
+`reset` removes the unit, Podman runtime resources, data volumes, and unused images declared by the
+manifests. It never deletes YAML files. Run the script without an option for its command reference.
 
 See `deployment/podman/README.md` for the full picture, including several real, VERIFIED-live
 differences from both Compose and a real Kubernetes cluster that shaped these manifests -
 `podman play kube` only supports a subset of Kubernetes kinds (no Ingress, no RBAC, no real
 Service objects - no longer a limitation signing automation needs to work around since ADR 0008,
 see below), ConfigMaps/Secrets are not standalone objects the way they are on a real cluster,
-there is no `postStart` hook, and SELinux confinement blocks more than Docker's default does on an
-SELinux-enforcing host (Fedora/RHEL, Podman's own primary ecosystem) - root-caused with
-`ausearch -m avc`, not guessed: reading a plain `hostPath`-mounted file is denied entirely under
-SELinux enforcement, deliberate anti-escape confinement, not a bug.
+there is no `postStart` hook (worked around with a Quadlet `ExecStartPost=`), and SELinux
+confinement blocks more than Docker's default does on an SELinux-enforcing host (Fedora/RHEL,
+Podman's own primary ecosystem) - root-caused with `ausearch -m avc`, not guessed: reading a plain
+`hostPath`-mounted file is denied entirely under SELinux enforcement, deliberate anti-escape
+confinement, not a bug.
 
 ## Kubernetes
 

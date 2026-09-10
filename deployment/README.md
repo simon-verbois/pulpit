@@ -6,8 +6,9 @@ deploy Pulpit that way:
 - [`docker/`](docker/README.md) - Docker Compose, the primary, most-tested reference topology
   (`Dockerfile`, `compose.yml`, `compose-dev.yml`, and the nginx/entrypoint/init-script assets
   the image bakes in).
-- [`podman/`](podman/README.md) - plain `podman play kube` manifests, **not** a Compose
-  wrapper (explicit project choice) and **not** a real Kubernetes cluster.
+- [`podman/`](podman/README.md) - plain Kubernetes-YAML manifests applied as Podman Quadlet
+  (`systemd --user`) units, **not** a Compose wrapper (explicit project choice) and **not** a
+  real Kubernetes cluster.
 - [`kube/`](kube/README.md) - plain Kubernetes manifests (no Helm) for a real cluster.
 
 All three run the exact same published `simonverbois/pulpit` and `simonverbois/pulp-pulpit`

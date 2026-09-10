@@ -50,8 +50,8 @@ README:
 
 - **[`deployment/docker/`](deployment/docker/README.md)** — Docker Compose, the primary,
   most-tested reference topology.
-- **[`deployment/podman/`](deployment/podman/README.md)** — plain `podman play kube` manifests,
-  not a Compose wrapper.
+- **[`deployment/podman/`](deployment/podman/README.md)** — plain Kubernetes-YAML manifests
+  applied as Podman Quadlet (`systemd --user`) units, not a Compose wrapper.
 - **[`deployment/kube/`](deployment/kube/README.md)** — plain Kubernetes manifests, no Helm.
 
 All three run the same published `simonverbois/pulpit` image and were VERIFIED live — see
@@ -135,7 +135,7 @@ pulpit/
 ├── docs/                  # architecture, API, auth, RBAC, UX, testing, security, roadmap, ADRs
 ├── deployment/            # one subdirectory per deployment technology, one README each
 │   ├── docker/            # Dockerfile, compose.yml, compose-dev.yml, nginx/, pulpit/, pulp/
-│   ├── podman/            # `podman play kube` manifests (not Compose, not real Kubernetes)
+│   ├── podman/            # Quadlet (systemd --user) units over `podman kube play` (not Compose, not real Kubernetes)
 │   └── kube/              # plain Kubernetes manifests (no Helm)
 ├── e2e/                   # Playwright specs
 ├── scripts/api/           # OpenAPI schema fetch + type generation

@@ -10,15 +10,19 @@ data:
   PULPIT_CORE_PULP_BASE_URL: "http://pulp:80"
   PULPIT_CORE_PULP_SERVICE_USERNAME: "admin"
 
-  # __PULPIT_PUBLIC_ORIGIN__ is substituted by ./deploy.sh at apply time
-  # (defaults to "http://localhost:8080") - edit directly if applying
-  # without deploy.sh, and make sure it matches wherever pulpit.yaml
-  # exposes the app publicly.
-  PULPIT_PUBLIC_ORIGIN: "__PULPIT_PUBLIC_ORIGIN__"
-  PULP_CSRF_TRUSTED_ORIGINS: '["__PULPIT_PUBLIC_ORIGIN__"]'
-  PULP_CONTENT_ORIGIN: "__PULPIT_PUBLIC_ORIGIN__"
-  PULP_ANSIBLE_API_HOSTNAME: "__PULPIT_PUBLIC_ORIGIN__"
-  PULP_PYPI_API_HOSTNAME: "__PULPIT_PUBLIC_ORIGIN__"
+  # Edit this yourself before running `deploy.sh up` - NOT substituted by
+  # deploy.sh (defaults to "http://localhost:8080" below only because
+  # that's this repo's own out-of-the-box value). Get it wrong and logins
+  # will work but every subsequent action (including logout) 403s - see
+  # docs/DEPLOYMENT.md "CSRF_TRUSTED_ORIGINS". Must match wherever
+  # pulpit.yaml actually exposes the app publicly (a different hostPort, a
+  # different hostname, a reverse proxy in front, etc.) - keep every line
+  # below in sync, they all need the same value.
+  PULPIT_PUBLIC_ORIGIN: "http://localhost:8080"
+  PULP_CSRF_TRUSTED_ORIGINS: '["http://localhost:8080"]'
+  PULP_CONTENT_ORIGIN: "http://localhost:8080"
+  PULP_ANSIBLE_API_HOSTNAME: "http://localhost:8080"
+  PULP_PYPI_API_HOSTNAME: "http://localhost:8080"
 
   PULP_CACHE_ENABLED: "true"
   PULP_REDIS_HOST: "redis"
