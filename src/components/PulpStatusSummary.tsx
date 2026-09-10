@@ -57,7 +57,8 @@ function StorageUsage({ storage }: { storage: NonNullable<PulpStatus["storage"]>
       ? `${formatBytes(storage.free)} free`
       : "Reported, but no usable figures";
   }
-  return `${formatBytes(storage.used)} / ${formatBytes(storage.total)}`;
+  const percentUsed = Math.round((storage.used / storage.total) * 100);
+  return `${formatBytes(storage.used)} / ${formatBytes(storage.total)} (${percentUsed}%)`;
 }
 
 function RepositoryCountCell({
