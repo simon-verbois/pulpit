@@ -47,6 +47,16 @@ export function OverviewPage() {
     ),
   );
 
+  // Keep showing the loading state until nav-visibility has also settled
+  // (success or error - `isLoading` only covers its own first, in-flight
+  // fetch), not just status - otherwise the component table below briefly
+  // renders every plugin (PulpStatusSummary fails open the same way AppNav
+  // does while visibleModuleIds hasn't loaded yet) and then a moment later
+  // loses whichever ones nav-visibility actually restricts, on every single
+  // page load.
+  const isInitialLoad =
+    statusQuery.isPending || (!statusQuery.isError && navVisibilityQuery.isLoading);
+
   return (
     <>
       <PageHeader
@@ -54,11 +64,11 @@ export function OverviewPage() {
         description="A snapshot of the Pulp instance PulpIT is managing."
       />
       <PageSection hasBodyWrapper={false}>
-        {statusQuery.isPending ? <LoadingState label="Loading Pulp status" /> : null}
+        {isInitialLoad ? <LoadingState label="Loading Pulp status" /> : null}
         {statusQuery.isError ? (
           <ErrorState error={statusQuery.error} onRetry={() => statusQuery.refetch()} />
         ) : null}
-        {statusQuery.isSuccess ? (
+        {statusQuery.isSuccess && !navVisibilityQuery.isLoading ? (
           <Stack hasGutter>
             <StackItem>
               <PulpStatusSummary

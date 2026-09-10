@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Nav, NavExpandable, NavItem, NavList } from "@patternfly/react-core";
+import {
+  Nav,
+  NavExpandable,
+  NavItem,
+  NavList,
+  Skeleton,
+} from "@patternfly/react-core";
 
 import { deriveCapabilities } from "../../api/capabilities";
 import { useStatusQuery } from "../../hooks/useStatusQuery";
@@ -89,37 +95,56 @@ export function AppNav() {
     return visibleModuleIds === null || visibleModuleIds.includes(node.id);
   });
 
+  // First paint only (not a background refetch of already-loaded data) -
+  // `isLoading` is `isPending && isFetching`, true exactly once per mount.
+  // Rendering placeholder rows here instead of the fail-open `navTree`
+  // above avoids the real symptom fail-open otherwise causes on every
+  // refresh: every group flashing in, then the ones the connected Pulp
+  // instance doesn't have installed vanishing again a moment later once
+  // status/nav-visibility actually load. Same row count as NAV_TREE so the
+  // swap to real content doesn't itself shift the page layout.
+  const isInitialLoad = statusQuery.isLoading || navVisibilityQuery.isLoading;
+
   return (
     <Nav aria-label="PulpIT navigation">
       <NavList>
-        {navTree.map((node) => {
-          if (node.type === "item") {
-            return renderNavItem(node, location.pathname);
-          }
-          const containsCurrentPage = node.children.some((leaf) =>
-            location.pathname.startsWith(leaf.path),
-          );
-          const isExpanded = manuallyExpanded[node.id] ?? containsCurrentPage;
-          return (
-            <NavExpandable
-              key={node.label}
-              title={node.label}
-              isActive={containsCurrentPage}
-              // Expanded by default whenever the current route lives inside
-              // this group, so landing on (or reloading) a page under e.g.
-              // /access/... never collapses its own section - but once a
-              // group has been manually toggled, that explicit choice wins
-              // (see manuallyExpanded above), independent of every other
-              // group and independent of route changes elsewhere.
-              isExpanded={isExpanded}
-              onExpand={(_event, val) =>
-                setManuallyExpanded((prev) => ({ ...prev, [node.id]: val }))
+        {isInitialLoad
+          ? NAV_TREE.map((node, index) => (
+              <NavItem key={node.type === "item" ? node.path : node.id} itemId={index}>
+                <Skeleton
+                  width="70%"
+                  screenreaderText={index === 0 ? "Loading navigation" : undefined}
+                />
+              </NavItem>
+            ))
+          : navTree.map((node) => {
+              if (node.type === "item") {
+                return renderNavItem(node, location.pathname);
               }
-            >
-              {node.children.map((leaf) => renderNavItem(leaf, location.pathname))}
-            </NavExpandable>
-          );
-        })}
+              const containsCurrentPage = node.children.some((leaf) =>
+                location.pathname.startsWith(leaf.path),
+              );
+              const isExpanded = manuallyExpanded[node.id] ?? containsCurrentPage;
+              return (
+                <NavExpandable
+                  key={node.label}
+                  title={node.label}
+                  isActive={containsCurrentPage}
+                  // Expanded by default whenever the current route lives inside
+                  // this group, so landing on (or reloading) a page under e.g.
+                  // /access/... never collapses its own section - but once a
+                  // group has been manually toggled, that explicit choice wins
+                  // (see manuallyExpanded above), independent of every other
+                  // group and independent of route changes elsewhere.
+                  isExpanded={isExpanded}
+                  onExpand={(_event, val) =>
+                    setManuallyExpanded((prev) => ({ ...prev, [node.id]: val }))
+                  }
+                >
+                  {node.children.map((leaf) => renderNavItem(leaf, location.pathname))}
+                </NavExpandable>
+              );
+            })}
       </NavList>
     </Nav>
   );

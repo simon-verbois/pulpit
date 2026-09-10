@@ -38,13 +38,14 @@ describe("AppNav", () => {
     );
   });
 
-  it("fails open (shows every group) while status is still loading", () => {
+  it("shows placeholder rows (not every real group) while status is still loading, so nothing flashes in then disappears once it resolves", () => {
     server.use(http.get("/pulp/api/v3/status/", () => new Promise(() => {})));
 
     renderApp(<AppNav />);
 
-    expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
+    expect(screen.getByText("Loading navigation")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "RPM" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ansible Galaxy" })).not.toBeInTheDocument();
   });
 
   it("fails open (shows every group) if the status request errors", async () => {
@@ -55,8 +56,8 @@ describe("AppNav", () => {
     renderApp(<AppNav />);
 
     // No status data ever arrives, so nothing is ever positively confirmed
-    // absent - the groups are present from the very first render.
-    expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
+    // absent - the groups are present once the (errored) request settles.
+    expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
   });
 
@@ -84,25 +85,26 @@ describe("AppNav", () => {
 
     renderApp(<AppNav />);
 
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "RPM" })).not.toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("button", { name: "Maven" })).not.toBeInTheDocument();
     // Core, always-visible items are untouched - this is a plugin-module
-    // restriction, not a lockout from the app itself.
-    expect(screen.getByRole("link", { name: "Overview" })).toBeInTheDocument();
+    // restriction, not a lockout from the app itself. Wait on one of these
+    // first so the assertions below land after the settled (non-skeleton)
+    // render, not the momentary loading placeholder.
+    expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tasks" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "RPM" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Maven" })).not.toBeInTheDocument();
   });
 
-  it("fails open (shows every group) while nav-visibility settings are still loading", () => {
+  it("shows placeholder rows (not every real group) while nav-visibility settings are still loading, so nothing flashes in then disappears once it resolves", () => {
     server.use(
       http.get("/pulpit-core/api/v1/nav_visibility/me", () => new Promise(() => {})),
     );
 
     renderApp(<AppNav />);
 
-    expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Maven" })).toBeInTheDocument();
+    expect(screen.getByText("Loading navigation")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "RPM" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Maven" })).not.toBeInTheDocument();
   });
 
   it("fails open (shows every group) if the nav-visibility request errors", async () => {
@@ -115,7 +117,7 @@ describe("AppNav", () => {
 
     renderApp(<AppNav />);
 
-    expect(screen.getByRole("button", { name: "RPM" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Maven" })).toBeInTheDocument();
   });
 

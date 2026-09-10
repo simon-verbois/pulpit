@@ -97,6 +97,17 @@ describe("OverviewPage", () => {
     expect(screen.queryByRole("row", { name: /^rpm\b/ })).not.toBeInTheDocument();
   });
 
+  it("keeps showing the loading state (not every plugin row) while nav-visibility is still loading, so rows don't flash in then disappear once it resolves", () => {
+    server.use(
+      http.get("/pulpit-core/api/v1/nav_visibility/me", () => new Promise(() => {})),
+    );
+
+    renderApp(<OverviewPage />);
+
+    expect(screen.getByLabelText("Loading Pulp status")).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Pulp components" })).not.toBeInTheDocument();
+  });
+
   it("shows every visible plugin's repository count, not just rpm/ansible/container", async () => {
     renderApp(<OverviewPage />);
 
