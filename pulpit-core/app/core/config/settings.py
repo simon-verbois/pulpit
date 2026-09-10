@@ -107,7 +107,12 @@ class Settings(BaseSettings):
     ldap_manifest_filename: str = "ldap-config.json"
 
     # --- LDAP module: test-connection (pulpit-worker only) -----------------------
-    ldap_test_connection_timeout_seconds: float = 10.0
+    # Must stay an int: ldap3.Connection(receive_timeout=...) hands this
+    # straight to struct.pack('LL', receive_timeout, 0) (ldap3/strategy/
+    # base.py) with no int() coercion of its own - a float here raises
+    # "struct.error: required argument is not an integer" the moment Test
+    # connection is clicked, not a config problem on the LDAP server's side.
+    ldap_test_connection_timeout_seconds: int = 10
 
     # --- TLS module (app/modules/tls/) -------------------------------------------
     # Where the certificate/key nginx's 8443 server block reads live -

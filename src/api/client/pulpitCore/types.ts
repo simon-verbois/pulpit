@@ -255,6 +255,9 @@ export interface LdapTestConnectionRequest {
   start_tls?: boolean;
   user_search_base?: string;
   user_search_filter?: string;
+  group_search_base?: string;
+  group_search_filter?: string;
+  require_group_dn?: string;
 }
 
 export interface LdapTestConnectionResult {
@@ -263,6 +266,10 @@ export interface LdapTestConnectionResult {
   bound_as?: string;
   user_search_matched?: boolean;
   user_search_error?: string;
+  group_search_matched?: boolean;
+  group_search_error?: string;
+  require_group_dn_exists?: boolean;
+  require_group_dn_error?: string;
 }
 
 export interface LdapApplyResult {

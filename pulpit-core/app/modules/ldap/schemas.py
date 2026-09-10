@@ -70,7 +70,13 @@ class LdapTestConnectionRequest(BaseModel):
     row (service.build_test_settings), same reasoning a "test before you
     save a possibly-broken config" action needs. `bind_password` omitted
     means "use the already-saved one" (never a blank-clears-it convention
-    here - there is nothing to save, so no reason to support clearing it)."""
+    here - there is nothing to save, so no reason to support clearing it).
+
+    `group_search_base`/`group_search_filter`/`require_group_dn` are probed
+    the same way `user_search_base`/`user_search_filter` already are - see
+    jobs.test_connection_job. `group_type` isn't included: it only selects
+    which django-auth-ldap GroupType class the *applied* config uses
+    (manifest.py), it never changes what this raw ldap3 probe searches for."""
 
     server_uri: str | None = None
     bind_dn: str | None = None
@@ -78,3 +84,6 @@ class LdapTestConnectionRequest(BaseModel):
     start_tls: bool | None = None
     user_search_base: str | None = None
     user_search_filter: str | None = None
+    group_search_base: str | None = None
+    group_search_filter: str | None = None
+    require_group_dn: str | None = None

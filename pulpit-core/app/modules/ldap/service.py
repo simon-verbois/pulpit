@@ -64,6 +64,9 @@ class ResolvedTestSettings:
     start_tls: bool
     user_search_base: str
     user_search_filter: str
+    group_search_base: str
+    group_search_filter: str
+    require_group_dn: str | None
 
 
 def resolve_test_settings(row: LdapSettings, overrides: dict) -> ResolvedTestSettings:
@@ -86,4 +89,7 @@ def resolve_test_settings(row: LdapSettings, overrides: dict) -> ResolvedTestSet
         start_tls=_pick("start_tls"),
         user_search_base=_pick("user_search_base"),
         user_search_filter=_pick("user_search_filter"),
+        group_search_base=_pick("group_search_base"),
+        group_search_filter=_pick("group_search_filter"),
+        require_group_dn=_pick("require_group_dn"),
     )

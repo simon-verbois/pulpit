@@ -135,6 +135,9 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
       start_tls: startTls,
       user_search_base: userSearchBase || undefined,
       user_search_filter: userSearchFilter || undefined,
+      group_search_base: groupSearchBase || undefined,
+      group_search_filter: groupSearchFilter || undefined,
+      require_group_dn: requireGroupDn || undefined,
     });
   };
 
@@ -420,13 +423,50 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
                 : "Connection failed"
             }
           >
-            {testResult.success
-              ? testResult.user_search_matched !== undefined
-                ? testResult.user_search_matched
-                  ? "The user search base/filter returned at least one entry."
-                  : "Bind succeeded, but the user search base/filter returned nothing - double-check them."
-                : null
-              : testResult.error}
+            {testResult.success ? (
+              <HelperText>
+                {testResult.user_search_matched !== undefined ? (
+                  <HelperTextItem
+                    variant={testResult.user_search_error ? "error" : "default"}
+                  >
+                    {testResult.user_search_error
+                      ? `User search failed: ${testResult.user_search_error}`
+                      : testResult.user_search_matched
+                        ? "The user search base/filter returned at least one entry."
+                        : "The user search base/filter returned nothing - double-check them."}
+                  </HelperTextItem>
+                ) : null}
+                {testResult.group_search_matched !== undefined ? (
+                  <HelperTextItem
+                    variant={testResult.group_search_error ? "error" : "default"}
+                  >
+                    {testResult.group_search_error
+                      ? `Group search failed: ${testResult.group_search_error}`
+                      : testResult.group_search_matched
+                        ? "The group search base/filter returned at least one entry."
+                        : "The group search base/filter returned nothing - double-check them."}
+                  </HelperTextItem>
+                ) : null}
+                {testResult.require_group_dn_exists !== undefined ? (
+                  <HelperTextItem
+                    variant={
+                      testResult.require_group_dn_error ||
+                      !testResult.require_group_dn_exists
+                        ? "error"
+                        : "default"
+                    }
+                  >
+                    {testResult.require_group_dn_error
+                      ? `Require group DN check failed: ${testResult.require_group_dn_error}`
+                      : testResult.require_group_dn_exists
+                        ? "The Require group DN exists."
+                        : "The Require group DN does not exist - no one would be able to log in."}
+                  </HelperTextItem>
+                ) : null}
+              </HelperText>
+            ) : (
+              testResult.error
+            )}
           </Alert>
         </StackItem>
       ) : null}

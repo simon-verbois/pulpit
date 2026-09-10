@@ -182,6 +182,65 @@ describe("LdapSettingsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows group search and require-group-dn diagnostics from the test-connection result", async () => {
+    mockSettings({ server_uri: "ldaps://ldap.example.com:636" });
+    server.use(
+      http.post(`${SETTINGS_URL}/test-connection`, () =>
+        HttpResponse.json(
+          {
+            id: "44444444-4444-4444-4444-444444444444",
+            job_type: "ldap.test_connection",
+            status: "queued",
+            result: null,
+            error: null,
+            attempts: 0,
+            scheduled_at: "2026-01-01T00:00:00Z",
+            started_at: null,
+            finished_at: null,
+            requested_by: "admin",
+            created_at: "2026-01-01T00:00:00Z",
+          },
+          { status: 202 },
+        ),
+      ),
+      http.get("/pulpit-core/api/v1/jobs/44444444-4444-4444-4444-444444444444", () =>
+        HttpResponse.json({
+          id: "44444444-4444-4444-4444-444444444444",
+          job_type: "ldap.test_connection",
+          status: "success",
+          result: {
+            success: true,
+            bound_as: "cn=readonly,dc=example,dc=com",
+            group_search_matched: false,
+            require_group_dn_exists: false,
+          },
+          error: null,
+          attempts: 1,
+          scheduled_at: "2026-01-01T00:00:00Z",
+          started_at: "2026-01-01T00:00:00Z",
+          finished_at: "2026-01-01T00:00:01Z",
+          requested_by: "admin",
+          created_at: "2026-01-01T00:00:00Z",
+        }),
+      ),
+    );
+
+    renderApp(<LdapSettingsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Test connection" }));
+
+    expect(
+      await screen.findByText(
+        "The group search base/filter returned nothing - double-check them.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The Require group DN does not exist - no one would be able to log in.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("applies the saved config after confirmation", async () => {
     mockSettings({ server_uri: "ldaps://ldap.example.com:636" });
     server.use(
