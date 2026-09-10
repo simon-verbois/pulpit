@@ -7,15 +7,18 @@ import {
   CardTitle,
   Checkbox,
   Content,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   Stack,
   StackItem,
-  TextInput,
 } from "@patternfly/react-core";
 
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
+import { BasePathField } from "../../../components/BasePathField";
+import { useContentOrigin } from "../../../hooks/useContentOrigin";
 import type { SigningSettings } from "../../../api/client/pulpitCore/types";
 import { useSigningSettingsQuery } from "./useSigningSettingsQuery";
 import { useUpdateSigningSettingsMutation } from "./useUpdateSigningSettingsMutation";
@@ -43,6 +46,7 @@ export function RepositorySigningGeneralSection() {
     <RepositorySigningGeneralForm
       settings={settingsQuery.data}
       isSaveError={updateSettings.isError}
+      isSaving={updateSettings.isPending}
       onChange={(changes) => updateSettings.mutate(changes)}
     />
   );
@@ -51,20 +55,25 @@ export function RepositorySigningGeneralSection() {
 function RepositorySigningGeneralForm({
   settings,
   isSaveError,
+  isSaving,
   onChange,
 }: {
   settings: SigningSettings;
   isSaveError: boolean;
+  isSaving: boolean;
   onChange: (changes: Partial<SigningSettings>) => void;
 }) {
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   // A local buffer, not `settings.public_key_filename` directly - binding straight to
   // query data snapped the field back to the pre-keystroke value mid-typing while the
-  // save mutation was still in flight.
+  // save mutation was still in flight. Now also what makes the Save button below
+  // possible at all: typing no longer saves on every keystroke (a stray character was
+  // otherwise live the moment it was typed) - only clicking Save commits it.
   const [publicKeyFilename, setPublicKeyFilename] = useState(
     settings.public_key_filename,
   );
-  const publicKeyUrl = `${window.location.origin}/keys/${publicKeyFilename}`;
+  const contentOrigin = useContentOrigin();
+  const isFilenameDirty = publicKeyFilename !== settings.public_key_filename;
 
   return (
     <Stack hasGutter>
@@ -108,31 +117,32 @@ function RepositorySigningGeneralForm({
         <Card isCompact>
           <CardTitle>Public key</CardTitle>
           <CardBody>
-            <Stack hasGutter>
-              <StackItem>
-                <Form>
-                  <FormGroup label="Filename" fieldId="public-key-filename">
-                    <TextInput
+            <Form>
+              <FormGroup label="Filename" fieldId="public-key-filename">
+                <Flex alignItems={{ default: "alignItemsFlexStart" }}>
+                  <FlexItem grow={{ default: "grow" }}>
+                    <BasePathField
                       id="public-key-filename"
-                      type="text"
-                      autoComplete="off"
+                      prefix={`${contentOrigin}/keys/`}
                       value={publicKeyFilename}
-                      onChange={(_e, value) => {
-                        setPublicKeyFilename(value);
-                        onChange({ public_key_filename: value });
-                      }}
+                      onChange={setPublicKeyFilename}
                     />
-                  </FormGroup>
-                </Form>
-              </StackItem>
-
-              <StackItem>
-                <Content component="small" style={{ margin: 0 }}>
-                  Full URL where the public signing key is served.
-                </Content>
-                <code style={{ overflowWrap: "anywhere" }}>{publicKeyUrl}</code>
-              </StackItem>
-            </Stack>
+                  </FlexItem>
+                  <FlexItem>
+                    <Button
+                      variant="secondary"
+                      isDisabled={!isFilenameDirty || !publicKeyFilename}
+                      isLoading={isFilenameDirty && isSaving}
+                      onClick={() =>
+                        onChange({ public_key_filename: publicKeyFilename })
+                      }
+                    >
+                      Save
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              </FormGroup>
+            </Form>
           </CardBody>
         </Card>
       </StackItem>

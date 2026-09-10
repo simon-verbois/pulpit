@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 
 import { server } from "../../../test/mswServer";
 import { renderApp } from "../../../test/renderApp";
+import { PULP_STATUS_FIXTURE } from "../../../test/handlers";
 import { RepositorySigningPage } from "./RepositorySigningPage";
 
 const SETTINGS_URL = "/pulpit-core/api/v1/signing/settings";
@@ -99,8 +100,11 @@ describe("RepositorySigningPage", () => {
     expect((await screen.findAllByText("ACTIVE")).length).toBeGreaterThan(0);
     expect(screen.getAllByText(ACTIVE_KEY.fingerprint).length).toBeGreaterThan(0);
     expect(
-      await screen.findByText(`${window.location.origin}/keys/RPM-GPG-KEY-pulp`),
+      await screen.findByText(
+        `${PULP_STATUS_FIXTURE.content_settings.content_origin}/keys/`,
+      ),
     ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("RPM-GPG-KEY-pulp")).toBeInTheDocument();
   });
 
   it("shows the manual Pulp registration command while a service is pending", async () => {
@@ -141,13 +145,46 @@ describe("RepositorySigningPage", () => {
     await waitFor(() => expect(checkbox).toBeChecked());
   });
 
+  it("only saves the filename when Save is clicked, not on every keystroke", async () => {
+    // Typing used to save on every change, one PATCH per keystroke - a stray
+    // character was live the moment it was typed, with no way to back out
+    // before it took effect. Now it's a local edit until Save is clicked.
+    mockSettings();
+    mockKeys([]);
+    const patchBodies: Record<string, unknown>[] = [];
+    server.use(
+      http.patch(SETTINGS_URL, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        patchBodies.push(body);
+        return HttpResponse.json({ ...DEFAULT_SETTINGS, ...body });
+      }),
+    );
+
+    renderApp(<RepositorySigningPage />);
+
+    const filenameInput = await screen.findByLabelText("Filename");
+    const saveButton = screen.getByRole("button", { name: "Save" });
+    expect(saveButton).toBeDisabled();
+
+    fireEvent.change(filenameInput, { target: { value: "custom-key" } });
+    expect(patchBodies).toHaveLength(0);
+    expect(saveButton).toBeEnabled();
+
+    fireEvent.click(saveButton);
+    await waitFor(() =>
+      expect(patchBodies).toEqual([{ public_key_filename: "custom-key" }]),
+    );
+    await waitFor(() => expect(saveButton).toBeDisabled());
+  });
+
   it("keeps a text field's own typed value even while its own save PATCH is still in flight", async () => {
     // Regression test: this field's `value` used to be bound straight to
-    // the settings query, saved on every change - typing a second character
-    // before the first PATCH resolved reverted the field to its pre-edit
-    // value (VERIFIED live: the query hadn't been updated yet, so React
-    // forced the DOM input back, moving the cursor to the end). A delayed
-    // PATCH response here reproduces exactly that race.
+    // the settings query - once a save was in flight, typing a second
+    // character before the PATCH resolved reverted the field to its
+    // pre-edit value (VERIFIED live: the query hadn't been updated yet, so
+    // React forced the DOM input back, moving the cursor to the end). A
+    // delayed PATCH response here reproduces exactly that race, now
+    // triggered by Save rather than by every keystroke.
     mockSettings();
     mockKeys([]);
     let resolvePatch: (() => void) | undefined;
@@ -165,8 +202,9 @@ describe("RepositorySigningPage", () => {
 
     const filenameInput = await screen.findByLabelText("Filename");
     fireEvent.change(filenameInput, { target: { value: "custom-1" } });
-    // The first PATCH is now stuck awaiting resolvePatch - typing again
-    // before it resolves must not revert the field.
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    // The PATCH is now stuck awaiting resolvePatch - typing again before it
+    // resolves must not revert the field.
     fireEvent.change(filenameInput, { target: { value: "custom-12" } });
     expect(filenameInput).toHaveValue("custom-12");
 
