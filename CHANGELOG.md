@@ -13,9 +13,22 @@ footer.
   `ansible/`, and the equivalent prefix for every installed plugin). The create forms display the
   prefix as fixed URL text, while the derived Pulp image enforces the same rule for direct API
   requests before dispatching a task.
+- Administration → LDAP → "Test connection" now also probes the group search base/filter and
+  checks that the "Require group" DN actually exists, alongside the existing user search probe.
+- Task names (Tasks page, the notification drawer, and the Overview "Recent tasks" card) are now
+  shown as a short, human-readable label (e.g. "RPM synchronize" instead of
+  `pulp_rpm.app.tasks.synchronizing.synchronize`) — the raw Python import path is still available
+  in full on the task detail modal.
 
 ### Changed
 
+- Administration → LDAP → "Test connection" now tells apart more distinct failure causes (DNS
+  resolution, TCP refusal, connection timeout, TLS/certificate errors, and a port that isn't
+  actually speaking LDAP) instead of one generic "Could not connect" message, and rejects a few
+  configurations upfront that would otherwise silently misreport success: a `server_uri` without
+  an `ldap://`/`ldaps://` scheme, STARTTLS combined with an `ldaps://` URI, and a Bind DN set
+  without a bind password (an RFC 4513 "unauthenticated bind", which can succeed without the
+  server checking credentials at all).
 - The "Grant access…" (repository/content-guard), "Add member…" (group), and "Assign role…"
   dialogs now use a searchable select for Users, Groups, and Roles instead of comma-separated
   text fields or an unconstrained native dropdown (previously rendering all ~180 built-in roles
