@@ -14,6 +14,7 @@ import {
 } from "@patternfly/react-core";
 
 import type { SigningKey } from "../../../api/client/pulpitCore/types";
+import { useContentOrigin } from "../../../hooks/useContentOrigin";
 import { StatusIndicator } from "../../../components/StatusIndicator";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import { SIGNING_KEY_STATE_COLOR, SIGNING_KEY_STATE_LABEL } from "./signingKeyState";
@@ -30,6 +31,7 @@ export function SigningKeyDetailsModal({
   signingKey: SigningKey;
   onClose: () => void;
 }) {
+  const contentOrigin = useContentOrigin();
   return (
     <Modal
       isOpen
@@ -121,7 +123,7 @@ export function SigningKeyDetailsModal({
             <DescriptionListDescription>
               {signingKey.state === "active" ? (
                 <span style={{ overflowWrap: "anywhere" }}>
-                  {`${window.location.origin}${signingKey.public_key_url}`}
+                  {`${contentOrigin}${signingKey.public_key_url}`}
                 </span>
               ) : (
                 <Content component="small">
