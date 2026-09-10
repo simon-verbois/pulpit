@@ -9,6 +9,7 @@ import {
   TASK_HISTORY_FIXTURE_COMPLETED,
   TASK_HISTORY_FIXTURE_FAILED,
 } from "../../test/handlers";
+import { humanizeTaskName } from "./humanizeTaskName";
 import { TasksPage } from "./TasksPage";
 
 const BASE = "/pulp/api/v3/tasks/";
@@ -18,7 +19,7 @@ describe("TasksPage", () => {
     renderApp(<TasksPage />);
 
     const completedRow = await screen.findByRole("row", {
-      name: new RegExp(TASK_HISTORY_FIXTURE_COMPLETED.name!),
+      name: new RegExp(humanizeTaskName(TASK_HISTORY_FIXTURE_COMPLETED.name!)),
     });
     expect(within(completedRow).getByText("completed")).toBeInTheDocument();
     expect(
@@ -26,10 +27,24 @@ describe("TasksPage", () => {
     ).toBeInTheDocument();
 
     const failedRow = screen.getByRole("row", {
-      name: new RegExp(TASK_HISTORY_FIXTURE_FAILED.name!),
+      name: new RegExp(humanizeTaskName(TASK_HISTORY_FIXTURE_FAILED.name!)),
     });
     expect(within(failedRow).getByText("failed")).toBeInTheDocument();
     expect(within(failedRow).getByText("System")).toBeInTheDocument();
+  });
+
+  it("still shows the raw Pulp task name in full in the detail modal", async () => {
+    renderApp(<TasksPage />);
+
+    const completedRow = await screen.findByRole("row", {
+      name: new RegExp(humanizeTaskName(TASK_HISTORY_FIXTURE_COMPLETED.name!)),
+    });
+    fireEvent.click(within(completedRow).getByRole("button", { name: "View details" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText(TASK_HISTORY_FIXTURE_COMPLETED.name!),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no tasks", async () => {
@@ -56,7 +71,7 @@ describe("TasksPage", () => {
     renderApp(<TasksPage />);
 
     const failedRow = await screen.findByRole("row", {
-      name: new RegExp(TASK_HISTORY_FIXTURE_FAILED.name!),
+      name: new RegExp(humanizeTaskName(TASK_HISTORY_FIXTURE_FAILED.name!)),
     });
     fireEvent.click(within(failedRow).getByRole("button", { name: "View details" }));
 

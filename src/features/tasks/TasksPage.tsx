@@ -21,6 +21,7 @@ import { usePulpPagination } from "../../hooks/usePulpPagination";
 import { formatRelativeTime } from "../../lib/relativeTime";
 import type { PulpTask, PulpTaskState } from "../../api/client/tasks";
 import { CreatedByCell } from "./CreatedByCell";
+import { humanizeTaskName } from "./humanizeTaskName";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TASK_STATE_COLOR } from "./taskStateColor";
 import { useTasksQuery } from "./useTasksQuery";
@@ -150,7 +151,7 @@ export function TasksPage() {
                 {tasksQuery.data.results.map((task) => (
                   <Tr key={task.pulp_href}>
                     <Td dataLabel="Name">
-                      <code>{task.name ?? "—"}</code>
+                      {task.name ? humanizeTaskName(task.name) : "—"}
                     </Td>
                     <Td dataLabel="State">
                       <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>

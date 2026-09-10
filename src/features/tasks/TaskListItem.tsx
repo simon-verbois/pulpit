@@ -8,6 +8,7 @@ import { TERMINAL_TASK_STATES, type PulpTaskState } from "../../api/client/tasks
 import { useTrackedTask } from "../../api/tasks/useTrackedTask";
 import type { TrackedTask } from "../../api/tasks/TasksContext";
 import { formatRelativeTime } from "../../lib/relativeTime";
+import { humanizeTaskName } from "./humanizeTaskName";
 
 type Variant = "info" | "success" | "danger" | "warning";
 
@@ -33,7 +34,7 @@ export function TaskListItem({ task }: { task: TrackedTask }) {
     <NotificationDrawerListItem variant={variant} isRead={isRead}>
       <NotificationDrawerListItemHeader
         variant={variant}
-        title={task.label ?? data?.name ?? "Pulp task"}
+        title={task.label ?? (data?.name ? humanizeTaskName(data.name) : "Pulp task")}
         srTitle={`${state ?? "loading"} task:`}
       />
       <NotificationDrawerListItemBody

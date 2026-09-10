@@ -9,6 +9,7 @@ import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { StatusIndicator } from "../../components/StatusIndicator";
 import { formatRelativeTime } from "../../lib/relativeTime";
+import { humanizeTaskName } from "../tasks/humanizeTaskName";
 import { TaskDetailModal } from "../tasks/TaskDetailModal";
 import { TASK_STATE_COLOR } from "../tasks/taskStateColor";
 import { useTasksQuery } from "../tasks/useTasksQuery";
@@ -59,7 +60,7 @@ export function RecentTasksCard() {
                     onRowClick={() => setViewingTask(task)}
                   >
                     <Td dataLabel="Name">
-                      <code>{task.name ?? "—"}</code>
+                      {task.name ? humanizeTaskName(task.name) : "—"}
                     </Td>
                     <Td dataLabel="State">
                       <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>
