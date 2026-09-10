@@ -19,6 +19,20 @@
   --pf-t--global--duration--400: 150ms;
   --pf-t--global--duration--500: 150ms;
   --pf-t--global--duration--600: 150ms;
+  /* A slightly stronger base weight and darker secondary text/borders keep
+     the UI crisp after compression in remote application gateways. These
+     are PatternFly semantic tokens, so all components remain theme-aware. */
+  --pf-t--global--font--weight--body--default: 450;
+  --pf-t--global--text--color--subtle: var(--pf-t--color--gray--70);
+  --pf-t--global--border--color--default: var(--pf-t--color--gray--30);
+  --pf-t--global--border--color--subtle: var(--pf-t--color--gray--30);
+}
+
+.pf-v6-theme-dark {
+  --pf-t--global--font--weight--body--default: 450;
+  --pf-t--global--text--color--subtle: var(--pf-t--color--gray--20);
+  --pf-t--global--border--color--default: var(--pf-t--color--gray--50);
+  --pf-t--global--border--color--subtle: var(--pf-t--color--gray--50);
 }
 
 html,
@@ -86,16 +100,49 @@ body {
   justify-content: flex-end;
 }
 
-/* The "PulpIT" wordmark next to the product mark (src/app/layout/AppLayout.tsx).
-   PatternFly's global anchor reset (base.css) puts a dashed underline under
-   any bare <a> by default, including MastheadLogo's - overridden inline on
-   the link itself; this class is the actual look: PatternFly's heading font
-   (already loaded via base.css, no new font asset) at a deliberately bolder
-   weight/size than the masthead's plain nav-item text, so the wordmark reads
-   as a logotype rather than another link. */
+/* Status and masthead counts use typography and spacing instead of pills or
+   colored dots. The fixed-width numerals prevent the Tasks control from
+   looking uneven as its count changes. */
+.pulpit-status-text {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+.pulpit-task-count {
+  margin-inline-start: var(--pf-t--global--spacer--sm);
+  padding-inline-start: var(--pf-t--global--spacer--sm);
+  border-inline-start: 1px solid var(--pf-t--global--border--color--default);
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulpit-inline-values {
+  color: var(--pf-t--global--text--color--regular);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* The product mark is the navigation control; the adjacent wordmark is
+   deliberately outside its hover/focus surface. */
+.pulpit-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.pulpit-brand-toggle {
+  width: 3rem;
+  justify-content: center;
+  color: inherit;
+}
+
+.pulpit-brand-toggle .pf-v6-c-button__text {
+  display: block;
+}
+
 .pulpit-brand-text {
   font-family: var(--pf-t--global--font--family--heading);
   font-size: var(--pf-t--global--font--size--heading--sm);
-  font-weight: var(--pf-t--global--font--weight--heading--bold);
-  letter-spacing: 0.02em;
+  font-weight: var(--pf-t--global--font--weight--heading--default);
+  letter-spacing: 0.015em;
+  color: inherit;
 }

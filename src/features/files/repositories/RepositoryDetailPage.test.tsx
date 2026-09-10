@@ -23,8 +23,7 @@ describe("RepositoryDetailPage", () => {
     expect(
       screen.getByRole("heading", { name: FILE_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
-    // Appears both in the page header and the Overview tab's description list.
-    expect(screen.getAllByText(FILE_REPO_FIXTURE.description as string)).toHaveLength(2);
+    expect(screen.getByText(FILE_REPO_FIXTURE.description as string)).toBeInTheDocument();
     expect(screen.getByText("Configured")).toBeInTheDocument(); // default remote
   });
 
@@ -57,9 +56,8 @@ describe("RepositoryDetailPage", () => {
     expect(
       await screen.findByText(`Update repository "${FILE_REPO_FIXTURE.name}"`),
     ).toBeInTheDocument();
-    // Appears both in the page header and the Overview tab's description list.
     await waitFor(() =>
-      expect(screen.getAllByText("An updated description")).toHaveLength(2),
+      expect(screen.getByText("An updated description")).toBeInTheDocument(),
     );
   });
 

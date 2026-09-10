@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Checkbox,
-  Content,
-  Label,
-  LabelGroup,
-  SearchInput,
-} from "@patternfly/react-core";
+import { Checkbox, Content, SearchInput } from "@patternfly/react-core";
 
 import { listAllRoles } from "../../../api/client/access/roles";
 
@@ -47,17 +41,10 @@ export function PermissionsPicker({ value, onChange }: PermissionsPickerProps) {
   return (
     <div>
       {value.length > 0 ? (
-        <LabelGroup
-          categoryName="Selected"
-          numLabels={value.length}
-          style={{ marginBottom: "0.5rem" }}
-        >
-          {value.map((permission) => (
-            <Label key={permission} onClose={() => toggle(permission, false)}>
-              {permission}
-            </Label>
-          ))}
-        </LabelGroup>
+        <Content component="p" style={{ marginBottom: "0.5rem" }}>
+          <strong>Selected:</strong>{" "}
+          <span className="pulpit-inline-values">{value.join(", ")}</span>
+        </Content>
       ) : null}
       <SearchInput
         aria-label="Filter permissions"

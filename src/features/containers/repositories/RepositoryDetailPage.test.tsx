@@ -27,8 +27,8 @@ describe("Container RepositoryDetailPage", () => {
       screen.getByRole("heading", { name: CONTAINER_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByText(CONTAINER_REPO_FIXTURE.description as string),
-    ).toHaveLength(2);
+      screen.getByText(CONTAINER_REPO_FIXTURE.description as string),
+    ).toBeInTheDocument();
     expect(screen.getByText("Configured")).toBeInTheDocument(); // default remote
     expect(screen.queryByRole("button", { name: "Publish now" })).not.toBeInTheDocument();
   });
@@ -51,7 +51,7 @@ describe("Container RepositoryDetailPage", () => {
       await screen.findByText(`Update repository "${CONTAINER_REPO_FIXTURE.name}"`),
     ).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getAllByText("An updated description")).toHaveLength(2),
+      expect(screen.getByText("An updated description")).toBeInTheDocument(),
     );
   });
 

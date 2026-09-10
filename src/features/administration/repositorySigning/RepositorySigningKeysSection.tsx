@@ -10,7 +10,6 @@ import {
   DropdownList,
   Flex,
   FlexItem,
-  Label,
   MenuToggle,
   Stack,
   StackItem,
@@ -121,13 +120,6 @@ export function RepositorySigningKeysSection({
               spaceItems={{ default: "spaceItemsSm" }}
               alignItems={{ default: "alignItemsCenter" }}
             >
-              {keysQuery.data ? (
-                <FlexItem>
-                  <Label>
-                    {keysQuery.data.length} {keysQuery.data.length === 1 ? "key" : "keys"}
-                  </Label>
-                </FlexItem>
-              ) : null}
               <FlexItem>
                 <Button variant="primary" onClick={onGenerateKey}>
                   Generate key

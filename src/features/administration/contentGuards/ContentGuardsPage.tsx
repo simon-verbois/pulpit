@@ -3,7 +3,6 @@ import {
   Button,
   Flex,
   FlexItem,
-  Label,
   Pagination,
   PageSection,
   SearchInput,
@@ -130,9 +129,7 @@ export function ContentGuardsPage() {
                   return (
                     <Tr key={guard.pulp_href}>
                       <Td dataLabel="Name">{guard.name}</Td>
-                      <Td dataLabel="Type">
-                        <Label isCompact>{kindInfo?.label ?? "Unknown"}</Label>
-                      </Td>
+                      <Td dataLabel="Type">{kindInfo?.label ?? "Unknown"}</Td>
                       <Td dataLabel="Description">{guard.description ?? "—"}</Td>
                       <Td dataLabel="Actions" isActionCell>
                         <Flex

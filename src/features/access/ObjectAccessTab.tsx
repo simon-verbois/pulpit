@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Button,
-  Label,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 import { LoadingState } from "../../components/LoadingState";
@@ -96,6 +90,7 @@ export function ObjectAccessTab({
               <Tr>
                 <Th>Role</Th>
                 <Th>Granted to</Th>
+                <Th>Type</Th>
                 <Th screenReaderText="Actions" />
               </Tr>
             </Thead>
@@ -105,10 +100,8 @@ export function ObjectAccessTab({
                   <Td dataLabel="Role">
                     <code>{row.role}</code>
                   </Td>
-                  <Td dataLabel="Granted to">
-                    {row.subject}{" "}
-                    <Label isCompact>{row.kind === "user" ? "User" : "Group"}</Label>
-                  </Td>
+                  <Td dataLabel="Granted to">{row.subject}</Td>
+                  <Td dataLabel="Type">{row.kind === "user" ? "User" : "Group"}</Td>
                   <Td dataLabel="Actions" isActionCell>
                     <Button variant="link" isDanger onClick={() => handleRemove(row)}>
                       Remove

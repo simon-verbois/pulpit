@@ -23,7 +23,9 @@ describe("RepositoryDetailPage", () => {
     expect(
       screen.getByRole("heading", { name: MAVEN_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(MAVEN_REPO_FIXTURE.description as string)).toHaveLength(2);
+    expect(
+      screen.getByText(MAVEN_REPO_FIXTURE.description as string),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sync now" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Publish now" })).not.toBeInTheDocument();
   });

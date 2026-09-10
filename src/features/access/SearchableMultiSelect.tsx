@@ -1,8 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
   Button,
-  Label,
-  LabelGroup,
   MenuToggle,
   type MenuToggleElement,
   Select,
@@ -158,21 +156,14 @@ export function SearchableMultiSelect({
           isExpanded={isOpen}
           aria-controls={listboxId}
         >
-          <LabelGroup aria-label={`Selected ${ariaLabel.toLocaleLowerCase()}`}>
-            {selected.map((selection) => (
-              <Label
-                key={selection}
-                variant="outline"
-                closeBtnAriaLabel={`Remove ${selection}`}
-                onClose={(event) => {
-                  event.stopPropagation();
-                  toggleSelection(selection);
-                }}
-              >
-                {selection}
-              </Label>
-            ))}
-          </LabelGroup>
+          {selected.length > 0 ? (
+            <span
+              className="pulpit-inline-values"
+              aria-label={`Selected ${ariaLabel.toLocaleLowerCase()}`}
+            >
+              {selected.join(", ")}
+            </span>
+          ) : null}
         </TextInputGroupMain>
         <TextInputGroupUtilities
           {...(selected.length === 0 ? { style: { display: "none" } } : {})}

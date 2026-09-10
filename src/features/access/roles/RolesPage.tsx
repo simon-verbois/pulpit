@@ -3,7 +3,6 @@ import {
   Button,
   Flex,
   FlexItem,
-  Label,
   Pagination,
   PageSection,
   SearchInput,
@@ -140,6 +139,7 @@ export function RolesPage() {
               <Thead>
                 <Tr>
                   <Th>Name</Th>
+                  <Th>Type</Th>
                   <Th>Description</Th>
                   <Th>Permissions</Th>
                   <Th screenReaderText="Actions" />
@@ -149,9 +149,9 @@ export function RolesPage() {
                 {rolesQuery.data.results.map((role) => (
                   <Tr key={role.pulp_href}>
                     <Td dataLabel="Name">
-                      <code>{role.name}</code>{" "}
-                      {role.locked ? <Label isCompact>Built-in</Label> : null}
+                      <code>{role.name}</code>
                     </Td>
+                    <Td dataLabel="Type">{role.locked ? "Built-in" : "Custom"}</Td>
                     <Td dataLabel="Description">{role.description ?? "—"}</Td>
                     <Td dataLabel="Permissions">{role.permissions.length}</Td>
                     <Td dataLabel="Actions" isActionCell>

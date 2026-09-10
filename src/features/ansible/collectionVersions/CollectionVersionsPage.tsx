@@ -5,7 +5,6 @@ import {
   Content,
   Flex,
   FlexItem,
-  Label,
   Pagination,
   PageSection,
   SearchInput,
@@ -64,13 +63,11 @@ export function CollectionVersionsPage() {
               display={{ default: "inlineFlex" }}
               alignItems={{ default: "alignItemsCenter" }}
             >
-              {deprecationsQuery.data.results.map((dep) => (
-                <FlexItem key={dep.pulp_href}>
-                  <Label isCompact color="orange">
-                    {dep.namespace}.{dep.name}
-                  </Label>
-                </FlexItem>
-              ))}
+              <FlexItem className="pulpit-inline-values">
+                {deprecationsQuery.data.results
+                  .map((dep) => `${dep.namespace}.${dep.name}`)
+                  .join(", ")}
+              </FlexItem>
             </Flex>
           </Content>
         ) : null}

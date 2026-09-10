@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   Button,
-  Label,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -81,7 +80,7 @@ export function GroupRolesTab({ group }: { group: Group }) {
                     {assignment.content_object ? (
                       <code>{assignment.content_object}</code>
                     ) : (
-                      <Label isCompact>Global</Label>
+                      "Global"
                     )}
                   </Td>
                   <Td dataLabel="Actions" isActionCell>

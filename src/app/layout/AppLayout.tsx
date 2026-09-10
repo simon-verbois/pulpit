@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import {
-  Flex,
-  FlexItem,
   Masthead,
-  MastheadBrand,
   MastheadContent,
-  MastheadLogo,
   MastheadMain,
   MastheadToggle,
   Page,
@@ -108,48 +104,26 @@ function AppShell() {
   const masthead = (
     <Masthead>
       <MastheadMain>
-        {/* BUG FOUND LIVE: the nav-toggle button was previously removed on
-            the assumption the sidebar (isManagedSidebar on <Page> below)
-            is "always shown" - true above PatternFly's own responsive
-            breakpoint, but PatternFly's own CSS hides the sidebar entirely
-            below it regardless of isManagedSidebar's JS state, and with no
-            toggle button there was then no way to bring it back at all.
-            PageToggleButton only renders (is only visible) at/below that
-            same breakpoint, matching the CSS hide exactly - it never
-            re-adds a button at wide viewports where the sidebar already
-            behaves as before. */}
-        <MastheadToggle>
+        {/* The product mark replaces the hamburger as the navigation control.
+            Keep the wordmark outside the button so hover/focus treatment is
+            limited to the blue mark, while PageToggleButton retains the
+            managed-sidebar and aria-expanded wiring. */}
+        <MastheadToggle className="pulpit-brand-lockup">
           <PageToggleButton
             id="pulpit-nav-toggle"
             aria-label="Toggle navigation"
-            isHamburgerButton
-          />
-        </MastheadToggle>
-        <MastheadBrand>
-          <MastheadLogo
-            component={(props) => <Link to="/" {...props} />}
-            style={{ width: "auto", textDecoration: "none" }}
+            className="pulpit-brand-toggle"
           >
-            <Flex
-              alignItems={{ default: "alignItemsCenter" }}
-              spaceItems={{ default: "spaceItemsSm" }}
-              flexWrap={{ default: "nowrap" }}
-            >
-              <FlexItem>
-                <img
-                  src="/pulpit-mark.svg"
-                  alt=""
-                  width={32}
-                  height={32}
-                  style={{ display: "block" }}
-                />
-              </FlexItem>
-              <FlexItem>
-                <span className="pulpit-brand-text">PulpIT</span>
-              </FlexItem>
-            </Flex>
-          </MastheadLogo>
-        </MastheadBrand>
+            <img
+              src="/pulpit-mark.svg"
+              alt=""
+              width={32}
+              height={32}
+              style={{ display: "block" }}
+            />
+          </PageToggleButton>
+          <span className="pulpit-brand-text">PulpIT</span>
+        </MastheadToggle>
       </MastheadMain>
       <MastheadContent className="pulpit-masthead-actions">
         <TasksIndicator onToggle={() => setIsHelpOpen(false)} />

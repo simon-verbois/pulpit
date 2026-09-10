@@ -10,7 +10,6 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Label,
   Stack,
   StackItem,
 } from "@patternfly/react-core";
@@ -20,7 +19,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import { useActiveTlsCertificateQuery } from "./useActiveTlsCertificateQuery";
 import { useRegenerateSelfSignedCertificateMutation } from "./useRegenerateSelfSignedCertificateMutation";
-import { TLS_CERT_SOURCE_COLOR, TLS_CERT_SOURCE_LABEL } from "./tlsCertSource";
+import { TLS_CERT_SOURCE_LABEL } from "./tlsCertSource";
 
 /** The one card every TLS sub-tab/warning ultimately reads from - see
  * GET /api/v1/tls/active (app/modules/tls/routes/active.py): the same
@@ -91,9 +90,9 @@ export function TlsCertificateSection() {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Source</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Label color={TLS_CERT_SOURCE_COLOR[activeQuery.data.source]}>
+                      <span className="pulpit-inline-values">
                         {TLS_CERT_SOURCE_LABEL[activeQuery.data.source]}
-                      </Label>
+                      </span>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>

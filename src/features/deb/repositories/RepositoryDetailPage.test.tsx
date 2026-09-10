@@ -23,7 +23,7 @@ describe("RepositoryDetailPage", () => {
     expect(
       screen.getByRole("heading", { name: DEB_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(DEB_REPO_FIXTURE.description as string)).toHaveLength(2);
+    expect(screen.getByText(DEB_REPO_FIXTURE.description as string)).toBeInTheDocument();
     expect(screen.getByText("Configured")).toBeInTheDocument(); // default remote
     expect(screen.getByText("Yes")).toBeInTheDocument(); // autopublish
   });

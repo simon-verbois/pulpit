@@ -7,7 +7,6 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Label,
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
@@ -136,15 +135,11 @@ export function RepositoryOverviewTab({ repository }: { repository: AnsibleRepos
           <DescriptionListTerm>Marks</DescriptionListTerm>
           <DescriptionListDescription>
             {marksQuery.data && marksQuery.data.results.length > 0 ? (
-              <Flex spaceItems={{ default: "spaceItemsSm" }}>
-                {[...new Set(marksQuery.data.results.map((mark) => mark.value))].map(
-                  (value) => (
-                    <FlexItem key={value}>
-                      <Label isCompact>{value}</Label>
-                    </FlexItem>
-                  ),
+              <span className="pulpit-inline-values">
+                {[...new Set(marksQuery.data.results.map((mark) => mark.value))].join(
+                  ", ",
                 )}
-              </Flex>
+              </span>
             ) : (
               "None yet"
             )}

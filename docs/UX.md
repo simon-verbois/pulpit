@@ -64,7 +64,10 @@ Implemented as PatternFly `Masthead` (product mark + wordmark, Tasks indicator, 
 "Pulp API" link, User menu) + `Sidebar`/`Nav` (the tree above) + `PageSection` content area. No
 breadcrumb trail - one was tried (a `PulpIT > <page>` row above every page's content, driven by
 `handle: {crumb}` route metadata) but removed per direct user feedback ("partout... retire les");
-each page's own `PageHeader` title already says where you are. A nav group auto-expands whenever
+each page's own `PageHeader` title already says where you are. `PageHeader` likewise renders no
+generic subtitle/tagline: sentences that merely restate the current section add noise without
+helping the user complete a task. Action-specific guidance, empty-state explanations, warnings,
+and resource data remain visible where they are useful. A nav group auto-expands whenever
 the current route lives inside it (`AppNav.tsx` passes `isExpanded` to `NavExpandable`, matching
 its existing `isActive`) so reloading a page never collapses its own section back to closed - the
 group only ever starts collapsed for routes outside it. Not every leaf is fully built at bootstrap
@@ -81,14 +84,12 @@ milestone added to every Repository detail page across RPM, Ansible, and Contain
 scoped to that repository without needing to know its href at all. See `docs/PULP_API.md` "Access
 endpoints" for the live-verified API behavior behind both.
 
-**No nav-toggle button** (`AppLayout.tsx`) - by design, the sidebar is always shown rather than
-manually collapsible; the product mark sits at the masthead's leading edge, where the toggle used
-to be, instead of next to it. The wordmark next to it ("PulpIT") is a plain `<a>` via
-`MastheadLogo`, which would otherwise pick up PatternFly's global anchor default (a dashed
-underline, `base.css`'s `--pf-t--global--text-decoration--link--*` tokens) - overridden with
-`textDecoration: "none"` on the link plus a dedicated `.pulpit-brand-text` class (`global.css`,
-PatternFly's own heading font/weight tokens, no new font asset) so it reads as a logotype rather
-than another link.
+**The product mark is the navigation toggle** (`AppLayout.tsx`). It replaces the hamburger inside
+PatternFly's `PageToggleButton`; the monochrome "PulpIT" wordmark remains aligned beside it but
+outside the click target, so hover/focus treatment covers only the blue mark. This preserves
+PatternFly's managed sidebar behavior, `aria-expanded` state, and responsive access to the
+sidebar. `.pulpit-brand-text` uses PatternFly's heading family and weight only; it inherits the
+masthead foreground instead of adding a brand color.
 
 ## Authentication
 
@@ -140,7 +141,9 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
   current page only (never silently sort only the current page and imply it's global).
 - Server-side pagination reflecting Pulp's actual `count`, matching `docs/PULP_API.md`.
 - Row actions via a kebab/dropdown menu; destructive actions require confirmation (see below).
-- Status conveyed with PatternFly `Label`/icon + text, never color alone.
+- Status is plain, semibold text via the shared `StatusIndicator`; no pills, colored dots, or
+  decorative icons. Category values and tags are plain text or dedicated table columns. Color is
+  reserved for actionable alerts and validation, not routine state.
 
 ## Forms
 
@@ -167,8 +170,9 @@ implies.
 
 ## Task feedback
 
-See `docs/ARCHITECTURE.md` "Tasks" and the `pulp-tasks` skill. Masthead shows a "Tasks (n)"
-indicator for in-flight tasks; a drawer lists recent tasks with real state
+See `docs/ARCHITECTURE.md` "Tasks" and the `pulp-tasks` skill. Masthead shows a plain-text
+"Tasks · n active" indicator for in-flight tasks, separated typographically instead of using a
+badge; a drawer lists recent tasks with real state
 (waiting/running/completed/failed/canceled) and, for failures, a way to view Pulp's actual error
 detail. No fabricated progress bars where Pulp doesn't report progress.
 
@@ -315,7 +319,7 @@ PulpIT's mark is the `cil-layers` icon from [CoreUI Icons](https://github.com/co
 (three stacked layers — read as "layered content/repositories," which maps onto Pulp's own
 repository _version_ model) on a rounded brand-blue badge, white icon on `#0066cc`. It's a single
 static SVG file, `public/pulpit-mark.svg`, used unmodified in three places: the masthead
-(`MastheadLogo`, `src/app/layout/AppLayout.tsx`), the login page brand slot
+(`PageToggleButton`, `src/app/layout/AppLayout.tsx`), the login page brand slot
 (`brandImgSrc`, `src/features/auth/LoginPage.tsx`), and the browser favicon (`index.html`). The
 icon artwork is CC BY 4.0 — see `README.md` "Credits" for the attribution this requires; the
 badge/color composition around it is original. No Red Hat marks, no Pulp trademarks used in a way
@@ -338,6 +342,10 @@ the PatternFly dark-theme handbook), so Pulpit provides its own:
 - `ThemeProvider` wraps the whole app (`src/app/App.tsx`), above the router, so both the
   authenticated shell and the standalone `/login` route share one theme.
 - A masthead `ThemeToggle` button (sun/moon icon, `@patternfly/react-icons`) lets the user flip it.
+- `src/styles/global.css` strengthens PatternFly's semantic subtle-text and border tokens in both
+  themes and raises the body weight slightly. This is deliberate resilience for compressed remote
+  application gateways: labels, table rules, and secondary text stay legible without changing
+  component structure or hardcoding per-component colors.
 - The login page's background is a plain CSS `radial-gradient` glow (brand-color, via
   `color-mix()`), scoped to `.pulpit-login-page` in `src/styles/global.css` — **not**
   PatternFly's bundled `PF-Bkg-Generic-*.svg` login art. That asset has an opaque rect _and_ a

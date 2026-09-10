@@ -6,6 +6,25 @@ test("loads the PulpIT shell", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
 });
 
+test("the PulpIT mark toggles the sidebar", async ({ page }) => {
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: "Toggle navigation" });
+  const nav = page.getByRole("navigation", { name: "PulpIT navigation" });
+
+  await expect(page.locator(".pulpit-brand-text")).toHaveText("PulpIT");
+  await expect(toggle).not.toContainText("PulpIT");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(nav).toBeVisible();
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(nav).not.toBeVisible();
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(nav).toBeVisible();
+});
+
 test("primary navigation reaches the major sections", async ({ page }) => {
   await page.goto("/");
   // Scoped to the sidebar landmark: the masthead also has a "Tasks" link
@@ -39,11 +58,12 @@ test("clicking elsewhere in the app closes an open Tasks or Help panel", async (
   const helpHeading = page.getByRole("heading", { name: "Help", exact: true });
   const tasksHeading = page.getByRole("heading", { name: "Tasks", exact: true });
 
-  // Help: open it, then click the main content area (not the close button,
-  // not the Help/Tasks toggle buttons themselves) - it should close.
+  // Help: open it, then click the sidebar (not the close button, not the
+  // Help/Tasks toggle buttons themselves) - it should close. The drawer can
+  // overlay the main area at narrower desktop widths.
   await page.getByRole("button", { name: "Help" }).click();
   await expect(helpHeading).toBeVisible();
-  await page.getByRole("main", { name: "Main content" }).click();
+  await page.getByRole("navigation", { name: "PulpIT navigation" }).click();
   await expect(helpHeading).not.toBeVisible();
 
   // Tasks: same, clicking the sidebar nav this time.
@@ -75,6 +95,10 @@ test("Overview page reaches the real Pulp status endpoint", async ({ page }) => 
   const rpmRow = components.getByRole("row", { name: /^rpm\b/ });
   await expect(rpmRow.getByText(rpm.version, { exact: true })).toBeVisible();
   await expect(components.getByRole("row", { name: /^core\b/ })).toHaveCount(0);
+  await expect(
+    page.getByText("A snapshot of the Pulp instance PulpIT is managing."),
+  ).toHaveCount(0);
+  await expect(page.locator(".pf-v6-c-label, .pf-v6-c-badge")).toHaveCount(0);
 });
 
 test("Tasks page shows Pulp's real task history, not just this session's", async ({

@@ -26,9 +26,9 @@ describe("Ansible RepositoryDetailPage", () => {
     expect(
       screen.getByRole("heading", { name: ANSIBLE_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(ANSIBLE_REPO_FIXTURE.description as string)).toHaveLength(
-      2,
-    );
+    expect(
+      screen.getByText(ANSIBLE_REPO_FIXTURE.description as string),
+    ).toBeInTheDocument();
     expect(screen.getByText("Configured")).toBeInTheDocument(); // default remote
     expect(screen.queryByRole("button", { name: "Publish now" })).not.toBeInTheDocument();
   });
@@ -51,7 +51,7 @@ describe("Ansible RepositoryDetailPage", () => {
       await screen.findByText(`Update repository "${ANSIBLE_REPO_FIXTURE.name}"`),
     ).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getAllByText("An updated description")).toHaveLength(2),
+      expect(screen.getByText("An updated description")).toBeInTheDocument(),
     );
   });
 

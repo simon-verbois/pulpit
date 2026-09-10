@@ -1,5 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
-import { Badge, Button } from "@patternfly/react-core";
+import { Button } from "@patternfly/react-core";
 
 import { useTasksContext } from "../../api/tasks/TasksContext";
 import {
@@ -40,7 +40,8 @@ export function TasksIndicator({ onToggle }: { onToggle?: () => void }) {
         onToggle?.();
       }}
     >
-      Tasks {inFlight > 0 ? <Badge isRead={false}>{inFlight}</Badge> : null}
+      <span>Tasks</span>
+      {inFlight > 0 ? <span className="pulpit-task-count">{inFlight} active</span> : null}
     </Button>
   );
 }

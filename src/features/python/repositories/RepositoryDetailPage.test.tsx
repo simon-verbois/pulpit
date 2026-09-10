@@ -23,9 +23,9 @@ describe("RepositoryDetailPage", () => {
     expect(
       screen.getByRole("heading", { name: PYTHON_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(PYTHON_REPO_FIXTURE.description as string)).toHaveLength(
-      2,
-    );
+    expect(
+      screen.getByText(PYTHON_REPO_FIXTURE.description as string),
+    ).toBeInTheDocument();
     expect(screen.getByText("Configured")).toBeInTheDocument(); // default remote
     expect(screen.getByText("Yes")).toBeInTheDocument(); // autopublish
   });

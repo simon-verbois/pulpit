@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Label } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 import { LoadingState } from "../../../components/LoadingState";
@@ -69,17 +68,7 @@ export function CollectionVersionsTable({
             <Td dataLabel="Name">{cv.name}</Td>
             <Td dataLabel="Version">{cv.version}</Td>
             <Td dataLabel="Tags">
-              {cv.tags.length > 0
-                ? cv.tags.map((tag) => (
-                    <Label
-                      key={tag.name}
-                      isCompact
-                      style={{ marginInlineEnd: "0.25rem" }}
-                    >
-                      {tag.name}
-                    </Label>
-                  ))
-                : "—"}
+              {cv.tags.length > 0 ? cv.tags.map((tag) => tag.name).join(", ") : "—"}
             </Td>
           </Tr>
         ))}

@@ -25,6 +25,13 @@ footer.
 
 ### Changed
 
+- Routine statuses, counts, categories, and selections now use aligned plain text or dedicated
+  table columns instead of colored dots, pills, and badges. Generic page taglines were also
+  removed, while text weight and border contrast were increased in both themes for clearer
+  rendering through remote application gateways.
+- The masthead's PulpIT mark now replaces the separate hamburger as the navigation toggle, with
+  hover and focus limited to the mark; the adjacent monochrome wordmark remains non-interactive.
+  PatternFly's managed sidebar and responsive behaviors are retained.
 - Pulpit now defaults to a light theme instead of dark - the toggle still switches to dark and
   remembers that choice once made.
 - The RPM "Repo config" preview (a repository's Distributions tab) is now built client-side from
