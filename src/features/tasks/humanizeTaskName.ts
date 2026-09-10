@@ -40,7 +40,9 @@ function humanizePluginLabel(pluginSegment: string): string {
   const suffix = pluginSegment.replace(/^pulp_/, "");
   return suffix
     .split("_")
-    .map((word) => (word.length <= 3 ? word.toUpperCase() : word[0].toUpperCase() + word.slice(1)))
+    .map((word) =>
+      word.length <= 3 ? word.toUpperCase() : word[0].toUpperCase() + word.slice(1),
+    )
     .join(" ");
 }
 

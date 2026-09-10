@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getRepositoryContentSizes, contentSizeKeys } from "../api/client/pulpitCore/contentSize";
+import {
+  getRepositoryContentSizes,
+  contentSizeKeys,
+} from "../api/client/pulpitCore/contentSize";
 
 export function useRepositoryContentSizesQuery() {
   return useQuery({

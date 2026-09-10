@@ -4767,9 +4767,21 @@ export const COMPONENT_CONTENT_SIZES_FIXTURE = [
 // (each fixture plugin seeds exactly one repository - RPM_REPO_FIXTURE etc.
 // above) rather than by component.
 export const REPOSITORY_CONTENT_SIZES_FIXTURE = [
-  { repository_href: RPM_REPO_FIXTURE.pulp_href, size_bytes: 200381, updated_at: "2026-01-01T00:00:00Z" },
-  { repository_href: ANSIBLE_REPO_FIXTURE.pulp_href, size_bytes: 2017, updated_at: "2026-01-01T00:00:00Z" },
-  { repository_href: CONTAINER_REPO_FIXTURE.pulp_href, size_bytes: 52199, updated_at: "2026-01-01T00:00:00Z" },
+  {
+    repository_href: RPM_REPO_FIXTURE.pulp_href,
+    size_bytes: 200381,
+    updated_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    repository_href: ANSIBLE_REPO_FIXTURE.pulp_href,
+    size_bytes: 2017,
+    updated_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    repository_href: CONTAINER_REPO_FIXTURE.pulp_href,
+    size_bytes: 52199,
+    updated_at: "2026-01-01T00:00:00Z",
+  },
 ];
 
 // One repository per plugin fixture (see each plugin's own seed*Repositories()).
