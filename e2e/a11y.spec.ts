@@ -3,8 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 // Automated WCAG scanning across a representative sample of routes - every
 // content-type plugin's Repositories page, plus Tasks and every /admin tab/
-// sub-tab (including the merged Access sub-tabs, docs/adr/
-// 0010-merged-administration-page.md) - in both themes (contrast rules
+// sub-tab (including the merged Access and Repository Signing sub-tabs,
+// docs/adr/0010-merged-administration-page.md) - in both themes (contrast rules
 // differ per theme - see ADR/UX docs for the theme toggle). Not literally
 // every route (e.g. per-plugin Remotes/Content/detail pages aren't each
 // scanned separately); the same PatternFly components repeat across those,
@@ -40,8 +40,9 @@ const ROUTES = [
   "/admin?tab=access&subtab=users",
   "/admin?tab=access&subtab=groups",
   "/admin?tab=access&subtab=roles",
-  "/admin?tab=repository-signing",
-  "/admin?tab=pulp-signing-services",
+  "/admin?tab=access&subtab=ldap",
+  "/admin?tab=repository-signing&subtab=general",
+  "/admin?tab=repository-signing&subtab=pulp-signing-services",
   "/admin?tab=content-guards",
   "/admin?tab=default-settings",
 ];

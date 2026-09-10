@@ -17,17 +17,19 @@ Repositories
 Tasks
 
 Access
-    Users, Groups, Roles
+    Users, Groups, Roles, LDAP
 
 Administration
-    Repository Signing, Pulp Signing Services, Content guards, Default Settings
+    Repository Signing (General, Pulp Signing Services), Content guards, Default Settings
 ```
 
 "Repository Signing" (pulpit-core, ADR 0006/`docs/signing.md`) manages the GPG key used to sign
-RPM packages/metadata and its automatic rotation. "Pulp Signing Services" is the pre-existing,
-unrelated, read-only view of whatever `core.SigningService` objects exist on the Pulp server
-(any content type, not just RPM) - kept as a separate page rather than merged, since one is a
-managed Pulpit feature and the other is a raw view of Pulp's own state.
+RPM packages/metadata and its automatic rotation. Its own "Pulp Signing Services" sub-tab is the
+pre-existing, read-only view of whatever `core.SigningService` objects exist on the Pulp server
+(any content type, not just RPM) - nested under Repository Signing rather than a separate
+top-level tab, since it isn't an unrelated concern: it's the underlying Pulp objects Repository
+Signing's own key-generation settings (`rpm_signing_service_name`/`metadata_signing_service_name`)
+reference by name, and a generated key's Pulp-side publish status depends on them.
 
 RPM has no top-level "Distributions" entry: unlike a remote (technically reusable across
 repositories), a distribution exists to publish exactly one repository, so it's managed from a

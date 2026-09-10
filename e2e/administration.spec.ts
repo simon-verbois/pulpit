@@ -48,10 +48,14 @@ test("Administration: TLS exposes only self-signed and manual certificate paths"
 test.describe("Administration: signing services (read-only) and content guards", () => {
   test("Signing services page loads without crashing", async ({ page }) => {
     // The merged Administration page (docs/adr/0010-merged-administration-
-    // page.md) drives its tabs via ?tab= query params, not sub-routes, and
-    // its own <h1> is always "Administration" - assert on the Pulp Signing
-    // Services tab's own content instead of a page-specific heading.
-    await page.goto("/admin?tab=pulp-signing-services");
+    // page.md) drives its tabs via ?tab=/&subtab= query params, not
+    // sub-routes, and its own <h1> is always "Administration" - assert on
+    // the Pulp Signing Services sub-tab's own content instead of a
+    // page-specific heading. Pulp Signing Services is nested under the
+    // Repository Signing tab (it's the read-only inventory of the
+    // underlying Pulp SigningService objects Repository Signing's
+    // key-generation settings reference by name, not an unrelated concern).
+    await page.goto("/admin?tab=repository-signing&subtab=pulp-signing-services");
     await expect(
       page.getByRole("heading", { name: "Administration", level: 1 }),
     ).toBeVisible();

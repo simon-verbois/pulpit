@@ -18,23 +18,33 @@ import { LdapSettingsPage } from "./ldap/LdapSettingsPage";
 import { TlsPage } from "./tls/TlsPage";
 
 const DEFAULT_TAB = "general";
-// Every tab with its own nested sub-tabs (Access: Users/Groups/Roles; TLS:
-// Overview/Manual) needs a default subtab to land on when the URL
-// names the tab but not a subtab - one shared map instead of a per-tab
-// branch, so a future tab gaining sub-tabs is a one-line addition here.
+// Every tab with its own nested sub-tabs (Access: Users/Groups/Roles/LDAP;
+// Repository Signing: General/Pulp Signing Services; TLS: Overview/Manual)
+// needs a default subtab to land on when the URL names the tab but not a
+// subtab - one shared map instead of a per-tab branch, so a future tab
+// gaining sub-tabs is a one-line addition here.
 const DEFAULT_SUBTAB_BY_TAB: Record<string, string> = {
   access: "users",
+  "repository-signing": "general",
   tls: "overview",
 };
+// Tabs whose per-subtab pages register their own header action by subtab
+// id, not by the outer tab id (TLS's subtabs register nothing, so "tls"
+// itself is looked up directly instead) - see headerAction below.
+const TABS_KEYED_BY_SUBTAB_FOR_HEADER_ACTION = ["access", "repository-signing"];
 
 /** One merged page for every instance-wide admin concern - previously 4
  * separate standalone admin pages plus the whole Access area (Users/Groups/
  * Roles), each with its own left-nav item (docs/adr/
  * 0010-merged-administration-page.md). "Administration" is now a single
  * flat nav link (AppNav.tsx/navTree.ts), and what used to be distinct
- * pages/sections are tabs here instead. Users/Groups/Roles (Access) and
- * the TLS certificate options (TLS) are each merged into one top-level
- * tab with its own nested sub-tabs, rather than separate top-level tabs.
+ * pages/sections are tabs here instead. Users/Groups/Roles/LDAP (Access),
+ * Repository Signing/Pulp Signing Services (Repository Signing - the
+ * latter is just the read-only inventory of the underlying Pulp
+ * SigningService objects the former's key-generation settings reference by
+ * name, not an unrelated concern), and the TLS certificate options (TLS)
+ * are each merged into one top-level tab with its own nested sub-tabs,
+ * rather than separate top-level tabs.
  *
  * The active tab (and, for tabs with sub-tabs, the active sub-tab) lives in
  * the URL's query string (`?tab=...&subtab=...`), not component state -
@@ -99,13 +109,13 @@ function AdministrationPageContent({
   onSelectTab: (tab: string) => void;
   onSelectSubTab: (tab: string, subtab: string) => void;
 }) {
-  // Whichever tab (or, on Access, sub-tab) is active right now registered
-  // its own primary action (AdministrationHeaderActionContext.tsx) -
-  // General/Repository Signing/Pulp Signing Services/Global Proxy Settings
-  // register nothing, so this is `null` for them and PageHeader shows no
-  // actions at all.
+  // Whichever tab (or, on a tab with its own sub-tabs, sub-tab) is active
+  // right now registered its own primary action
+  // (AdministrationHeaderActionContext.tsx) - General/Repository
+  // Signing/Pulp Signing Services/Global Proxy Settings register nothing,
+  // so this is `null` for them and PageHeader shows no actions at all.
   const headerAction = useAdministrationHeaderActionFor(
-    activeTab === "access" ? activeSubTab : activeTab,
+    TABS_KEYED_BY_SUBTAB_FOR_HEADER_ACTION.includes(activeTab) ? activeSubTab : activeTab,
   );
 
   return (
@@ -116,7 +126,7 @@ function AdministrationPageContent({
         actions={headerAction}
       />
       <PageSection hasBodyWrapper={false} type="tabs">
-        {/* mountOnEnter - 6 tabs, several with their own list/settings
+        {/* mountOnEnter - several tabs have their own list/settings
             queries; without this every one of them would fetch on every
             /admin visit regardless of which tab is actually shown. */}
         <Tabs
@@ -144,22 +154,32 @@ function AdministrationPageContent({
               <Tab eventKey="roles" title={<TabTitleText>Roles</TabTitleText>}>
                 <RolesPage />
               </Tab>
+              <Tab eventKey="ldap" title={<TabTitleText>LDAP</TabTitleText>}>
+                <LdapSettingsPage />
+              </Tab>
             </Tabs>
-          </Tab>
-          <Tab eventKey="ldap" title={<TabTitleText>LDAP</TabTitleText>}>
-            <LdapSettingsPage />
           </Tab>
           <Tab
             eventKey="repository-signing"
             title={<TabTitleText>Repository Signing</TabTitleText>}
           >
-            <RepositorySigningPage />
-          </Tab>
-          <Tab
-            eventKey="pulp-signing-services"
-            title={<TabTitleText>Pulp Signing Services</TabTitleText>}
-          >
-            <SigningPage />
+            <Tabs
+              activeKey={activeSubTab}
+              onSelect={(_event, key) =>
+                onSelectSubTab("repository-signing", String(key))
+              }
+              mountOnEnter
+            >
+              <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
+                <RepositorySigningPage />
+              </Tab>
+              <Tab
+                eventKey="pulp-signing-services"
+                title={<TabTitleText>Pulp Signing Services</TabTitleText>}
+              >
+                <SigningPage />
+              </Tab>
+            </Tabs>
           </Tab>
           <Tab
             eventKey="content-guards"
