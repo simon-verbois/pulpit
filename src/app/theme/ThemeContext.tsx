@@ -14,11 +14,11 @@ const STORAGE_KEY = "pulpit:theme";
 // VERIFIED (PatternFly dark theme handbook): dark mode is enabled purely by
 // adding this class to <html> - PatternFly ships no toggle component itself.
 const DARK_CLASS = "pf-v6-theme-dark";
-// Product decision: Pulpit defaults to dark rather than following the OS
+// Product decision: Pulpit defaults to light rather than following the OS
 // prefers-color-scheme - a deliberate choice, not PatternFly's own
 // recommendation (see docs/UX.md "Theming"). The toggle still switches to
-// light, and that choice is remembered once made.
-const DEFAULT_THEME: ColorTheme = "dark";
+// dark, and that choice is remembered once made.
+const DEFAULT_THEME: ColorTheme = "light";
 
 function getPreferredTheme(): ColorTheme {
   const stored = localStorage.getItem(STORAGE_KEY);

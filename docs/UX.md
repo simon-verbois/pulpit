@@ -326,8 +326,8 @@ there's no built-in toggle component or automatic `prefers-color-scheme` wiring 
 the PatternFly dark-theme handbook), so Pulpit provides its own:
 
 - `src/app/theme/ThemeContext.tsx` (`ThemeProvider`/`useTheme`) resolves the initial theme from
-  `localStorage["pulpit:theme"]`, defaulting to **dark** if nothing is stored yet, and
-  applies/removes the class on `document.documentElement`. Dark-by-default is a deliberate Pulpit
+  `localStorage["pulpit:theme"]`, defaulting to **light** if nothing is stored yet, and
+  applies/removes the class on `document.documentElement`. Light-by-default is a deliberate Pulpit
   product decision, not PatternFly's own recommendation (PatternFly's dark-theme handbook suggests
   following the OS `prefers-color-scheme` instead) — once a user picks a theme via the toggle,
   that choice is what's remembered, not the OS setting. This is a UI preference like table filters

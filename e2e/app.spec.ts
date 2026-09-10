@@ -111,16 +111,16 @@ test("the theme toggle switches dark/light and persists across a reload", async 
 }) => {
   await page.goto("/");
   const html = page.locator("html");
-  // Dark is Pulpit's default (docs/UX.md "Theming") - toggling to light and
+  // Light is Pulpit's default (docs/UX.md "Theming") - toggling to dark and
   // back exercises both the class and the persisted preference either way.
-  await expect(html).toHaveClass(/pf-v6-theme-dark/);
-
-  await page.getByRole("button", { name: "Switch to light theme" }).click();
-  await expect(html).not.toHaveClass(/pf-v6-theme-dark/);
-
-  await page.reload();
   await expect(html).not.toHaveClass(/pf-v6-theme-dark/);
 
   await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await expect(html).toHaveClass(/pf-v6-theme-dark/);
+
+  await page.reload();
+  await expect(html).toHaveClass(/pf-v6-theme-dark/);
+
+  await page.getByRole("button", { name: "Switch to light theme" }).click();
+  await expect(html).not.toHaveClass(/pf-v6-theme-dark/);
 });

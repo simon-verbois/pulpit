@@ -16,33 +16,33 @@ describe("ThemeContext", () => {
     document.documentElement.classList.remove(DARK_CLASS);
   });
 
-  it("defaults to dark when nothing is stored", () => {
+  it("defaults to light when nothing is stored", () => {
+    const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
+
+    expect(result.current.theme).toBe("light");
+    expect(document.documentElement.classList.contains(DARK_CLASS)).toBe(false);
+  });
+
+  it("reads a previously persisted dark preference over the light default", () => {
+    localStorage.setItem(STORAGE_KEY, "dark");
     const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
 
     expect(result.current.theme).toBe("dark");
     expect(document.documentElement.classList.contains(DARK_CLASS)).toBe(true);
   });
 
-  it("reads a previously persisted light preference over the dark default", () => {
-    localStorage.setItem(STORAGE_KEY, "light");
-    const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
-
-    expect(result.current.theme).toBe("light");
-    expect(document.documentElement.classList.contains(DARK_CLASS)).toBe(false);
-  });
-
   it("toggles the theme, the html class, and persists the choice", () => {
     const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
 
-    expect(result.current.theme).toBe("dark");
+    expect(result.current.theme).toBe("light");
 
     act(() => {
       result.current.toggleTheme();
     });
 
-    expect(result.current.theme).toBe("light");
-    expect(document.documentElement.classList.contains(DARK_CLASS)).toBe(false);
-    expect(localStorage.getItem(STORAGE_KEY)).toBe("light");
+    expect(result.current.theme).toBe("dark");
+    expect(document.documentElement.classList.contains(DARK_CLASS)).toBe(true);
+    expect(localStorage.getItem(STORAGE_KEY)).toBe("dark");
   });
 
   it("throws if useTheme is called outside a ThemeProvider", () => {
