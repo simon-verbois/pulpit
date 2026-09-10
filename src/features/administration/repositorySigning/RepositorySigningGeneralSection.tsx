@@ -133,9 +133,7 @@ function RepositorySigningGeneralForm({
                       variant="secondary"
                       isDisabled={!isFilenameDirty || !publicKeyFilename}
                       isLoading={isFilenameDirty && isSaving}
-                      onClick={() =>
-                        onChange({ public_key_filename: publicKeyFilename })
-                      }
+                      onClick={() => onChange({ public_key_filename: publicKeyFilename })}
                     >
                       Save
                     </Button>

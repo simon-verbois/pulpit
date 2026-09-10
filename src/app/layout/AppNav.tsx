@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import {
-  Nav,
-  NavExpandable,
-  NavItem,
-  NavList,
-  Skeleton,
-} from "@patternfly/react-core";
+import { Nav, NavExpandable, NavItem, NavList, Skeleton } from "@patternfly/react-core";
 
 import { deriveCapabilities } from "../../api/capabilities";
 import { useStatusQuery } from "../../hooks/useStatusQuery";

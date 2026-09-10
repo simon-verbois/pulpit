@@ -111,9 +111,9 @@ local Podman engine - VERIFIED live, not assumed:
   with "ConfigMaps in podman are not a standalone object and must be used in a container" if
   applied separately from the Pod(s) that reference them. The generated Quadlet unit's `[Kube]`
   section always lists `00-secret.yaml`/`00-configmap.yaml` alongside `redis.yaml`/`pulp.yaml`/
-  `pulpit.yaml` for this reason (a `.kube` unit's `Yaml=` entries become one `podman kube play
-  <file>...` invocation) - applying them once upfront (the natural thing to do on a real
-  Kubernetes cluster) does not work here.
+  `pulpit.yaml` for this reason (a `.kube` unit's `Yaml=` entries become one
+  `podman kube play <file>...` invocation) - applying them once upfront (the natural thing to do
+  on a real Kubernetes cluster) does not work here.
 - **No `postStart` lifecycle hook** - VERIFIED live: the command never actually ran, and Quadlet's
   `.kube` unit type has no equivalent either. Also, a separate `Job` pod can't do this instead: it
   would need to reach `pulp`'s own _internal_ Postgres (`/var/lib/pgsql`, bundled inside that one
@@ -122,9 +122,9 @@ local Podman engine - VERIFIED live, not assumed:
   the same script content (a verbatim copy of `../docker/pulp/init-admin-password.sh`, baked into
   the `pulp-init-admin-password-script` ConfigMap in `pulp.yaml`) once the `pulp-pulp` container
   exists - the same idea as `compose.yml`'s `post_start` hook, just orchestrated by
-  `ExecStartPost=` rather than expressible in the YAML. This blocks `systemctl start
-  pulpit-stack.service` (and therefore `deploy.sh up`) until it finishes, same as the old
-  bash-driven version did.
+  `ExecStartPost=` rather than expressible in the YAML. This blocks
+  `systemctl start pulpit-stack.service` (and therefore `deploy.sh up`) until it finishes, same as
+  the old bash-driven version did.
 - **SELinux confinement blocks more than Docker's default does**, VERIFIED with
   `ausearch -m avc`, not guessed - a plain `hostPath`-mounted file stays labeled with
   whatever SELinux context the host filesystem gave it, which a confined `container_t`

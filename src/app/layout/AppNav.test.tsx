@@ -45,7 +45,9 @@ describe("AppNav", () => {
 
     expect(screen.getByText("Loading navigation")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "RPM" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ansible Galaxy" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Ansible Galaxy" }),
+    ).not.toBeInTheDocument();
   });
 
   it("fails open (shows every group) if the status request errors", async () => {

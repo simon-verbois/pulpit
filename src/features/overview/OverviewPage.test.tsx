@@ -105,7 +105,9 @@ describe("OverviewPage", () => {
     renderApp(<OverviewPage />);
 
     expect(screen.getByLabelText("Loading Pulp status")).toBeInTheDocument();
-    expect(screen.queryByRole("table", { name: "Pulp components" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: "Pulp components" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows every visible plugin's repository count, not just rpm/ansible/container", async () => {

@@ -413,9 +413,9 @@ One additional value is a `pulpit-core`/`pulpit-worker` process config setting, 
 `signing_settings` field (it controls resource usage, not signing policy, so it isn't
 administrator-editable at runtime the way the table above is):
 
-| Setting               | Env var                            | Default | Notes                                                                                    |
-| --------------------- | ----------------------------------- | ------- | ----------------------------------------------------------------------------------------- |
-| `rpm_signing_workers` | `PULPIT_CORE_RPM_SIGNING_WORKERS`   | 8       | Thread pool size for parallel resigning (`ge=1`) - see "Parallel resigning" above.        |
+| Setting               | Env var                           | Default | Notes                                                                              |
+| --------------------- | --------------------------------- | ------- | ---------------------------------------------------------------------------------- |
+| `rpm_signing_workers` | `PULPIT_CORE_RPM_SIGNING_WORKERS` | 8       | Thread pool size for parallel resigning (`ge=1`) - see "Parallel resigning" above. |
 
 ## Security model
 
@@ -576,14 +576,14 @@ Administration → Repository Signing.
 - **Restart-safe at the package level, not at the in-flight-batch level**: a crash loses at most the
   packages whose signing was still running in a worker thread at that moment (their `rpm_signing_cache`
   row is a stale `running`, retried automatically next time) - every package that already reached
-  `success` or `failed` is never redone. What is *not* preserved across a crash is the in-progress
+  `success` or `failed` is never redone. What is _not_ preserved across a crash is the in-progress
   `modify()`/publish step itself: if the worker dies after signing finishes but before the final
   `modify()` call, the next run re-evaluates the same candidates (all now cache hits) and re-issues
   `modify()`/publish cheaply - correct, just not literally free.
 - **A package with content not yet reflected in published metadata is skipped, not resigned** - the
   job publishes once at the start specifically to minimize this window, but a package added between
   that publish and the metadata read would still be skipped (counted, logged, not counted as a
-  *failure* either) rather than blocking the rest of the batch. Because this isn't a failure, the
+  _failure_ either) rather than blocking the rest of the batch. Because this isn't a failure, the
   repository's sync-state watermark still advances past it - a future run scoped only to later
   versions won't naturally re-examine it; a real, if narrow, gap that a manual `apply-to-all` run (or
   the next key rotation, which always does a full pass) closes.
