@@ -5,6 +5,56 @@ Pulpit's own calendar scheme (`YYYY.WW.PATCH` — the ISO year/week of the relea
 counter for same-week releases), tracked in [`VERSION`](VERSION) and shown in the app's own
 footer.
 
+## Unreleased
+
+### Added
+
+- Incremental, parallel, idempotent RPM package resigning: a repository sync never re-signed
+  newly-added packages under Pulpit's key before (Pulp's on-upload signing doesn't cover synced
+  content), and re-signing an existing repository always reprocessed every package sequentially
+  with no checkpointing. A scheduled job now notices a repository's Pulp version has moved on and
+  enqueues an incremental resign scoped to just the added content; resigning itself checks a
+  signing cache keyed by source checksum + fingerprint before doing any work, signs what's left
+  across a configurable worker pool, and tracks per-repository progress so a crash or failure
+  resumes instead of restarting.
+- Podman deployment now runs as one generated systemd Quadlet unit (Redis + Pulp + Pulpit
+  together, `podman auto-update`) instead of `deploy.sh` calling `podman play kube` directly -
+  `deploy.sh update` now pulls/restarts both Pulpit images in lockstep instead of letting one
+  drift ahead of the other.
+- Overview page: the storage tile now shows the percentage used alongside the raw figures.
+
+### Changed
+
+- Pulpit now defaults to a light theme instead of dark - the toggle still switches to dark and
+  remembers that choice once made.
+- The RPM "Repo config" preview (a repository's Distributions tab) is now built client-side from
+  data already loaded, instead of fetching `<base_url>config.repo` from Pulp on every render -
+  that round trip was slow in production and 404s until the repository is actually published.
+  Real client tooling should still point at `<base_url>config.repo` directly for the byte-for-byte
+  real file.
+- Administration → Repository Signing → Public key → Filename now shows the fixed URL prefix
+  inline (the same style already used for a distribution's Base path) instead of a plain text
+  field plus a separate "Full URL where..." line below, and no longer saves on every keystroke -
+  a stray character used to take effect the moment it was typed; an edit now only takes effect
+  once Save is clicked.
+- Administration: Pulp Signing Services is now a "Pulp Signing Services" sub-tab of Repository
+  Signing (alongside the existing settings/keys as "General") instead of its own top-level tab -
+  it's the read-only inventory of the underlying Pulp SigningService objects Repository Signing's
+  own key-generation settings reference by name. LDAP moves from its own top-level tab into a
+  fourth sub-tab of Access, alongside Users/Groups/Roles.
+
+### Fixed
+
+- The left nav sidebar and the Overview page's component table both "failed open" (showed every
+  plugin/module) while status/nav-visibility were still loading on every page load, so a
+  transient failure would never hide real navigation - correct for an actual error, but on an
+  ordinary refresh it meant every module rendered first and then some vanished a moment later once
+  the real data arrived. Both now show a loading placeholder during that first, in-flight fetch
+  only; fail-open on an actual error is unchanged.
+- The Signing key details modal's public key URL was built from the browser's own origin, which
+  can silently differ from Pulp's configured content origin - the same fix already applied to the
+  signing settings page's own public key URL.
+
 ## 2026.37.7 — 2026-09-10
 
 ### Added
