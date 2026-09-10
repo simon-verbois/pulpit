@@ -14,6 +14,7 @@ from app.modules.signing.models import (
     KeyState,
     PulpServicePurpose,
     PulpServiceStatus,
+    RepositorySigningSyncState,
     SigningPulpService,
 )
 
@@ -162,6 +163,120 @@ def test_metadata_only_repo_gets_republished_not_resigned(db):
     republish_jobs = db.query(Job).filter(Job.job_type == "signing.publish_repository_metadata").all()
     assert len(republish_jobs) == 1
     assert republish_jobs[0].payload == {"repository_href": REPO_HREF}
+
+
+@respx.mock
+def test_a_correctly_configured_repository_with_unresigned_content_still_gets_a_resign_job(db):
+    """Task bug fix: config conformance (`package_signing_service` already
+    pointed at the right service) is NOT the same as content conformance -
+    a repository that has never actually had its packages resigned (no
+    `signing_repository_sync_state` row at all) must still be selected,
+    even though its Pulp fields need no PATCH."""
+    settings_row = service.get_settings_row(db)
+    settings_row.package_signing_enabled = True
+    db.flush()
+
+    key = _make_key(db)
+    db.add(
+        SigningPulpService(
+            purpose=PulpServicePurpose.PACKAGE,
+            signing_key_id=key.id,
+            name="Pulp RPM Signing Service",
+            status=PulpServiceStatus.ACTIVE,
+            fingerprint=key.fingerprint,
+            pulp_href=PACKAGE_SERVICE_HREF,
+            bootstrap_command="pulpcore-manager add-signing-service ...",
+        )
+    )
+    db.flush()
+
+    respx.get(
+        "http://pulp:80/pulp/api/v3/repositories/rpm/rpm/", params={"limit": 100, "offset": 0}
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "pulp_href": REPO_HREF,
+                        "name": "repo1",
+                        "package_signing_service": PACKAGE_SERVICE_HREF,
+                        "package_signing_fingerprint": key.fingerprint,
+                        "metadata_signing_service": None,
+                        "latest_version_href": f"{REPO_HREF}versions/5/",
+                    }
+                ],
+                "next": None,
+            },
+        )
+    )
+    patch_route = respx.patch(f"http://pulp:80{REPO_HREF}")
+
+    result = signing_jobs.apply_signing_to_all_repositories_job(db, {})
+
+    # Already correctly configured - no PATCH needed...
+    assert result["updated_count"] == 0
+    assert not patch_route.called
+    # ...but content was never resigned, so it's still selected.
+    assert result["resigning_count"] == 1
+    resign_jobs = db.query(Job).filter(Job.job_type == "signing.resign_repository_packages").all()
+    assert len(resign_jobs) == 1
+    assert resign_jobs[0].payload == {"repository_href": REPO_HREF, "fingerprint": key.fingerprint}
+
+
+@respx.mock
+def test_a_repository_already_caught_up_via_sync_state_is_left_alone(db):
+    """The counterpart to the test above: once a resign run has covered a
+    repository's current content (its sync-state watermark matches
+    latest_version_href), re-running apply-to-all must be a true no-op -
+    it must not resign every RPM every time (task requirement)."""
+    settings_row = service.get_settings_row(db)
+    settings_row.package_signing_enabled = True
+    db.flush()
+
+    key = _make_key(db)
+    db.add(
+        SigningPulpService(
+            purpose=PulpServicePurpose.PACKAGE,
+            signing_key_id=key.id,
+            name="Pulp RPM Signing Service",
+            status=PulpServiceStatus.ACTIVE,
+            fingerprint=key.fingerprint,
+            pulp_href=PACKAGE_SERVICE_HREF,
+            bootstrap_command="pulpcore-manager add-signing-service ...",
+        )
+    )
+    db.add(RepositorySigningSyncState(repository_href=REPO_HREF, last_processed_version=5))
+    db.flush()
+
+    respx.get(
+        "http://pulp:80/pulp/api/v3/repositories/rpm/rpm/", params={"limit": 100, "offset": 0}
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "pulp_href": REPO_HREF,
+                        "name": "repo1",
+                        "package_signing_service": PACKAGE_SERVICE_HREF,
+                        "package_signing_fingerprint": key.fingerprint,
+                        "metadata_signing_service": None,
+                        "latest_version_href": f"{REPO_HREF}versions/5/",
+                    }
+                ],
+                "next": None,
+            },
+        )
+    )
+    patch_route = respx.patch(f"http://pulp:80{REPO_HREF}")
+
+    result = signing_jobs.apply_signing_to_all_repositories_job(db, {})
+
+    assert result["updated_count"] == 0
+    assert result["resigning_count"] == 0
+    assert not patch_route.called
+    assert db.query(Job).filter(Job.job_type == "signing.resign_repository_packages").count() == 0
 
 
 @respx.mock

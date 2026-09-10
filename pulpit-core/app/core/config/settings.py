@@ -83,6 +83,27 @@ class Settings(BaseSettings):
     # the `pulp` container - see docs/adr/0008-colocated-signing-reconciler.md.
     signing_manifest_filename: str = "signing-services.json"
 
+    # --- Signing module: parallel package resigning (pulpit-worker only -
+    # `resign_repository_packages_job`, app/modules/signing/jobs.py) ---------
+    # Size of the `ThreadPoolExecutor` used to download/rpmsign/upload
+    # candidate packages concurrently - the expensive per-package I/O + GPG
+    # subprocess work, never the DB writes (those only ever happen on the
+    # main thread, sequentially, after a worker returns - see jobs.py
+    # "thread-safe/DB-safe" note). 8 is a reasonable default for a single
+    # `pulpit-worker` process signing against a colocated Pulp instance;
+    # raise it for a large repository (EPEL-sized, tens of thousands of
+    # packages) on a beefier host, or lower it if GPG/Pulp becomes the
+    # bottleneck instead. `ge=1` - a pool of size 0 would never run
+    # anything and silently hang the job forever instead of failing loudly.
+    rpm_signing_workers: int = Field(
+        default=8,
+        ge=1,
+        description=(
+            "Thread pool size for signing.resign_repository_packages's parallel "
+            "download/rpmsign/upload step (PULPIT_CORE_RPM_SIGNING_WORKERS)."
+        ),
+    )
+
     # --- Public key distribution ---------------------------------------------
     public_key_url_prefix: str = "/keys"
 

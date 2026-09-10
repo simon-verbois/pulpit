@@ -200,12 +200,33 @@ class PulpClient:
     # --- RPM package content ---------------------------------------------
 
     def list_rpm_packages(
-        self, *, repository_version: str, limit: int = 100, offset: int = 0
+        self,
+        *,
+        repository_version: str | None = None,
+        repository_version_added: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> dict:
+        """`repository_version` returns every package present in that
+        version (the full set - used for a first-time/full pass, see
+        `signing.resign_repository_packages_job`'s `since_version=None`
+        case). `repository_version_added` instead scopes to packages whose
+        `version_added` is exactly that version - the same
+        RepositoryContent-backed filter pulpcore exposes on every content
+        endpoint for "what did this one version add" (mirrors
+        `repository_version`'s own already-relied-upon filter, see
+        app/modules/signing/jobs.py's incremental candidate lookup for how
+        this is walked one version at a time to cover a multi-version gap).
+        Exactly one of the two should be passed."""
+        params: dict[str, Any] = {"limit": limit, "offset": offset}
+        if repository_version is not None:
+            params["repository_version"] = repository_version
+        if repository_version_added is not None:
+            params["repository_version_added"] = repository_version_added
         response = self._request(
             "GET",
             f"{self._api_base}/content/rpm/packages/",
-            params={"repository_version": repository_version, "limit": limit, "offset": offset},
+            params=params,
         )
         return response.json()
 

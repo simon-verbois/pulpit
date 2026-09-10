@@ -49,6 +49,29 @@ def has_pending_job(db: Session, job_type: str) -> bool:
     return bool(db.execute(stmt).scalar())
 
 
+def has_matching_pending_job(db: Session, job_type: str, *, payload_subset: dict) -> bool:
+    """Like `has_pending_job` above, but for a job_type that's naturally keyed
+    by more than just its type - e.g. `signing.resign_repository_packages` is
+    really keyed by `(repository_href, fingerprint)`, so two different
+    repositories must each be able to have their own job in flight at once,
+    while the same repository+fingerprint pair must never get a second,
+    redundant one queued/running concurrently.
+
+    Loads every QUEUED/RUNNING job of this type and checks in Python rather
+    than querying JSON fields in SQL: the `payload` column is generic JSON
+    (see Job's own docstring - portable across SQLite and Postgres, never
+    Postgres-only JSONB), so there is no dialect-portable "does this JSON
+    column contain these keys/values" query to write instead. The number of
+    concurrently in-flight jobs of one type is always small in practice, so
+    this is cheap.
+    """
+    stmt = select(Job).where(Job.job_type == job_type, Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]))
+    for job in db.execute(stmt).scalars():
+        if all(job.payload.get(key) == value for key, value in payload_subset.items()):
+            return True
+    return False
+
+
 def claim_next_job(db: Session, job_types: list[str]) -> Job | None:
     """Atomically claims the oldest due, queued job of one of `job_types`.
 

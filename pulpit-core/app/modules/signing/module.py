@@ -23,7 +23,17 @@ public_router = public_key.router
 
 # (job_type, interval_seconds) - see app/modules/registry.py
 # build_scheduled_jobs() and worker/main.py's generic scheduler loop.
-scheduled_jobs = [("signing.rotation_check", 300)]
+# detect_repository_content_changes runs far more often than rotation_check
+# - it's the mechanism that makes a normal sync's new RPMs get resigned
+# automatically (docs/signing.md "Incremental resigning after sync") without
+# waiting up to 300s, and each check is cheap (one `/repositories/rpm/rpm/`
+# page-through comparing an already-indexed watermark, no per-package work
+# unless something actually changed - see jobs.py
+# `detect_repository_content_changes_job`).
+scheduled_jobs = [
+    ("signing.rotation_check", 300),
+    ("signing.detect_repository_content_changes", 60),
+]
 
 
 def register() -> None:

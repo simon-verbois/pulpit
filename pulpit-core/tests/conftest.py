@@ -49,6 +49,8 @@ from app.modules.default_settings.models import DefaultSettings  # noqa: F401
 from app.modules.nav_visibility.models import NavVisibleModule  # noqa: F401
 from app.modules.registry import register_all
 from app.modules.signing.models import (  # noqa: F401
+    RepositorySigningSyncState,
+    RpmSigningCache,
     SigningKey,
     SigningPulpService,
     SigningRotation,
