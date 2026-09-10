@@ -1,4 +1,4 @@
-import type { RpmRepoConfig } from "./types";
+import type { RpmDistribution, RpmRepoConfig, RpmRepository } from "./types";
 
 /**
  * The `repo_config` pulpit auto-applies to a repository's distribution(s) -
@@ -27,20 +27,48 @@ export function computeRpmRepoConfig(
 }
 
 /**
- * Fetches the actual `config.repo` a real `dnf`/`yum` client would get from
- * this distribution (VERIFIED live: `<base_url>config.repo`, a plain
- * unauthenticated GET - not a Pulp API JSON endpoint, hence a plain `fetch`
- * here rather than `pulpFetch`). Deliberately reads the real served file
- * instead of reconstructing it client-side: Pulp's own key ordering for
- * extra `repo_config` keys is not simple insertion order (VERIFIED live),
- * so a hand-built reconstruction could show a plausible-looking but wrong
- * line order. 404s if `generate_repo_config` is off or the repository has
- * never been published.
+ * Builds the `config.repo` preview shown in the UI entirely from data
+ * already loaded client-side (distribution + repository), instead of
+ * fetching `<base_url>config.repo` from Pulp itself. That round trip was
+ * slow in production and 404s until the repository is actually published,
+ * which surfaced as a confusing "couldn't load it" message for a file that
+ * simply isn't needed to know what the config *will* say. This mirrors
+ * pulp_rpm's own generator closely enough for a preview (name/baseurl/
+ * enabled always present, gpgcheck/repo_gpgcheck default to 0, gpgkey falls
+ * back to the repo's own `repodata/repomd.xml.key` whenever metadata
+ * signing - repo_gpgcheck - is on) but is not guaranteed byte-for-byte
+ * identical to the real served file - real client tooling should still
+ * point at `<base_url>config.repo` directly.
  */
-export async function fetchRpmConfigRepo(baseUrl: string): Promise<string> {
-  const response = await fetch(`${baseUrl}config.repo`);
-  if (!response.ok) {
-    throw new Error(`config.repo request failed: ${response.status}`);
+export function generateRpmConfigRepo(
+  distribution: RpmDistribution,
+  repository: RpmRepository,
+): string {
+  const repoConfig: RpmRepoConfig = repository.repo_config ?? {};
+  const gpgcheck = repoConfig.gpgcheck ?? 0;
+  const repoGpgcheck = repoConfig.repo_gpgcheck ?? 0;
+
+  const lines = [`[${distribution.name}]`];
+  if (repository.description) {
+    lines.push(`name=${repository.description}`);
   }
-  return response.text();
+  lines.push(`baseurl=${distribution.base_url}`);
+  lines.push("enabled=1");
+  lines.push(`gpgcheck=${gpgcheck}`);
+  lines.push(`repo_gpgcheck=${repoGpgcheck}`);
+  if (typeof repoConfig.sslverify !== "undefined") {
+    lines.push(`sslverify=${repoConfig.sslverify}`);
+  }
+
+  const gpgkey =
+    typeof repoConfig.gpgkey === "string"
+      ? repoConfig.gpgkey
+      : repoGpgcheck === 1
+        ? `${distribution.base_url}repodata/repomd.xml.key`
+        : undefined;
+  if (gpgkey) {
+    lines.push(`gpgkey=${gpgkey}`);
+  }
+
+  return lines.join("\n") + "\n";
 }

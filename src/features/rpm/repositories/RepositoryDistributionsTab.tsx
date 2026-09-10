@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Button,
   CodeBlock,
   CodeBlockCode,
-  Content,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -17,7 +15,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
-import { fetchRpmConfigRepo } from "../../../api/client/rpm/repoConfig";
+import { generateRpmConfigRepo } from "../../../api/client/rpm/repoConfig";
 import type { RpmDistribution, RpmRepository } from "../../../api/client/rpm/types";
 import { useRpmDistributionsQuery } from "../distributions/useRpmDistributionsQuery";
 import { useDeleteRpmDistributionMutation } from "../distributions/useDeleteRpmDistributionMutation";
@@ -29,19 +27,17 @@ import { CreateDistributionModal } from "../distributions/CreateDistributionModa
  * `RpmRepository.repo_config` directly. When generation is off, this is
  * just a one-click way to turn it on (VERIFIED live: the flag itself takes
  * effect immediately, no republish needed - see repoConfig.ts). When it's
- * on, this fetches and shows the *real* `dnf`/`yum`-ready `config.repo`
- * Pulp serves at this distribution's own URL (which is why there's no
- * separate URL column - it's the first line of this) - the same "complete
- * repo config" idea as Ansible's per-distribution client configuration
- * snippet, just sourced from Pulp's own generator instead of a hand-built
- * string (see fetchRpmConfigRepo's own doc comment for why). */
-function RepoConfigCell({ distribution }: { distribution: RpmDistribution }) {
+ * on, this shows a `dnf`/`yum`-ready `config.repo` preview built entirely
+ * from data already loaded client-side (see `generateRpmConfigRepo`'s own
+ * doc comment for why this no longer fetches Pulp's own generated file). */
+function RepoConfigCell({
+  distribution,
+  repository,
+}: {
+  distribution: RpmDistribution;
+  repository: RpmRepository;
+}) {
   const updateDistributionMutation = useUpdateRpmDistributionMutation();
-  const configQuery = useQuery({
-    queryKey: ["pulp", "rpm", "distributions", distribution.pulp_href, "config.repo"],
-    queryFn: () => fetchRpmConfigRepo(distribution.base_url),
-    enabled: distribution.generate_repo_config,
-  });
 
   if (!distribution.generate_repo_config) {
     return (
@@ -62,25 +58,9 @@ function RepoConfigCell({ distribution }: { distribution: RpmDistribution }) {
     );
   }
 
-  if (configQuery.isPending) {
-    return <LoadingState label="Loading config.repo" />;
-  }
-
-  if (configQuery.isError) {
-    return (
-      <Content component="small">
-        Couldn't load it - open{" "}
-        <a href={`${distribution.base_url}config.repo`} target="_blank" rel="noreferrer">
-          {distribution.base_url}config.repo
-        </a>{" "}
-        directly (this repository may not have been published yet).
-      </Content>
-    );
-  }
-
   return (
     <CodeBlock>
-      <CodeBlockCode>{configQuery.data}</CodeBlockCode>
+      <CodeBlockCode>{generateRpmConfigRepo(distribution, repository)}</CodeBlockCode>
     </CodeBlock>
   );
 }
@@ -156,7 +136,7 @@ export function RepositoryDistributionsTab({
                   <Td dataLabel="Name">{distribution.name}</Td>
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
                   <Td dataLabel="Repo config">
-                    <RepoConfigCell distribution={distribution} />
+                    <RepoConfigCell distribution={distribution} repository={repository} />
                   </Td>
                   <Td dataLabel="Actions" isActionCell hasAction>
                     <Button
