@@ -49,10 +49,16 @@ against `compose.yml`'s published-image variant, but the topology and env vars a
 
 ```sh
 ./deployment/docker/generate-env.sh   # skip if you already have a .env from Mode A
-docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d --build
+./start-pulpit.sh
 ```
 
 Open `http://localhost:8080/` (or `$PULPIT_HTTP_PORT`).
+
+`start-pulpit.sh` stops any running development stack before rebuilding and starting it, so its
+default behavior is a clean restart while preserving local data. Use `./start-pulpit.sh --reset`
+to also delete the Compose volumes and create a completely fresh local instance. This permanently
+deletes the local Pulp and Pulpit data. Run `./stop-pulpit.sh` to stop the stack while preserving
+its volumes.
 
 ## Everyday commands
 
@@ -68,6 +74,7 @@ make test          # vitest run
 make test-e2e      # playwright test (expects a reachable app; see docs/TESTING.md)
 make check         # lint + typecheck + test + build — the full quality gate
 make compose-up / compose-down / compose-build / compose-logs
+./start-pulpit.sh [--reset] / ./stop-pulpit.sh
 make pulp-status / pulp-versions / pulp-migrations / pulp-migrate / pulp-reset-admin
 make api-fetch / api-generate
 ```
