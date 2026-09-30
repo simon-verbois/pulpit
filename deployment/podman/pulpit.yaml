@@ -1,6 +1,7 @@
 # Mirrors compose.yml's `pulpit` service. The only pod reachable from
-# outside this host (hostPort below); `pulp`/`redis` are reachable by pod
-# name on the internal Podman network only.
+# outside this host (hostPort below) - the single entry point; `pulp`/`redis`
+# publish no host port and are reachable by pod name on the internal Podman
+# network only.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -75,13 +76,6 @@ spec:
           mountPath: /var/lib/pulpit-signing/scripts
         - name: pulpit-tls
           mountPath: /var/lib/pulpit-tls
-      resources:
-        requests:
-          cpu: "100m"
-          memory: "256Mi"
-        limits:
-          cpu: "1"
-          memory: "1Gi"
       readinessProbe:
         httpGet:
           path: /pulpit-core/api/v1/health

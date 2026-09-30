@@ -30,3 +30,5 @@ data:
   # See docs/DEPLOYMENT.md "Container registry authentication". Do not
   # carry this into a production deployment.
   PULP_TOKEN_AUTH_DISABLED: "true"
+  # 8h session lifetime (Django default: 2 weeks) - see docs/DEPLOYMENT.md "Sessions".
+  PULP_SESSION_COOKIE_AGE: "28800"

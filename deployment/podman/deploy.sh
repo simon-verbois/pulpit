@@ -35,15 +35,14 @@
 #
 # Usage:
 #   ./deployment/podman/deploy.sh init    # generate secrets without deploying
-#   ./deployment/podman/deploy.sh up      # (re)generate the unit, (re)deploy
+#   ./deployment/podman/deploy.sh up      # (re)generate the unit and start it
 #   ./deployment/podman/deploy.sh update  # pull + restart with any newer image (podman auto-update)
 #   ./deployment/podman/deploy.sh down    # stop (PVCs/volumes/unit kept)
 #   ./deployment/podman/deploy.sh reset   # delete the unit, runtime resources, and data
 #
 # Images are pinned to :latest in redis.yaml/pulp.yaml/pulpit.yaml - edit
-# those files directly to deploy a specific tag (`up` always restarts the
-# unit, so a manifest/tag edit is picked up the same way as any other
-# config change).
+# those files directly to deploy a specific tag, then `down` + `up` (`up`
+# only starts the unit, it is a no-op against an already-running stack).
 #
 # Requires a Podman new enough to ship the Quadlet generator
 # (`/usr/libexec/podman/quadlet`, Podman >= 4.4) and, for the unit to
@@ -64,7 +63,7 @@ Usage: $0 <init|up|update|down|reset>
 
 Commands:
   init    Generate the local secrets file without deploying anything.
-  up      (Re)generate the Quadlet unit and (re)deploy, preserving existing data.
+  up      (Re)generate the Quadlet unit and start it, preserving existing data.
   update  Pull and apply any newer image in the stack (podman auto-update).
   down    Stop Pulpit, preserving volumes, the Quadlet unit, and the local secrets file.
   reset   Stop Pulpit, remove the Quadlet unit, and permanently delete its volumes and images.
@@ -80,7 +79,10 @@ wait_healthy() {
     echo "Waiting for ${container} to become healthy..."
     until [ "$(podman inspect "${container}" --format '{{.State.Health.Status}}' 2>/dev/null)" = "healthy" ]; do
         attempt=$((attempt + 1))
-        if [ "${attempt}" -ge 60 ]; then
+        # 15 min: a first boot (image pull + Pulp's database migrations) can
+        # take well over the 5 min this used to allow, which reported a
+        # failure for a deployment that then came up fine on its own.
+        if [ "${attempt}" -ge 180 ]; then
             echo "${container} did not become healthy in time - check: podman logs ${container}" >&2
             exit 1
         fi
@@ -145,6 +147,11 @@ ExitCodePropagation=any
 [Service]
 Restart=on-failure
 RestartSec=10
+# systemd's 90s default counts the image pull, pod creation and the
+# ExecStartPost below (which waits for Pulp to finish initializing) - a
+# first boot routinely exceeds it, so systemd marked the start failed
+# (and restarted it) even though the stack was coming up fine.
+TimeoutStartSec=900
 # No postStart-hook equivalent under \`podman kube play\` - see
 # set-admin-password.sh and pulp.yaml's own comment. Blocks this unit from
 # being reported started until Pulp's admin password is actually set.
@@ -174,15 +181,14 @@ up() {
     write_quadlet_unit
     systemctl --user daemon-reload
 
-    # `restart` (not `start`) so a manifest/tag/config edit is always picked
-    # up on a re-run, exactly like the old script's unconditional
-    # `podman play kube` re-apply - `systemctl ... --now` alone would be a
-    # no-op against an already-running unit. pulpit.yaml's own
-    # `initContainers: wait-for-pulp` is what makes starting everything as
-    # one unit safe - it blocks the pulpit container until pulp responds,
-    # so this script doesn't need to stage redis/pulp/pulpit itself anymore.
-    systemctl --user enable pulpit-stack.service
-    systemctl --user restart pulpit-stack.service
+    # `start` only: a Quadlet unit is *generated* (from pulpit-stack.kube,
+    # on daemon-reload), so `systemctl enable` refuses it - boot-time start
+    # comes from the .kube file's own [Install] WantedBy= instead. On an
+    # already-running stack this is a no-op; apply a manifest/config edit
+    # with `down` then `up`. pulpit.yaml's own `initContainers:
+    # wait-for-pulp` is what makes starting everything as one unit safe - it
+    # blocks the pulpit container until pulp responds.
+    systemctl --user start pulpit-stack.service
     wait_healthy pulp-pulp
     wait_healthy pulpit-pulpit
 
@@ -226,7 +232,6 @@ reset() {
     confirm_reset
 
     systemctl --user stop pulpit-stack.service 2>/dev/null || true
-    systemctl --user disable pulpit-stack.service 2>/dev/null || true
     rm -f "${QUADLET_DIR}/pulpit-stack.kube"
     systemctl --user daemon-reload
 

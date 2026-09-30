@@ -28,6 +28,10 @@ footer.
 
 ### Changed
 
+- Pulp publishes no host port in `compose.yml` or the Podman manifests anymore - Pulpit's nginx is
+  the only entry point (`compose-dev.yml` keeps its loopback port for the Vite dev server).
+- Podman manifests no longer set CPU/memory requests or limits.
+- Pulp session lifetime is now 8 hours (`PULP_SESSION_COOKIE_AGE=28800`) in every deployment.
 - Routine statuses, counts, categories, and selections now use aligned plain text or dedicated
   table columns instead of colored dots, pills, and badges. Generic page taglines were also
   removed, while text weight and border contrast were increased in both themes for clearer
@@ -55,6 +59,15 @@ footer.
 
 ### Fixed
 
+- Podman `deploy.sh up` no longer reports a failure for a stack that comes up fine: the unit now
+  allows 15 minutes to start (`TimeoutStartSec=900`, systemd's 90s default was routinely exceeded
+  on first boot) and the health wait was raised to match. It also only runs
+  `systemctl --user start` - the `enable` call always failed (Quadlet units are generated) and the
+  extra `restart` is gone.
+- The fixed footer (version / Changelog / License) overlapped the bottom of the main content card
+  on any page tall enough to fill the viewport (most visible on short remote-session screens):
+  PatternFly only leaves 24px below the card. A dedicated footer band is now reserved at every
+  width.
 - ULN remotes were missing from the RPM repository "Default remote" select (create and edit),
   which only listed standard remotes; both kinds are now listed, grouped by type.
 - The left nav sidebar and the Overview page's component table both "failed open" (showed every

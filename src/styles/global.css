@@ -57,6 +57,35 @@ body,
   align-self: stretch;
 }
 
+/* AppFooter is position: fixed at the viewport's bottom edge, but
+   PatternFly only leaves --spacer--lg (24px) below the main card
+   (MaxHeight: calc(100% - spacer--lg), and 100% below 48rem) - less than
+   the footer's own line, so on any page tall enough to fill the viewport
+   (Tasks, long tables) the card's last row slid under the footer text.
+   VERIFIED at every viewport size, not a bastion/remote-session quirk - it
+   was just most visible on a short (917px) remote screen. Reserve an
+   explicit band for the footer instead, at every width, and center the
+   footer inside it (AppFooter.tsx). Two-class selector: PatternFly's own
+   page.css is injected after this file, so a single-class rule loses. */
+:root {
+  --pulpit-footer-band: 2.5rem;
+}
+
+.pf-v6-c-page .pf-v6-c-page__main-container {
+  max-height: calc(100% - var(--pulpit-footer-band));
+}
+
+.pulpit-footer {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  height: var(--pulpit-footer-band);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
 body {
   margin: 0;
 }

@@ -61,7 +61,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/v2/              
 **VERIFIED** against the bootstrap dev stack: `/v2/` returns `500`, not `401` — see "Known
 limitation: pulp_container's registry requires `TOKEN_SERVER`" below. The important thing to check
 is that it's the _same_ response whether requested through `pulpit` (port `8080`) or directly
-against `pulp` (port `${PULP_HTTP_PORT}`, dev-only) — that confirms nginx is routing correctly and
+against `pulp` (port `${PULP_HTTP_PORT}`, published by `compose-dev.yml` only) — that confirms nginx is routing correctly and
 any error is Pulp's own, not a misroute. A `404` or `502` specifically from nginx (i.e. a
 _different_ response than hitting `pulp` directly) would indicate a real Pulpit routing bug.
 
@@ -107,6 +107,21 @@ directly for your environment. `pulp`'s limit in particular (`cpus: "2"`, `memor
 signing/resign job or a large repository sync is the main workload it needs to bound, not routine
 idle operation; a memory limit set too low there can surface as the container being OOM-killed
 mid-sync rather than a clean error.
+
+Podman (`deployment/podman/`) deliberately carries no CPU/memory requests or limits: the stack is
+expected to be the only workload on its host, so they bounded nothing useful.
+
+## Sessions
+
+Pulp's Django session lifetime is set to 8 hours (`PULP_SESSION_COOKIE_AGE=28800`, absolute - not
+extended by activity) in every shipped deployment (Compose, Podman, Kubernetes), instead of
+Django's two-week default. After that, the next request 401s and Pulpit returns to its login page.
+
+## Network exposure
+
+Pulp itself publishes no host port in `compose.yml` or the Podman/Kubernetes manifests: every
+request enters through `pulpit`'s nginx (8080/8443), which reaches Pulp over the internal network.
+Only `compose-dev.yml` publishes a loopback-only `PULP_HTTP_PORT`, for the Vite dev server.
 
 ## Secrets
 
@@ -364,8 +379,9 @@ systemctl --user start podman.socket   # rootless
 `init` only prepares the generated secrets file; `up` also does this automatically when needed, then
 (re)generates `~/.config/containers/systemd/pulpit-stack.kube` (Redis + Pulp + Pulpit together, one
 unit - see that README's "Why one unit, not one per component": the two published images are always
-released together, from the same commit, so they're auto-updated together too) and restarts it via
-`systemctl --user`. `update` pulls and restarts with any newer image found in the stack (`podman
+released together, from the same commit, so they're auto-updated together too) and starts it via
+`systemctl --user start` (no `enable` - Quadlet units are generated; apply config edits with
+`down` then `up`). `update` pulls and restarts with any newer image found in the stack (`podman
 auto-update`). `down` stops the unit but preserves volumes, the unit, and YAML configuration, while
 `reset` removes the unit, Podman runtime resources, data volumes, and unused images declared by the
 manifests. It never deletes YAML files. Run the script without an option for its command reference.

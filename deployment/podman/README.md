@@ -35,8 +35,10 @@ cp deployment/podman/00-secret.example.yaml deployment/podman/00-secret.yaml
 
 `up` (re)generates one Quadlet unit file, `~/.config/containers/systemd/pulpit-stack.kube`
 (Redis + Pulp + Pulpit together - see "Why one unit, not one per component" below), reloads
-systemd, and restarts it (`systemctl --user restart`, so a manifest/config edit is always picked up
-on a re-run, not just on first deploy). This is a `systemd --user` unit: to keep running after you
+systemd, and starts it (`systemctl --user start` - no `enable`: Quadlet units are generated, so
+systemd refuses to enable them, and boot-time start comes from the `.kube` file's own
+`[Install] WantedBy=default.target`). `start` is a no-op on a stack that's already running, so
+apply a manifest/config edit with `down` then `up`. This is a `systemd --user` unit: to keep running after you
 log out entirely (e.g. right after a host reboot with no active session), enable lingering once -
 `up`'s own output reminds you:
 
@@ -65,7 +67,8 @@ Day-to-day systemd operations once deployed (same unit name `deploy.sh` itself u
 ```sh
 systemctl --user status pulpit-stack.service
 journalctl --user -u pulpit-stack.service -f
-systemctl --user restart pulpit-stack.service
+systemctl --user stop pulpit-stack.service
+systemctl --user start pulpit-stack.service
 ```
 
 ## Why one unit, not one per component
@@ -83,8 +86,7 @@ side effect of that same simplicity, not a goal in itself.
 ## Overriding config
 
 `redis.yaml`/`pulp.yaml`/`pulpit.yaml` pin images to `:latest` - edit those files directly to
-deploy a specific tag instead; `up` restarts the whole unit regardless of what changed, so this
-is picked up the same way as any other config edit.
+deploy a specific tag instead, then run `down` and `up` to apply it, same as any other config edit.
 
 `deploy.sh` does **not** template or substitute anything into `00-configmap.yaml` (`podman play
 kube` itself has no `${VAR}` interpolation, and unlike an earlier version of this script, nothing

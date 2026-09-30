@@ -20,17 +20,10 @@ const RELEASE_URL = `${REPOSITORY_URL}/tree/${__APP_VERSION__}`;
 // itself (the one interactive part) re-enables them.
 export function AppFooter() {
   return (
-    <div
-      style={{
-        position: "fixed",
-        insetInlineStart: 0,
-        insetInlineEnd: 0,
-        bottom: 0,
-        textAlign: "center",
-        padding: "1rem",
-        pointerEvents: "none",
-      }}
-    >
+    // Positioned/sized by .pulpit-footer (global.css), which also reserves
+    // this same band below the main card so page content never scrolls
+    // underneath it.
+    <div className="pulpit-footer">
       <Content
         component="small"
         // VERIFIED: --text--color--200 isn't redefined inside PatternFly's

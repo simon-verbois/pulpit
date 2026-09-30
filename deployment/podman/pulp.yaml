@@ -123,12 +123,6 @@ spec:
             secretKeyRef:
               name: pulpit-secrets
               key: PULP_ADMIN_PASSWORD
-      ports:
-        # Dev-only convenience port, bound to loopback only. Remove if not
-        # needed.
-        - containerPort: 80
-          hostPort: 8180
-          hostIP: 127.0.0.1
       volumeMounts:
         - name: pulp-etc
           mountPath: /etc/pulp
@@ -147,13 +141,6 @@ spec:
         - name: pulpit-signing-scripts
           mountPath: /var/lib/pulpit-signing/scripts
           readOnly: true
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "1Gi"
-        limits:
-          cpu: "2"
-          memory: "4Gi"
       readinessProbe:
         httpGet:
           path: /pulp/api/v3/status/
