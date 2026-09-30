@@ -6,6 +6,7 @@ import { server } from "../../test/mswServer";
 import { renderApp } from "../../test/renderApp";
 import {
   ACCESS_USER_FIXTURE,
+  RPM_REPO_FIXTURE,
   TASK_HISTORY_FIXTURE_COMPLETED,
   TASK_HISTORY_FIXTURE_FAILED,
 } from "../../test/handlers";
@@ -94,5 +95,33 @@ describe("TasksPage", () => {
 
     expect(await screen.findByText("failed")).toBeInTheDocument();
     expect(screen.queryByText("completed")).not.toBeInTheDocument();
+  });
+
+  it("names the repository a task ran against, linked to its page", async () => {
+    renderApp(<TasksPage />);
+
+    const link = await screen.findByRole("link", { name: RPM_REPO_FIXTURE.name });
+    expect(link).toHaveAttribute("href", `/rpm/repositories/${RPM_REPO_FIXTURE.name}`);
+    const row = link.closest("tr")!;
+    expect(within(row).getByText("RPM repository")).toBeInTheDocument();
+    expect(within(row).getByText("Sync")).toBeInTheDocument();
+  });
+
+  it("opens the task named in ?task= - where the Tasks drawer links to", async () => {
+    renderApp(<TasksPage />, { route: "/tasks?task=history-2", path: "/tasks" });
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      await within(dialog).findByText(TASK_HISTORY_FIXTURE_FAILED.error!.description!),
+    ).toBeInTheDocument();
+  });
+
+  it("titles the detail modal with the task's action and resource", async () => {
+    renderApp(<TasksPage />, { route: "/tasks?task=history-1", path: "/tasks" });
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      await within(dialog).findByText(`Sync RPM repository "${RPM_REPO_FIXTURE.name}"`),
+    ).toBeInTheDocument();
   });
 });

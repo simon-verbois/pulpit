@@ -41,6 +41,20 @@ export interface PulpTask {
   created_by?: string | null;
   reserved_resources_record?: string[];
   created_resources?: string[];
+  /** Per-stage counters the task itself reports as it runs (VERIFIED live:
+   * rpm sync reports "Parsed Packages", "Downloading Artifacts"...; publish
+   * and signing report "Generating repository metadata"). `total` is null
+   * for open-ended counters such as downloads. */
+  progress_reports?: PulpProgressReport[];
+}
+
+export interface PulpProgressReport {
+  message?: string;
+  code?: string;
+  state?: string;
+  total?: number | null;
+  done?: number;
+  suffix?: string | null;
 }
 
 export interface PulpPage<T> {
@@ -53,6 +67,11 @@ export interface PulpPage<T> {
 /** `href` is the full task href Pulp returned, e.g. "/pulp/api/v3/tasks/<id>/". */
 export function getTask(href: string): Promise<PulpTask> {
   return pulpFetch<PulpTask>(href);
+}
+
+/** The task's UUID, the last segment of its href - what `/tasks?task=<id>` carries. */
+export function taskIdFromHref(href: string): string {
+  return href.split("/").filter(Boolean).pop() ?? href;
 }
 
 export interface ListTasksParams {

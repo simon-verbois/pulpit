@@ -928,7 +928,9 @@ const rpmHandlers = [
   // Tasks
   http.get(`${TASKS_BASE}:id/`, ({ params }) => {
     const href = `${TASKS_BASE}${params.id}/`;
-    const task = tasks.get(href);
+    // Falls back to the persistent history below, so a history row's detail
+    // modal (which fetches the task by href itself) resolves too.
+    const task = tasks.get(href) ?? taskHistory.find((t) => t.pulp_href === href);
     if (!task) {
       return HttpResponse.json({ detail: "Not found." }, { status: 404 });
     }
@@ -4740,7 +4742,29 @@ export function resetTasksFixtures() {
   taskHistory = seedTaskHistory();
 }
 
+// The generic cross-plugin list endpoint the Tasks page resolves a task's
+// reserved PRNs through (src/api/client/taskResources.ts). Only the
+// repository the COMPLETED fixture reserved exists - anything else reads as
+// deleted, like a real resource removed after its task ran.
+const TASK_RESOURCE_REPOSITORIES = [
+  {
+    pulp_href: RPM_REPO_FIXTURE.pulp_href,
+    prn: "prn:rpm.rpmrepository:test",
+    name: RPM_REPO_FIXTURE.name,
+  },
+];
+
 const taskHistoryHandlers = [
+  http.get("/pulp/api/v3/repositories/", ({ request }) => {
+    const prns = new URL(request.url).searchParams.get("prn__in")?.split(",") ?? [];
+    const results = TASK_RESOURCE_REPOSITORIES.filter((repo) => prns.includes(repo.prn));
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
   http.get(TASKS_BASE, ({ request }) => {
     const url = new URL(request.url);
     const state = url.searchParams.get("state");

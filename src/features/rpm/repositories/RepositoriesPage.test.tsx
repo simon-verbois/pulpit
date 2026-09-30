@@ -81,6 +81,20 @@ describe("RepositoriesPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens a tracked task on the Tasks page when its drawer item is clicked", async () => {
+    renderApp(<RepositoriesPage />, { withTasksDrawer: true });
+
+    await screen.findByText(RPM_REPO_FIXTURE.name);
+    fireEvent.click(screen.getByRole("button", { name: "Sync" }));
+    fireEvent.click(
+      await screen.findByText(`Sync repository "${RPM_REPO_FIXTURE.name}"`),
+    );
+
+    expect((await screen.findByTestId("route-probe")).textContent).toMatch(
+      /^\/tasks\?task=[^/]+$/,
+    );
+  });
+
   it("prunes packages (dry run by default) and tracks the resolved task", async () => {
     renderApp(<RepositoriesPage />, { withTasksDrawer: true });
 

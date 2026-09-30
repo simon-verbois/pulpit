@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Button,
   FormSelect,
@@ -19,11 +20,21 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusIndicator } from "../../components/StatusIndicator";
 import { usePulpPagination } from "../../hooks/usePulpPagination";
 import { formatRelativeTime } from "../../lib/relativeTime";
-import type { PulpTask, PulpTaskState } from "../../api/client/tasks";
+import { apiPath } from "../../api/client/httpClient";
+import {
+  taskIdFromHref,
+  type PulpTask,
+  type PulpTaskState,
+} from "../../api/client/tasks";
+import { primaryTaskResource } from "../../api/client/taskResources";
+import { formatDuration } from "../../lib/duration";
 import { CreatedByCell } from "./CreatedByCell";
-import { humanizeTaskName } from "./humanizeTaskName";
+import { taskActionLabel } from "./humanizeTaskName";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { TaskProgress } from "./TaskProgress";
+import { TaskResourceCell } from "./TaskResourceCell";
 import { TASK_STATE_COLOR } from "./taskStateColor";
+import { useTaskResources } from "./useTaskResources";
 import { useTasksQuery } from "./useTasksQuery";
 
 const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
@@ -44,12 +55,16 @@ const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
  * succeed" (docs/ROADMAP.md "Improved auditability"). Distinct from the
  * masthead Tasks drawer, which only tracks tasks triggered in this
  * browser tab while it's open (see src/api/tasks/TasksContext.tsx).
+ *
+ * `?task=<id>` opens that task's detail modal - the drawer links here, and
+ * the task need not be on the current page.
  */
 export function TasksPage() {
   const [stateFilter, setStateFilter] = useState<PulpTaskState | "">("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [viewingTask, setViewingTask] = useState<PulpTask | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewingTaskId = searchParams.get("task");
   const pagination = usePulpPagination();
 
   const tasksQuery = useTasksQuery({
@@ -60,6 +75,28 @@ export function TasksPage() {
   });
 
   const isFiltered = search !== "" || stateFilter !== "";
+
+  const rows = useMemo(
+    () =>
+      (tasksQuery.data?.results ?? []).map((task) => ({
+        task,
+        resource: primaryTaskResource(task),
+      })),
+    [tasksQuery.data],
+  );
+  const resourcesQuery = useTaskResources(
+    rows.flatMap((row) => (row.resource ? [row.resource] : [])),
+  );
+
+  const setViewingTask = (task: PulpTask | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (task) {
+      next.set("task", taskIdFromHref(task.pulp_href));
+    } else {
+      next.delete("task");
+    }
+    setSearchParams(next, { replace: true });
+  };
 
   const toolbar = (
     <Toolbar>
@@ -139,24 +176,40 @@ export function TasksPage() {
             <Table aria-label="Tasks" variant="compact">
               <Thead>
                 <Tr>
-                  <Th>Name</Th>
+                  <Th>Task</Th>
+                  <Th>Resource</Th>
                   <Th>State</Th>
                   <Th>Created by</Th>
                   <Th>Created</Th>
-                  <Th>Finished</Th>
+                  <Th>Duration</Th>
                   <Th screenReaderText="Actions" />
                 </Tr>
               </Thead>
               <Tbody>
-                {tasksQuery.data.results.map((task) => (
-                  <Tr key={task.pulp_href}>
-                    <Td dataLabel="Name">
-                      {task.name ? humanizeTaskName(task.name) : "—"}
+                {rows.map(({ task, resource }) => (
+                  <Tr
+                    key={task.pulp_href}
+                    isRowSelected={viewingTaskId === taskIdFromHref(task.pulp_href)}
+                  >
+                    <Td dataLabel="Task">
+                      {task.name ? taskActionLabel(task.name) : "—"}
+                    </Td>
+                    <Td dataLabel="Resource">
+                      <TaskResourceCell
+                        resource={resource}
+                        resolved={
+                          resource ? resourcesQuery.data?.[resource.key] : undefined
+                        }
+                        isResolving={resourcesQuery.isPending}
+                      />
                     </Td>
                     <Td dataLabel="State">
                       <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>
                         {task.state}
                       </StatusIndicator>
+                      {task.state === "running" ? (
+                        <TaskProgress reports={task.progress_reports} runningOnly />
+                      ) : null}
                     </Td>
                     <Td dataLabel="Created by">
                       <CreatedByCell createdBy={task.created_by} />
@@ -164,8 +217,10 @@ export function TasksPage() {
                     <Td dataLabel="Created">
                       {task.pulp_created ? formatRelativeTime(task.pulp_created) : "—"}
                     </Td>
-                    <Td dataLabel="Finished">
-                      {task.finished_at ? formatRelativeTime(task.finished_at) : "—"}
+                    <Td dataLabel="Duration">
+                      {task.started_at
+                        ? formatDuration(task.started_at, task.finished_at ?? undefined)
+                        : "—"}
                     </Td>
                     <Td dataLabel="Actions" isActionCell>
                       <Button variant="link" onClick={() => setViewingTask(task)}>
@@ -180,8 +235,14 @@ export function TasksPage() {
         ) : null}
       </PageSection>
 
-      {viewingTask ? (
-        <TaskDetailModal task={viewingTask} onClose={() => setViewingTask(null)} />
+      {viewingTaskId ? (
+        <TaskDetailModal
+          href={apiPath(`/tasks/${viewingTaskId}/`)}
+          initialTask={
+            rows.find((row) => taskIdFromHref(row.task.pulp_href) === viewingTaskId)?.task
+          }
+          onClose={() => setViewingTask(null)}
+        />
       ) : null}
     </>
   );

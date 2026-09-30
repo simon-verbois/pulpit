@@ -35,7 +35,7 @@ const PLUGIN_LABELS: Record<string, string> = {
   pulp_hugging_face: "Hugging Face",
 };
 
-function humanizePluginLabel(pluginSegment: string): string {
+export function humanizePluginLabel(pluginSegment: string): string {
   if (pluginSegment in PLUGIN_LABELS) return PLUGIN_LABELS[pluginSegment];
   const suffix = pluginSegment.replace(/^pulp_/, "");
   return suffix
@@ -78,4 +78,31 @@ export function humanizeTaskName(name: string): string {
   const actionLabel = humanizeActionLabel(actionSegment);
 
   return pluginLabel ? `${pluginLabel} ${actionLabel.toLowerCase()}` : actionLabel;
+}
+
+// Short verbs for the task types people trigger most, so a table column
+// reads "Sync" / "Publish" rather than "RPM synchronize" - the plugin is
+// already carried by the resource column's type label (taskDescription.ts).
+// Anything not listed still falls back to the generic transform above, so
+// this stays safe for the open-ended plugin ecosystem.
+const ACTION_VERBS: Record<string, string> = {
+  synchronize: "Sync",
+  sync: "Sync",
+  publish: "Publish",
+  sign: "Sign",
+  signed_add_and_remove: "Sign and add content",
+  add_and_remove: "Modify content",
+  modify: "Modify content",
+  general_create: "Create",
+  general_update: "Update",
+  general_delete: "Delete",
+  general_multi_delete: "Delete",
+};
+
+/** The action half of a task name, without its plugin prefix. */
+export function taskActionLabel(name: string): string {
+  const segments = name.split(".");
+  if (segments.length < 2) return name;
+  const actionSegment = normalizeActionSegment(segments[segments.length - 1]);
+  return ACTION_VERBS[actionSegment] ?? humanizeActionLabel(actionSegment);
 }

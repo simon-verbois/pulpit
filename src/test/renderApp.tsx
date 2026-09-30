@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import { TasksProvider } from "../api/tasks/TasksContext";
 import { TasksDrawer } from "../app/layout/TasksDrawer";
@@ -25,6 +25,13 @@ import {
  * <TasksDrawer>-only tree once the drawer has first been expanded, which is
  * exactly the real bug this pairing was added to catch and fix.
  */
+/** Renders the current URL, so a test can assert where a click navigated. */
+// eslint-disable-next-line react-refresh/only-export-components -- test-only helper, never hot-reloaded
+function RouteProbe() {
+  const location = useLocation();
+  return <div data-testid="route-probe">{`${location.pathname}${location.search}`}</div>;
+}
+
 export function renderApp(
   ui: ReactElement,
   {
@@ -66,14 +73,19 @@ export function renderApp(
           <MemoryRouter initialEntries={[route]}>
             <Routes>
               <Route path={path} element={element} />
+              {/* Where a drawer item navigates to (TaskListItem). */}
+              {path !== "/tasks" ? (
+                <Route path="/tasks" element={<RouteProbe />} />
+              ) : null}
             </Routes>
+            {/* Inside the router, as in AppLayout - a drawer item navigates. */}
+            {withTasksDrawer ? (
+              <>
+                <TaskTrackers />
+                <TasksDrawer />
+              </>
+            ) : null}
           </MemoryRouter>
-          {withTasksDrawer ? (
-            <>
-              <TaskTrackers />
-              <TasksDrawer />
-            </>
-          ) : null}
         </TasksProvider>
       </QueryClientProvider>,
     ),
