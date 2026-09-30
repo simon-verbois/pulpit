@@ -11,7 +11,11 @@ import type { QueryKey } from "@tanstack/react-query";
 const MAX_TRACKED_TASKS = 20;
 
 export interface TrackedTask {
+  /** A Pulp task href - or, for `kind: "job"`, a pulpit-core job id. */
   href: string;
+  /** "job": a pulpit-core background job (polled via /jobs/{id}, shown on
+   * the Tasks page's "Background jobs" tab) rather than a Pulp task. */
+  kind?: "pulp" | "job";
   /** Human label shown in the drawer/tasks page before the task itself reports a name. */
   label?: string;
   /** Query keys to invalidate once this task reaches "completed" - see useTrackedTask. */

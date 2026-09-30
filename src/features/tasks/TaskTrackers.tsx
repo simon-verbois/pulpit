@@ -1,9 +1,14 @@
 import { useTasksContext } from "../../api/tasks/TasksContext";
-import { useTrackedTask } from "../../api/tasks/useTrackedTask";
+import { useTrackedJob, useTrackedTask } from "../../api/tasks/useTrackedTask";
 import type { TrackedTask } from "../../api/tasks/TasksContext";
 
 function TaskTracker({ task }: { task: TrackedTask }) {
   useTrackedTask(task);
+  return null;
+}
+
+function JobTracker({ task }: { task: TrackedTask }) {
+  useTrackedJob(task);
   return null;
 }
 
@@ -20,5 +25,11 @@ function TaskTracker({ task }: { task: TrackedTask }) {
  */
 export function TaskTrackers() {
   const { trackedTasks } = useTasksContext();
-  return trackedTasks.map((task) => <TaskTracker key={task.href} task={task} />);
+  return trackedTasks.map((task) =>
+    task.kind === "job" ? (
+      <JobTracker key={task.href} task={task} />
+    ) : (
+      <TaskTracker key={task.href} task={task} />
+    ),
+  );
 }

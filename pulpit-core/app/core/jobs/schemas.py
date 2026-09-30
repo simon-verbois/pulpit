@@ -20,3 +20,10 @@ class JobRead(BaseModel):
     finished_at: datetime | None
     requested_by: str | None
     created_at: datetime
+    # See Job.repository_href - `payload` itself is never exposed.
+    repository_href: str | None = None
+
+
+class JobPage(BaseModel):
+    count: int
+    results: list[JobRead]

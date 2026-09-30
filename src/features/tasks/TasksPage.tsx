@@ -7,6 +7,9 @@ import {
   PageSection,
   Pagination,
   SearchInput,
+  Tab,
+  TabTitleText,
+  Tabs,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -19,6 +22,7 @@ import { ErrorState } from "../../components/ErrorState";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusIndicator } from "../../components/StatusIndicator";
 import { usePulpPagination } from "../../hooks/usePulpPagination";
+import { useUrlTab } from "../../hooks/useUrlTab";
 import { formatRelativeTime } from "../../lib/relativeTime";
 import { apiPath } from "../../api/client/httpClient";
 import {
@@ -36,6 +40,7 @@ import { TaskResourceCell } from "./TaskResourceCell";
 import { TASK_STATE_COLOR } from "./taskStateColor";
 import { useTaskResources } from "./useTaskResources";
 import { useTasksQuery } from "./useTasksQuery";
+import { JobsTab } from "./JobsTab";
 
 const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
   { value: "", label: "All states" },
@@ -49,6 +54,44 @@ const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
 ];
 
 /**
+ * Two histories side by side: Pulp's own tasks, and pulpit-core's
+ * background jobs (re-signing, key publishing, ...), which run in Pulpit's
+ * own worker and never show up in Pulp's task list. Separate tabs rather
+ * than one merged table: each source paginates and filters on its own
+ * server, so a merged page would never be a correct "newest N".
+ */
+export function TasksPage() {
+  const [activeTab, setActiveTab] = useUrlTab("tasks");
+
+  return (
+    <>
+      <PageHeader
+        title="Tasks"
+        description="The full history of asynchronous operations run by Pulp and by Pulpit."
+      />
+      <PageSection hasBodyWrapper={false} type="tabs">
+        <Tabs
+          activeKey={activeTab}
+          onSelect={(_event, key) => setActiveTab(key)}
+          mountOnEnter
+        >
+          <Tab eventKey="tasks" title={<TabTitleText>Pulp tasks</TabTitleText>}>
+            <PageSection hasBodyWrapper={false}>
+              <PulpTasksTab />
+            </PageSection>
+          </Tab>
+          <Tab eventKey="jobs" title={<TabTitleText>Background jobs</TabTitleText>}>
+            <PageSection hasBodyWrapper={false}>
+              <JobsTab />
+            </PageSection>
+          </Tab>
+        </Tabs>
+      </PageSection>
+    </>
+  );
+}
+
+/**
  * The full, persistent task history Pulp itself keeps - every mutation
  * across this app (and every other Pulp client) ultimately lands here, so
  * this is the audit trail for "who did what, when, to what, and did it
@@ -59,7 +102,7 @@ const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
  * `?task=<id>` opens that task's detail modal - the drawer links here, and
  * the task need not be on the current page.
  */
-export function TasksPage() {
+function PulpTasksTab() {
   const [stateFilter, setStateFilter] = useState<PulpTaskState | "">("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -145,95 +188,87 @@ export function TasksPage() {
 
   return (
     <>
-      <PageHeader
-        title="Tasks"
-        description="The full history of asynchronous Pulp operations, as tracked by Pulp itself."
-      />
-      <PageSection hasBodyWrapper={false}>
-        {tasksQuery.isPending ? <LoadingState label="Loading tasks" /> : null}
-        {tasksQuery.isError ? (
-          <ErrorState error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />
-        ) : null}
-        {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && !isFiltered ? (
+      {tasksQuery.isPending ? <LoadingState label="Loading tasks" /> : null}
+      {tasksQuery.isError ? (
+        <ErrorState error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />
+      ) : null}
+      {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && !isFiltered ? (
+        <EmptyState
+          title="No tasks found"
+          body="Tasks appear here once an asynchronous Pulp operation runs, such as a repository sync."
+        />
+      ) : null}
+      {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && isFiltered ? (
+        <>
+          {toolbar}
           <EmptyState
-            title="No tasks found"
-            body="Tasks appear here once an asynchronous Pulp operation runs, such as a repository sync."
+            variant="sm"
+            title="No matching tasks"
+            body="Try a different search or state filter."
           />
-        ) : null}
-        {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && isFiltered ? (
-          <>
-            {toolbar}
-            <EmptyState
-              variant="sm"
-              title="No matching tasks"
-              body="Try a different search or state filter."
-            />
-          </>
-        ) : null}
-        {tasksQuery.isSuccess && tasksQuery.data.results.length > 0 ? (
-          <>
-            {toolbar}
-            <Table aria-label="Tasks" variant="compact">
-              <Thead>
-                <Tr>
-                  <Th>Task</Th>
-                  <Th>Resource</Th>
-                  <Th>State</Th>
-                  <Th>Created by</Th>
-                  <Th>Created</Th>
-                  <Th>Duration</Th>
-                  <Th screenReaderText="Actions" />
+        </>
+      ) : null}
+      {tasksQuery.isSuccess && tasksQuery.data.results.length > 0 ? (
+        <>
+          {toolbar}
+          <Table aria-label="Tasks" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Task</Th>
+                <Th>Resource</Th>
+                <Th>State</Th>
+                <Th>Created by</Th>
+                <Th>Created</Th>
+                <Th>Duration</Th>
+                <Th screenReaderText="Actions" />
+              </Tr>
+            </Thead>
+            <Tbody>
+              {rows.map(({ task, resource }) => (
+                <Tr
+                  key={task.pulp_href}
+                  isRowSelected={viewingTaskId === taskIdFromHref(task.pulp_href)}
+                >
+                  <Td dataLabel="Task">{task.name ? taskActionLabel(task.name) : "—"}</Td>
+                  <Td dataLabel="Resource">
+                    <TaskResourceCell
+                      resource={resource}
+                      resolved={
+                        resource ? resourcesQuery.data?.[resource.key] : undefined
+                      }
+                      isResolving={resourcesQuery.isPending}
+                    />
+                  </Td>
+                  <Td dataLabel="State">
+                    <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>
+                      {task.state}
+                    </StatusIndicator>
+                    {task.state === "running" ? (
+                      <TaskProgress reports={task.progress_reports} runningOnly />
+                    ) : null}
+                  </Td>
+                  <Td dataLabel="Created by">
+                    <CreatedByCell createdBy={task.created_by} />
+                  </Td>
+                  <Td dataLabel="Created">
+                    {task.pulp_created ? formatRelativeTime(task.pulp_created) : "—"}
+                  </Td>
+                  <Td dataLabel="Duration">
+                    {task.started_at
+                      ? formatDuration(task.started_at, task.finished_at ?? undefined)
+                      : "—"}
+                  </Td>
+                  <Td dataLabel="Actions" isActionCell>
+                    <Button variant="link" onClick={() => setViewingTask(task)}>
+                      View details
+                    </Button>
+                  </Td>
                 </Tr>
-              </Thead>
-              <Tbody>
-                {rows.map(({ task, resource }) => (
-                  <Tr
-                    key={task.pulp_href}
-                    isRowSelected={viewingTaskId === taskIdFromHref(task.pulp_href)}
-                  >
-                    <Td dataLabel="Task">
-                      {task.name ? taskActionLabel(task.name) : "—"}
-                    </Td>
-                    <Td dataLabel="Resource">
-                      <TaskResourceCell
-                        resource={resource}
-                        resolved={
-                          resource ? resourcesQuery.data?.[resource.key] : undefined
-                        }
-                        isResolving={resourcesQuery.isPending}
-                      />
-                    </Td>
-                    <Td dataLabel="State">
-                      <StatusIndicator color={TASK_STATE_COLOR[task.state]} isCompact>
-                        {task.state}
-                      </StatusIndicator>
-                      {task.state === "running" ? (
-                        <TaskProgress reports={task.progress_reports} runningOnly />
-                      ) : null}
-                    </Td>
-                    <Td dataLabel="Created by">
-                      <CreatedByCell createdBy={task.created_by} />
-                    </Td>
-                    <Td dataLabel="Created">
-                      {task.pulp_created ? formatRelativeTime(task.pulp_created) : "—"}
-                    </Td>
-                    <Td dataLabel="Duration">
-                      {task.started_at
-                        ? formatDuration(task.started_at, task.finished_at ?? undefined)
-                        : "—"}
-                    </Td>
-                    <Td dataLabel="Actions" isActionCell>
-                      <Button variant="link" onClick={() => setViewingTask(task)}>
-                        View details
-                      </Button>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </>
-        ) : null}
-      </PageSection>
+              ))}
+            </Tbody>
+          </Table>
+        </>
+      ) : null}
 
       {viewingTaskId ? (
         <TaskDetailModal

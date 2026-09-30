@@ -565,6 +565,12 @@ const rpmHandlers = [
     remotes = [...remotes, remote];
     return HttpResponse.json(remote, { status: 201 });
   }),
+  http.get(`${REMOTE_BASE}:id/`, ({ params }) => {
+    const remote = remotes.find((r) => r.pulp_href === `${REMOTE_BASE}${params.id}/`);
+    return remote
+      ? HttpResponse.json(remote)
+      : HttpResponse.json({ detail: "Not found." }, { status: 404 });
+  }),
   http.delete(`${REMOTE_BASE}:id/`, ({ params }) => {
     const href = `${REMOTE_BASE}${params.id}/`;
     remotes = remotes.filter((r) => r.pulp_href !== href);
@@ -4756,8 +4762,12 @@ const TASK_RESOURCE_REPOSITORIES = [
 
 const taskHistoryHandlers = [
   http.get("/pulp/api/v3/repositories/", ({ request }) => {
-    const prns = new URL(request.url).searchParams.get("prn__in")?.split(",") ?? [];
-    const results = TASK_RESOURCE_REPOSITORIES.filter((repo) => prns.includes(repo.prn));
+    const params = new URL(request.url).searchParams;
+    const prns = params.get("prn__in")?.split(",") ?? [];
+    const hrefs = params.get("pulp_href__in")?.split(",") ?? [];
+    const results = TASK_RESOURCE_REPOSITORIES.filter(
+      (repo) => prns.includes(repo.prn) || hrefs.includes(repo.pulp_href),
+    );
     return HttpResponse.json({
       count: results.length,
       next: null,
@@ -4838,7 +4848,46 @@ export const COMPONENT_REPOSITORY_COUNTS_FIXTURE = [
   { component: "python", count: 1, updated_at: "2026-01-01T00:00:00Z" },
 ];
 
+export const JOB_FIXTURE_RESIGN = {
+  id: "5b0c7a52-0000-4000-8000-000000000001",
+  job_type: "signing.resign_repository_packages",
+  status: "success",
+  result: { evaluated: 35, candidates: 0, signed: 0, failed: 0 },
+  error: null,
+  attempts: 1,
+  scheduled_at: "2026-09-30T08:00:00Z",
+  started_at: "2026-09-30T08:00:01Z",
+  finished_at: "2026-09-30T08:00:09Z",
+  requested_by: "admin",
+  created_at: "2026-09-30T08:00:00Z",
+  repository_href: `${REPO_BASE}repo-1/`,
+};
+
+export const JOB_FIXTURE_FAILED = {
+  ...JOB_FIXTURE_RESIGN,
+  id: "5b0c7a52-0000-4000-8000-000000000002",
+  job_type: "ldap.apply_config",
+  status: "failed",
+  result: null,
+  error: "LDAP server unreachable",
+  requested_by: null,
+  repository_href: null,
+};
+
 const pulpitCoreHandlers = [
+  http.get("/pulpit-core/api/v1/jobs", ({ request }) => {
+    const status = new URL(request.url).searchParams.get("status");
+    const results = [JOB_FIXTURE_RESIGN, JOB_FIXTURE_FAILED].filter(
+      (job) => !status || job.status === status,
+    );
+    return HttpResponse.json({ count: results.length, results });
+  }),
+  http.get("/pulpit-core/api/v1/jobs/:id", ({ params }) => {
+    const job = [JOB_FIXTURE_RESIGN, JOB_FIXTURE_FAILED].find((j) => j.id === params.id);
+    return job
+      ? HttpResponse.json(job)
+      : HttpResponse.json({ detail: "Job not found" }, { status: 404 });
+  }),
   http.get("/pulpit-core/api/v1/signing/repositories/policy", () =>
     HttpResponse.json({
       package_signing_enabled: false,

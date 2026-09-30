@@ -431,8 +431,23 @@ def publish_repository_metadata_job(db: Session, payload: dict) -> dict:
     triggering a normal, natively-supported Pulp publish - no custom
     resigning logic needed, unlike packages."""
     pulp = get_pulp_client()
+    _wait_for_configuration_task(pulp, payload)
     task = pulp.create_publication(payload["repository_href"])
     return {"pulp_task": task.get("task")}
+
+
+def _wait_for_configuration_task(pulp: PulpClient, payload: dict) -> None:
+    """The per-repository "Re-sign" action (routes/repositories.py `/resign`)
+    first re-applies the signing policy to the repository with the caller's
+    own credentials; that PATCH may come back as a Pulp task. The resign /
+    republish must only start once it has landed, or it would publish with
+    the repository's previous (possibly missing) signing services."""
+    task_href = payload.get("configure_task")
+    if not task_href:
+        return
+    task = pulp.wait_for_task(task_href)
+    if task["state"] != "completed":
+        raise ValueError(f"Pulp signing configuration {task['state']}: {task.get('error')}")
 
 
 def _paginate_rpm_packages(pulp: PulpClient, **filters: str) -> Iterator[dict]:
@@ -600,6 +615,7 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
     settings = get_settings()
     started = time.monotonic()
 
+    _wait_for_configuration_task(pulp, payload)
     repo = pulp.get_rpm_repository(repository_href)
     latest_version_href = repo["latest_version_href"]
     if latest_version_href.rstrip("/").endswith("/versions/0"):
@@ -608,7 +624,10 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
         # often (freshly created, not yet synced). Not requiring a
         # distribution in this case avoids a needless failed job for a
         # repository that has nothing to fetch in the first place.
-        return {"candidates": 0, "cache_hits": 0, "resigned": 0, "signed": 0, "skipped": 0, "failed": 0}
+        return {
+            "evaluated": 0, "candidates": 0, "cache_hits": 0, "resigned": 0, "signed": 0,
+            "skipped": 0, "failed": 0,
+        }
     target_version = payload.get("target_version") or latest_version_href
 
     distributions = pulp.list_distributions_for_repository(repository_href)
@@ -626,13 +645,17 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
     if publish_task["state"] != "completed":
         raise PulpAdapterError(f"Publish before resigning failed: {publish_task.get('error')}")
 
-    candidates = [
-        package
-        for package in _iter_candidate_packages(
-            pulp, repository_href, since_version=since_version, target_version=target_version
-        )
-        if _needs_signing(package, fingerprint)
-    ]
+    # `evaluated` (every package looked at, already-signed ones included) is
+    # what lets the per-repository "Re-sign" action report "N packages
+    # checked, all signed" rather than only the ones that needed work.
+    evaluated = 0
+    candidates: list[dict] = []
+    for package in _iter_candidate_packages(
+        pulp, repository_href, since_version=since_version, target_version=target_version
+    ):
+        evaluated += 1
+        if _needs_signing(package, fingerprint):
+            candidates.append(package)
 
     logger.info(
         "RPM resign starting repository=%s fingerprint=%s candidates=%d workers=%d incremental=%s",
@@ -643,7 +666,7 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
         repository_sync_state.advance(db, repository_href, repository_sync_state.version_number(target_version))
         db.commit()
         return {
-            "candidates": 0, "cache_hits": 0, "to_sign": 0, "resigned": 0, "signed": 0,
+            "evaluated": evaluated, "candidates": 0, "cache_hits": 0, "to_sign": 0, "resigned": 0, "signed": 0,
             "skipped": 0, "failed": 0, "workers": settings.rpm_signing_workers,
             "elapsed_seconds": round(time.monotonic() - started, 2),
         }
@@ -753,6 +776,7 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
 
     elapsed = round(time.monotonic() - started, 2)
     result = {
+        "evaluated": evaluated,
         "candidates": len(candidates),
         "cache_hits": cache_hits,
         "to_sign": len(to_sign),

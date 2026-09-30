@@ -12,7 +12,9 @@ import {
   type PulpTaskState,
 } from "../../api/client/tasks";
 import { useTasksContext } from "../../api/tasks/TasksContext";
-import { useTrackedTask } from "../../api/tasks/useTrackedTask";
+import { useTrackedJob, useTrackedTask } from "../../api/tasks/useTrackedTask";
+import type { JobStatus } from "../../api/client/pulpitCore/types";
+import { jobLabel, TERMINAL_JOB_STATUSES } from "./jobLabel";
 import type { TrackedTask } from "../../api/tasks/TasksContext";
 import { formatRelativeTime } from "../../lib/relativeTime";
 import { humanizeTaskName } from "./humanizeTaskName";
@@ -30,7 +32,53 @@ const VARIANT: Record<PulpTaskState, Variant> = {
   skipped: "warning",
 };
 
+const JOB_VARIANT: Record<JobStatus, Variant> = {
+  queued: "info",
+  running: "info",
+  success: "success",
+  failed: "danger",
+};
+
 export function TaskListItem({ task }: { task: TrackedTask }) {
+  return task.kind === "job" ? <JobItem task={task} /> : <PulpTaskItem task={task} />;
+}
+
+/** A tracked pulpit-core job - opens it on the Tasks page's
+ * "Background jobs" tab. */
+function JobItem({ task }: { task: TrackedTask }) {
+  const query = useTrackedJob(task);
+  const navigate = useNavigate();
+  const { setIsDrawerOpen } = useTasksContext();
+  const data = query.data;
+  const status = data?.status;
+  const variant = status ? JOB_VARIANT[status] : "info";
+  const timestamp = data?.finished_at ?? data?.started_at ?? data?.created_at;
+
+  return (
+    <NotificationDrawerListItem
+      variant={variant}
+      isRead={status ? TERMINAL_JOB_STATUSES.has(status) : false}
+      onClick={() => {
+        setIsDrawerOpen(false);
+        navigate(`/tasks?tab=jobs&job=${encodeURIComponent(task.href)}`);
+      }}
+    >
+      <NotificationDrawerListItemHeader
+        variant={variant}
+        title={task.label ?? (data ? jobLabel(data.job_type) : "Background job")}
+        srTitle={`${status ?? "loading"} job:`}
+      />
+      <NotificationDrawerListItemBody
+        timestamp={timestamp ? formatRelativeTime(timestamp) : undefined}
+      >
+        {status ?? "Loading…"}
+        {status === "failed" && data?.error ? <div>{data.error}</div> : null}
+      </NotificationDrawerListItemBody>
+    </NotificationDrawerListItem>
+  );
+}
+
+function PulpTaskItem({ task }: { task: TrackedTask }) {
   const query = useTrackedTask(task);
   const navigate = useNavigate();
   const { setIsDrawerOpen } = useTasksContext();

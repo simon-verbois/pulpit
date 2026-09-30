@@ -65,11 +65,18 @@ def has_matching_pending_job(db: Session, job_type: str, *, payload_subset: dict
     concurrently in-flight jobs of one type is always small in practice, so
     this is cheap.
     """
+    return find_matching_pending_job(db, job_type, payload_subset=payload_subset) is not None
+
+
+def find_matching_pending_job(db: Session, job_type: str, *, payload_subset: dict) -> Job | None:
+    """`has_matching_pending_job`, returning the in-flight job itself - for a
+    caller that wants to hand an already-queued/running job back to the user
+    instead of just skipping (e.g. the per-repository "Re-sign" action)."""
     stmt = select(Job).where(Job.job_type == job_type, Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]))
     for job in db.execute(stmt).scalars():
         if all(job.payload.get(key) == value for key, value in payload_subset.items()):
-            return True
-    return False
+            return job
+    return None
 
 
 def claim_next_job(db: Session, job_types: list[str]) -> Job | None:

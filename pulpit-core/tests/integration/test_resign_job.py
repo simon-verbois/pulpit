@@ -222,6 +222,7 @@ def test_a_package_already_signed_with_the_target_fingerprint_is_never_a_candida
         db, {"repository_href": REPO_HREF, "fingerprint": FINGERPRINT}
     )
 
+    assert result["evaluated"] == 1
     assert result["candidates"] == 0
     assert result["signed"] == 0
     assert result["failed"] == 0
@@ -514,7 +515,9 @@ def test_resign_repository_packages_skips_gracefully_for_a_never_synced_reposito
         db, {"repository_href": REPO_HREF, "fingerprint": FINGERPRINT}
     )
 
-    assert result == {"candidates": 0, "cache_hits": 0, "resigned": 0, "signed": 0, "skipped": 0, "failed": 0}
+    assert result == {
+        "evaluated": 0, "candidates": 0, "cache_hits": 0, "resigned": 0, "signed": 0, "skipped": 0, "failed": 0,
+    }
 
 
 @respx.mock
@@ -533,3 +536,21 @@ def test_resign_repository_packages_requires_a_distribution():
         raise AssertionError("expected ValueError")
     except ValueError as exc:
         assert "no distribution" in str(exc)
+
+
+@respx.mock
+def test_a_failed_configure_task_stops_the_resign_before_touching_the_repository():
+    """The per-repository "Re-sign" route queues this job behind the
+    caller's own signing-configuration PATCH (`configure_task`) - a failed
+    PATCH must not be followed by a resign/publish with stale services."""
+    respx.get("http://pulp:80/pulp/api/v3/tasks/cfg/").mock(
+        return_value=httpx.Response(200, json={"state": "failed", "error": {"description": "boom"}})
+    )
+    repo_route = respx.get(f"http://pulp:80{REPO_HREF}")
+
+    with pytest.raises(ValueError, match="Pulp signing configuration failed"):
+        signing_jobs.resign_repository_packages_job(
+            None,
+            {"repository_href": REPO_HREF, "fingerprint": FINGERPRINT, "configure_task": "/pulp/api/v3/tasks/cfg/"},
+        )
+    assert not repo_route.called

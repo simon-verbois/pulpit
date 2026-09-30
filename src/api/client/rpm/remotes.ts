@@ -1,6 +1,12 @@
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type { PulpPage, RpmRemote, RpmRemoteCreate, RpmRemoteUpdate } from "./types";
+import type {
+  PulpPage,
+  RpmRemote,
+  RpmRemoteCreate,
+  RpmRemoteUpdate,
+  RpmUlnRemote,
+} from "./types";
 import { listRpmUlnRemotes } from "./ulnRemotes";
 
 const BASE = apiPath("/remotes/rpm/rpm/");
@@ -54,6 +60,16 @@ export async function listAllRpmRemoteOptions(): Promise<RpmRemoteOption[]> {
       kind: "uln" as const,
     })),
   ];
+}
+
+/** A repository's `remote` can be either flavor (see
+ * listAllRpmRemoteOptions below) - the href itself says which. */
+export function getRpmRemote(href: string): Promise<RpmRemote | RpmUlnRemote> {
+  return pulpFetch<RpmRemote | RpmUlnRemote>(href);
+}
+
+export function isUlnRemoteHref(href: string): boolean {
+  return href.includes("/remotes/rpm/uln/");
 }
 
 export function createRpmRemote(data: RpmRemoteCreate): Promise<RpmRemote> {

@@ -91,3 +91,16 @@ export function configureRepositorySigning(options: {
 export function applySigningToAllRepositories(): Promise<Job> {
   return coreFetch<Job>(`${BASE}/repositories/apply-to-all`, { method: "POST" });
 }
+
+/** The per-repository "Re-sign" action: re-applies the current signing
+ * policy to one RPM repository (with the caller's own Pulp credentials),
+ * then queues a full pass that re-signs every package in it not yet signed
+ * with the active key (or just republishes, for a metadata-only policy).
+ * Returns an already in-flight resign job for this repository if there is
+ * one, rather than queueing a duplicate. */
+export function resignRepository(repositoryHref: string): Promise<Job> {
+  return coreFetch<Job>(`${BASE}/repositories/resign`, {
+    method: "POST",
+    body: JSON.stringify({ repository_href: repositoryHref }),
+  });
+}

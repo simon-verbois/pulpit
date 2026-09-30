@@ -52,3 +52,12 @@ class Job(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # "scheduler" for automatic rotation checks) - audit trail only, not an
     # identity/auth mechanism.
     requested_by: Mapped[str | None] = mapped_column(String(150), nullable=True)
+
+    @property
+    def repository_href(self) -> str | None:
+        """The one Pulp repository this job acts on, when it has one - lifted
+        out of `payload` (never exposed by the API: it can carry arbitrary
+        module input) so the Tasks page can say which repository a job
+        concerns."""
+        value = (self.payload or {}).get("repository_href")
+        return value if isinstance(value, str) else None

@@ -73,6 +73,14 @@ export interface Job {
   finished_at: string | null;
   requested_by: string | null;
   created_at: string;
+  /** The Pulp repository this job acts on, when it has one (pulpit-core
+   * lifts it out of the job's otherwise-private payload). */
+  repository_href?: string | null;
+}
+
+export interface JobPage {
+  count: number;
+  results: Job[];
 }
 
 export interface RepositorySigningPolicy {

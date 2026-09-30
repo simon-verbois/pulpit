@@ -7,6 +7,7 @@ import { renderApp } from "../../../test/renderApp";
 import {
   RPM_ADVISORY_FIXTURE,
   RPM_DISTRIBUTION_FIXTURE,
+  RPM_REMOTE_FIXTURE,
   RPM_REPO_FIXTURE,
 } from "../../../test/handlers";
 import { RepositoryDetailPage } from "./RepositoryDetailPage";
@@ -28,7 +29,67 @@ describe("RepositoryDetailPage", () => {
       screen.getByRole("heading", { name: RPM_REPO_FIXTURE.name }),
     ).toBeInTheDocument();
     expect(screen.getByText(RPM_REPO_FIXTURE.description as string)).toBeInTheDocument();
-    expect(screen.getByText("Configured")).toBeInTheDocument(); // default remote
+    // Default remote: its actual name, linked to the filtered Remotes page.
+    const remoteLink = await screen.findByRole("link", { name: RPM_REMOTE_FIXTURE.name });
+    expect(remoteLink).toHaveAttribute(
+      "href",
+      `/rpm/remotes?search=${encodeURIComponent(RPM_REMOTE_FIXTURE.name)}`,
+    );
+    expect(screen.getByText(RPM_REMOTE_FIXTURE.url)).toBeInTheDocument();
+    // Signing is off globally in the default fixture - nothing to re-sign with.
+    expect(screen.queryByRole("button", { name: "Re-sign now" })).not.toBeInTheDocument();
+  });
+
+  it("re-signs the repository and reports the result", async () => {
+    let resignBody: unknown;
+    server.use(
+      http.get("/pulpit-core/api/v1/signing/repositories/policy", () =>
+        HttpResponse.json({
+          package_signing_enabled: true,
+          metadata_signing_enabled: true,
+          package_signing_service: "/pulp/api/v3/signing-services/pkg/",
+          package_signing_fingerprint: "A".repeat(40),
+          metadata_signing_service: "/pulp/api/v3/signing-services/meta/",
+        }),
+      ),
+      http.post(
+        "/pulpit-core/api/v1/signing/repositories/resign",
+        async ({ request }) => {
+          resignBody = await request.json();
+          return HttpResponse.json({ id: "job-1", status: "queued" }, { status: 202 });
+        },
+      ),
+      http.get("/pulpit-core/api/v1/jobs/job-1", () =>
+        HttpResponse.json({
+          id: "job-1",
+          job_type: "signing.resign_repository_packages",
+          status: "success",
+          result: {
+            evaluated: 12,
+            candidates: 3,
+            signed: 2,
+            cache_hits: 1,
+            failed: 0,
+            skipped: 0,
+          },
+          error: null,
+        }),
+      ),
+    );
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Re-sign now" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Re-sign" }));
+
+    expect(
+      await within(dialog).findByText("Checked 12 packages: 2 re-signed, 1 reused"),
+    ).toBeInTheDocument();
+    expect(resignBody).toEqual({ repository_href: RPM_REPO_FIXTURE.pulp_href });
+    // Also tracked in the Tasks drawer, like a sync or publish.
+    expect(
+      await screen.findByText(`Re-sign repository "${RPM_REPO_FIXTURE.name}"`),
+    ).toBeInTheDocument();
   });
 
   it("publishes the repository and tracks the task", async () => {

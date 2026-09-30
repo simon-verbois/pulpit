@@ -24,8 +24,9 @@ from app.adapters.pulp import PulpAdapterError, PulpClient
 from app.core.auth import CurrentUser, FullUser, require_authenticated_user, require_staff_user
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.jobs.models import JobStatus
 from app.core.jobs.schemas import JobRead
-from app.core.jobs.service import enqueue_job, mark_succeeded
+from app.core.jobs.service import enqueue_job, find_matching_pending_job, mark_succeeded
 from app.modules.signing import service
 from app.modules.signing.jobs import configure_repository_signing as apply_repository_signing
 from app.modules.signing.models import PulpServicePurpose, PulpServiceStatus, SigningPulpService
@@ -49,6 +50,10 @@ def get_current_policy(
     reachable with no session/credentials whatsoever. Just needs
     authentication, not staff, like `/configure` - this only reveals the
     current global signing policy, never enqueues anything."""
+    return _current_policy(db)
+
+
+def _current_policy(db: Session) -> RepositorySigningStatus:
     settings_row = service.get_settings_row(db)
     active_key = service.get_active_key(db)
 
@@ -78,18 +83,27 @@ def get_current_policy(
     )
 
 
+def _valid_rpm_repository_href(value: str) -> str:
+    base = re.escape(get_settings().pulp_api_base_path)
+    if not re.fullmatch(base + r"/repositories/rpm/rpm/[0-9a-fA-F-]{36}/", value):
+        raise ValueError("Expected a relative RPM repository href")
+    return value
+
+
 class ConfigureRepositorySigningRequest(BaseModel):
     repository_href: str
     sign_packages: bool | None = None
     sign_metadata: bool | None = None
 
-    @field_validator("repository_href")
-    @classmethod
-    def valid_repository_href(cls, value: str) -> str:
-        base = re.escape(get_settings().pulp_api_base_path)
-        if not re.fullmatch(base + r"/repositories/rpm/rpm/[0-9a-fA-F-]{36}/", value):
-            raise ValueError("Expected a relative RPM repository href")
-        return value
+    _valid_repository_href = field_validator("repository_href")(_valid_rpm_repository_href)
+
+
+def _caller_pulp_client(http_request: Request) -> PulpClient:
+    headers = {
+        name: value for name in ("cookie", "authorization", "x-csrftoken")
+        if (value := http_request.headers.get(name))
+    }
+    return PulpClient(get_settings(), caller_headers=headers)
 
 
 @router.post("/configure", response_model=JobRead, status_code=202)
@@ -99,13 +113,9 @@ def configure_repository_signing(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(require_authenticated_user),
 ) -> JobRead:
-    headers = {
-        name: value for name in ("cookie", "authorization", "x-csrftoken")
-        if (value := http_request.headers.get(name))
-    }
     # Only the caller's credentials are used for GET/PATCH. Pulp itself
     # enforces object permissions, including global and superuser roles.
-    pulp = PulpClient(get_settings(), caller_headers=headers)
+    pulp = _caller_pulp_client(http_request)
     try:
         result = apply_repository_signing(db, request.model_dump(), pulp)
     except PulpAdapterError as exc:
@@ -140,5 +150,80 @@ def apply_signing_to_all_repositories(
         {},
         requested_by=user.username,
     )
+    db.commit()
+    return JobRead.model_validate(job)
+
+
+class ResignRepositoryRequest(BaseModel):
+    repository_href: str
+
+    _valid_repository_href = field_validator("repository_href")(_valid_rpm_repository_href)
+
+
+@router.post("/resign", response_model=JobRead, status_code=202)
+def resign_repository(
+    request: ResignRepositoryRequest,
+    http_request: Request,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_authenticated_user),
+) -> JobRead:
+    """The per-repository "Re-sign" action: makes sure one repository is
+    fully under the current signing policy - both its Pulp signing fields
+    and every package already in it - for when the automatic paths
+    (post-sync detection, key publish, apply-to-all) didn't get it there.
+
+    Authorization mirrors `/configure`, not `/apply-to-all`: the policy is
+    first re-applied to the repository with the caller's OWN credentials, so
+    Pulp's object permissions decide whether this user may change this
+    repository at all - the (worker-credentialed) resign job is only queued
+    once that PATCH has been accepted. The job is then a full pass (no
+    `since_version`), ignoring the sync-state watermark: every package in
+    the latest version is checked against the active fingerprint, and
+    whatever isn't signed with it gets resigned."""
+    policy = _current_policy(db)
+    if not (policy.package_signing_enabled or policy.metadata_signing_enabled):
+        raise HTTPException(status_code=409, detail="Repository signing is not enabled")
+
+    href = request.repository_href
+    pulp = _caller_pulp_client(http_request)
+    try:
+        configured = apply_repository_signing(
+            db,
+            {
+                "repository_href": href,
+                "sign_packages": policy.package_signing_enabled or None,
+                "sign_metadata": policy.metadata_signing_enabled or None,
+            },
+            pulp,
+        )
+    except PulpAdapterError as exc:
+        raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    configure_task = configured["pulp_task"]
+    if policy.package_signing_enabled and policy.package_signing_fingerprint:
+        job_type = "signing.resign_repository_packages"
+        payload: dict = {"repository_href": href, "fingerprint": policy.package_signing_fingerprint}
+        existing = find_matching_pending_job(db, job_type, payload_subset=payload)
+        if existing is not None:
+            # Same dedup as `_enqueue_resign_job` (jobs.py). A still-queued
+            # incremental job from the post-sync detector is widened to a
+            # full pass instead of queueing a second one.
+            if existing.status == JobStatus.QUEUED:
+                existing.payload = {
+                    key: value for key, value in existing.payload.items()
+                    if key not in ("since_version", "target_version")
+                } | ({"configure_task": configure_task} if configure_task else {})
+            db.commit()
+            return JobRead.model_validate(existing)
+    else:
+        # Metadata-only policy: a publish is all it takes (Pulp signs
+        # repomd.xml on every publish).
+        job_type = "signing.publish_repository_metadata"
+        payload = {"repository_href": href}
+    if configure_task:
+        payload["configure_task"] = configure_task
+    job = enqueue_job(db, job_type, payload, requested_by=user.username)
     db.commit()
     return JobRead.model_validate(job)

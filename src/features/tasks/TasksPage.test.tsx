@@ -6,6 +6,7 @@ import { server } from "../../test/mswServer";
 import { renderApp } from "../../test/renderApp";
 import {
   ACCESS_USER_FIXTURE,
+  JOB_FIXTURE_RESIGN,
   RPM_REPO_FIXTURE,
   TASK_HISTORY_FIXTURE_COMPLETED,
   TASK_HISTORY_FIXTURE_FAILED,
@@ -16,6 +17,39 @@ import { TasksPage } from "./TasksPage";
 const BASE = "/pulp/api/v3/tasks/";
 
 describe("TasksPage", () => {
+  it("lists pulpit-core background jobs on their own tab, with their repository", async () => {
+    renderApp(<TasksPage />, { route: "/tasks?tab=jobs", path: "/tasks" });
+
+    const resignRow = await screen.findByRole("row", {
+      name: /Re-sign repository packages/,
+    });
+    expect(within(resignRow).getByText("success")).toBeInTheDocument();
+    expect(within(resignRow).getByText("admin")).toBeInTheDocument();
+    expect(
+      await within(resignRow).findByRole("link", { name: RPM_REPO_FIXTURE.name }),
+    ).toBeInTheDocument();
+
+    const failedRow = screen.getByRole("row", { name: /Apply LDAP configuration/ });
+    expect(within(failedRow).getByText("System")).toBeInTheDocument();
+
+    fireEvent.click(within(resignRow).getByRole("button", { name: "View details" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(JOB_FIXTURE_RESIGN.job_type)).toBeInTheDocument();
+    expect(within(dialog).getByText(/"evaluated": 35/)).toBeInTheDocument();
+  });
+
+  it("opens a job linked from the Tasks drawer by id", async () => {
+    renderApp(<TasksPage />, {
+      route: `/tasks?tab=jobs&job=${JOB_FIXTURE_RESIGN.id}`,
+      path: "/tasks",
+    });
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      await within(dialog).findByText("Re-sign repository packages"),
+    ).toBeInTheDocument();
+  });
+
   it("lists the seeded task history with state and created-by", async () => {
     renderApp(<TasksPage />);
 

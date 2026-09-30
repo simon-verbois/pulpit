@@ -6,6 +6,11 @@ export const rpmRemotesQueryKey = (params?: {
 
 export const rpmRemotesListRootKey = ["pulp", "rpm", "remotes"] as const;
 
+/** Nested under rpmRemotesListRootKey so a remote edit/delete refreshes the
+ * repository Overview's "Default remote" too. */
+export const rpmRemoteByHrefKey = (href: string) =>
+  [...rpmRemotesListRootKey, "byHref", href] as const;
+
 export const rpmUlnRemotesQueryKey = (params?: {
   limit: number;
   offset: number;

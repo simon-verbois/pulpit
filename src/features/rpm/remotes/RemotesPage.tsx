@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Button,
   Flex,
@@ -38,9 +39,15 @@ type RemoteKind = "standard" | "uln";
  * different Pulp objects with different fields/requirements. No Edit for
  * ULN remotes yet - only list/create/test/delete. */
 export function RemotesPage() {
-  const [kind, setKind] = useState<RemoteKind>("standard");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  // `?search=`/`?kind=uln` pre-filter the list - how a repository's
+  // Overview links to its default remote (there is no remote detail page).
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get("search") ?? "";
+  const [kind, setKind] = useState<RemoteKind>(
+    searchParams.get("kind") === "uln" ? "uln" : "standard",
+  );
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRemote, setEditingRemote] = useState<RpmRemote | null>(null);
   const [pendingDelete, setPendingDelete] = useState<RpmRemote | null>(null);

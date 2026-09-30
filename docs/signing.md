@@ -546,6 +546,32 @@ whether its Pulp fields needed a PATCH. That job's own `signing_keys`/cache chec
 per-package, what actually needs (re-)signing - so selecting a repository here is cheap even when it
 turns out nothing in it actually needed touching.
 
+### Re-signing a single repository
+
+When one repository didn't end up fully signed (a failed resign job, a
+signing-service hiccup, a PATCH that never landed), `POST
+/pulpit-core/api/v1/signing/repositories/resign` with `{"repository_href": ...}` ("Re-sign now"
+on the repository's Overview tab, shown whenever package or metadata signing is enabled globally)
+fixes just that one repository:
+
+1. Re-applies the current policy's signing services/fingerprint to the repository with the
+   **caller's own** Pulp credentials, exactly like `/configure` - Pulp's object permissions decide
+   whether this user may change this repository at all. A refused PATCH queues nothing.
+2. Queues a **full** `signing.resign_repository_packages` pass (no `since_version`, ignoring the
+   sync-state watermark) whose payload carries the PATCH's Pulp task as `configure_task`; the job
+   waits for that task before doing anything, and fails if it didn't complete. Every package in
+   the latest version is checked against the active fingerprint; the result's `evaluated` count
+   is how many were checked, `candidates` how many weren't signed with it. A metadata-only policy
+   queues `signing.publish_repository_metadata` instead.
+3. If a resign job for this `(repository, fingerprint)` is already in flight, that job is returned
+   instead of a duplicate - and if it's still queued as an incremental (post-sync) pass, it is
+   widened to a full one.
+
+The job shows up in the Tasks drawer and on the Tasks page's **Background jobs** tab
+(`GET /pulpit-core/api/v1/jobs`: newest first, staff see every job, anyone else only their own,
+periodic heartbeat jobs hidden unless `include_scheduled=true`), with the repository it acts on and
+its final result counts.
+
 ## How to rotate/publish manually
 
 `POST /pulpit-core/api/v1/signing/keys/generate` to create a NEXT key on demand, then
