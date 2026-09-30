@@ -47,6 +47,8 @@ def update_settings(db: Session, row: LdapSettings, changes: dict) -> LdapSettin
     if "require_group_dn" in changes and changes["require_group_dn"] is not None:
         require_group_dn = changes["require_group_dn"]
         row.require_group_dn = require_group_dn if require_group_dn != "" else None
+    if "ca_cert" in changes and changes["ca_cert"] is not None:
+        row.ca_cert = changes["ca_cert"] or None
     db.flush()
     return row
 
@@ -62,6 +64,7 @@ class ResolvedTestSettings:
     bind_dn: str
     bind_password: str | None
     start_tls: bool
+    ca_cert: str | None
     user_search_base: str
     user_search_filter: str
     group_search_base: str
@@ -87,6 +90,8 @@ def resolve_test_settings(row: LdapSettings, overrides: dict) -> ResolvedTestSet
         bind_dn=_pick("bind_dn"),
         bind_password=bind_password,
         start_tls=_pick("start_tls"),
+        # "" is an explicit "system CAs only" (schemas.LdapTestConnectionRequest).
+        ca_cert=_pick("ca_cert") or None,
         user_search_base=_pick("user_search_base"),
         user_search_filter=_pick("user_search_filter"),
         group_search_base=_pick("group_search_base"),

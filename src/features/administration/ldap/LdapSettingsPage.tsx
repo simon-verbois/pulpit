@@ -18,6 +18,7 @@ import {
   PageSection,
   Stack,
   StackItem,
+  TextArea,
   TextInput,
 } from "@patternfly/react-core";
 
@@ -70,6 +71,7 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
   // unchanged", not "clear" (see handleSave).
   const [bindPassword, setBindPassword] = useState("");
   const [startTls, setStartTls] = useState(settings.start_tls);
+  const [caCert, setCaCert] = useState(settings.ca_cert ?? "");
   const [userSearchBase, setUserSearchBase] = useState(settings.user_search_base);
   const [userSearchFilter, setUserSearchFilter] = useState(settings.user_search_filter);
   const [groupSearchBase, setGroupSearchBase] = useState(settings.group_search_base);
@@ -93,6 +95,7 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
     bindDn !== settings.bind_dn ||
     bindPassword !== "" ||
     startTls !== settings.start_tls ||
+    caCert !== (settings.ca_cert ?? "") ||
     userSearchBase !== settings.user_search_base ||
     userSearchFilter !== settings.user_search_filter ||
     groupSearchBase !== settings.group_search_base ||
@@ -112,6 +115,7 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
         bind_dn: bindDn,
         bind_password: bindPassword || undefined,
         start_tls: startTls,
+        ca_cert: caCert,
         user_search_base: userSearchBase,
         user_search_filter: userSearchFilter,
         group_search_base: groupSearchBase,
@@ -133,6 +137,7 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
       bind_dn: bindDn || undefined,
       bind_password: bindPassword || undefined,
       start_tls: startTls,
+      ca_cert: caCert,
       user_search_base: userSearchBase || undefined,
       user_search_filter: userSearchFilter || undefined,
       group_search_base: groupSearchBase || undefined,
@@ -204,6 +209,27 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
                   For a plain <code>ldap://</code> server that upgrades to TLS after
                   connecting. Not needed for <code>ldaps://</code>, which is already
                   encrypted from the start.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+          <FormGroup label="CA certificate (PEM)" fieldId="ldap-ca-cert">
+            <TextArea
+              id="ldap-ca-cert"
+              rows={6}
+              resizeOrientation="vertical"
+              autoComplete="off"
+              placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
+              value={caCert}
+              onChange={(_event, value) => setCaCert(value)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  The CA that signed the LDAP server's certificate, for{" "}
+                  <code>ldaps://</code> or STARTTLS - needed when it's an internal CA Pulp
+                  doesn't already trust. Several certificates may be pasted one after
+                  another. Leave blank to use the system's trusted CAs.
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>

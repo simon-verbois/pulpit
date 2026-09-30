@@ -119,3 +119,30 @@ def test_test_connection_enqueues_a_job_for_staff(db):
         assert body["status"] == "queued"
     finally:
         main_module.app.dependency_overrides.clear()
+
+
+_CA_CERT = "-----BEGIN CERTIFICATE-----\nMIIBfake\n-----END CERTIFICATE-----"
+
+
+def test_patch_settings_saves_returns_and_clears_the_ca_cert(db):
+    client = _client(db, is_staff=True)
+    try:
+        response = client.patch("/api/v1/ldap/settings", json={"ca_cert": f"\n{_CA_CERT}\n"})
+        assert response.status_code == 200
+        assert response.json()["ca_cert"] == _CA_CERT
+
+        # Omitted leaves it unchanged, "" clears it.
+        assert client.patch("/api/v1/ldap/settings", json={}).json()["ca_cert"] == _CA_CERT
+        response = client.patch("/api/v1/ldap/settings", json={"ca_cert": ""})
+        assert response.json()["ca_cert"] is None
+    finally:
+        main_module.app.dependency_overrides.clear()
+
+
+def test_patch_settings_rejects_a_ca_cert_that_is_not_pem(db):
+    client = _client(db, is_staff=True)
+    try:
+        response = client.patch("/api/v1/ldap/settings", json={"ca_cert": "not a cert"})
+        assert response.status_code == 422
+    finally:
+        main_module.app.dependency_overrides.clear()

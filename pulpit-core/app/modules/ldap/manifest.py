@@ -33,6 +33,7 @@ def build_manifest(row: LdapSettings) -> dict:
             else None
         ),
         "start_tls": row.start_tls,
+        "ca_cert": row.ca_cert,
         "user_search_base": row.user_search_base,
         "user_search_filter": row.user_search_filter,
         "group_search_base": row.group_search_base,

@@ -16,19 +16,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-
-def _validate_ca_cert_pem(value: str) -> str:
-    """Shared with the old trusted_ca module's TrustedCaCertificateCreate
-    validator (now removed) - same PEM sanity check, just applied to this
-    module's own `proxy_ca_cert` field instead."""
-    stripped = value.strip()
-    if "-----BEGIN CERTIFICATE-----" not in stripped:
-        raise ValueError(
-            "must be a PEM-encoded certificate, starting with -----BEGIN CERTIFICATE-----"
-        )
-    if "-----END CERTIFICATE-----" not in stripped:
-        raise ValueError("PEM certificate is missing its -----END CERTIFICATE----- footer")
-    return stripped
+from app.core.pem import validate_ca_cert_pem
 
 
 class DefaultSettingsRead(BaseModel):
@@ -67,7 +55,7 @@ class DefaultSettingsUpdate(BaseModel):
             # this branch since it checks `is not None` first) - nothing to
             # validate either way.
             return value
-        return _validate_ca_cert_pem(value)
+        return validate_ca_cert_pem(value)
 
 
 class ProxyCredentials(BaseModel):

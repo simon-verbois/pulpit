@@ -12,8 +12,9 @@ directly."""
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.core.pem import validate_ca_cert_pem
 from app.modules.ldap.models import LdapGroupType
 
 
@@ -26,6 +27,7 @@ class LdapSettingsRead(BaseModel):
     bind_dn: str
     bind_password_is_set: bool
     start_tls: bool
+    ca_cert: str | None
     user_search_base: str
     user_search_filter: str
     group_search_base: str
@@ -44,14 +46,16 @@ class LdapSettingsUpdate(BaseModel):
     unchanged. `bind_password` is the exception to "unset means unchanged":
     omitted leaves the stored value as-is, `""` clears it, any other value
     replaces it - same three-state convention as
-    DefaultSettingsUpdate.proxy_password. `require_group_dn` uses the same
-    convention for clearing it back to "no group required"."""
+    DefaultSettingsUpdate.proxy_password. `require_group_dn` and `ca_cert`
+    use the same convention for clearing them back to "no group required" /
+    "system CAs only"."""
 
     enabled: bool | None = None
     server_uri: str | None = None
     bind_dn: str | None = None
     bind_password: str | None = None
     start_tls: bool | None = None
+    ca_cert: str | None = None
     user_search_base: str | None = None
     user_search_filter: str | None = None
     group_search_base: str | None = None
@@ -63,6 +67,11 @@ class LdapSettingsUpdate(BaseModel):
     attr_last_name: str | None = None
     attr_email: str | None = None
 
+    @field_validator("ca_cert")
+    @classmethod
+    def _validate_ca_cert(cls, value: str | None) -> str | None:
+        return validate_ca_cert_pem(value) if value else value
+
 
 class LdapTestConnectionRequest(BaseModel):
     """Tests against whatever is currently in the form, not necessarily what
@@ -71,6 +80,8 @@ class LdapTestConnectionRequest(BaseModel):
     save a possibly-broken config" action needs. `bind_password` omitted
     means "use the already-saved one" (never a blank-clears-it convention
     here - there is nothing to save, so no reason to support clearing it).
+    `ca_cert` follows the same fallback, except `""` does mean "test with the
+    system CAs only" - the form's own CA field may have just been emptied.
 
     `group_search_base`/`group_search_filter`/`require_group_dn` are probed
     the same way `user_search_base`/`user_search_filter` already are - see
@@ -82,8 +93,14 @@ class LdapTestConnectionRequest(BaseModel):
     bind_dn: str | None = None
     bind_password: str | None = None
     start_tls: bool | None = None
+    ca_cert: str | None = None
     user_search_base: str | None = None
     user_search_filter: str | None = None
     group_search_base: str | None = None
     group_search_filter: str | None = None
     require_group_dn: str | None = None
+
+    @field_validator("ca_cert")
+    @classmethod
+    def _validate_ca_cert(cls, value: str | None) -> str | None:
+        return validate_ca_cert_pem(value) if value else value

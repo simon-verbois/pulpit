@@ -197,7 +197,8 @@ def _build_test_server(
     server = ldap3.Server(
         resolved.server_uri,
         use_ssl=resolved.server_uri.startswith("ldaps://"),
-        tls=ldap3.Tls(validate=ssl.CERT_REQUIRED),
+        # ca_certs_data=None keeps ldap3's default: the system trust store.
+        tls=ldap3.Tls(validate=ssl.CERT_REQUIRED, ca_certs_data=resolved.ca_cert),
         connect_timeout=timeout,
     )
     return resolved, server

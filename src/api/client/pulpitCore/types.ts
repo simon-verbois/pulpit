@@ -234,6 +234,8 @@ export interface LdapSettings {
   bind_dn: string;
   bind_password_is_set: boolean;
   start_tls: boolean;
+  /** PEM CA the server's TLS certificate must chain to; null = system CAs only. */
+  ca_cert: string | null;
   user_search_base: string;
   user_search_filter: string;
   group_search_base: string;
@@ -256,6 +258,8 @@ export interface LdapSettingsUpdate {
    * DefaultSettingsUpdate.proxy_password. */
   bind_password?: string;
   start_tls?: boolean;
+  /** Omit to leave unchanged, "" to go back to system CAs only. */
+  ca_cert?: string;
   user_search_base?: string;
   user_search_filter?: string;
   group_search_base?: string;
@@ -278,6 +282,8 @@ export interface LdapTestConnectionRequest {
   bind_dn?: string;
   bind_password?: string;
   start_tls?: boolean;
+  /** "" tests with the system CAs only, even if a CA is saved. */
+  ca_cert?: string;
   user_search_base?: string;
   user_search_filter?: string;
   group_search_base?: string;

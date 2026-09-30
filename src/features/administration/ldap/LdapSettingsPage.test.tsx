@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
   bind_dn: "",
   bind_password_is_set: false,
   start_tls: false,
+  ca_cert: null as string | null,
   user_search_base: "",
   user_search_filter: "(uid=%(user)s)",
   group_search_base: "",
@@ -47,7 +48,33 @@ function mockSettings(overrides: Partial<typeof DEFAULT_SETTINGS> = {}) {
   );
 }
 
+const CA_CERT = "-----BEGIN CERTIFICATE-----\nMIIBfake\n-----END CERTIFICATE-----";
+
 describe("LdapSettingsPage", () => {
+  it("shows the saved CA certificate and sends an edited one on Save", async () => {
+    mockSettings({ ca_cert: CA_CERT });
+    let patchBody: Record<string, unknown> = {};
+    server.use(
+      http.patch(SETTINGS_URL, async ({ request }) => {
+        patchBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          ...DEFAULT_SETTINGS,
+          ca_cert: patchBody.ca_cert || null,
+        });
+      }),
+    );
+
+    renderApp(<LdapSettingsPage />);
+
+    const caField = await screen.findByLabelText("CA certificate (PEM)");
+    expect(caField).toHaveValue(CA_CERT);
+
+    fireEvent.change(caField, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(patchBody.ca_cert).toBe(""));
+  });
+
   it("loads and shows the current server URI", async () => {
     mockSettings({ server_uri: "ldaps://ldap.example.com:636" });
 

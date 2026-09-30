@@ -30,6 +30,9 @@ import time
 MANIFEST_PATH = "/var/lib/pulpit-signing/scripts/ldap-config.json"
 SETTINGS_PATH = "/etc/pulp/settings.py"
 LAST_APPLIED_HASH_PATH = "/etc/pulp/.pulpit-ldap-manifest-hash"
+# The manifest's optional CA certificate, written next to settings.py -
+# python-ldap only takes a CA *file* path (OPT_X_TLS_CACERTFILE), not PEM data.
+CA_CERT_PATH = "/etc/pulp/pulpit-ldap-ca.pem"
 API_SERVICE_PATH = "/run/service/pulpcore-api"
 POLL_INTERVAL_SECONDS = 30
 
@@ -66,6 +69,19 @@ def _render_settings(config: dict) -> str:
     require_group_line = (
         f"AUTH_LDAP_REQUIRE_GROUP = {config['require_group_dn']!r}\n"
         if config.get("require_group_dn")
+        else ""
+    )
+    # Per-connection options, not AUTH_LDAP_GLOBAL_OPTIONS: python-ldap only
+    # applies TLS options to a connection once OPT_X_TLS_NEWCTX creates a new
+    # TLS context for it, and that must come LAST (dicts keep insertion order,
+    # django-auth-ldap sets them in that order).
+    ca_cert_lines = (
+        "AUTH_LDAP_CONNECTION_OPTIONS = {\n"
+        + f"    ldap.OPT_X_TLS_CACERTFILE: {CA_CERT_PATH!r},\n"
+        + "    ldap.OPT_X_TLS_REQUIRE_CERT: ldap.OPT_X_TLS_DEMAND,\n"
+        + "    ldap.OPT_X_TLS_NEWCTX: 0,\n"
+        + "}\n"
+        if config.get("ca_cert")
         else ""
     )
     return (
@@ -107,6 +123,7 @@ def _render_settings(config: dict) -> str:
         + f"    'email': {config['attr_email']!r},\n"
         + "}\n"
         + require_group_line
+        + ca_cert_lines
     )
 
 
@@ -116,6 +133,21 @@ def _read_existing_settings() -> str | None:
             return fh.read()
     except FileNotFoundError:
         return None
+
+
+def _sync_ca_cert(config: dict) -> None:
+    """Writes the CA file the rendered settings point at, or removes it when
+    the manifest has none (or LDAP is disabled). Public material - 0644 so
+    pulpcore-api, which doesn't run as root, can read it."""
+    ca_cert = config.get("ca_cert") if config.get("enabled") else None
+    if ca_cert:
+        tmp_path = f"{CA_CERT_PATH}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as fh:
+            fh.write(ca_cert.strip() + "\n")
+        os.chmod(tmp_path, 0o644)
+        os.replace(tmp_path, CA_CERT_PATH)
+    elif os.path.exists(CA_CERT_PATH):
+        os.remove(CA_CERT_PATH)
 
 
 def _is_ours(content: str) -> bool:
@@ -162,6 +194,7 @@ def _reconcile_once() -> None:
         )
         return
 
+    _sync_ca_cert(manifest)
     if manifest.get("enabled"):
         with open(SETTINGS_PATH, "w", encoding="utf-8") as fh:
             fh.write(_render_settings(manifest))

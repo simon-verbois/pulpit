@@ -46,6 +46,11 @@ class LdapSettings(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # required.
     bind_password_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_tls: Mapped[bool] = mapped_column(Boolean, default=False)
+    # PEM CA certificate(s) the server's TLS certificate (ldaps:// or
+    # STARTTLS) must chain to - for a directory signed by an internal CA the
+    # container's system trust store doesn't know. Public material, returned
+    # in full like DefaultSettings.proxy_ca_cert. NULL means "system CAs only".
+    ca_cert: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user_search_base: Mapped[str] = mapped_column(String(512), default="")
     # django-auth-ldap's own %(user)s placeholder convention (AUTH_LDAP_USER_SEARCH) -

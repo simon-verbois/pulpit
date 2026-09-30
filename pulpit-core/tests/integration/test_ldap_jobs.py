@@ -456,3 +456,50 @@ def test_test_connection_probes_group_search_and_require_group_dn(db, monkeypatc
         "(objectClass=*)",
         ldap_jobs.ldap3.BASE,
     )
+
+
+_CA_CERT = "-----BEGIN CERTIFICATE-----\nMIIBfake\n-----END CERTIFICATE-----"
+
+
+def _capture_tls(monkeypatch) -> dict:
+    captured: dict = {}
+
+    def _fake_tls(**kwargs):
+        captured.update(kwargs)
+        return "tls"
+
+    monkeypatch.setattr(ldap_jobs.ldap3, "Tls", _fake_tls)
+    # The real Server rejects anything but a real Tls instance.
+    monkeypatch.setattr(ldap_jobs.ldap3, "Server", lambda uri, **kwargs: uri)
+    return captured
+
+
+def test_test_connection_trusts_the_saved_ca_cert(db, monkeypatch):
+    service.update_settings(db, service.get_settings_row(db), {"ca_cert": _CA_CERT})
+    db.commit()
+    tls = _capture_tls(monkeypatch)
+
+    ldap_jobs._build_test_server(service.get_settings_row(db), {})
+
+    assert tls["validate"] == ssl.CERT_REQUIRED
+    assert tls["ca_certs_data"] == _CA_CERT
+
+
+def test_test_connection_blank_ca_cert_override_means_system_cas_only(db, monkeypatch):
+    service.update_settings(db, service.get_settings_row(db), {"ca_cert": _CA_CERT})
+    db.commit()
+    tls = _capture_tls(monkeypatch)
+
+    ldap_jobs._build_test_server(service.get_settings_row(db), {"ca_cert": ""})
+
+    assert tls["ca_certs_data"] is None
+
+
+def test_apply_config_manifest_carries_the_ca_cert(db):
+    from app.modules.ldap.manifest import build_manifest
+
+    row = service.update_settings(
+        db, service.get_settings_row(db), {"enabled": True, "ca_cert": _CA_CERT}
+    )
+
+    assert build_manifest(row)["ca_cert"] == _CA_CERT
