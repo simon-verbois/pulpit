@@ -169,6 +169,13 @@ URL migration explicitly before changing `base_path`. A deployment that points P
 external Pulp image must install an equivalent server-side policy if it needs the API guarantee;
 the browser UI still supplies the prefix, but cannot enforce behavior for other clients.
 
+## Remote connection test
+
+The derived reference Pulp image also installs `pulp-remote-check`, the endpoint behind the RPM
+remotes page's "Test" action (docs/PULP_API.md "Remote connection test"). It makes one outbound
+request from the Pulp API process per click, using the remote's saved URL/credentials/proxy/TLS
+settings. Pointing Pulpit at an external Pulp image without it only disables that action.
+
 ## Fixture seed (first-boot sample content, opt-in)
 
 `pulpit-worker` can seed one sample Repository+Remote(+Distribution) per plugin

@@ -19,9 +19,11 @@ import {
   TextInput,
 } from "@patternfly/react-core";
 
-import { listAllRpmRemotes } from "../../../api/client/rpm/remotes";
+import { listAllRpmRemoteOptions } from "../../../api/client/rpm/remotes";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
+import { rpmRemoteOptionsQueryKey } from "../remotes/queryKeys";
+import { RemoteOptionGroups } from "./RemoteOptionGroups";
 import { useUpdateRpmRepositoryMutation } from "./useUpdateRpmRepositoryMutation";
 
 export function EditRepositoryModal({
@@ -39,8 +41,8 @@ export function EditRepositoryModal({
   const navigate = useNavigate();
 
   const remotesQuery = useQuery({
-    queryKey: ["pulp", "rpm", "remotes", "all"],
-    queryFn: listAllRpmRemotes,
+    queryKey: rpmRemoteOptionsQueryKey,
+    queryFn: listAllRpmRemoteOptions,
   });
 
   const handleSubmit = () => {
@@ -116,9 +118,7 @@ export function EditRepositoryModal({
               onChange={(_event, value) => setRemote(value)}
             >
               <FormSelectOption key="" value="" label="No default remote" />
-              {(remotesQuery.data ?? []).map((r) => (
-                <FormSelectOption key={r.pulp_href} value={r.pulp_href} label={r.name} />
-              ))}
+              <RemoteOptionGroups remotes={remotesQuery.data ?? []} />
             </FormSelect>
           </FormGroup>
           <FormGroup fieldId="repository-edit-autopublish">

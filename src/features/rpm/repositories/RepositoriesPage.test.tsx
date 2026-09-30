@@ -125,6 +125,50 @@ describe("RepositoriesPage", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
+  it("offers ULN remotes as well as standard remotes as the default remote", async () => {
+    server.use(
+      http.get("/pulp/api/v3/remotes/rpm/uln/", () =>
+        HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              pulp_href: "/pulp/api/v3/remotes/rpm/uln/uln-1/",
+              name: "ol9-baseos",
+              url: "uln://ol9_x86_64_baseos_latest",
+              uln_server_base_url: "https://linux-update.oracle.com/",
+              policy: "immediate",
+              pulp_created: "2026-08-20T11:00:00.000000Z",
+              proxy_url: null,
+              tls_validation: true,
+              hidden_fields: [],
+            },
+          ],
+        }),
+      ),
+    );
+    renderApp(<RepositoriesPage />, {
+      route: "/rpm/repositories",
+      path: "/rpm/repositories",
+    });
+
+    await screen.findByText(RPM_REPO_FIXTURE.name);
+    fireEvent.click(screen.getAllByRole("button", { name: "Create repository" })[0]);
+
+    const dialog = await screen.findByRole("dialog");
+    const select = dialog.querySelector("#repository-remote") as HTMLSelectElement;
+    expect(await within(dialog).findByRole("option", { name: "ol9-baseos" })).toHaveValue(
+      "/pulp/api/v3/remotes/rpm/uln/uln-1/",
+    );
+    expect(
+      within(select).getByRole("group", { name: "ULN remotes" }),
+    ).toBeInTheDocument();
+    expect(
+      within(select).getByRole("group", { name: "Standard remotes" }),
+    ).toBeInTheDocument();
+  });
+
   it("defaults autopublish on and sends it as part of the create request", async () => {
     let requestBody: unknown;
     server.use(

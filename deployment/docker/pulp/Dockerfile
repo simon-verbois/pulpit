@@ -11,13 +11,14 @@
 FROM docker.io/pulp/pulp:stable
 
 COPY distribution-path-policy /tmp/pulp-distribution-path-policy
+COPY remote-check /tmp/pulp-remote-check
 COPY pulpit-signing-reconciler /usr/local/bin/pulpit-signing-reconciler
 COPY s6/pulpit-signing-reconciler /etc/s6-overlay/s6-rc.d/pulpit-signing-reconciler
 COPY pulpit-ldap-reconciler /usr/local/bin/pulpit-ldap-reconciler
 COPY s6/pulpit-ldap-reconciler /etc/s6-overlay/s6-rc.d/pulpit-ldap-reconciler
 
-RUN pip install --no-cache-dir /tmp/pulp-distribution-path-policy \
- && rm -rf /tmp/pulp-distribution-path-policy \
+RUN pip install --no-cache-dir /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check \
+ && rm -rf /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check \
  && chmod 0755 /usr/local/bin/pulpit-signing-reconciler \
       /etc/s6-overlay/s6-rc.d/pulpit-signing-reconciler/run \
       /usr/local/bin/pulpit-ldap-reconciler \

@@ -654,6 +654,22 @@ const rpmHandlers = [
     );
   }),
 
+  // Pulpit's remote connection test (derived Pulp image plugin,
+  // deployment/docker/pulp/remote-check/) - always succeeds in fixtures.
+  http.post("/pulp/api/v3/pulpit/remotes/:id/test/", ({ params }) => {
+    const remote = [...remotes, ...ulnRemotes].find((r) =>
+      r.pulp_href.endsWith(`/${String(params.id)}/`),
+    );
+    if (!remote) {
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }
+    return HttpResponse.json({
+      ok: true,
+      detail: "Repository metadata retrieved.",
+      url: `${remote.url.replace(/\/+$/, "")}/repodata/repomd.xml`,
+    });
+  }),
+
   // Distributions
   http.get(DIST_BASE, ({ request }) => {
     const url = new URL(request.url);

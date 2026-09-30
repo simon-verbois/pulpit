@@ -28,6 +28,7 @@ import { useDeleteUlnRemoteMutation } from "./useDeleteUlnRemoteMutation";
 import { CreateRemoteModal } from "./CreateRemoteModal";
 import { CreateUlnRemoteModal } from "./CreateUlnRemoteModal";
 import { EditRemoteModal } from "./EditRemoteModal";
+import { TestRemoteModal } from "./TestRemoteModal";
 
 type RemoteKind = "standard" | "uln";
 
@@ -35,7 +36,7 @@ type RemoteKind = "standard" | "uln";
  * src/api/client/rpm/ulnRemotes.ts) - a small toggle switches this page
  * between the two rather than merging them into one list, since they're
  * different Pulp objects with different fields/requirements. No Edit for
- * ULN remotes yet - only list/create/delete. */
+ * ULN remotes yet - only list/create/test/delete. */
 export function RemotesPage() {
   const [kind, setKind] = useState<RemoteKind>("standard");
   const [searchInput, setSearchInput] = useState("");
@@ -44,6 +45,9 @@ export function RemotesPage() {
   const [editingRemote, setEditingRemote] = useState<RpmRemote | null>(null);
   const [pendingDelete, setPendingDelete] = useState<RpmRemote | null>(null);
   const [pendingUlnDelete, setPendingUlnDelete] = useState<RpmUlnRemote | null>(null);
+  const [testingRemote, setTestingRemote] = useState<RpmRemote | RpmUlnRemote | null>(
+    null,
+  );
   const pagination = usePulpPagination();
   const deleteMutation = useDeleteRpmRemoteMutation();
   const deleteUlnMutation = useDeleteUlnRemoteMutation();
@@ -167,6 +171,11 @@ export function RemotesPage() {
                       justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
                       <FlexItem>
+                        <Button variant="link" onClick={() => setTestingRemote(remote)}>
+                          Test
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
                         <Button variant="link" onClick={() => setEditingRemote(remote)}>
                           Edit
                         </Button>
@@ -206,13 +215,26 @@ export function RemotesPage() {
                   <Td dataLabel="Channel URL">{remote.url}</Td>
                   <Td dataLabel="ULN server">{remote.uln_server_base_url}</Td>
                   <Td dataLabel="Actions" isActionCell>
-                    <Button
-                      variant="link"
-                      isDanger
-                      onClick={() => setPendingUlnDelete(remote)}
+                    <Flex
+                      flexWrap={{ default: "nowrap" }}
+                      spaceItems={{ default: "spaceItemsNone" }}
+                      justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
-                      Delete
-                    </Button>
+                      <FlexItem>
+                        <Button variant="link" onClick={() => setTestingRemote(remote)}>
+                          Test
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button
+                          variant="link"
+                          isDanger
+                          onClick={() => setPendingUlnDelete(remote)}
+                        >
+                          Delete
+                        </Button>
+                      </FlexItem>
+                    </Flex>
                   </Td>
                 </Tr>
               ))}
@@ -226,6 +248,9 @@ export function RemotesPage() {
       ) : null}
       {isCreateOpen && kind === "uln" ? (
         <CreateUlnRemoteModal onClose={() => setIsCreateOpen(false)} />
+      ) : null}
+      {testingRemote ? (
+        <TestRemoteModal remote={testingRemote} onClose={() => setTestingRemote(null)} />
       ) : null}
       {editingRemote ? (
         <EditRemoteModal remote={editingRemote} onClose={() => setEditingRemote(null)} />

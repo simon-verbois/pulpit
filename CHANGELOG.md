@@ -9,6 +9,9 @@ footer.
 
 ### Added
 
+- "Test" action on RPM and ULN remotes: runs a real, read-only request with the remote's saved
+  configuration (ULN login included) and reports whether the repository metadata is reachable,
+  via a new `pulp-remote-check` extension in the derived Pulp image.
 - Incremental, parallel, idempotent RPM package resigning: a repository sync never re-signed
   newly-added packages under Pulpit's key before (Pulp's on-upload signing doesn't cover synced
   content), and re-signing an existing repository always reprocessed every package sequentially
@@ -52,6 +55,8 @@ footer.
 
 ### Fixed
 
+- ULN remotes were missing from the RPM repository "Default remote" select (create and edit),
+  which only listed standard remotes; both kinds are now listed, grouped by type.
 - The left nav sidebar and the Overview page's component table both "failed open" (showed every
   plugin/module) while status/nav-visibility were still loading on every page load, so a
   transient failure would never hide real navigation - correct for an actual error, but on an

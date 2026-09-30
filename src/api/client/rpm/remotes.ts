@@ -1,6 +1,7 @@
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type { PulpPage, RpmRemote, RpmRemoteCreate, RpmRemoteUpdate } from "./types";
+import { listRpmUlnRemotes } from "./ulnRemotes";
 
 const BASE = apiPath("/remotes/rpm/rpm/");
 
@@ -23,6 +24,36 @@ export function listRpmRemotes(
 export async function listAllRpmRemotes(): Promise<RpmRemote[]> {
   const page = await listRpmRemotes({ limit: 100, offset: 0 });
   return page.results;
+}
+
+export interface RpmRemoteOption {
+  pulp_href: string;
+  name: string;
+  kind: "standard" | "uln";
+}
+
+/** Every remote an RPM repository can use as its default remote - VERIFIED:
+ * `RpmRepository.remote` accepts both `/remotes/rpm/rpm/` and
+ * `/remotes/rpm/uln/` hrefs, so the repository create/edit select must list
+ * both collections (listing only the standard one hid ULN remotes entirely).
+ * Not for ACS, which only accepts standard remotes. */
+export async function listAllRpmRemoteOptions(): Promise<RpmRemoteOption[]> {
+  const [standard, uln] = await Promise.all([
+    listRpmRemotes({ limit: 100, offset: 0 }),
+    listRpmUlnRemotes({ limit: 100, offset: 0 }),
+  ]);
+  return [
+    ...standard.results.map((r) => ({
+      pulp_href: r.pulp_href,
+      name: r.name,
+      kind: "standard" as const,
+    })),
+    ...uln.results.map((r) => ({
+      pulp_href: r.pulp_href,
+      name: r.name,
+      kind: "uln" as const,
+    })),
+  ];
 }
 
 export function createRpmRemote(data: RpmRemoteCreate): Promise<RpmRemote> {

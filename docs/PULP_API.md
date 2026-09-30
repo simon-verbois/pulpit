@@ -101,6 +101,18 @@ field-level HTTP 400. PATCH requests that omit `base_path` remain valid for lega
 This is a policy of Pulpit's derived reference image, not an upstream pulpcore guarantee. External
 Pulp deployments must install an equivalent extension if direct API enforcement is required.
 
+## Remote connection test
+
+**VERIFIED in the derived reference Pulp image:** the `pulp-remote-check` extension
+(`deployment/docker/pulp/remote-check/`) adds `POST /pulp/api/v3/pulpit/remotes/<uuid>/test/` for
+RPM and ULN remotes. Pulp has no "test remote" API of its own, and a remote's secrets (ULN
+password, proxy password) are write-only, so the probe has to run server-side: it fetches
+`<remote url>/repodata/repomd.xml` with the remote's own downloader - for ULN that includes the
+`auth.login` XML-RPC call - exactly as a sync's first step would, then discards the file. It
+answers synchronously with `{"ok", "detail", "url"}`; a failed probe is still HTTP 200 with
+`ok: false`, only a missing/unviewable remote is 404 (view permission on the remote required).
+External Pulp deployments without the extension get a 404 from the "Test" action.
+
 ## Pagination
 
 Pulp's list endpoints use limit/offset-style pagination with `count`/`next`/`previous` in the

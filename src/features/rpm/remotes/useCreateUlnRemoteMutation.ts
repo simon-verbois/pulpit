@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { createRpmUlnRemote } from "../../../api/client/rpm/ulnRemotes";
 import type { RpmUlnRemoteCreate } from "../../../api/client/rpm/types";
-import { rpmUlnRemotesListRootKey } from "./queryKeys";
+import { rpmRemoteOptionsQueryKey, rpmUlnRemotesListRootKey } from "./queryKeys";
 
 /** Synchronous create (VERIFIED: 201, no task), same as a standard remote. */
 export function useCreateUlnRemoteMutation() {
@@ -12,6 +12,7 @@ export function useCreateUlnRemoteMutation() {
     mutationFn: (data: RpmUlnRemoteCreate) => createRpmUlnRemote(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rpmUlnRemotesListRootKey });
+      queryClient.invalidateQueries({ queryKey: rpmRemoteOptionsQueryKey });
     },
   });
 }

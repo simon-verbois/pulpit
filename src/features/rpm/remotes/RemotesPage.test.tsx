@@ -163,4 +163,37 @@ describe("RemotesPage", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByText("uln-fixture")).toBeInTheDocument();
   });
+
+  it("tests a saved remote's connection and shows the result", async () => {
+    renderApp(<RemotesPage />);
+
+    await screen.findByText(RPM_REMOTE_FIXTURE.name);
+    fireEvent.click(screen.getByRole("button", { name: "Test" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("Connection OK")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(`${RPM_REMOTE_FIXTURE.url}repodata/repomd.xml`),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a failed connection test with the server's reason", async () => {
+    server.use(
+      http.post("/pulp/api/v3/pulpit/remotes/:id/test/", () =>
+        HttpResponse.json({
+          ok: false,
+          detail: "Authentication refused by the server (HTTP 401).",
+          url: "uln://ol9/repodata/repomd.xml",
+        }),
+      ),
+    );
+    renderApp(<RemotesPage />);
+
+    await screen.findByText(RPM_REMOTE_FIXTURE.name);
+    fireEvent.click(screen.getByRole("button", { name: "Test" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("Connection failed")).toBeInTheDocument();
+    expect(within(dialog).getByText(/Authentication refused/)).toBeInTheDocument();
+  });
 });

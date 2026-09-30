@@ -13,3 +13,8 @@ export const rpmUlnRemotesQueryKey = (params?: {
 }) => ["pulp", "rpm", "ulnRemotes", params] as const;
 
 export const rpmUlnRemotesListRootKey = ["pulp", "rpm", "ulnRemotes"] as const;
+
+/** Standard + ULN remotes for the repository "Default remote" select. Nested
+ * under rpmRemotesListRootKey so standard-remote invalidations refresh it;
+ * ULN remote mutations invalidate it explicitly. */
+export const rpmRemoteOptionsQueryKey = [...rpmRemotesListRootKey, "options"] as const;

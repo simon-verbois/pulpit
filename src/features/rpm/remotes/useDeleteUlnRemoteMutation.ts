@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import { deleteRpmUlnRemote } from "../../../api/client/rpm/ulnRemotes";
 import { useTasksContext } from "../../../api/tasks/TasksContext";
-import { rpmUlnRemotesListRootKey } from "./queryKeys";
+import { rpmRemoteOptionsQueryKey, rpmUlnRemotesListRootKey } from "./queryKeys";
 
 export function useDeleteUlnRemoteMutation() {
   const { registerTask } = useTasksContext();
@@ -13,7 +13,7 @@ export function useDeleteUlnRemoteMutation() {
       registerTask({
         href: task,
         label: `Delete ULN remote "${name}"`,
-        invalidateKeys: [rpmUlnRemotesListRootKey],
+        invalidateKeys: [rpmUlnRemotesListRootKey, rpmRemoteOptionsQueryKey],
       });
     },
   });

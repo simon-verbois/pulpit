@@ -23,9 +23,11 @@ import {
   buildDistributionBasePath,
   distributionPathPrefix,
 } from "../../../api/distributions/basePath";
-import { listAllRpmRemotes } from "../../../api/client/rpm/remotes";
+import { listAllRpmRemoteOptions } from "../../../api/client/rpm/remotes";
 import { computeRpmRepoConfig } from "../../../api/client/rpm/repoConfig";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
+import { rpmRemoteOptionsQueryKey } from "../remotes/queryKeys";
+import { RemoteOptionGroups } from "./RemoteOptionGroups";
 import { useContentOrigin } from "../../../hooks/useContentOrigin";
 import { useCreateRpmDistributionMutation } from "../distributions/useCreateRpmDistributionMutation";
 import { useCreateRpmRepositoryMutation } from "./useCreateRpmRepositoryMutation";
@@ -54,8 +56,8 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
   const contentOrigin = useContentOrigin();
 
   const remotesQuery = useQuery({
-    queryKey: ["pulp", "rpm", "remotes", "all"],
-    queryFn: listAllRpmRemotes,
+    queryKey: rpmRemoteOptionsQueryKey,
+    queryFn: listAllRpmRemoteOptions,
   });
 
   const handleSubmit = () => {
@@ -153,9 +155,7 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
               onChange={(_event, value) => setRemote(value)}
             >
               <FormSelectOption key="" value="" label="No default remote" />
-              {(remotesQuery.data ?? []).map((r) => (
-                <FormSelectOption key={r.pulp_href} value={r.pulp_href} label={r.name} />
-              ))}
+              <RemoteOptionGroups remotes={remotesQuery.data ?? []} />
             </FormSelect>
           </FormGroup>
           <FormGroup fieldId="repository-autopublish">
