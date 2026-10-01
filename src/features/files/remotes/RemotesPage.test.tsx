@@ -12,7 +12,9 @@ describe("RemotesPage", () => {
     renderApp(<RemotesPage />);
 
     expect(await screen.findByText(FILE_REMOTE_FIXTURE.name)).toBeInTheDocument();
-    expect(screen.getByText(FILE_REMOTE_FIXTURE.url)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: `Copy ${FILE_REMOTE_FIXTURE.url}` }),
+    ).toBeInTheDocument();
     expect(screen.getByText("immediate")).toBeInTheDocument();
   });
 

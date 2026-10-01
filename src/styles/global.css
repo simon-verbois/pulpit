@@ -90,6 +90,72 @@ body {
   margin: 0;
 }
 
+/* Keep simple, single-column settings forms in a comfortable reading
+   measure on wide screens. Certificate/key fields still have ample room,
+   while labels, inputs, and helper text remain visually connected. */
+.pulpit-readable-form {
+  max-inline-size: 52rem;
+}
+
+/* The development marker remains deliberately unmistakable without
+   consuming most of the masthead on tablet-sized viewports. Its full build
+   timestamp stays available through the element's accessible name/title. */
+.pulpit-dev-banner {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #e00000;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0.6rem 2rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 48rem) {
+  .pulpit-dev-banner {
+    font-size: var(--pf-t--global--font--size--sm);
+    padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
+  }
+
+  .pulpit-dev-banner-date {
+    display: none;
+  }
+}
+
+/* PageSection and Toolbar each add vertical spacing around direct children.
+   Their intervening row gap is redundant for every toolbar + table pairing.
+   A toolbar containing only pagination needs no additional leading/trailing
+   padding either; action/filter toolbars keep that padding so their controls
+   do not touch the tabs or table. Other PageSection children retain
+   PatternFly's normal spacing. */
+.pf-v6-c-page__main-section:has(
+  > .pf-v6-c-toolbar
+    > .pf-v6-c-toolbar__content
+    > .pf-v6-c-toolbar__content-section
+    > .pf-v6-c-toolbar__item:only-child
+    > .pf-v6-c-pagination
+) {
+  --pf-v6-c-page__main-section--PaddingBlockStart: 0;
+}
+
+.pf-v6-c-page__main-section
+  > .pf-v6-c-toolbar:has(
+    > .pf-v6-c-toolbar__content
+      > .pf-v6-c-toolbar__content-section
+      > .pf-v6-c-toolbar__item:only-child
+      > .pf-v6-c-pagination
+  ):has(+ .pf-v6-c-table) {
+  --pf-v6-c-toolbar--PaddingBlockEnd: 0;
+}
+
+.pf-v6-c-page__main-section > .pf-v6-c-toolbar + .pf-v6-c-table {
+  margin-block-start: calc(var(--pf-v6-c-page__main-section--RowGap) * -1);
+}
+
 /* A plain CSS glow behind the login card, in place of PatternFly's bundled
    PF-Bkg-Generic-*.svg background art (that asset has an opaque rect + a
    gaussian-blurred shape baked into the SVG itself, which produced both a

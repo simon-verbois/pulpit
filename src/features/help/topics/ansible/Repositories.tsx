@@ -84,9 +84,10 @@ export function AnsibleRepositoriesTopic() {
         immediately. <strong>Create distribution</strong> gives you a row with an
         <code>ansible.cfg</code> client-configuration snippet (under{" "}
         <strong>Client configuration</strong>) built from the distribution's own URL, so{" "}
-        <code>ansible-galaxy</code> or Automation Hub can point straight at it.{" "}
-        <strong>Delete</strong> removes a distribution without touching the underlying
-        repository content.
+        <code>ansible-galaxy</code> or Automation Hub can point straight at it. Use the
+        row's <strong>Copy</strong> action for the complete snippet or expand its preview
+        to inspect it in place. <strong>Delete</strong> removes a distribution without
+        touching the underlying repository content.
       </Content>
       <DistributionBasePathConvention prefix="ansible" />
 

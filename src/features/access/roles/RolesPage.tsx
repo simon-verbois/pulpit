@@ -18,6 +18,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { CopyableText } from "../../../components/CopyableText";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { Role } from "../../../api/client/access/types";
 import { useAdministrationHeaderAction } from "../../administration/AdministrationHeaderActionContext";
@@ -135,7 +136,7 @@ export function RolesPage() {
         {rolesQuery.isSuccess && rolesQuery.data.results.length > 0 ? (
           <>
             {toolbar}
-            <Table aria-label="Roles" variant="compact">
+            <Table aria-label="Roles" variant="compact" gridBreakPoint="grid-lg">
               <Thead>
                 <Tr>
                   <Th>Name</Th>
@@ -149,7 +150,7 @@ export function RolesPage() {
                 {rolesQuery.data.results.map((role) => (
                   <Tr key={role.pulp_href}>
                     <Td dataLabel="Name">
-                      <code>{role.name}</code>
+                      <CopyableText value={role.name} isCode />
                     </Td>
                     <Td dataLabel="Type">{role.locked ? "Built-in" : "Custom"}</Td>
                     <Td dataLabel="Description">{role.description ?? "—"}</Td>

@@ -68,7 +68,10 @@ export function RpmRepositoriesTopic() {
         <Content component="li">
           Then go to the <strong>Distributions</strong> tab and click{" "}
           <strong>Create distribution</strong> to get a real, selectable URL you can point{" "}
-          <code>dnf</code>/<code>yum</code> at. <strong>Delete</strong> removes one.
+          <code>dnf</code>/<code>yum</code> at. <strong>Delete</strong> removes one. Its
+          generated repository configuration is shown as a compact preview; use{" "}
+          <strong>Copy</strong> to copy the complete configuration or
+          <strong>Show full configuration</strong> to inspect it in place.
         </Content>
       </Content>
       <Content component="p">

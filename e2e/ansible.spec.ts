@@ -20,7 +20,6 @@ const RUN_ID = Date.now();
 const REMOTE_NAME = `e2e-ansible-remote-${RUN_ID}`;
 const REPO_NAME = `e2e-ansible-repo-${RUN_ID}`;
 const DIST_NAME = `e2e-ansible-dist-${RUN_ID}`;
-const DIST_BASE_PATH = `ansible/${DIST_NAME}`;
 // Role content is permanent (no delete step below, and re-uploading the same
 // namespace/name/version is a real, rejected duplicate - not just a leftover
 // artifact) - unique per run like everything else here.
@@ -156,13 +155,13 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
 
     const distRow = page.getByRole("row", { name: new RegExp(DIST_NAME) });
     await expect(distRow).toBeVisible({ timeout: 15_000 });
-    await expect(distRow).toContainText(new RegExp(`server_list = ${DIST_BASE_PATH}`));
+    await expect(distRow).toContainText(new RegExp(`server_list = ${DIST_NAME}`));
 
     // --- Namespace management is scoped to this (brand new, so empty) distribution
     await page.goto("/ansible/namespaces");
     await page
       .getByRole("combobox", { name: "Distribution" })
-      .selectOption({ label: DIST_BASE_PATH });
+      .selectOption({ label: DIST_NAME });
     await expect(page.getByText("No namespaces yet")).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole("button", { name: "Create namespace" }).first().click();
@@ -179,17 +178,15 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await expect(page.getByRole("dialog")).not.toBeVisible();
     await expect(page.getByText("Pulpit E2E")).toBeVisible({ timeout: 10_000 });
 
-    // --- Cross-repository search finds the uploaded collection -------------
-    // VERIFIED live: the search index returns one row per collection version
-    // *content unit*, not one per (repository, content unit) pair - the same
-    // uploaded tarball already present in another repository from earlier
-    // testing shows only that repository here, not every repository holding
-    // it. So this only asserts the collection is findable at all, not which
-    // repository the row names.
+    // --- Cross-repository search finds a public collection -----------------
+    // `pulpit_test.demo` was deliberately deprecated above, and Galaxy's
+    // cross-repository search omits deprecated collections (VERIFIED live).
+    // Search for the stable public `ansible.posix` fixture instead; upload
+    // visibility was already verified in this repository's Collections tab.
     await page.goto("/ansible/search");
-    await page.getByPlaceholder("Search…").fill("demo");
+    await page.getByPlaceholder("Search…").fill("posix");
     await page.getByPlaceholder("Search…").press("Enter");
-    await expect(page.getByRole("gridcell", { name: "demo" }).first()).toBeVisible({
+    await expect(page.getByRole("gridcell", { name: "posix" }).first()).toBeVisible({
       timeout: 10_000,
     });
 

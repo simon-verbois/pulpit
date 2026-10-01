@@ -16,6 +16,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { CopyableText } from "../../../components/CopyableText";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { contentGuardKindFromPrn } from "../../../api/client/administration/contentGuards";
 import type { ContentGuardSummary } from "../../../api/client/administration/types";
@@ -114,7 +115,7 @@ export function ContentGuardsPage() {
         {guardsQuery.isSuccess && guardsQuery.data.results.length > 0 ? (
           <>
             {toolbar}
-            <Table aria-label="Content guards" variant="compact">
+            <Table aria-label="Content guards" variant="compact" gridBreakPoint="grid-lg">
               <Thead>
                 <Tr>
                   <Th>Name</Th>
@@ -128,7 +129,9 @@ export function ContentGuardsPage() {
                   const kindInfo = contentGuardKindFromPrn(guard.prn);
                   return (
                     <Tr key={guard.pulp_href}>
-                      <Td dataLabel="Name">{guard.name}</Td>
+                      <Td dataLabel="Name">
+                        <CopyableText value={guard.name} />
+                      </Td>
                       <Td dataLabel="Type">{kindInfo?.label ?? "Unknown"}</Td>
                       <Td dataLabel="Description">{guard.description ?? "—"}</Td>
                       <Td dataLabel="Actions" isActionCell>

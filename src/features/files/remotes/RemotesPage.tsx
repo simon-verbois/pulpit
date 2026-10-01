@@ -19,6 +19,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { CopyableText } from "../../../components/CopyableText";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { FileGitRemote, FileRemote } from "../../../api/client/file/types";
 import { useFileRemotesQuery } from "./useFileRemotesQuery";
@@ -148,7 +149,7 @@ export function RemotesPage() {
         {kind === "standard" &&
         remotesQuery.isSuccess &&
         remotesQuery.data.results.length > 0 ? (
-          <Table aria-label="File remotes" variant="compact">
+          <Table aria-label="File remotes" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
                 <Th>Name</Th>
@@ -161,7 +162,9 @@ export function RemotesPage() {
               {remotesQuery.data.results.map((remote) => (
                 <Tr key={remote.pulp_href}>
                   <Td dataLabel="Name">{remote.name}</Td>
-                  <Td dataLabel="URL">{remote.url}</Td>
+                  <Td dataLabel="URL">
+                    <CopyableText value={remote.url} />
+                  </Td>
                   <Td dataLabel="Policy">{remote.policy}</Td>
                   <Td dataLabel="Actions" isActionCell>
                     <Flex
@@ -193,7 +196,7 @@ export function RemotesPage() {
         {kind === "git" &&
         gitRemotesQuery.isSuccess &&
         gitRemotesQuery.data.results.length > 0 ? (
-          <Table aria-label="Git remotes" variant="compact">
+          <Table aria-label="Git remotes" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
                 <Th>Name</Th>
@@ -206,7 +209,9 @@ export function RemotesPage() {
               {gitRemotesQuery.data.results.map((remote) => (
                 <Tr key={remote.pulp_href}>
                   <Td dataLabel="Name">{remote.name}</Td>
-                  <Td dataLabel="Git URL">{remote.url}</Td>
+                  <Td dataLabel="Git URL">
+                    <CopyableText value={remote.url} />
+                  </Td>
                   <Td dataLabel="Git ref">{remote.git_ref}</Td>
                   <Td dataLabel="Actions" isActionCell>
                     <Flex

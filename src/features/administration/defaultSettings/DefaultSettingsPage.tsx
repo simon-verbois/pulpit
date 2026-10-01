@@ -107,7 +107,7 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
   };
 
   return (
-    <Stack hasGutter>
+    <Stack hasGutter className="pulpit-readable-form">
       <StackItem>
         <Content component="h2">Proxy</Content>
         <Content component="small">

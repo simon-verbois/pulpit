@@ -133,6 +133,12 @@ function AdministrationPageContent({
           activeKey={activeTab}
           onSelect={(_event, key) => onSelectTab(String(key))}
           mountOnEnter
+          tabListAriaLabel="Administration sections"
+          isOverflowHorizontal={{
+            showTabCount: true,
+            defaultTitleText: "More",
+            toggleAriaLabel: "More administration sections",
+          }}
         >
           <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
             <PageSection hasBodyWrapper={false}>

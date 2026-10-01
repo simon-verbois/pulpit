@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
   Button,
-  CodeBlock,
-  CodeBlockCode,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -14,6 +12,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { CopyableCodeBlock } from "../../../components/CopyableCodeBlock";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { generateRpmConfigRepo } from "../../../api/client/rpm/repoConfig";
 import type { RpmDistribution, RpmRepository } from "../../../api/client/rpm/types";
@@ -59,9 +58,11 @@ function RepoConfigCell({
   }
 
   return (
-    <CodeBlock>
-      <CodeBlockCode>{generateRpmConfigRepo(distribution, repository)}</CodeBlockCode>
-    </CodeBlock>
+    <CopyableCodeBlock
+      code={generateRpmConfigRepo(distribution, repository)}
+      copyLabel={`Copy ${distribution.name} repository configuration`}
+      previewLines={3}
+    />
   );
 }
 
@@ -121,7 +122,7 @@ export function RepositoryDistributionsTab({
               </ToolbarItem>
             </ToolbarContent>
           </Toolbar>
-          <Table aria-label="Distributions" variant="compact">
+          <Table aria-label="Distributions" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
                 <Th>Name</Th>

@@ -211,7 +211,7 @@ function PulpTasksTab() {
       {tasksQuery.isSuccess && tasksQuery.data.results.length > 0 ? (
         <>
           {toolbar}
-          <Table aria-label="Tasks" variant="compact">
+          <Table aria-label="Tasks" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
                 <Th>Task</Th>

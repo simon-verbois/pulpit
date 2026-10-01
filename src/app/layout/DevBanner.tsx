@@ -20,21 +20,14 @@ export function DevBanner() {
   return (
     <div
       role="status"
-      style={{
-        position: "fixed",
-        insetBlockStart: 0,
-        insetInlineStart: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 9999,
-        background: "#e00000",
-        color: "#fff",
-        fontSize: "1.1rem",
-        fontWeight: 700,
-        padding: "0.6rem 2rem",
-        borderRadius: "0 0 0.75rem 0.75rem",
-      }}
+      aria-label={`Development build — ${__BUILD_DATE__}`}
+      title={`Development build — ${__BUILD_DATE__}`}
+      className="pulpit-dev-banner"
     >
-      Development build — {__BUILD_DATE__}
+      <span aria-hidden="true">Development build</span>
+      <span aria-hidden="true" className="pulpit-dev-banner-date">
+        {` — ${__BUILD_DATE__}`}
+      </span>
     </div>
   );
 }

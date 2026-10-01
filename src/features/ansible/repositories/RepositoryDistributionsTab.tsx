@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
   Button,
-  CodeBlock,
-  CodeBlockCode,
   Pagination,
   Toolbar,
   ToolbarContent,
@@ -14,6 +12,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { CopyableCodeBlock } from "../../../components/CopyableCodeBlock";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type {
   AnsibleDistribution,
@@ -88,7 +87,7 @@ export function RepositoryDistributionsTab({
               </ToolbarItem>
             </ToolbarContent>
           </Toolbar>
-          <Table aria-label="Distributions" variant="compact">
+          <Table aria-label="Distributions" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
                 <Th>Name</Th>
@@ -103,9 +102,11 @@ export function RepositoryDistributionsTab({
                   <Td dataLabel="Name">{distribution.name}</Td>
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
                   <Td dataLabel="Client configuration">
-                    <CodeBlock>
-                      <CodeBlockCode>{galaxyConfigSnippet(distribution)}</CodeBlockCode>
-                    </CodeBlock>
+                    <CopyableCodeBlock
+                      code={galaxyConfigSnippet(distribution)}
+                      copyLabel={`Copy ${distribution.name} client configuration`}
+                      previewLines={3}
+                    />
                   </Td>
                   <Td dataLabel="Actions" isActionCell hasAction>
                     <Button

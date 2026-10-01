@@ -79,17 +79,22 @@ export function PrunePackagesModal({ onClose }: { onClose: () => void }) {
             />
           ) : null}
           <FormGroup label="Repositories" isRequired fieldId="prune-repositories">
-            <div style={{ maxHeight: "12rem", overflowY: "auto" }}>
+            <Flex
+              direction={{ default: "column" }}
+              spaceItems={{ default: "spaceItemsSm" }}
+              style={{ maxHeight: "12rem", overflowY: "auto" }}
+            >
               {(repositoriesQuery.data ?? []).map((repo) => (
-                <Checkbox
-                  key={repo.pulp_href}
-                  id={`prune-repo-${repo.pulp_href}`}
-                  label={repo.name}
-                  isChecked={selectedRepos.has(repo.pulp_href)}
-                  onChange={() => toggleRepo(repo.pulp_href)}
-                />
+                <FlexItem key={repo.pulp_href}>
+                  <Checkbox
+                    id={`prune-repo-${repo.pulp_href}`}
+                    label={repo.name}
+                    isChecked={selectedRepos.has(repo.pulp_href)}
+                    onChange={() => toggleRepo(repo.pulp_href)}
+                  />
+                </FlexItem>
               ))}
-            </div>
+            </Flex>
           </FormGroup>
           <FormGroup
             label="Keep packages synced/added within the last N days"

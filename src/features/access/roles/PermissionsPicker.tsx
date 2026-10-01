@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Checkbox, Content, SearchInput } from "@patternfly/react-core";
+import { Checkbox, Content, Flex, FlexItem, SearchInput } from "@patternfly/react-core";
 
 import { listAllRoles } from "../../../api/client/access/roles";
 
@@ -67,15 +67,18 @@ export function PermissionsPicker({ value, onChange }: PermissionsPickerProps) {
         {!isPending && filtered.length === 0 ? (
           <Content component="p">No permissions match "{filter}".</Content>
         ) : null}
-        {filtered.map((permission) => (
-          <Checkbox
-            key={permission}
-            id={`permission-${permission}`}
-            label={permission}
-            isChecked={value.includes(permission)}
-            onChange={(_event, checked) => toggle(permission, checked)}
-          />
-        ))}
+        <Flex direction={{ default: "column" }} spaceItems={{ default: "spaceItemsSm" }}>
+          {filtered.map((permission) => (
+            <FlexItem key={permission}>
+              <Checkbox
+                id={`permission-${permission}`}
+                label={permission}
+                isChecked={value.includes(permission)}
+                onChange={(_event, checked) => toggle(permission, checked)}
+              />
+            </FlexItem>
+          ))}
+        </Flex>
       </div>
     </div>
   );

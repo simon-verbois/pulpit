@@ -137,9 +137,20 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
 
 ## Table conventions
 
+- A toolbar immediately followed by its table does not stack the generic
+  `PageSection` row gap on top of the toolbar's own spacing. Pagination-only
+  toolbars also drop their surrounding vertical padding; toolbars with
+  actions or filters retain it so their controls stay clearly separated from
+  tabs and table headers.
 - Sortable columns where the API supports server-side ordering; otherwise client-side within the
   current page only (never silently sort only the current page and imply it's global).
 - Server-side pagination reflecting Pulp's actual `count`, matching `docs/PULP_API.md`.
+- Tables with enough columns to overflow a tablet viewport use PatternFly's responsive grid at
+  the `grid-lg` breakpoint and provide `dataLabel` on every data cell. The stacked layout keeps
+  values and row actions visible without relying on users discovering a hidden horizontal scroll.
+- Long technical identifiers and URLs use PatternFly's compact clipboard-copy treatment with
+  middle truncation. The complete value remains available in a tooltip and can be copied without
+  selecting wrapped table text.
 - Row actions via a kebab/dropdown menu; destructive actions require confirmation (see below).
 - Status is plain, semibold text via the shared `StatusIndicator`; no pills, colored dots, or
   decorative icons. Category values and tags are plain text or dedicated table columns. Color is
@@ -149,6 +160,15 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
 
 - PatternFly `Form`/`FormGroup` with explicit `<label>`s (accessibility requirement, not
   optional).
+- Related choice controls are grouped with PatternFly layout spacing: radio options with
+  descriptions use `Stack hasGutter`; dense scrollable checkbox lists use a vertical `Flex` with
+  `spaceItemsSm`. Never place repeated choices directly next to one another without a layout gap,
+  because their labels/descriptions visually merge into one block.
+- Simple single-column settings forms use the shared `pulpit-readable-form` width so fields and
+  helper text remain easy to scan on wide displays. Large technical values may use the full width
+  when their content genuinely benefits from it.
+- Multi-line client configuration is previewed in a PatternFly code block with copy and explicit
+  show-more/show-less controls instead of expanding every table row by default.
 - Validation errors shown inline, mapped from Pulp's `400` field-level error payload
   (`docs/PULP_API.md`) — not a generic "something went wrong."
 - Submit buttons disabled while a mutation is in flight; no double-submit.

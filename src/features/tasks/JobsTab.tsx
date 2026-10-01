@@ -137,7 +137,7 @@ export function JobsTab() {
       {jobsQuery.isSuccess && !isEmpty ? (
         <>
           {toolbar}
-          <Table aria-label="Background jobs" variant="compact">
+          <Table aria-label="Background jobs" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
                 <Th>Job</Th>
