@@ -10,10 +10,12 @@ export function useDeleteContainerRepositoryMutation() {
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) =>
       deleteContainerRepository(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete repository "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [containerRepositoriesListRootKey],
       });
     },

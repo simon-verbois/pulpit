@@ -69,6 +69,20 @@ describe("RepositoriesPage", () => {
   });
 
   it("syncs a repository that has a default remote and tracks the task", async () => {
+    const taskHref = "/pulp/api/v3/tasks/busy-sync/";
+    server.use(
+      http.post(`${RPM_REPO_FIXTURE.pulp_href}sync/`, () =>
+        HttpResponse.json({ task: taskHref }, { status: 202 }),
+      ),
+      http.get(taskHref, () =>
+        HttpResponse.json({
+          pulp_href: taskHref,
+          name: "Sync repository",
+          state: "running",
+          finished_at: null,
+        }),
+      ),
+    );
     renderApp(<RepositoriesPage />, { withTasksDrawer: true });
 
     await screen.findByText(RPM_REPO_FIXTURE.name);
@@ -79,6 +93,9 @@ describe("RepositoriesPage", () => {
     expect(
       await screen.findByText(`Sync repository "${RPM_REPO_FIXTURE.name}"`),
     ).toBeInTheDocument();
+    expect(syncButton).toBeDisabled();
+    expect(syncButton).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
   });
 
   it("opens a tracked task on the Tasks page when its drawer item is clicked", async () => {

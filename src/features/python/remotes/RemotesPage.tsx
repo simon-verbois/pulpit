@@ -17,6 +17,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { PythonRemote } from "../../../api/client/python/types";
 import { usePythonRemotesQuery } from "./usePythonRemotesQuery";
@@ -115,18 +116,25 @@ export function RemotesPage() {
                         justifyContent={{ default: "justifyContentFlexEnd" }}
                       >
                         <FlexItem>
-                          <Button variant="link" onClick={() => setEditingRemote(remote)}>
+                          <TaskActionButton
+                            resourceHref={remote.pulp_href}
+                            taskAction="edit"
+                            variant="link"
+                            onClick={() => setEditingRemote(remote)}
+                          >
                             Edit
-                          </Button>
+                          </TaskActionButton>
                         </FlexItem>
                         <FlexItem>
-                          <Button
+                          <TaskActionButton
+                            resourceHref={remote.pulp_href}
+                            taskAction="delete"
                             variant="link"
                             isDanger
                             onClick={() => setPendingDelete(remote)}
                           >
                             Delete
-                          </Button>
+                          </TaskActionButton>
                         </FlexItem>
                       </Flex>
                     </Td>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Button,
   ExpandableSection,
   Toolbar,
   ToolbarContent,
@@ -25,6 +24,7 @@ import { listRpmRepoMetadataFiles } from "../../../api/client/rpm/repoMetadataFi
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { EmptyState } from "../../../components/EmptyState";
 import { UploadCompsModal } from "./UploadCompsModal";
 import { rpmRepositoryByNameKey, rpmRepositoryVersionsKey } from "./queryKeys";
@@ -115,7 +115,13 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <Button onClick={() => setIsUploadCompsOpen(true)}>Upload comps.xml</Button>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="upload"
+              onClick={() => setIsUploadCompsOpen(true)}
+            >
+              Upload comps.xml
+            </TaskActionButton>
           </ToolbarItem>
         </ToolbarContent>
       </Toolbar>

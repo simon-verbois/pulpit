@@ -21,10 +21,12 @@ export function useSignContentMutation() {
         content_units: contentUnits,
         signing_service: signingService,
       }),
-    onSuccess: ({ task }, { repositoryName, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, repositoryName, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Sign content in "${repositoryName}"`,
+        resourceHrefs: [href],
+        action: "sign",
         invalidateKeys,
       });
     },

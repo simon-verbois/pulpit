@@ -32,10 +32,15 @@ export function useUploadFileContentMutation() {
         add_content_units: [content.pulp_href],
       });
     },
-    onSuccess: ({ task }, { relativePath, repositoryName, invalidateKeys }) => {
+    onSuccess: (
+      { task },
+      { relativePath, repositoryHref, repositoryName, invalidateKeys },
+    ) => {
       registerTask({
         href: task,
         label: `Add "${relativePath}" to "${repositoryName}"`,
+        resourceHrefs: [repositoryHref],
+        action: "upload",
         invalidateKeys,
       });
     },

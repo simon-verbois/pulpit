@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { expect, it } from "vitest";
 import { server } from "../../test/mswServer";
 import { contentSizeKeys } from "../client/pulpitCore/contentSize";
+import { TasksProvider } from "./TasksContext";
 import { useTrackedTask } from "./useTrackedTask";
 
 it("refreshes derived sizes when a Pulp task completes", async () => {
@@ -16,7 +17,9 @@ it("refreshes derived sizes when a Pulp task completes", async () => {
     ),
   );
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <TasksProvider>{children}</TasksProvider>
+    </QueryClientProvider>
   );
   const { result } = renderHook(
     () => {

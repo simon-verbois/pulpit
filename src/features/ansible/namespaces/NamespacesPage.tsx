@@ -20,6 +20,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { listAllAnsibleDistributions } from "../../../api/client/ansible/distributions";
 import type { GalaxyNamespace } from "../../../api/client/ansible/types";
@@ -168,21 +169,25 @@ export function NamespacesPage() {
                       justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
                       <FlexItem>
-                        <Button
+                        <TaskActionButton
+                          resourceHref={namespace.pulp_href}
+                          taskAction="edit"
                           variant="link"
                           onClick={() => setEditingNamespace(namespace)}
                         >
                           Edit
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                       <FlexItem>
-                        <Button
+                        <TaskActionButton
+                          resourceHref={namespace.pulp_href}
+                          taskAction="delete"
                           variant="link"
                           isDanger
                           onClick={() => setPendingDelete(namespace)}
                         >
                           Delete
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                     </Flex>
                   </Td>
@@ -214,7 +219,7 @@ export function NamespacesPage() {
           onCancel={() => setPendingDelete(null)}
           onConfirm={() =>
             deleteMutation.mutate(
-              { name: pendingDelete.name },
+              { name: pendingDelete.name, resourceHref: pendingDelete.pulp_href },
               { onSuccess: () => setPendingDelete(null) },
             )
           }

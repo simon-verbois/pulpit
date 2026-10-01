@@ -38,7 +38,11 @@ export function EditNamespaceModal({
 
   const handleSubmit = () => {
     updateMutation.mutate(
-      { name: namespace.name, data: { company, email, description, avatar } },
+      {
+        name: namespace.name,
+        resourceHref: namespace.pulp_href,
+        data: { company, email, description, avatar },
+      },
       { onSuccess: () => onClose() },
     );
   };

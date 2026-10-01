@@ -11,12 +11,14 @@ export function useDeleteGalaxyNamespaceMutation(distributionBasePath: string) {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ name }: { name: string }) =>
+    mutationFn: ({ name }: { name: string; resourceHref: string }) =>
       deleteGalaxyNamespace(distributionBasePath, name),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { name, resourceHref }) => {
       registerTask({
         href: task,
         label: `Delete namespace "${name}"`,
+        resourceHrefs: [resourceHref],
+        action: "delete",
         invalidateKeys: [galaxyNamespacesListRootKey(distributionBasePath)],
       });
     },

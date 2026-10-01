@@ -19,6 +19,7 @@ import type {
   RpmRemoteUpdate,
   RpmRepository,
   RpmUlnRemote,
+  RpmUlnRemoteUpdate,
 } from "../api/client/rpm/types";
 import type {
   AnsibleDistribution,
@@ -404,10 +405,7 @@ function seedAcs(): RpmAlternateContentSource[] {
   return [{ ...RPM_ACS_FIXTURE }];
 }
 function seedTasks() {
-  return new Map<
-    string,
-    { pulp_href: string; name: string; state: string; finished_at: string | null }
-  >();
+  return new Map<string, PulpTask>();
 }
 
 let repositories = seedRepositories();
@@ -418,6 +416,7 @@ let packages = seedPackages();
 let advisories = seedAdvisories();
 let acs = seedAcs();
 let tasks = seedTasks();
+let publicationRepositories = new Map<string, string>();
 
 /** Restores every RPM in-memory fixture store to its initial seed - call from `afterEach`. */
 export function resetRpmFixtures() {
@@ -430,15 +429,17 @@ export function resetRpmFixtures() {
   advisories = seedAdvisories();
   acs = seedAcs();
   tasks = seedTasks();
+  publicationRepositories = new Map();
 }
 
-function registerTask(name: string): string {
+function registerTask(name: string, createdResources?: string[]): string {
   const href = `${TASKS_BASE}${freshId()}/`;
   tasks.set(href, {
     pulp_href: href,
     name,
     state: "completed",
     finished_at: "2026-08-20T10:00:01.000000Z",
+    created_resources: createdResources,
   });
   return href;
 }
@@ -651,6 +652,33 @@ const rpmHandlers = [
     ulnRemotes = [...ulnRemotes, remote];
     return HttpResponse.json(remote, { status: 201 });
   }),
+  // VERIFIED live: ULN PATCH is asynchronous (202 + task), like standard RPM.
+  http.patch(`${ULN_REMOTE_BASE}:id/`, async ({ params, request }) => {
+    const href = `${ULN_REMOTE_BASE}${params.id}/`;
+    const body = (await request.json()) as RpmUlnRemoteUpdate;
+    ulnRemotes = ulnRemotes.map((remote) =>
+      remote.pulp_href === href
+        ? {
+            ...remote,
+            ...(body.name !== undefined ? { name: body.name } : {}),
+            ...(body.url !== undefined ? { url: body.url } : {}),
+            ...(body.uln_server_base_url !== undefined
+              ? { uln_server_base_url: body.uln_server_base_url ?? "" }
+              : {}),
+            hidden_fields: remote.hidden_fields.map((field) =>
+              (field.name === "username" || field.name === "password") &&
+              body[field.name] !== undefined
+                ? { ...field, is_set: true }
+                : field,
+            ),
+          }
+        : remote,
+    );
+    return HttpResponse.json(
+      { task: registerTask("Update ULN remote") },
+      { status: 202 },
+    );
+  }),
   http.delete(`${ULN_REMOTE_BASE}:id/`, ({ params }) => {
     const href = `${ULN_REMOTE_BASE}${params.id}/`;
     ulnRemotes = ulnRemotes.filter((r) => r.pulp_href !== href);
@@ -695,6 +723,7 @@ const rpmHandlers = [
       name: string;
       base_path: string;
       repository?: string;
+      publication?: string;
       generate_repo_config?: boolean;
     };
     const id = freshId();
@@ -704,7 +733,7 @@ const rpmHandlers = [
       base_path: body.base_path,
       base_url: `https://pulp.example.com/pulp/content/${body.base_path}/`,
       repository: body.repository ?? null,
-      publication: null,
+      publication: body.publication ?? null,
       pulp_created: "2026-08-20T11:00:00.000000Z",
       generate_repo_config: body.generate_repo_config ?? false,
     };
@@ -927,9 +956,46 @@ const rpmHandlers = [
   }),
 
   // Publications
-  http.post(PUBLICATIONS_BASE, () =>
-    HttpResponse.json({ task: registerTask("Publish repository") }, { status: 202 }),
-  ),
+  http.get(PUBLICATIONS_BASE, ({ request }) => {
+    const url = new URL(request.url);
+    const hrefs = new Set(
+      (url.searchParams.get("pulp_href__in") ?? "").split(",").filter(Boolean),
+    );
+    const repository = url.searchParams.get("repository");
+    const results = [...publicationRepositories.entries()]
+      .filter(
+        ([href, repositoryHref]) =>
+          (hrefs.size === 0 || hrefs.has(href)) &&
+          (repository === null || repositoryHref === repository),
+      )
+      .map(([pulp_href, repositoryHref]) => ({
+        pulp_href,
+        repository: repositoryHref,
+        repository_version: `${repositoryHref}versions/0/`,
+      }));
+    return HttpResponse.json({
+      count: results.length,
+      next: null,
+      previous: null,
+      results,
+    });
+  }),
+  http.post(PUBLICATIONS_BASE, async ({ request }) => {
+    const body = (await request.json()) as {
+      repository?: string;
+      repository_version?: string;
+    };
+    const publicationHref = `${PUBLICATIONS_BASE}${freshId()}/`;
+    const repositoryHref =
+      body.repository ?? body.repository_version?.split("versions/")[0];
+    if (repositoryHref) publicationRepositories.set(publicationHref, repositoryHref);
+    return HttpResponse.json(
+      {
+        task: registerTask("Publish repository", [publicationHref]),
+      },
+      { status: 202 },
+    );
+  }),
 
   // Tasks
   http.get(`${TASKS_BASE}:id/`, ({ params }) => {

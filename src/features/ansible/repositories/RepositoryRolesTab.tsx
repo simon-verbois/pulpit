@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { AnsibleRepository } from "../../../api/client/ansible/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useAnsibleRolesQuery } from "../roles/useAnsibleRolesQuery";
@@ -31,7 +26,13 @@ export function RepositoryRolesTab({ repository }: { repository: AnsibleReposito
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem>
-              <Button onClick={() => setIsUploadOpen(true)}>Upload role</Button>
+              <TaskActionButton
+                resourceHref={repository.pulp_href}
+                taskAction="upload"
+                onClick={() => setIsUploadOpen(true)}
+              >
+                Upload role
+              </TaskActionButton>
             </ToolbarItem>
             <ToolbarItem align={{ default: "alignEnd" }}>
               <Pagination
@@ -56,7 +57,15 @@ export function RepositoryRolesTab({ repository }: { repository: AnsibleReposito
         emptyTitle="No roles in this repository yet"
         emptyBody="Sync a remote or upload a role to add content to this repository."
         emptyStateVariant="sm"
-        emptyAction={<Button onClick={() => setIsUploadOpen(true)}>Upload role</Button>}
+        emptyAction={
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="upload"
+            onClick={() => setIsUploadOpen(true)}
+          >
+            Upload role
+          </TaskActionButton>
+        }
       />
 
       {isUploadOpen ? (

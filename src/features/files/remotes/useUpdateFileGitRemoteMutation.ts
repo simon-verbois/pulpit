@@ -17,10 +17,12 @@ export function useUpdateFileGitRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateFileGitRemote(href, data),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Update Git remote "${name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [fileGitRemotesListRootKey],
       });
     },

@@ -9,10 +9,12 @@ export function useDeleteNpmDistributionMutation() {
 
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) => deleteNpmDistribution(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete distribution "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [npmDistributionsListRootKey],
       });
     },

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 
 import { server } from "../../../test/mswServer";
-import { createRpmUlnRemote, deleteRpmUlnRemote, listRpmUlnRemotes } from "./ulnRemotes";
+import {
+  createRpmUlnRemote,
+  deleteRpmUlnRemote,
+  listRpmUlnRemotes,
+  updateRpmUlnRemote,
+} from "./ulnRemotes";
 
 const BASE = "/pulp/api/v3/remotes/rpm/uln/";
 
@@ -55,5 +60,29 @@ describe("rpm uln remotes adapter", () => {
   it("deletes a ULN remote and returns a task href", async () => {
     const result = await deleteRpmUlnRemote(`${BASE}remote-1/`);
     expect(result.task).toMatch(/^\/pulp\/api\/v3\/tasks\//);
+  });
+
+  it("updates a ULN remote asynchronously without requiring unchanged credentials", async () => {
+    let requestBody: unknown;
+    server.use(
+      http.patch(`${BASE}:id/`, async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(
+          { task: "/pulp/api/v3/tasks/update-uln-remote-task/" },
+          { status: 202 },
+        );
+      }),
+    );
+
+    const result = await updateRpmUlnRemote(`${BASE}remote-1/`, {
+      url: "uln://ol9_x86_64_baseos_latest",
+      uln_server_base_url: "https://linux-update.oracle.com/",
+    });
+
+    expect(requestBody).toEqual({
+      url: "uln://ol9_x86_64_baseos_latest",
+      uln_server_base_url: "https://linux-update.oracle.com/",
+    });
+    expect(result.task).toBe("/pulp/api/v3/tasks/update-uln-remote-task/");
   });
 });

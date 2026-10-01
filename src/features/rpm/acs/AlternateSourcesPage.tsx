@@ -16,6 +16,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import type { RpmAlternateContentSource } from "../../../api/client/rpm/types";
@@ -106,7 +107,9 @@ export function AlternateSourcesPage() {
                         justifyContent={{ default: "justifyContentFlexEnd" }}
                       >
                         <FlexItem>
-                          <Button
+                          <TaskActionButton
+                            resourceHref={acs.pulp_href}
+                            taskAction="refresh"
                             variant="link"
                             isDisabled={refreshMutation.isPending}
                             onClick={() =>
@@ -117,16 +120,18 @@ export function AlternateSourcesPage() {
                             }
                           >
                             Refresh
-                          </Button>
+                          </TaskActionButton>
                         </FlexItem>
                         <FlexItem>
-                          <Button
+                          <TaskActionButton
+                            resourceHref={acs.pulp_href}
+                            taskAction="delete"
                             variant="link"
                             isDanger
                             onClick={() => setPendingDelete(acs)}
                           >
                             Delete
-                          </Button>
+                          </TaskActionButton>
                         </FlexItem>
                       </Flex>
                     </Td>

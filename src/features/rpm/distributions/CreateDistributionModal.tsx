@@ -1,29 +1,39 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  Alert,
   Button,
   Flex,
   FlexItem,
   Form,
   FormGroup,
+  FormSelect,
+  FormSelectOption,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
+  Radio,
+  Stack,
+  StackItem,
 } from "@patternfly/react-core";
 
-import { BasePathField } from "../../../components/BasePathField";
+import { ErrorState } from "../../../components/ErrorState";
+import { LoadingState } from "../../../components/LoadingState";
 import {
   buildDistributionBasePath,
-  distributionPathPrefix,
+  buildVersionedDistributionName,
 } from "../../../api/distributions/basePath";
 import { computeRpmRepoConfig } from "../../../api/client/rpm/repoConfig";
+import { listAllRepositoryVersions } from "../../../api/client/rpm/repositories";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { useContentOrigin } from "../../../hooks/useContentOrigin";
-import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useUpdateRpmRepositoryMutation } from "../repositories/useUpdateRpmRepositoryMutation";
 import { usePublishRpmRepositoryMutation } from "../repositories/usePublishRpmRepositoryMutation";
+import { rpmRepositoryVersionOptionsKey } from "../repositories/queryKeys";
 import { useCreateRpmDistributionMutation } from "./useCreateRpmDistributionMutation";
+import { useCreatePinnedRpmDistributionMutation } from "./useCreatePinnedRpmDistributionMutation";
+
+type DistributionTarget = "latest" | "version";
 
 interface CreateDistributionModalProps {
   repository: RpmRepository;
@@ -34,25 +44,44 @@ interface CreateDistributionModalProps {
  * RepositoryDistributionsTab) - there's no standalone "create for any
  * repository" flow, so the repository is fixed, not a picker.
  *
- * Also brings this repository's `repo_config` up to date with its current
- * signing configuration and re-publishes before the new distribution goes
- * live - VERIFIED live: `repo_config` changes are read from the
- * *publication*, not the live repository, so a stale one (e.g. this
- * repository predates signing being turned on, or was never explicitly
- * configured) would otherwise keep serving an outdated `config.repo`
- * indefinitely. Both requests reserve the same repository resource, so
- * Pulp's own per-resource task queue runs them in this submitted order
- * (VERIFIED live) - no manual wait-for-task-completion needed here. */
+ * A latest distribution points at the repository and follows future
+ * publications. A pinned distribution first publishes the selected immutable
+ * RepositoryVersion, waits for that publication resource, then points at it. */
 export function CreateDistributionModal({
   repository,
   onClose,
 }: CreateDistributionModalProps) {
-  const [basePathSuffix, setBasePathSuffix] = useState("");
-  const basePath = buildDistributionBasePath("rpm", basePathSuffix);
+  const [target, setTarget] = useState<DistributionTarget>("latest");
+  const [selectedVersionHref, setSelectedVersionHref] = useState("");
   const contentOrigin = useContentOrigin();
   const updateRepositoryMutation = useUpdateRpmRepositoryMutation();
   const publishMutation = usePublishRpmRepositoryMutation();
   const createMutation = useCreateRpmDistributionMutation();
+  const createPinnedMutation = useCreatePinnedRpmDistributionMutation();
+  const versionsQuery = useQuery({
+    queryKey: rpmRepositoryVersionOptionsKey(repository.versions_href),
+    queryFn: () => listAllRepositoryVersions(repository.versions_href),
+    enabled: target === "version",
+  });
+  const effectiveVersion =
+    versionsQuery.data?.find((version) => version.pulp_href === selectedVersionHref) ??
+    versionsQuery.data?.[0];
+  const effectiveVersionHref = effectiveVersion?.pulp_href ?? "";
+  const distributionName = buildVersionedDistributionName(
+    repository.name,
+    target === "version" ? effectiveVersion?.number : undefined,
+  );
+  const basePath = buildDistributionBasePath("rpm", distributionName);
+  const isSubmitting =
+    updateRepositoryMutation.isPending ||
+    publishMutation.isPending ||
+    createMutation.isPending ||
+    createPinnedMutation.isPending;
+  const mutationError =
+    updateRepositoryMutation.error ??
+    publishMutation.error ??
+    createMutation.error ??
+    createPinnedMutation.error;
 
   const handleSubmit = () => {
     updateRepositoryMutation.mutate({
@@ -66,20 +95,28 @@ export function CreateDistributionModal({
         ),
       },
     });
+    const distribution = {
+      name: distributionName,
+      base_path: basePath,
+      generate_repo_config: true,
+    };
+
+    if (target === "version") {
+      createPinnedMutation.mutate(
+        {
+          repositoryHref: repository.pulp_href,
+          repositoryName: repository.name,
+          repositoryVersionHref: effectiveVersionHref,
+          distribution,
+        },
+        { onSuccess: () => onClose() },
+      );
+      return;
+    }
+
     publishMutation.mutate({ href: repository.pulp_href, name: repository.name });
-    // Pulp requires a `name` distinct from `base_path`, but both are
-    // globally-unique free-text identifiers (VERIFIED live) - reusing the
-    // user-entered suffix as the name avoids asking for the same thing
-    // twice, without the "rpm/" module prefix that only `base_path` needs
-    // (that prefix is what namespaces the URL, not a meaningful part of a
-    // human-facing name).
     createMutation.mutate(
-      {
-        name: basePathSuffix,
-        base_path: basePath,
-        repository: repository.pulp_href,
-        generate_repo_config: true,
-      },
+      { ...distribution, repository: repository.pulp_href },
       { onSuccess: () => onClose() },
     );
   };
@@ -97,27 +134,80 @@ export function CreateDistributionModal({
       />
       <ModalBody>
         <Form>
-          {createMutation.isError ? (
-            <Alert
-              variant="danger"
-              isInline
-              title={
-                createMutation.error instanceof PulpApiError
-                  ? createMutation.error.message
-                  : "Could not create the distribution."
-              }
-            />
-          ) : null}
-          <FormGroup label="Base path" isRequired fieldId="distribution-base-path">
-            <BasePathField
-              id="distribution-base-path"
-              isRequired
-              prefix={`${contentOrigin}/pulp/content/${distributionPathPrefix("rpm")}`}
-              placeholder="my-repo"
-              value={basePathSuffix}
-              onChange={setBasePathSuffix}
-            />
+          {mutationError ? <ErrorState error={mutationError} /> : null}
+          <FormGroup label="Content" isRequired role="group">
+            <Stack hasGutter role="radiogroup" aria-label="Distribution content">
+              <StackItem>
+                <Radio
+                  id="distribution-target-latest"
+                  name="distribution-target"
+                  label="Follow the latest published version"
+                  description="This distribution updates whenever a new publication is created."
+                  isChecked={target === "latest"}
+                  onChange={() => setTarget("latest")}
+                />
+              </StackItem>
+              <StackItem>
+                <Radio
+                  id="distribution-target-version"
+                  name="distribution-target"
+                  label="Pin a repository version"
+                  description="This distribution remains on the selected version until it is changed."
+                  isChecked={target === "version"}
+                  onChange={() => setTarget("version")}
+                />
+              </StackItem>
+            </Stack>
           </FormGroup>
+          {target === "version" ? (
+            <FormGroup
+              label="Repository version"
+              isRequired
+              fieldId="distribution-repository-version"
+            >
+              {versionsQuery.isPending ? (
+                <LoadingState label="Loading repository versions" />
+              ) : null}
+              {versionsQuery.isError ? (
+                <ErrorState
+                  error={versionsQuery.error}
+                  onRetry={() => versionsQuery.refetch()}
+                />
+              ) : null}
+              {versionsQuery.isSuccess ? (
+                <FormSelect
+                  id="distribution-repository-version"
+                  aria-label="Repository version"
+                  value={effectiveVersionHref}
+                  onChange={(_event, value) => setSelectedVersionHref(value)}
+                  isDisabled={versionsQuery.data.length === 0}
+                  isRequired
+                >
+                  {versionsQuery.data.length === 0 ? (
+                    <FormSelectOption value="" label="No retained versions" isDisabled />
+                  ) : null}
+                  {versionsQuery.data.map((version) => {
+                    const packageCount =
+                      version.content_summary?.present?.["rpm.package"]?.count;
+                    const current = version.pulp_href === repository.latest_version_href;
+                    const details = [
+                      current ? "current" : null,
+                      packageCount === undefined ? null : `${packageCount} packages`,
+                    ].filter(Boolean);
+                    return (
+                      <FormSelectOption
+                        key={version.pulp_href}
+                        value={version.pulp_href}
+                        label={`Version ${version.number}${
+                          details.length > 0 ? ` (${details.join(", ")})` : ""
+                        }`}
+                      />
+                    );
+                  })}
+                </FormSelect>
+              ) : null}
+            </FormGroup>
+          ) : null}
         </Form>
       </ModalBody>
       <ModalFooter>
@@ -126,15 +216,15 @@ export function CreateDistributionModal({
           style={{ width: "100%" }}
         >
           <FlexItem>
-            <Button variant="link" onClick={onClose}>
+            <Button variant="link" onClick={onClose} isDisabled={isSubmitting}>
               Cancel
             </Button>
           </FlexItem>
           <FlexItem>
             <Button
               variant="primary"
-              isDisabled={!basePathSuffix || createMutation.isPending}
-              isLoading={createMutation.isPending}
+              isDisabled={isSubmitting || (target === "version" && !effectiveVersionHref)}
+              isLoading={isSubmitting}
               onClick={handleSubmit}
             >
               Create

@@ -15,10 +15,12 @@ export function usePublishFileRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: PublishArgs) => createFilePublication(href),
-    onSuccess: ({ task }, { name, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, name, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Publish repository "${name}"`,
+        resourceHrefs: [href],
+        action: "publish",
         invalidateKeys,
       });
     },

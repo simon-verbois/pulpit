@@ -15,10 +15,12 @@ export function usePublishDebRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: PublishArgs) => createDebPublication(href),
-    onSuccess: ({ task }, { name, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, name, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Publish repository "${name}"`,
+        resourceHrefs: [href],
+        action: "publish",
         invalidateKeys,
       });
     },

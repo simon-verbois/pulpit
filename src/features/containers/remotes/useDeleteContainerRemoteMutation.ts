@@ -9,10 +9,12 @@ export function useDeleteContainerRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) => deleteContainerRemote(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete remote "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [containerRemotesListRootKey],
       });
     },

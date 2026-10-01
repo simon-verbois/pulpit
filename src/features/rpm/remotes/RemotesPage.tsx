@@ -21,6 +21,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { CopyableText } from "../../../components/CopyableText";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { RpmRemote, RpmUlnRemote } from "../../../api/client/rpm/types";
 import { useRpmRemotesQuery } from "./useRpmRemotesQuery";
@@ -30,6 +31,7 @@ import { useDeleteUlnRemoteMutation } from "./useDeleteUlnRemoteMutation";
 import { CreateRemoteModal } from "./CreateRemoteModal";
 import { CreateUlnRemoteModal } from "./CreateUlnRemoteModal";
 import { EditRemoteModal } from "./EditRemoteModal";
+import { EditUlnRemoteModal } from "./EditUlnRemoteModal";
 import { TestRemoteModal } from "./TestRemoteModal";
 
 type RemoteKind = "standard" | "uln";
@@ -37,8 +39,7 @@ type RemoteKind = "standard" | "uln";
 /** Oracle ULN is a second, separate remote "flavor" (see
  * src/api/client/rpm/ulnRemotes.ts) - a small toggle switches this page
  * between the two rather than merging them into one list, since they're
- * different Pulp objects with different fields/requirements. No Edit for
- * ULN remotes yet - only list/create/test/delete. */
+ * different Pulp objects with different fields/requirements. */
 export function RemotesPage() {
   // `?search=`/`?kind=uln` pre-filter the list - how a repository's
   // Overview links to its default remote (there is no remote detail page).
@@ -51,6 +52,7 @@ export function RemotesPage() {
   const [search, setSearch] = useState(initialSearch);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRemote, setEditingRemote] = useState<RpmRemote | null>(null);
+  const [editingUlnRemote, setEditingUlnRemote] = useState<RpmUlnRemote | null>(null);
   const [pendingDelete, setPendingDelete] = useState<RpmRemote | null>(null);
   const [pendingUlnDelete, setPendingUlnDelete] = useState<RpmUlnRemote | null>(null);
   const [testingRemote, setTestingRemote] = useState<RpmRemote | RpmUlnRemote | null>(
@@ -181,23 +183,35 @@ export function RemotesPage() {
                       justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
                       <FlexItem>
-                        <Button variant="link" onClick={() => setTestingRemote(remote)}>
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="test"
+                          variant="link"
+                          onClick={() => setTestingRemote(remote)}
+                        >
                           Test
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                       <FlexItem>
-                        <Button variant="link" onClick={() => setEditingRemote(remote)}>
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="edit"
+                          variant="link"
+                          onClick={() => setEditingRemote(remote)}
+                        >
                           Edit
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                       <FlexItem>
-                        <Button
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="delete"
                           variant="link"
                           isDanger
                           onClick={() => setPendingDelete(remote)}
                         >
                           Delete
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                     </Flex>
                   </Td>
@@ -235,18 +249,35 @@ export function RemotesPage() {
                       justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
                       <FlexItem>
-                        <Button variant="link" onClick={() => setTestingRemote(remote)}>
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="test"
+                          variant="link"
+                          onClick={() => setTestingRemote(remote)}
+                        >
                           Test
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                       <FlexItem>
-                        <Button
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="edit"
+                          variant="link"
+                          onClick={() => setEditingUlnRemote(remote)}
+                        >
+                          Edit
+                        </TaskActionButton>
+                      </FlexItem>
+                      <FlexItem>
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="delete"
                           variant="link"
                           isDanger
                           onClick={() => setPendingUlnDelete(remote)}
                         >
                           Delete
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                     </Flex>
                   </Td>
@@ -268,6 +299,12 @@ export function RemotesPage() {
       ) : null}
       {editingRemote ? (
         <EditRemoteModal remote={editingRemote} onClose={() => setEditingRemote(null)} />
+      ) : null}
+      {editingUlnRemote ? (
+        <EditUlnRemoteModal
+          remote={editingUlnRemote}
+          onClose={() => setEditingUlnRemote(null)}
+        />
       ) : null}
       {pendingDelete ? (
         <ConfirmDeleteModal

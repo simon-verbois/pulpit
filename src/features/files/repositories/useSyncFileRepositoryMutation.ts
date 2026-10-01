@@ -15,10 +15,12 @@ export function useSyncFileRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: SyncArgs) => syncFileRepository(href),
-    onSuccess: ({ task }, { name, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, name, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Sync repository "${name}"`,
+        resourceHrefs: [href],
+        action: "sync",
         invalidateKeys,
       });
     },

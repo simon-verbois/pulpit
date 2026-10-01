@@ -10,10 +10,12 @@ export function useDeleteCollectionRemoteMutation() {
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) =>
       deleteCollectionRemote(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete remote "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [collectionRemotesListRootKey],
       });
     },

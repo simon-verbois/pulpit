@@ -17,10 +17,12 @@ export function useUpdateContainerRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateContainerRemote(href, data),
-    onSuccess: ({ task }, { name, data }) => {
+    onSuccess: ({ task }, { href, name, data }) => {
       registerTask({
         href: task,
         label: `Update remote "${data.name ?? name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [containerRemotesListRootKey],
       });
     },

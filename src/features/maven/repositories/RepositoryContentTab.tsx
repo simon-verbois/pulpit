@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { MavenRepository } from "../../../api/client/maven/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useMavenContentQuery } from "../content/useMavenContentQuery";
@@ -29,7 +24,13 @@ export function RepositoryContentTab({ repository }: { repository: MavenReposito
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <Button onClick={() => setIsUploadOpen(true)}>Upload artifact</Button>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="upload"
+              onClick={() => setIsUploadOpen(true)}
+            >
+              Upload artifact
+            </TaskActionButton>
           </ToolbarItem>
           <ToolbarItem align={{ default: "alignEnd" }}>
             <Pagination

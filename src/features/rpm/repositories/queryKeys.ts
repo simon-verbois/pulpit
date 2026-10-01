@@ -25,3 +25,6 @@ export function rpmRepositoryVersionsKey(
     ? (["pulp", "rpm", "repositoryVersions", versionsHref, params] as const)
     : (["pulp", "rpm", "repositoryVersions", versionsHref] as const);
 }
+
+export const rpmRepositoryVersionOptionsKey = (versionsHref: string) =>
+  ["pulp", "rpm", "repositoryVersions", versionsHref, "options"] as const;

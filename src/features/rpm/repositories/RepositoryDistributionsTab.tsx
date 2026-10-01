@@ -13,6 +13,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { CopyableCodeBlock } from "../../../components/CopyableCodeBlock";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { generateRpmConfigRepo } from "../../../api/client/rpm/repoConfig";
 import type { RpmDistribution, RpmRepository } from "../../../api/client/rpm/types";
@@ -126,7 +127,6 @@ export function RepositoryDistributionsTab({
             <Thead>
               <Tr>
                 <Th>Name</Th>
-                <Th>Base path</Th>
                 <Th>Repo config</Th>
                 <Th screenReaderText="Actions" />
               </Tr>
@@ -135,18 +135,19 @@ export function RepositoryDistributionsTab({
               {distributionsQuery.data.results.map((distribution) => (
                 <Tr key={distribution.pulp_href}>
                   <Td dataLabel="Name">{distribution.name}</Td>
-                  <Td dataLabel="Base path">{distribution.base_path}</Td>
                   <Td dataLabel="Repo config">
                     <RepoConfigCell distribution={distribution} repository={repository} />
                   </Td>
                   <Td dataLabel="Actions" isActionCell hasAction>
-                    <Button
+                    <TaskActionButton
+                      resourceHref={distribution.pulp_href}
+                      taskAction="delete"
                       variant="link"
                       isDanger
                       onClick={() => setPendingDelete(distribution)}
                     >
                       Delete
-                    </Button>
+                    </TaskActionButton>
                   </Td>
                 </Tr>
               ))}

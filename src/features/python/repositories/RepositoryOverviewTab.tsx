@@ -1,5 +1,4 @@
 import {
-  Button,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -7,6 +6,7 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { PythonRepository } from "../../../api/client/python/types";
 import {
   pythonRepositoriesListRootKey,
@@ -51,7 +51,9 @@ export function RepositoryOverviewTab({ repository }: { repository: PythonReposi
       <DescriptionListGroup>
         <DescriptionListTerm>Publish</DescriptionListTerm>
         <DescriptionListDescription>
-          <Button
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="publish"
             variant="secondary"
             isDisabled={publishMutation.isPending}
             isLoading={publishMutation.isPending}
@@ -68,13 +70,15 @@ export function RepositoryOverviewTab({ repository }: { repository: PythonReposi
             }
           >
             Publish now
-          </Button>
+          </TaskActionButton>
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Sync</DescriptionListTerm>
         <DescriptionListDescription>
-          <Button
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="sync"
             isDisabled={!repository.remote || syncMutation.isPending}
             isLoading={syncMutation.isPending}
             title={
@@ -95,7 +99,7 @@ export function RepositoryOverviewTab({ repository }: { repository: PythonReposi
             }
           >
             Sync now
-          </Button>
+          </TaskActionButton>
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>

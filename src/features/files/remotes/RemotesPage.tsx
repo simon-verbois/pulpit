@@ -20,6 +20,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { CopyableText } from "../../../components/CopyableText";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type { FileGitRemote, FileRemote } from "../../../api/client/file/types";
 import { useFileRemotesQuery } from "./useFileRemotesQuery";
@@ -173,18 +174,25 @@ export function RemotesPage() {
                       justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
                       <FlexItem>
-                        <Button variant="link" onClick={() => setEditingRemote(remote)}>
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="edit"
+                          variant="link"
+                          onClick={() => setEditingRemote(remote)}
+                        >
                           Edit
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                       <FlexItem>
-                        <Button
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="delete"
                           variant="link"
                           isDanger
                           onClick={() => setPendingDelete(remote)}
                         >
                           Delete
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                     </Flex>
                   </Td>
@@ -220,21 +228,25 @@ export function RemotesPage() {
                       justifyContent={{ default: "justifyContentFlexEnd" }}
                     >
                       <FlexItem>
-                        <Button
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="edit"
                           variant="link"
                           onClick={() => setEditingGitRemote(remote)}
                         >
                           Edit
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                       <FlexItem>
-                        <Button
+                        <TaskActionButton
+                          resourceHref={remote.pulp_href}
+                          taskAction="delete"
                           variant="link"
                           isDanger
                           onClick={() => setPendingGitDelete(remote)}
                         >
                           Delete
-                        </Button>
+                        </TaskActionButton>
                       </FlexItem>
                     </Flex>
                   </Td>

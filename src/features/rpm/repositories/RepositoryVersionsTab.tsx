@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 import { listRepositoryVersions } from "../../../api/client/rpm/repositories";
@@ -14,6 +8,7 @@ import type { RpmRepository } from "../../../api/client/rpm/types";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { StatusIndicator } from "../../../components/StatusIndicator";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { formatRelativeTime } from "../../../lib/relativeTime";
@@ -107,9 +102,14 @@ export function RepositoryVersionsTab({ repository }: { repository: RpmRepositor
                     </Td>
                     <Td dataLabel="Actions" isActionCell>
                       {isCurrent ? (
-                        <Button variant="link" onClick={() => setIsCopyOpen(true)}>
+                        <TaskActionButton
+                          resourceHref={repository.pulp_href}
+                          taskAction="copy"
+                          variant="link"
+                          onClick={() => setIsCopyOpen(true)}
+                        >
                           Copy to…
-                        </Button>
+                        </TaskActionButton>
                       ) : null}
                     </Td>
                   </Tr>

@@ -190,6 +190,17 @@ export interface RpmUlnRemoteCreate {
   policy?: RemotePolicy;
 }
 
+/** PATCH body - credentials are optional so omitting either write-only field
+ * preserves the value already stored by Pulp. */
+export interface RpmUlnRemoteUpdate {
+  name?: string;
+  url?: string;
+  uln_server_base_url?: string | null;
+  username?: string;
+  password?: string;
+  policy?: RemotePolicy;
+}
+
 export interface RpmDistribution {
   pulp_href: string;
   name: string;
@@ -205,10 +216,19 @@ export interface RpmDistribution {
   generate_repo_config: boolean;
 }
 
+/** Minimal publication shape used to resolve which repository owns a
+ * publication-backed (version-pinned) distribution. */
+export interface RpmPublicationSummary {
+  pulp_href: string;
+  repository: string;
+  repository_version: string;
+}
+
 export interface RpmDistributionCreate {
   name: string;
   base_path: string;
   repository?: string | null;
+  publication?: string | null;
   generate_repo_config?: boolean;
 }
 
@@ -406,6 +426,10 @@ type _RpmSchemaDriftChecks = {
     components["schemas"]["rpm.UlnRemote"],
     RpmUlnRemoteCreate
   >;
+  RpmUlnRemoteUpdate: AssertFieldsExist<
+    components["schemas"]["Patchedrpm.UlnRemote"],
+    RpmUlnRemoteUpdate
+  >;
   RpmDistribution: AssertFieldsExist<
     components["schemas"]["rpm.RpmDistributionResponse"],
     RpmDistribution
@@ -417,6 +441,10 @@ type _RpmSchemaDriftChecks = {
   RpmDistributionUpdate: AssertFieldsExist<
     components["schemas"]["Patchedrpm.RpmDistribution"],
     RpmDistributionUpdate
+  >;
+  RpmPublicationSummary: AssertFieldsExist<
+    components["schemas"]["rpm.RpmPublicationResponse"],
+    RpmPublicationSummary
   >;
   ContentSummary: AssertFieldsExist<
     components["schemas"]["ContentSummaryResponse"],
@@ -491,9 +519,11 @@ const _rpmSchemaDriftChecks: _RpmSchemaDriftChecks = {
   RpmRemoteUpdate: true,
   RpmUlnRemote: true,
   RpmUlnRemoteCreate: true,
+  RpmUlnRemoteUpdate: true,
   RpmDistribution: true,
   RpmDistributionCreate: true,
   RpmDistributionUpdate: true,
+  RpmPublicationSummary: true,
   ContentSummary: true,
   RepositoryVersion: true,
   RpmPackage: true,

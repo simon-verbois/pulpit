@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
 import type {
   ContainerRepository,
@@ -19,6 +13,7 @@ import {
   containerRepositoryVersionsKey,
 } from "./queryKeys";
 import { useUntagImageMutation } from "./useTagImageMutation";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { TagImageModal } from "./TagImageModal";
 
 export function RepositoryTagsTab({ repository }: { repository: ContainerRepository }) {
@@ -49,7 +44,13 @@ export function RepositoryTagsTab({ repository }: { repository: ContainerReposit
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <Button onClick={() => setIsTagOpen(true)}>Tag image…</Button>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="tag"
+              onClick={() => setIsTagOpen(true)}
+            >
+              Tag image…
+            </TaskActionButton>
           </ToolbarItem>
           <ToolbarItem align={{ default: "alignEnd" }}>
             <Pagination
@@ -74,6 +75,7 @@ export function RepositoryTagsTab({ repository }: { repository: ContainerReposit
         emptyBody="Sync a remote or tag a manifest to add a tag to this repository."
         emptyStateVariant="sm"
         onUntag={handleUntag}
+        taskResourceHref={repository.pulp_href}
       />
 
       {isTagOpen ? (

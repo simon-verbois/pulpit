@@ -18,10 +18,12 @@ export function useUpdateAnsibleRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateAnsibleRepository(href, data),
-    onSuccess: ({ task }, { name, data }) => {
+    onSuccess: ({ task }, { href, name, data }) => {
       registerTask({
         href: task,
         label: `Update repository "${data.name ?? name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [
           ansibleRepositoryByNameKey(name),
           ...(data.name && data.name !== name

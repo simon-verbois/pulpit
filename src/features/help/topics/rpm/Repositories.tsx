@@ -68,9 +68,17 @@ export function RpmRepositoriesTopic() {
         <Content component="li">
           Then go to the <strong>Distributions</strong> tab and click{" "}
           <strong>Create distribution</strong> to get a real, selectable URL you can point{" "}
-          <code>dnf</code>/<code>yum</code> at. <strong>Delete</strong> removes one. Its
-          generated repository configuration is shown as a compact preview; use{" "}
-          <strong>Copy</strong> to copy the complete configuration or
+          <code>dnf</code>/<code>yum</code> at. Keep{" "}
+          <strong>Follow the latest published version</strong> selected for an URL that
+          advances with future publications, or choose{" "}
+          <strong>Pin a repository version</strong> for an URL that remains on one
+          retained snapshot. Pulpit publishes the selected snapshot before creating a
+          pinned distribution. Pulpit generates the base path automatically from the
+          repository name; pinned paths receive the selected version suffix (for example,
+          <code> -v2</code>). The tab lists both kinds together, including every pinned
+          distribution created for an older version. <strong>Delete</strong> removes a
+          distribution. Its generated repository configuration is shown as a compact
+          preview; use <strong>Copy</strong> to copy the complete configuration or
           <strong>Show full configuration</strong> to inspect it in place.
         </Content>
       </Content>

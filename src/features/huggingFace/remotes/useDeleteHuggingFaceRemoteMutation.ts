@@ -12,10 +12,12 @@ export function useDeleteHuggingFaceRemoteMutation() {
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) =>
       deleteHuggingFaceRemote(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete remote "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [huggingFaceRemotesListRootKey],
       });
     },

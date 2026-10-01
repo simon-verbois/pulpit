@@ -27,10 +27,12 @@ export function useUploadGemContentMutation() {
         add_content_units: [content.pulp_href],
       });
     },
-    onSuccess: ({ task }, { file, repositoryName, invalidateKeys }) => {
+    onSuccess: ({ task }, { file, repositoryHref, repositoryName, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Add "${file.name}" to "${repositoryName}"`,
+        resourceHrefs: [repositoryHref],
+        action: "upload",
         invalidateKeys,
       });
     },

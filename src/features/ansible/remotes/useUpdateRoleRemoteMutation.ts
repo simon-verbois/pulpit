@@ -17,10 +17,12 @@ export function useUpdateRoleRemoteMutation() {
       name: string;
       data: RoleRemoteUpdate;
     }) => updateRoleRemote(href, data),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Update remote "${name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [roleRemotesListRootKey],
       });
     },

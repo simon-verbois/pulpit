@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Button,
   Flex,
   FlexItem,
   PageSection,
@@ -15,6 +14,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { useUrlTab } from "../../../hooks/useUrlTab";
 import { useHuggingFaceRepositoryByNameQuery } from "./useHuggingFaceRepositoryByNameQuery";
 import { useDeleteHuggingFaceRepositoryMutation } from "./useDeleteHuggingFaceRepositoryMutation";
@@ -83,14 +83,24 @@ export function RepositoryDetailPage() {
         actions={
           <Flex spaceItems={{ default: "spaceItemsSm" }}>
             <FlexItem>
-              <Button variant="secondary" onClick={() => setIsEditOpen(true)}>
+              <TaskActionButton
+                resourceHref={repository.pulp_href}
+                taskAction="edit"
+                variant="secondary"
+                onClick={() => setIsEditOpen(true)}
+              >
                 Edit
-              </Button>
+              </TaskActionButton>
             </FlexItem>
             <FlexItem>
-              <Button variant="danger" onClick={() => setIsConfirmingDelete(true)}>
+              <TaskActionButton
+                resourceHref={repository.pulp_href}
+                taskAction="delete"
+                variant="danger"
+                onClick={() => setIsConfirmingDelete(true)}
+              >
                 Delete repository
-              </Button>
+              </TaskActionButton>
             </FlexItem>
           </Flex>
         }

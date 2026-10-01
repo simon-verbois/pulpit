@@ -19,10 +19,12 @@ export function useDeprecateCollectionMutation() {
 
   return useMutation({
     mutationFn: (data: DeprecateArgs) => deprecateCollection(data),
-    onSuccess: ({ task }, { namespace, name }) => {
+    onSuccess: ({ task }, { namespace, name, repository }) => {
       registerTask({
         href: task,
         label: `Deprecate "${namespace}.${name}"`,
+        resourceHrefs: [repository],
+        action: "deprecate",
         invalidateKeys: [collectionDeprecationsListRootKey],
       });
     },

@@ -19,10 +19,12 @@ export function useUploadRpmAdvisoryMutation() {
   return useMutation({
     mutationFn: ({ file, repositoryHref }: UploadArgs) =>
       uploadRpmAdvisory(file, repositoryHref),
-    onSuccess: ({ task }, { file, repositoryName, invalidateKeys }) => {
+    onSuccess: ({ task }, { file, repositoryHref, repositoryName, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Add "${file.name}" to "${repositoryName}"`,
+        resourceHrefs: [repositoryHref],
+        action: "upload",
         invalidateKeys,
       });
     },

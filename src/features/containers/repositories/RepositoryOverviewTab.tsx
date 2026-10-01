@@ -1,5 +1,4 @@
 import {
-  Button,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -7,6 +6,7 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { ContainerRepository } from "../../../api/client/container/types";
 import {
   containerRepositoriesListRootKey,
@@ -56,7 +56,9 @@ export function RepositoryOverviewTab({
       <DescriptionListGroup>
         <DescriptionListTerm>Sync</DescriptionListTerm>
         <DescriptionListDescription>
-          <Button
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="sync"
             isDisabled={!repository.remote || syncMutation.isPending}
             isLoading={syncMutation.isPending}
             title={
@@ -77,7 +79,7 @@ export function RepositoryOverviewTab({
             }
           >
             Sync now
-          </Button>
+          </TaskActionButton>
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>

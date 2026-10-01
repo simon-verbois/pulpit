@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useRpmAdvisoriesQuery } from "../advisories/useRpmAdvisoriesQuery";
@@ -31,7 +26,13 @@ export function RepositoryAdvisoriesTab({ repository }: { repository: RpmReposit
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem>
-              <Button onClick={() => setIsUploadOpen(true)}>Upload advisory</Button>
+              <TaskActionButton
+                resourceHref={repository.pulp_href}
+                taskAction="upload"
+                onClick={() => setIsUploadOpen(true)}
+              >
+                Upload advisory
+              </TaskActionButton>
             </ToolbarItem>
             <ToolbarItem align={{ default: "alignEnd" }}>
               <Pagination
@@ -57,7 +58,13 @@ export function RepositoryAdvisoriesTab({ repository }: { repository: RpmReposit
         emptyBody="Sync a remote whose content includes updateinfo, or upload one directly."
         emptyStateVariant="sm"
         emptyAction={
-          <Button onClick={() => setIsUploadOpen(true)}>Upload advisory</Button>
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="upload"
+            onClick={() => setIsUploadOpen(true)}
+          >
+            Upload advisory
+          </TaskActionButton>
         }
       />
 

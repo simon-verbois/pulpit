@@ -17,10 +17,12 @@ export function useUpdateDebRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateDebRepository(href, data),
-    onSuccess: ({ task }, { name, data }) => {
+    onSuccess: ({ task }, { href, name, data }) => {
       registerTask({
         href: task,
         label: `Update repository "${data.name ?? name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [
           debRepositoryByNameKey(name),
           // The name itself may have just changed - also invalidate the new

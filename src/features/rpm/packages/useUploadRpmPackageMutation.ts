@@ -26,10 +26,12 @@ export function useUploadRpmPackageMutation() {
       const pkg = await uploadRpmPackage(file);
       return modifyRpmRepository(repositoryHref, { add_content_units: [pkg.pulp_href] });
     },
-    onSuccess: ({ task }, { file, repositoryName, invalidateKeys }) => {
+    onSuccess: ({ task }, { file, repositoryHref, repositoryName, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Add "${file.name}" to "${repositoryName}"`,
+        resourceHrefs: [repositoryHref],
+        action: "upload",
         invalidateKeys,
       });
     },

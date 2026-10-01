@@ -4,7 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTask } from "./useTask";
 import { useJob } from "../client/pulpitCore/useJob";
 import { contentSizeKeys } from "../client/pulpitCore/contentSize";
-import type { TrackedTask } from "./TasksContext";
+import { useTasksContext, type TrackedTask } from "./TasksContext";
+import { TERMINAL_TASK_STATES } from "../client/tasks";
+
+const TERMINAL_JOB_STATUSES = new Set(["success", "failed"]);
 
 /**
  * Wraps useTask with the pulp-tasks skill's "invalidate on completion" rule:
@@ -16,7 +19,14 @@ import type { TrackedTask } from "./TasksContext";
 export function useTrackedTask(task: TrackedTask) {
   const query = useTask(task.href);
   const queryClient = useQueryClient();
+  const { setTaskActive } = useTasksContext();
   const invalidatedRef = useRef(false);
+
+  useEffect(() => {
+    if (query.data?.state) {
+      setTaskActive(task.href, !TERMINAL_TASK_STATES.has(query.data.state));
+    }
+  }, [query.data?.state, setTaskActive, task.href]);
 
   useEffect(() => {
     if (query.data?.state === "completed" && !invalidatedRef.current) {
@@ -36,7 +46,14 @@ export function useTrackedTask(task: TrackedTask) {
 export function useTrackedJob(task: TrackedTask) {
   const query = useJob(task.href);
   const queryClient = useQueryClient();
+  const { setTaskActive } = useTasksContext();
   const invalidatedRef = useRef(false);
+
+  useEffect(() => {
+    if (query.data?.status) {
+      setTaskActive(task.href, !TERMINAL_JOB_STATUSES.has(query.data.status));
+    }
+  }, [query.data?.status, setTaskActive, task.href]);
 
   useEffect(() => {
     if (query.data?.status === "success" && !invalidatedRef.current) {

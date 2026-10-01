@@ -34,15 +34,19 @@ export function useCopyContentMutation() {
       ]);
       return { tags, manifests };
     },
-    onSuccess: ({ tags, manifests }, { destRepositoryName }) => {
+    onSuccess: ({ tags, manifests }, { destRepositoryHref, destRepositoryName }) => {
       registerTask({
         href: tags.task,
         label: `Copy tags to "${destRepositoryName}"`,
+        resourceHrefs: [destRepositoryHref],
+        action: "copy",
         invalidateKeys: [containerRepositoriesListRootKey],
       });
       registerTask({
         href: manifests.task,
         label: `Copy manifests to "${destRepositoryName}"`,
+        resourceHrefs: [destRepositoryHref],
+        action: "copy",
         invalidateKeys: [containerRepositoriesListRootKey],
       });
     },

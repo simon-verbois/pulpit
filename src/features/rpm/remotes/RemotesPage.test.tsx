@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../../test/mswServer";
 import { renderApp } from "../../../test/renderApp";
 import { RPM_REMOTE_FIXTURE } from "../../../test/handlers";
+import { createRpmUlnRemote } from "../../../api/client/rpm/ulnRemotes";
 import { RemotesPage } from "./RemotesPage";
 
 describe("RemotesPage", () => {
@@ -148,11 +149,8 @@ describe("RemotesPage", () => {
     fireEvent.change(dialog.querySelector("#uln-remote-url") as HTMLInputElement, {
       target: { value: "uln://el7_x86_64_oracle_ksplice" },
     });
-    fireEvent.change(
-      dialog.querySelector("#uln-remote-server-base-url") as HTMLInputElement,
-      {
-        target: { value: "https://linux-update.oracle.com/" },
-      },
+    expect(dialog.querySelector("#uln-remote-server-base-url")).toHaveValue(
+      "https://linux-update.oracle.com/",
     );
     fireEvent.change(dialog.querySelector("#uln-remote-username") as HTMLInputElement, {
       target: { value: "test" },
@@ -164,6 +162,36 @@ describe("RemotesPage", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByText("uln-fixture")).toBeInTheDocument();
+  });
+
+  it("edits a configured ULN remote and tracks the task", async () => {
+    await createRpmUlnRemote({
+      name: "uln-fixture",
+      url: "uln://el7_x86_64_oracle_ksplice",
+      uln_server_base_url: "https://linux-update.oracle.com/",
+      username: "saved-user",
+      password: "saved-password",
+    });
+    renderApp(<RemotesPage />, { withTasksDrawer: true });
+
+    await screen.findByText(RPM_REMOTE_FIXTURE.name);
+    fireEvent.click(screen.getByRole("button", { name: "ULN" }));
+
+    expect(await screen.findByText("uln-fixture")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getAllByText(/Currently set - leave blank/i)).toHaveLength(2);
+    fireEvent.change(dialog.querySelector("#uln-remote-edit-url") as HTMLInputElement, {
+      target: { value: "uln://ol9_x86_64_baseos_latest" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(
+      await screen.findByText('Update ULN remote "uln-fixture"'),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("uln://ol9_x86_64_baseos_latest")).toBeInTheDocument();
   });
 
   it("tests a saved remote's connection and shows the result", async () => {

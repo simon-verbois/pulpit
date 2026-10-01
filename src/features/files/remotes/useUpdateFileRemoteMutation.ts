@@ -17,10 +17,12 @@ export function useUpdateFileRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateFileRemote(href, data),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Update remote "${name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [fileRemotesListRootKey],
       });
     },

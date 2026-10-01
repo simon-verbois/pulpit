@@ -15,10 +15,12 @@ export function usePublishPythonRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: PublishArgs) => createPythonPublication(href),
-    onSuccess: ({ task }, { name, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, name, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Publish repository "${name}"`,
+        resourceHrefs: [href],
+        action: "publish",
         invalidateKeys,
       });
     },

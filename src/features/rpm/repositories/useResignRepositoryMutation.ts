@@ -17,11 +17,13 @@ export function useResignRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: ResignArgs) => resignRepository(href),
-    onSuccess: (job, { name, invalidateKeys }) => {
+    onSuccess: (job, { href, name, invalidateKeys }) => {
       registerTask({
         kind: "job",
         href: job.id,
         label: `Re-sign repository "${name}"`,
+        resourceHrefs: [href],
+        action: "resign",
         invalidateKeys,
       });
     },

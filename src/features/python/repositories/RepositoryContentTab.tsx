@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { PythonRepository } from "../../../api/client/python/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { usePythonContentQuery } from "../content/usePythonContentQuery";
@@ -29,7 +24,13 @@ export function RepositoryContentTab({ repository }: { repository: PythonReposit
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <Button onClick={() => setIsUploadOpen(true)}>Upload package</Button>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="upload"
+              onClick={() => setIsUploadOpen(true)}
+            >
+              Upload package
+            </TaskActionButton>
           </ToolbarItem>
           <ToolbarItem align={{ default: "alignEnd" }}>
             <Pagination

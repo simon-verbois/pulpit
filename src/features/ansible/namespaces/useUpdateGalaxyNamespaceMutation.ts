@@ -7,6 +7,7 @@ import { galaxyNamespacesListRootKey } from "./queryKeys";
 
 interface UpdateArgs {
   name: string;
+  resourceHref: string;
   data: GalaxyNamespaceUpdate;
 }
 
@@ -17,10 +18,12 @@ export function useUpdateGalaxyNamespaceMutation(distributionBasePath: string) {
   return useMutation({
     mutationFn: ({ name, data }: UpdateArgs) =>
       updateGalaxyNamespace(distributionBasePath, name, data),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { name, resourceHref }) => {
       registerTask({
         href: task,
         label: `Update namespace "${name}"`,
+        resourceHrefs: [resourceHref],
+        action: "edit",
         invalidateKeys: [galaxyNamespacesListRootKey(distributionBasePath)],
       });
     },

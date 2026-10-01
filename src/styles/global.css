@@ -216,6 +216,16 @@ body {
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
+/* PatternFly gives every disabled button variant the same filled gray
+   background. That is appropriate for primary/secondary controls, but turns
+   a compact row of link actions into a segmented gray bar. Keep PatternFly's
+   disabled text color and semantics while preserving the transparent link
+   surface; TaskActionButton supplies a small inline spinner only on the
+   action that is actually running. */
+.pulpit-task-action.pf-v6-c-button.pf-m-link {
+  --pf-v6-c-button--disabled--BackgroundColor: transparent;
+}
+
 /* The product mark is the navigation control; the adjacent wordmark is
    deliberately outside its hover/focus surface. */
 .pulpit-brand-lockup {

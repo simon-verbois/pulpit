@@ -20,10 +20,12 @@ export function useUpdateContainerRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateContainerRepository(href, data),
-    onSuccess: ({ task }, { name, data }) => {
+    onSuccess: ({ task }, { href, name, data }) => {
       registerTask({
         href: task,
         label: `Update repository "${data.name ?? name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [
           containerRepositoryByNameKey(name),
           ...(data.name && data.name !== name

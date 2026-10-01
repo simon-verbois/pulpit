@@ -9,10 +9,12 @@ export function useDeleteRoleRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) => deleteRoleRemote(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete remote "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [roleRemotesListRootKey],
       });
     },

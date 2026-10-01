@@ -16,10 +16,12 @@ export function useCopyContentMutation() {
   return useMutation({
     mutationFn: ({ sourceRepositoryVersionHref, destRepositoryHref }: CopyContentArgs) =>
       copyAnsibleContent(sourceRepositoryVersionHref, destRepositoryHref),
-    onSuccess: ({ task }, { destRepositoryName }) => {
+    onSuccess: ({ task }, { destRepositoryHref, destRepositoryName }) => {
       registerTask({
         href: task,
         label: `Copy content to "${destRepositoryName}"`,
+        resourceHrefs: [destRepositoryHref],
+        action: "copy",
         invalidateKeys: [ansibleRepositoriesListRootKey],
       });
     },

@@ -10,10 +10,12 @@ export function useDeleteHuggingFaceRepositoryMutation() {
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) =>
       deleteHuggingFaceRepository(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete repository "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [huggingFaceRepositoriesListRootKey],
       });
     },

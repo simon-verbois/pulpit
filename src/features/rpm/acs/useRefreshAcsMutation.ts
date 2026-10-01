@@ -10,10 +10,12 @@ export function useRefreshAcsMutation() {
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) =>
       refreshAlternateContentSource(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Refresh alternate content source "${name}"`,
+        resourceHrefs: [href],
+        action: "refresh",
         invalidateKeys: [acsListRootKey],
       });
     },

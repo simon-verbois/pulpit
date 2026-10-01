@@ -14,6 +14,12 @@ export function TasksTopic() {
         waiting, running, completed, failed, or canceled. This quick view only covers
         what's happened since you loaded the page — reloading clears it.
       </Content>
+      <Content component="p">
+        While an action is waiting or running, its button shows a spinner and the other
+        actions for that same item are disabled. Wait for the task to finish before trying
+        another action on it; this protection follows the item if you move between its
+        list and detail pages.
+      </Content>
       <Content component="h3">Full task history</Content>
       <Content component="p">
         The <strong>Tasks</strong> page in the sidebar is different — it's Pulp's own

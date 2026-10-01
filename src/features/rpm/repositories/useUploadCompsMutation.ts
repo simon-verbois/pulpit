@@ -17,10 +17,12 @@ export function useUploadCompsMutation() {
   return useMutation({
     mutationFn: ({ file, repositoryHref }: UploadCompsArgs) =>
       uploadComps(file, repositoryHref),
-    onSuccess: ({ task }, { file, repositoryName, invalidateKeys }) => {
+    onSuccess: ({ task }, { file, repositoryHref, repositoryName, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Add "${file.name}" to "${repositoryName}"`,
+        resourceHrefs: [repositoryHref],
+        action: "upload",
         invalidateKeys,
       });
     },

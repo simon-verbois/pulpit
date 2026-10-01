@@ -10,10 +10,12 @@ export function useDeleteAcsMutation() {
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) =>
       deleteAlternateContentSource(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete alternate content source "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [acsListRootKey],
       });
     },

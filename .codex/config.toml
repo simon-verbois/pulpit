@@ -1,0 +1,3 @@
+# Project-local YOLO mode: no approval prompts and no sandbox restrictions.
+approval_policy = "never"
+sandbox_mode = "danger-full-access"

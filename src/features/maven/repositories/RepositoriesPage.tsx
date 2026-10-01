@@ -17,6 +17,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { RepositorySizeCell } from "../../../components/RepositorySizeCell";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useRepositoryContentSizesQuery } from "../../../hooks/useRepositoryContentSizesQuery";
 import type { MavenRepository } from "../../../api/client/maven/types";
@@ -128,13 +129,15 @@ export function RepositoriesPage() {
                       />
                     </Td>
                     <Td dataLabel="Actions" isActionCell>
-                      <Button
+                      <TaskActionButton
+                        resourceHref={repository.pulp_href}
+                        taskAction="delete"
                         variant="link"
                         isDanger
                         onClick={() => setPendingDelete(repository)}
                       >
                         Delete
-                      </Button>
+                      </TaskActionButton>
                     </Td>
                   </Tr>
                 ))}

@@ -13,6 +13,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import type {
   ContainerDistribution,
@@ -95,13 +96,15 @@ export function RepositoryDistributionsTab({
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
                   <Td dataLabel="Pull command">{`podman pull ${distribution.registry_path}`}</Td>
                   <Td dataLabel="Actions" isActionCell hasAction>
-                    <Button
+                    <TaskActionButton
+                      resourceHref={distribution.pulp_href}
+                      taskAction="delete"
                       variant="link"
                       isDanger
                       onClick={() => setPendingDelete(distribution)}
                     >
                       Delete
-                    </Button>
+                    </TaskActionButton>
                   </Td>
                 </Tr>
               ))}

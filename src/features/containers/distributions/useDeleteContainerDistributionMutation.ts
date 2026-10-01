@@ -15,10 +15,12 @@ export function useDeleteContainerDistributionMutation() {
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) =>
       deleteContainerDistribution(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete distribution "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [
           containerDistributionsListRootKey,
           containerRepositoriesListRootKey,

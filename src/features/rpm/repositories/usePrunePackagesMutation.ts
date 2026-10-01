@@ -9,10 +9,12 @@ export function usePrunePackagesMutation() {
 
   return useMutation({
     mutationFn: (args: PrunePackagesArgs) => pruneRpmPackages(args),
-    onSuccess: ({ task }, { dry_run }) => {
+    onSuccess: ({ task }, { repo_hrefs, dry_run }) => {
       registerTask({
         href: task,
         label: dry_run ? "Prune packages (dry run)" : "Prune packages",
+        resourceHrefs: repo_hrefs,
+        action: "prune",
         invalidateKeys: [rpmRepositoriesListRootKey],
       });
     },

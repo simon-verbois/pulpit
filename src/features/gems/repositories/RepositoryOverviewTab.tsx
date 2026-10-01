@@ -1,5 +1,4 @@
 import {
-  Button,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -7,6 +6,7 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { GemRepository } from "../../../api/client/gem/types";
 import {
   gemRepositoriesListRootKey,
@@ -45,7 +45,9 @@ export function RepositoryOverviewTab({ repository }: { repository: GemRepositor
       <DescriptionListGroup>
         <DescriptionListTerm>Publish</DescriptionListTerm>
         <DescriptionListDescription>
-          <Button
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="publish"
             variant="secondary"
             isDisabled={publishMutation.isPending}
             isLoading={publishMutation.isPending}
@@ -60,13 +62,15 @@ export function RepositoryOverviewTab({ repository }: { repository: GemRepositor
             }
           >
             Publish now
-          </Button>
+          </TaskActionButton>
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Sync</DescriptionListTerm>
         <DescriptionListDescription>
-          <Button
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="sync"
             isDisabled={!repository.remote || syncMutation.isPending}
             isLoading={syncMutation.isPending}
             title={
@@ -87,7 +91,7 @@ export function RepositoryOverviewTab({ repository }: { repository: GemRepositor
             }
           >
             Sync now
-          </Button>
+          </TaskActionButton>
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>

@@ -21,10 +21,12 @@ export function useMarkContentMutation() {
   return useMutation({
     mutationFn: ({ href, contentUnits, value }: MarkArgs) =>
       markAnsibleRepositoryContent(href, { content_units: contentUnits, value }),
-    onSuccess: ({ task }, { repositoryName, value, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, repositoryName, value, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Mark content "${value}" in "${repositoryName}"`,
+        resourceHrefs: [href],
+        action: "mark",
         invalidateKeys,
       });
     },
@@ -37,10 +39,12 @@ export function useUnmarkContentMutation() {
   return useMutation({
     mutationFn: ({ href, contentUnits, value }: MarkArgs) =>
       unmarkAnsibleRepositoryContent(href, { content_units: contentUnits, value }),
-    onSuccess: ({ task }, { repositoryName, value, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, repositoryName, value, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Unmark content "${value}" in "${repositoryName}"`,
+        resourceHrefs: [href],
+        action: "unmark",
         invalidateKeys,
       });
     },

@@ -102,6 +102,27 @@ export interface ListRepositoryVersionsParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
   offset: number;
+  ordering?: string;
+}
+
+/** Fetches every retained version for a version picker, newest first. */
+export async function listAllRepositoryVersions(
+  versionsHref: string,
+): Promise<RepositoryVersion[]> {
+  const limit = 100;
+  let offset = 0;
+  const versions: RepositoryVersion[] = [];
+
+  while (true) {
+    const page = await listRepositoryVersions(versionsHref, {
+      limit,
+      offset,
+      ordering: "-number",
+    });
+    versions.push(...page.results);
+    offset += page.results.length;
+    if (offset >= page.count || page.results.length === 0) return versions;
+  }
 }
 
 export function listRepositoryVersions(

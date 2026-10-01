@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useRpmPackagesQuery } from "../packages/useRpmPackagesQuery";
@@ -30,7 +25,13 @@ export function RepositoryPackagesTab({ repository }: { repository: RpmRepositor
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem>
-              <Button onClick={() => setIsUploadOpen(true)}>Upload package</Button>
+              <TaskActionButton
+                resourceHref={repository.pulp_href}
+                taskAction="upload"
+                onClick={() => setIsUploadOpen(true)}
+              >
+                Upload package
+              </TaskActionButton>
             </ToolbarItem>
             <ToolbarItem align={{ default: "alignEnd" }}>
               <Pagination
@@ -56,7 +57,13 @@ export function RepositoryPackagesTab({ repository }: { repository: RpmRepositor
         emptyBody="Sync a remote or upload a package to add content to this repository."
         emptyStateVariant="sm"
         emptyAction={
-          <Button onClick={() => setIsUploadOpen(true)}>Upload package</Button>
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="upload"
+            onClick={() => setIsUploadOpen(true)}
+          >
+            Upload package
+          </TaskActionButton>
         }
       />
 

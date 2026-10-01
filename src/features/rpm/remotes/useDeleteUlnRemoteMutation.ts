@@ -9,10 +9,12 @@ export function useDeleteUlnRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) => deleteRpmUlnRemote(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete ULN remote "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [rpmUlnRemotesListRootKey, rpmRemoteOptionsQueryKey],
       });
     },

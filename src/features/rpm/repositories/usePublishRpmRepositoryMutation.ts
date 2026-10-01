@@ -14,11 +14,13 @@ export function usePublishRpmRepositoryMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ href }: PublishArgs) => createRpmPublication(href),
-    onSuccess: ({ task }, { name, invalidateKeys }) => {
+    mutationFn: ({ href }: PublishArgs) => createRpmPublication({ repository: href }),
+    onSuccess: ({ task }, { href, name, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Publish repository "${name}"`,
+        resourceHrefs: [href],
+        action: "publish",
         invalidateKeys,
       });
     },

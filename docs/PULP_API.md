@@ -145,6 +145,13 @@ Captured against the live OpenAPI schema and a real sync while building Mileston
   `POST /pulp/api/v3/publications/rpm/rpm/` `{"repository": "<repository href>"}` (async, `202` +
   task) - see `src/api/client/rpm/publications.ts`, the repository create form's "Automatically
   publish" checkbox, and the Overview tab's "Publish now" action.
+- **The distribution `repository` filter excludes version-pinned distributions**: VERIFIED live,
+  `GET .../distributions/rpm/rpm/?repository=<href>` returns only rows whose `repository` field is
+  set directly. A pinned row has `repository: null` and only a `publication` href; the endpoint
+  has no `publication` filter at all (`400 Invalid Filter`). To build a complete repository-scoped
+  list, Pulpit fetches distributions, resolves only their referenced publications in batches via
+  the publication endpoint's `pulp_href__in` filter, and includes publications whose `repository`
+  matches.
 - **Package upload is two steps, not one**: `POST .../content/rpm/packages/upload/` (multipart
   form, field `file`) only creates the content unit (sync, `201`) — it has no `repository` field
   to add the package to a repository in the same call, despite what its `overwrite` field's
@@ -179,8 +186,9 @@ Captured against the live OpenAPI schema and a real sync while building Mileston
   proxy for syncing".
 - **ULN remotes require `username`/`password`**: unlike a standard RPM remote (where they're
   optional advanced fields), Oracle ULN remote create rejects a request missing either with a
-  synchronous `400` (VERIFIED live) - modeled as a separate create form, not a variant of the
-  standard one.
+  synchronous `400` (VERIFIED live). ULN remote PATCH is asynchronous (`202` + `task`, VERIFIED
+  live against pulp_rpm 3.38.5); omitting either write-only credential preserves its saved value.
+  ULN create/edit are therefore modeled as separate forms, not variants of the standard one.
 - **Repository lookup-by-name can return "no match"**: since Pulpit routes repositories by name
   (see "Repository href semantics" above), a name filter with zero results is a legitimate,
   expected case, not an error — model it as returning `null`, not `undefined`, from the adapter.

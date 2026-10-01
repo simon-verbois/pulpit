@@ -17,10 +17,12 @@ export function useUpdateDebRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateDebRemote(href, data),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Update remote "${name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [debRemotesListRootKey],
       });
     },

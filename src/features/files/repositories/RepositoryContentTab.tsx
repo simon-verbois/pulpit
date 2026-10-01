@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { FileRepository } from "../../../api/client/file/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useFileContentQuery } from "../content/useFileContentQuery";
@@ -29,7 +24,13 @@ export function RepositoryContentTab({ repository }: { repository: FileRepositor
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <Button onClick={() => setIsUploadOpen(true)}>Upload file</Button>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="upload"
+              onClick={() => setIsUploadOpen(true)}
+            >
+              Upload file
+            </TaskActionButton>
           </ToolbarItem>
           <ToolbarItem align={{ default: "alignEnd" }}>
             <Pagination

@@ -19,6 +19,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { RepositorySizeCell } from "../../../components/RepositorySizeCell";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useRepositoryContentSizesQuery } from "../../../hooks/useRepositoryContentSizesQuery";
 import type { DebRepository } from "../../../api/client/deb/types";
@@ -141,7 +142,9 @@ export function RepositoriesPage() {
                         justifyContent={{ default: "justifyContentFlexEnd" }}
                       >
                         <FlexItem>
-                          <Button
+                          <TaskActionButton
+                            resourceHref={repository.pulp_href}
+                            taskAction="sync"
                             variant="link"
                             isDisabled={!repository.remote || syncMutation.isPending}
                             title={
@@ -162,10 +165,12 @@ export function RepositoriesPage() {
                             }
                           >
                             Sync
-                          </Button>
+                          </TaskActionButton>
                         </FlexItem>
                         <FlexItem>
-                          <Button
+                          <TaskActionButton
+                            resourceHref={repository.pulp_href}
+                            taskAction="publish"
                             variant="link"
                             isDisabled={publishMutation.isPending}
                             onClick={() =>
@@ -176,16 +181,18 @@ export function RepositoriesPage() {
                             }
                           >
                             Publish
-                          </Button>
+                          </TaskActionButton>
                         </FlexItem>
                         <FlexItem>
-                          <Button
+                          <TaskActionButton
+                            resourceHref={repository.pulp_href}
+                            taskAction="delete"
                             variant="link"
                             isDanger
                             onClick={() => setPendingDelete(repository)}
                           >
                             Delete
-                          </Button>
+                          </TaskActionButton>
                         </FlexItem>
                       </Flex>
                     </Td>

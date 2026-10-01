@@ -22,7 +22,9 @@ import { useCreateUlnRemoteMutation } from "./useCreateUlnRemoteMutation";
 export function CreateUlnRemoteModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
-  const [ulnServerBaseUrl, setUlnServerBaseUrl] = useState("");
+  const [ulnServerBaseUrl, setUlnServerBaseUrl] = useState(
+    "https://linux-update.oracle.com/",
+  );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const createMutation = useCreateUlnRemoteMutation();
@@ -83,7 +85,6 @@ export function CreateUlnRemoteModal({ onClose }: { onClose: () => void }) {
               id="uln-remote-server-base-url"
               isRequired
               type="url"
-              placeholder="https://linux-update.oracle.com/"
               value={ulnServerBaseUrl}
               onChange={(_event, value) => setUlnServerBaseUrl(value)}
             />

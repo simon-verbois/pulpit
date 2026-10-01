@@ -21,10 +21,12 @@ export function useTagImageMutation() {
   return useMutation({
     mutationFn: ({ href, tag, digest }: TagArgs) =>
       tagContainerImage(href, { tag, digest }),
-    onSuccess: ({ task }, { repositoryName, tag, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, repositoryName, tag, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Tag "${tag}" in "${repositoryName}"`,
+        resourceHrefs: [href],
+        action: "tag",
         invalidateKeys,
       });
     },
@@ -43,10 +45,12 @@ export function useUntagImageMutation() {
 
   return useMutation({
     mutationFn: ({ href, tag }: UntagArgs) => untagContainerImage(href, tag),
-    onSuccess: ({ task }, { repositoryName, tag, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, repositoryName, tag, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Remove tag "${tag}" from "${repositoryName}"`,
+        resourceHrefs: [href],
+        action: `untag:${tag}`,
         invalidateKeys,
       });
     },

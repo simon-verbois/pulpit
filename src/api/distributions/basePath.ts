@@ -23,3 +23,12 @@ export function buildDistributionBasePath(
 ): string {
   return `${distributionPathPrefix(module)}${suffix}`;
 }
+
+export function buildVersionedDistributionName(
+  repositoryName: string,
+  versionNumber?: number,
+): string {
+  return versionNumber === undefined
+    ? repositoryName
+    : `${repositoryName}-v${versionNumber}`;
+}

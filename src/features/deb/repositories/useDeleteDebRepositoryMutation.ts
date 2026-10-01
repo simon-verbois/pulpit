@@ -9,10 +9,12 @@ export function useDeleteDebRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) => deleteDebRepository(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete repository "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [debRepositoriesListRootKey],
       });
     },

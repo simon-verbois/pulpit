@@ -9,10 +9,12 @@ export function useDeleteNpmRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) => deleteNpmRepository(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete repository "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [npmRepositoriesListRootKey],
       });
     },

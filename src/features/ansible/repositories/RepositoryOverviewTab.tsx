@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Button,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -10,6 +9,7 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { AnsibleRepository } from "../../../api/client/ansible/types";
 import {
   ansibleRepositoriesListRootKey,
@@ -77,7 +77,9 @@ export function RepositoryOverviewTab({ repository }: { repository: AnsibleRepos
         <DescriptionListGroup>
           <DescriptionListTerm>Sync</DescriptionListTerm>
           <DescriptionListDescription>
-            <Button
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="sync"
               isDisabled={!repository.remote || syncMutation.isPending}
               isLoading={syncMutation.isPending}
               title={
@@ -98,7 +100,7 @@ export function RepositoryOverviewTab({ repository }: { repository: AnsibleRepos
               }
             >
               Sync now
-            </Button>
+            </TaskActionButton>
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
@@ -106,19 +108,34 @@ export function RepositoryOverviewTab({ repository }: { repository: AnsibleRepos
           <DescriptionListDescription>
             <Flex spaceItems={{ default: "spaceItemsSm" }}>
               <FlexItem>
-                <Button variant="secondary" onClick={() => setIsSignOpen(true)}>
+                <TaskActionButton
+                  resourceHref={repository.pulp_href}
+                  taskAction="sign"
+                  variant="secondary"
+                  onClick={() => setIsSignOpen(true)}
+                >
                   Sign content…
-                </Button>
+                </TaskActionButton>
               </FlexItem>
               <FlexItem>
-                <Button variant="secondary" onClick={() => setMarkMode("mark")}>
+                <TaskActionButton
+                  resourceHref={repository.pulp_href}
+                  taskAction="mark"
+                  variant="secondary"
+                  onClick={() => setMarkMode("mark")}
+                >
                   Mark content…
-                </Button>
+                </TaskActionButton>
               </FlexItem>
               <FlexItem>
-                <Button variant="secondary" onClick={() => setMarkMode("unmark")}>
+                <TaskActionButton
+                  resourceHref={repository.pulp_href}
+                  taskAction="unmark"
+                  variant="secondary"
+                  onClick={() => setMarkMode("unmark")}
+                >
                   Unmark content…
-                </Button>
+                </TaskActionButton>
               </FlexItem>
             </Flex>
           </DescriptionListDescription>

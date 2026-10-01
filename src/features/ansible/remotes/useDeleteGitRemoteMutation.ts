@@ -9,10 +9,12 @@ export function useDeleteGitRemoteMutation() {
 
   return useMutation({
     mutationFn: ({ href }: { href: string; name: string }) => deleteGitRemote(href),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Delete remote "${name}"`,
+        resourceHrefs: [href],
+        action: "delete",
         invalidateKeys: [gitRemotesListRootKey],
       });
     },

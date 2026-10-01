@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Button,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -13,6 +12,7 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import {
   rpmRepositoriesListRootKey,
@@ -107,7 +107,9 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
         <DescriptionListGroup>
           <DescriptionListTerm>Publish</DescriptionListTerm>
           <DescriptionListDescription>
-            <Button
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="publish"
               variant="secondary"
               isDisabled={publishMutation.isPending}
               isLoading={publishMutation.isPending}
@@ -124,13 +126,15 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
               }
             >
               Publish now
-            </Button>
+            </TaskActionButton>
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Sync</DescriptionListTerm>
           <DescriptionListDescription>
-            <Button
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="sync"
               isDisabled={!repository.remote || syncMutation.isPending}
               isLoading={syncMutation.isPending}
               title={
@@ -151,7 +155,7 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
               }
             >
               Sync now
-            </Button>
+            </TaskActionButton>
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
@@ -191,13 +195,15 @@ export function RepositoryOverviewTab({ repository }: { repository: RpmRepositor
           <DescriptionListGroup>
             <DescriptionListTerm>Re-sign</DescriptionListTerm>
             <DescriptionListDescription>
-              <Button
+              <TaskActionButton
+                resourceHref={repository.pulp_href}
+                taskAction="resign"
                 variant="secondary"
                 title="Check every package against the active signing key and re-sign what isn't signed with it"
                 onClick={() => setIsResignOpen(true)}
               >
                 Re-sign now
-              </Button>
+              </TaskActionButton>
             </DescriptionListDescription>
           </DescriptionListGroup>
         ) : null}

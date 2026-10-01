@@ -13,8 +13,9 @@ const FIXTURE_RPM_PATH = join(__dirname, "fixtures", "walrus-5.21-1.noarch.rpm")
 const RUN_ID = Date.now();
 const REMOTE_NAME = `e2e-remote-${RUN_ID}`;
 const REPO_NAME = `e2e-repo-${RUN_ID}`;
-const DIST_NAME = `e2e-dist-${RUN_ID}`;
-const DIST_BASE_PATH = `rpm/${DIST_NAME}`;
+const DIST_BASE_PATH = `rpm/${REPO_NAME}`;
+const PINNED_DIST_NAME = `${REPO_NAME}-v1`;
+const ULN_REMOTE_NAME = `e2e-uln-remote-${RUN_ID}`;
 
 test.describe.configure({ mode: "serial" });
 
@@ -40,6 +41,9 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     await page.getByRole("button", { name: "Create repository" }).first().click();
     await page.locator("#repository-name").fill(REPO_NAME);
     await page.locator("#repository-remote").selectOption({ label: REMOTE_NAME });
+    // This scenario exercises the repository-detail creation flow below, so
+    // don't also create the same automatically named distribution here.
+    await page.getByLabel("Create a distribution for this repository").uncheck();
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
 
     // Synchronous create (VERIFIED: 201, no task) navigates straight to the
@@ -48,7 +52,11 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     await expect(page.getByRole("heading", { name: REPO_NAME })).toBeVisible();
 
     // --- Sync it and wait for the tracked task to complete ----------------
-    await page.getByRole("button", { name: "Sync now" }).click();
+    const syncButton = page.getByRole("button", { name: "Sync now" });
+    await syncButton.click();
+    await expect(syncButton).toBeDisabled();
+    await expect(syncButton).toHaveAttribute("aria-busy", "true");
+    await expect(page.getByRole("button", { name: "Publish now" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Tasks" })).toBeVisible();
     await page.getByRole("button", { name: "Tasks" }).click();
     const taskItem = page.getByText(`Sync repository "${REPO_NAME}"`);
@@ -94,26 +102,65 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     // global page - there's no repository picker to fill in). --------------
     await page.getByRole("tab", { name: "Distributions" }).click();
     await page.getByRole("button", { name: "Create distribution" }).first().click();
-    await page
-      .getByRole("dialog")
-      .getByLabel("Base path", { exact: false })
-      .fill(DIST_NAME);
+    await expect(
+      page.getByRole("dialog").getByLabel("Base path", { exact: false }),
+    ).toHaveCount(0);
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
     // Distribution create is asynchronous (VERIFIED: 202 + task, unlike
     // repositories/remotes) - it only appears once its task completes.
-    const distRow = page.getByRole("row", { name: new RegExp(DIST_NAME) });
+    const distRow = page
+      .getByRole("row")
+      .filter({ has: page.getByRole("gridcell", { name: REPO_NAME, exact: true }) });
     await expect(distRow).toBeVisible({ timeout: 15_000 });
     await expect(distRow).toContainText(`/pulp/content/${DIST_BASE_PATH}/`);
 
+    // Create a second URL pinned to version 1. Unlike the default distribution
+    // above, this publishes that immutable RepositoryVersion and stores the
+    // resulting publication on the distribution.
+    await page.getByRole("button", { name: "Create distribution" }).first().click();
+    const pinnedDialog = page.getByRole("dialog");
+    await pinnedDialog.getByLabel("Pin a repository version").click();
+    const versionOneHref = await pinnedDialog
+      .getByLabel("Repository version", { exact: true })
+      .locator("option")
+      .filter({ hasText: "Version 1" })
+      .getAttribute("value");
+    expect(versionOneHref).not.toBeNull();
+    await pinnedDialog
+      .getByLabel("Repository version", { exact: true })
+      .selectOption(versionOneHref as string);
+    await expect(pinnedDialog.getByLabel("Base path", { exact: false })).toHaveCount(0);
+    await pinnedDialog.getByRole("button", { name: "Create" }).click();
+    await expect(pinnedDialog).not.toBeVisible({ timeout: 30_000 });
+
+    const pinnedDistRow = page.getByRole("row", {
+      name: new RegExp(PINNED_DIST_NAME),
+    });
+    await expect(pinnedDistRow).toBeVisible({ timeout: 15_000 });
+    const pinnedDistributionResponse = await page.request.get(
+      `/pulp/api/v3/distributions/rpm/rpm/?name=${encodeURIComponent(PINNED_DIST_NAME)}`,
+    );
+    expect(pinnedDistributionResponse.ok()).toBeTruthy();
+    const pinnedDistributionPage = (await pinnedDistributionResponse.json()) as {
+      results: { repository: string | null; publication: string | null }[];
+    };
+    expect(pinnedDistributionPage.results[0]?.repository).toBeNull();
+    expect(pinnedDistributionPage.results[0]?.publication).toContain(
+      "/publications/rpm/rpm/",
+    );
+
     // --- Clean up: distribution, repository, remote -------------------------
+    await pinnedDistRow.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(pinnedDistRow).not.toBeVisible({ timeout: 10_000 });
+
     await distRow.getByRole("button", { name: "Delete" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
-    await expect(page.getByRole("row", { name: new RegExp(DIST_NAME) })).not.toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(distRow).not.toBeVisible({ timeout: 10_000 });
 
     await page.goto("/rpm/repositories");
     await page
@@ -137,6 +184,51 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
       page.getByRole("row", { name: new RegExp(REMOTE_NAME) }),
     ).not.toBeVisible({ timeout: 10_000 });
   });
+});
+
+test("RPM ULN remotes can be edited without re-entering saved credentials", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      consoleErrors.push(message.text());
+    }
+  });
+
+  await page.goto("/rpm/remotes");
+  await page.getByRole("button", { name: "ULN" }).click();
+  await page.getByRole("button", { name: "Create ULN remote" }).first().click();
+  const createDialog = page.getByRole("dialog");
+  await createDialog.locator("#uln-remote-name").fill(ULN_REMOTE_NAME);
+  await createDialog.locator("#uln-remote-url").fill("uln://e2e_initial_channel");
+  await expect(createDialog.locator("#uln-remote-server-base-url")).toHaveValue(
+    "https://linux-update.oracle.com/",
+  );
+  await createDialog.locator("#uln-remote-username").fill("e2e-user");
+  await createDialog.locator("#uln-remote-password").fill("e2e-password");
+  await createDialog.getByRole("button", { name: "Create" }).click();
+  await expect(createDialog).not.toBeVisible();
+
+  const row = page.getByRole("row", { name: new RegExp(ULN_REMOTE_NAME) });
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Edit" }).click();
+
+  const editDialog = page.getByRole("dialog");
+  await expect(editDialog.getByText(/Currently set - leave blank/i)).toHaveCount(2);
+  await page.setViewportSize({ width: 768, height: 800 });
+  await expect(editDialog.getByRole("button", { name: "Save" })).toBeVisible();
+  await editDialog.locator("#uln-remote-edit-url").fill("uln://e2e_updated_channel");
+  await editDialog.getByRole("button", { name: "Save" }).click();
+  await expect(editDialog).not.toBeVisible();
+  await expect(row).toContainText("uln://e2e_updated_channel", { timeout: 15_000 });
+
+  await row.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(row).not.toBeVisible({ timeout: 15_000 });
+  expect(consoleErrors).toEqual([]);
 });
 
 test("RPM packages page lists content across every repository", async ({ page }) => {

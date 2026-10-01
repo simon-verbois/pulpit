@@ -20,10 +20,12 @@ export function useUploadCollectionVersionMutation() {
   return useMutation({
     mutationFn: ({ file, repositoryHref }: UploadArgs) =>
       uploadCollectionVersion(file, repositoryHref),
-    onSuccess: ({ task }, { file, repositoryName, invalidateKeys }) => {
+    onSuccess: ({ task }, { file, repositoryHref, repositoryName, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Upload "${file.name}" to "${repositoryName}"`,
+        resourceHrefs: [repositoryHref],
+        action: "upload",
         invalidateKeys,
       });
     },

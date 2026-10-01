@@ -46,7 +46,9 @@ export function RpmRemotesTopic() {
         <code>uln://el7_x86_64_oracle_ksplice</code>), the{" "}
         <strong>ULN server base URL</strong>, and - unlike a standard remote, where
         they're optional - a <strong>username</strong> and <strong>password</strong> are
-        always required. There's no Edit for ULN remotes yet, only create/list/delete.
+        required when creating the remote. Use <strong>Edit</strong> to change the
+        channel, server, name, or credentials later. Existing credentials are never
+        displayed; leave either credential blank while editing to keep its saved value.
       </Content>
     </Content>
   );

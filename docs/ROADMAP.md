@@ -51,11 +51,12 @@ Status legend: `[x]` implemented, `[~]` partially implemented / stubbed, `[ ]` n
       remotes with `policy: "on_demand"` are valid (a synchronous `400` otherwise) and refresh
       returns `{task_group}`, not `{task}` - resolved to the group's first task and tracked
       normally (see `getTaskGroup` in `src/api/client/tasks.ts`).
-- [x] ULN remotes (a second remote "flavor", toggled within the Remotes page, not a separate nav
+- [x] ULN remotes (list/create/edit/delete; a second remote "flavor", toggled within the Remotes page, not a separate nav
       item) - VERIFIED live: same shape as a standard remote plus `uln_server_base_url`, but
       `username`/`password` are _required_ (unlike a standard remote, where they're optional
       advanced fields) - modeled as a fully separate create modal rather than forcing it into the
-      standard one. List/create/delete only, no edit yet.
+      standard one. Edit preserves the write-only credentials when their fields are left blank;
+      VERIFIED live that PATCH returns `202` + task.
 - [x] Sync (VERIFIED live against `fixtures.pulpproject.org/rpm-unsigned/`: repository/remote
       create is synchronous/201; sync/delete/distribution-create are asynchronous/202+task)
 - [x] Distributions (list/create/delete) - managed from a "Distributions" tab on the owning

@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { GemRepository } from "../../../api/client/gem/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useGemContentQuery } from "../content/useGemContentQuery";
@@ -29,7 +24,13 @@ export function RepositoryContentTab({ repository }: { repository: GemRepository
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <Button onClick={() => setIsUploadOpen(true)}>Upload gem</Button>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="upload"
+              onClick={() => setIsUploadOpen(true)}
+            >
+              Upload gem
+            </TaskActionButton>
           </ToolbarItem>
           <ToolbarItem align={{ default: "alignEnd" }}>
             <Pagination

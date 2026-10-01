@@ -15,10 +15,12 @@ export function useSyncPythonRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href }: SyncArgs) => syncPythonRepository(href),
-    onSuccess: ({ task }, { name, invalidateKeys }) => {
+    onSuccess: ({ task }, { href, name, invalidateKeys }) => {
       registerTask({
         href: task,
         label: `Sync repository "${name}"`,
+        resourceHrefs: [href],
+        action: "sync",
         invalidateKeys,
       });
     },

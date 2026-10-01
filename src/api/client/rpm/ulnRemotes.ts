@@ -1,6 +1,11 @@
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type { PulpPage, RpmUlnRemote, RpmUlnRemoteCreate } from "./types";
+import type {
+  PulpPage,
+  RpmUlnRemote,
+  RpmUlnRemoteCreate,
+  RpmUlnRemoteUpdate,
+} from "./types";
 
 const BASE = apiPath("/remotes/rpm/uln/");
 
@@ -21,6 +26,17 @@ export function listRpmUlnRemotes(
 export function createRpmUlnRemote(data: RpmUlnRemoteCreate): Promise<RpmUlnRemote> {
   return pulpFetch<RpmUlnRemote>(BASE, {
     method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/** VERIFIED live against pulp_rpm 3.38.5: PATCH is asynchronous (202 + task). */
+export function updateRpmUlnRemote(
+  href: string,
+  data: RpmUlnRemoteUpdate,
+): Promise<{ task: string }> {
+  return pulpFetch<{ task: string }>(href, {
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }

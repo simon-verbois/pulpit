@@ -17,10 +17,12 @@ export function useUpdateRpmDistributionMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateRpmDistribution(href, data),
-    onSuccess: ({ task }, { name }) => {
+    onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
         label: `Update distribution "${name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [rpmDistributionsListRootKey],
       });
     },

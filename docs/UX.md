@@ -196,6 +196,12 @@ badge; a drawer lists recent tasks with real state
 (waiting/running/completed/failed/canceled) and, for failures, a way to view Pulp's actual error
 detail. No fabricated progress bars where Pulp doesn't report progress.
 
+Actions on an existing resource remain locked for the full lifetime of the backend task, not
+only while the initial HTTP request is pending. The action that launched the task shows an
+indeterminate spinner; other actions for the same resource are disabled until Pulp reports a
+terminal state. This task/resource lock is app-wide, so navigating between a list and a detail
+page must not make the action available again while it is still queued or running.
+
 ## In-app help panel
 
 The masthead's "Help" button (`src/app/layout/HelpButton.tsx`) toggles a **help panel**

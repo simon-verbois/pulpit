@@ -4,6 +4,7 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { TaskActionButton } from "../../../components/TaskActionButton";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import type { ContainerTag } from "../../../api/client/container/types";
 
@@ -21,6 +22,7 @@ interface TagsTableProps {
   /** Present only on a repository-scoped tab (RepositoryTagsTab) - the
    * global Tags page (mirroring RPM's global Packages page) is read-only. */
   onUntag?: (tag: ContainerTag) => void;
+  taskResourceHref?: string;
 }
 
 export function TagsTable({
@@ -33,6 +35,7 @@ export function TagsTable({
   emptyBody,
   emptyStateVariant,
   onUntag,
+  taskResourceHref,
 }: TagsTableProps) {
   if (isPending) {
     return <LoadingState label="Loading tags" />;
@@ -60,9 +63,21 @@ export function TagsTable({
             <Td dataLabel="Created">{formatRelativeTime(tag.pulp_created)}</Td>
             {onUntag ? (
               <Td dataLabel="Actions" isActionCell>
-                <Button variant="link" isDanger onClick={() => onUntag(tag)}>
-                  Remove
-                </Button>
+                {taskResourceHref ? (
+                  <TaskActionButton
+                    resourceHref={taskResourceHref}
+                    taskAction={`untag:${tag.name}`}
+                    variant="link"
+                    isDanger
+                    onClick={() => onUntag(tag)}
+                  >
+                    Remove
+                  </TaskActionButton>
+                ) : (
+                  <Button variant="link" isDanger onClick={() => onUntag(tag)}>
+                    Remove
+                  </Button>
+                )}
               </Td>
             ) : null}
           </Tr>

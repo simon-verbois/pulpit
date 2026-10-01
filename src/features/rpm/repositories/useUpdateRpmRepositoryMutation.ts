@@ -17,10 +17,12 @@ export function useUpdateRpmRepositoryMutation() {
 
   return useMutation({
     mutationFn: ({ href, data }: UpdateArgs) => updateRpmRepository(href, data),
-    onSuccess: ({ task }, { name, data }) => {
+    onSuccess: ({ task }, { href, name, data }) => {
       registerTask({
         href: task,
         label: `Update repository "${data.name ?? name}"`,
+        resourceHrefs: [href],
+        action: "edit",
         invalidateKeys: [
           rpmRepositoryByNameKey(name),
           // The name itself may have just changed - also invalidate the new
