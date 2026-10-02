@@ -2,9 +2,7 @@ import { useId, useState } from "react";
 import {
   ClipboardCopyButton,
   CodeBlock,
-  CodeBlockAction,
   CodeBlockCode,
-  ExpandableSection,
   ExpandableSectionToggle,
 } from "@patternfly/react-core";
 
@@ -24,41 +22,29 @@ export function CopyableCodeBlock({
   const toggleId = `copyable-code-toggle-${generatedId}`;
   const lines = code.split("\n");
   const preview = lines.slice(0, previewLines).join("\n");
-  const remainder = lines.slice(previewLines).join("\n");
-  const isExpandable = remainder.length > 0;
+  const isExpandable = lines.length > previewLines;
+  const displayedCode = isExpanded ? code : preview;
 
   const copyAction = (
-    <CodeBlockAction>
-      <ClipboardCopyButton
-        id={`${toggleId}-copy`}
-        aria-label={copyLabel}
-        variant="plain"
-        onClick={() => {
-          void navigator.clipboard.writeText(code);
-          setIsCopied(true);
-        }}
-        onTooltipHidden={() => setIsCopied(false)}
-      >
-        {isCopied ? "Copied" : "Copy"}
-      </ClipboardCopyButton>
-    </CodeBlockAction>
+    <ClipboardCopyButton
+      id={`${toggleId}-copy`}
+      className="pulpit-copyable-code__copy"
+      aria-label={copyLabel}
+      variant="plain"
+      onClick={() => {
+        void navigator.clipboard.writeText(code);
+        setIsCopied(true);
+      }}
+      onTooltipHidden={() => setIsCopied(false)}
+    >
+      {isCopied ? "Copied" : "Copy"}
+    </ClipboardCopyButton>
   );
 
   return (
-    <CodeBlock actions={copyAction}>
-      <CodeBlockCode>
-        {preview}
-        {isExpandable ? (
-          <ExpandableSection
-            isExpanded={isExpanded}
-            isDetached
-            contentId={contentId}
-            toggleId={toggleId}
-          >
-            {`\n${remainder}`}
-          </ExpandableSection>
-        ) : null}
-      </CodeBlockCode>
+    <CodeBlock className="pulpit-copyable-code">
+      {copyAction}
+      <CodeBlockCode id={contentId}>{displayedCode}</CodeBlockCode>
       {isExpandable ? (
         <ExpandableSectionToggle
           isExpanded={isExpanded}

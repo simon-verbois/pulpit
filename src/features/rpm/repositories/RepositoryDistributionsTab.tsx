@@ -123,12 +123,17 @@ export function RepositoryDistributionsTab({
               </ToolbarItem>
             </ToolbarContent>
           </Toolbar>
-          <Table aria-label="Distributions" variant="compact" gridBreakPoint="grid-lg">
+          <Table
+            aria-label="Distributions"
+            variant="compact"
+            gridBreakPoint="grid-lg"
+            style={{ tableLayout: "fixed" }}
+          >
             <Thead>
               <Tr>
-                <Th>Name</Th>
-                <Th>Repo config</Th>
-                <Th screenReaderText="Actions" />
+                <Th width={20}>Name</Th>
+                <Th width={70}>Repo config</Th>
+                <Th width={10} screenReaderText="Actions" />
               </Tr>
             </Thead>
             <Tbody>

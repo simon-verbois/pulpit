@@ -97,6 +97,33 @@ body {
   max-inline-size: 52rem;
 }
 
+/* Keep the copy action inside the code surface without reserving a separate
+   header row. The code content keeps enough inline padding to prevent long
+   lines from running underneath the button. */
+.pulpit-copyable-code {
+  position: relative;
+}
+
+.pulpit-copyable-code__copy {
+  position: absolute;
+  inset-block-start: var(--pf-t--global--spacer--xs);
+  inset-inline-end: var(--pf-t--global--spacer--xs);
+  z-index: 1;
+}
+
+.pulpit-copyable-code > .pf-v6-c-code-block__content {
+  padding-inline-end: calc(
+    var(--pf-t--global--spacer--xl) + var(--pf-t--global--spacer--sm)
+  );
+}
+
+.pulpit-copyable-code .pf-v6-c-code-block__pre {
+  /* Unlike break-word, anywhere also reduces the intrinsic min-content
+     width. Expanding a long URL can therefore grow the block vertically
+     without making the table recalculate its column widths. */
+  overflow-wrap: anywhere;
+}
+
 /* The development marker remains deliberately unmistakable without
    consuming most of the masthead on tablet-sized viewports. Its full build
    timestamp stays available through the element's accessible name/title. */

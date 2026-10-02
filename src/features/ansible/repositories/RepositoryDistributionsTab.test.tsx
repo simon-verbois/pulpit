@@ -19,6 +19,7 @@ describe("Ansible RepositoryDistributionsTab", () => {
     // The fixture's name and base_path are equal strings, so both the
     // "Name" and "Base path" cells match.
     expect(await screen.findAllByText(ANSIBLE_DISTRIBUTION_FIXTURE.name)).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Show full configuration" }));
     const snippet = document.querySelector("code")?.textContent ?? "";
     expect(snippet).toContain(`server_list = ${ANSIBLE_DISTRIBUTION_FIXTURE.name}`);
     expect(snippet).toContain(`[galaxy_server.${ANSIBLE_DISTRIBUTION_FIXTURE.name}]`);

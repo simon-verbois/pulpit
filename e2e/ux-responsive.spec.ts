@@ -44,15 +44,24 @@ test.describe("responsive UX conventions", () => {
   test("repository configuration is compact, expandable, and copyable", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/rpm/repositories/pulpit-sample-rpm?tab=distributions");
     await page.waitForLoadState("networkidle");
 
     await expect(
       page.getByRole("button", { name: /Copy .* repository configuration/ }).first(),
     ).toBeVisible();
+    const codeBlock = page.locator(".pulpit-copyable-code").first();
+    const collapsedBox = await codeBlock.boundingBox();
     const expand = page.getByRole("button", { name: "Show full configuration" }).first();
     await expand.click();
     await expect(page.getByRole("button", { name: "Show less" }).first()).toBeVisible();
+    const expandedBox = await codeBlock.boundingBox();
+
+    expect(collapsedBox).not.toBeNull();
+    expect(expandedBox).not.toBeNull();
+    expect(expandedBox?.x).toBeCloseTo(collapsedBox?.x ?? 0, 1);
+    expect(expandedBox?.width).toBeCloseTo(collapsedBox?.width ?? 0, 1);
   });
 
   test("the development marker is compact while retaining the full timestamp", async ({

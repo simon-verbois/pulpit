@@ -5,14 +5,17 @@ import { CopyableCodeBlock } from "./CopyableCodeBlock";
 
 describe("CopyableCodeBlock", () => {
   it("shows a short preview and expands the remaining configuration", () => {
-    render(<CopyableCodeBlock code={"one\ntwo\nthree\nfour"} previewLines={2} />);
+    const { container } = render(
+      <CopyableCodeBlock code={"one\ntwo\nthree\nfour"} previewLines={2} />,
+    );
 
-    expect(screen.getByText(/one/)).toBeInTheDocument();
-    expect(screen.getByText(/three/)).not.toBeVisible();
+    const code = container.querySelector("pre");
+    expect(code?.textContent).toBe("one\ntwo");
+    expect(screen.queryByText(/three/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Show full configuration" }));
 
-    expect(screen.getByText(/three/)).toBeVisible();
+    expect(code?.textContent).toBe("one\ntwo\nthree\nfour");
     expect(screen.getByRole("button", { name: "Show less" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Copy configuration" }),
