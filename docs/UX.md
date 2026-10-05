@@ -123,6 +123,10 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
   Detail and Administration tabs form the surface header and their content remains inside it.
   This is one panel per functional block, never a card per table row or form field.
 - List pages: toolbar (search/filter) + table + pagination, not a grid of cards.
+- Initial table loads use the shared `LoadingState` with the table's column names:
+  real headings and five neutral PatternFly skeleton rows, an accessible loading
+  announcement, and `aria-busy`. Placeholders offer no actions or fake results.
+  Details/forms keep their compact spinner. Errors replace the loading state.
 - Detail pages: tabs (e.g. Overview | Packages | Versions | Distribution | Permissions for an RPM
   repository), not one long scroll.
 - Cards are used sparingly — e.g. the small `Gallery` of compact stat tiles on Overview
@@ -209,6 +213,19 @@ expect, not for the ordinary "this item and its own content is gone" case every 
 implies.
 
 ## Task feedback
+
+Task detail modals put a compact state/duration/author/timing summary first,
+followed by human-readable failures and live progress. Resources, raw resource
+records, task function, creation time, href, and correlation ID belong in a
+single **Technical details** disclosure, collapsed by default. Finished time
+appears only when Pulp reports it. The summary uses two columns on desktop and
+one on narrow screens; long diagnostics wrap rather than overflow.
+
+Failed task details show a plain-language explanation and the next checks to
+perform, including failures that Pulp reports through `reason` rather than
+`description`. Keep the original error and traceback behind **Technical error
+details**. Do not infer an OOM kill from signal 9 alone. For failed syncs,
+explain that downloaded files do not imply a completed repository version.
 
 See `docs/ARCHITECTURE.md` "Tasks" and the `pulp-tasks` skill. Masthead shows a plain-text
 "Tasks · n active" indicator for in-flight tasks, separated typographically instead of using a

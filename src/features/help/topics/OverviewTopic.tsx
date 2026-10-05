@@ -44,6 +44,12 @@ export function OverviewTopic() {
 
       <Content component="h3">Getting help while you work</Content>
       <Content component="p">
+        While a list loads, its column headings and placeholder rows show where the
+        results will appear. Placeholders are not repository content or a progress
+        estimate; they disappear when the server responds. A failed request shows an error
+        with a retry action instead.
+      </Content>
+      <Content component="p">
         Click <strong>Helper</strong> in the top bar any time — it opens on the topic for
         whatever page you're currently on. Use the list on the left to jump to a different
         topic.

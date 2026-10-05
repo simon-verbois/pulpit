@@ -92,24 +92,42 @@ named volumes sidestep that. Nothing under these volumes is committed to version
 - `pulpit_signing_scripts` — the generic signing scripts the worker loop publishes for `pulp` to
   execute. Not secret, regenerated automatically from the `pulpit` image on every start.
 
-## Resource limits
+## CPU and memory allocation
 
-`redis`, `pulp`, and `pulpit` each carry a `deploy.resources` block (`limits`/`reservations` for
-CPU and memory) in `compose.yml`/`compose-dev.yml` — Compose's CLI applies this even outside Swarm
-mode for a plain `docker compose up`, so it's the ordinary way to bound a single-node Compose
-deployment. Without any limit, a single runaway process (an accidental huge sync, a signing/resign
-job over a large repository, a stuck retry loop) can consume the whole host's CPU/memory and starve
-every other container on the box, not just this stack.
+The shipped Docker Compose, Kubernetes and Podman deployments set no CPU or
+memory limits, reservations or requests for their containers. This includes the
+optional Docker Squid proxy and ULN test fixture. Processes can use the available
+host resources; size the host and sync concurrency using the
+[capacity estimates](../README.md#estimated-hardware-requirements) and
+[performance guide](PERFORMANCE.md).
 
-The shipped values are conservative-but-workable _starting_ defaults for a self-hosted single-node
-deployment, not a sized-for-your-hardware recommendation — adjust the numbers in the compose file
-directly for your environment. `pulp`'s limit in particular (`cpus: "2"`, `memory: 4G`) assumes a
-signing/resign job or a large repository sync is the main workload it needs to bound, not routine
-idle operation; a memory limit set too low there can surface as the container being OOM-killed
-mid-sync rather than a clean error.
+Kubernetes and Podman PVC storage requests are retained: they define volume
+capacity, not CPU or RAM caps. Kubernetes namespace policies (such as a
+LimitRange), parent cgroups or host policies can still impose their own limits.
 
-Podman (`deployment/podman/`) deliberately carries no CPU/memory requests or limits: the stack is
-expected to be the only workload on its host, so they bounded nothing useful.
+For an existing Docker stack, the removed Compose limits take effect when
+containers are recreated. Existing containers keep their previous caps until
+then. Finish or cancel active syncs before recreating Pulp, preserve their
+artifacts, and relaunch unfinished syncs afterwards.
+
+### Streaming download timeouts
+
+The derived Docker Pulp image disables the total request deadline in Pulp's
+shared HTTP/HTTPS downloader factory, including ULN downloads. An active transfer
+can run for hours. Each connection still has a read inactivity timeout: the
+remote's positive `sock_read_timeout`, or 300 seconds when unset or zero.
+Connection establishment limits and retries retain their existing semantics.
+Saved `total_timeout` values are ignored by this deployment policy, for existing
+and new remotes. Other Pulp deployments keep their own timeout behavior.
+
+The guarded build-time patch lives in `deployment/docker/pulp/download-timeouts/`.
+An incompatible upstream factory makes the image build fail rather than silently
+restore a total deadline. Validate upgrades with its `test_timeouts.py` inside
+the derived image. Deploying the image requires a Pulp restart: cancel active
+syncs first, then rerun them after deployment without cleaning their artifacts.
+This policy does not remove deadlines imposed by an external proxy or origin,
+or ULN's separate authentication session, and does not prevent task failures
+from authentication, storage, integrity checks, or worker termination.
 
 ## Sessions
 

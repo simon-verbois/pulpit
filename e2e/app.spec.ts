@@ -1,5 +1,98 @@
 import { expect, test } from "@playwright/test";
 
+test("task help explains streaming download inactivity limits", async ({ page }) => {
+  await page.goto("/tasks");
+  await page.getByRole("button", { name: "Helper" }).click();
+  await expect(page.getByText(/Large syncs can run for hours/)).toBeVisible();
+  await expect(page.getByText(/Other downloads progressing do not reset/)).toBeVisible();
+});
+
+test("task type and state filters combine and survive a reload", async ({ page }) => {
+  const tasks = [
+    {
+      pulp_href: "/pulp/api/v3/tasks/filter-sync/",
+      name: "pulp_rpm.app.tasks.synchronizing.synchronize",
+      state: "running",
+    },
+    {
+      pulp_href: "/pulp/api/v3/tasks/filter-publish/",
+      name: "pulp_rpm.app.tasks.publishing.publish",
+      state: "completed",
+    },
+  ];
+  await page.route("**/pulp/api/v3/tasks/?**", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const names = params.get("name__in")?.split(",");
+    const state = params.get("state");
+    const results = tasks.filter(
+      (task) => (!names || names.includes(task.name)) && (!state || task.state === state),
+    );
+    return route.fulfill({
+      json: { count: results.length, next: null, previous: null, results },
+    });
+  });
+  await page.goto("/tasks");
+  await page.getByLabel("Filter by task type").selectOption("sync");
+  const table = page.getByRole("grid", { name: "Tasks" });
+  await expect(table.getByText("Sync", { exact: true })).toBeVisible();
+  await expect(table.getByText("Publish", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Filter by state").selectOption("running");
+  await expect(page).toHaveURL(/type=sync&state=running/);
+  await page.reload();
+  await expect(page.getByLabel("Filter by task type")).toHaveValue("sync");
+  await expect(page.getByLabel("Filter by state")).toHaveValue("running");
+  await expect(table.getByText("running", { exact: true })).toBeVisible();
+  await page.getByLabel("Filter by task type").selectOption("publish");
+  await expect(page.getByText("No matching tasks")).toBeVisible();
+});
+
+test("failed task details explain worker loss and disclose technical details", async ({
+  page,
+}) => {
+  const task = {
+    pulp_href: "/pulp/api/v3/tasks/e2e-worker-failure/",
+    name: "pulp_rpm.app.tasks.synchronizing.synchronize",
+    state: "failed",
+    error: {
+      reason: "Worker has gone missing.",
+      traceback: "Worker diagnostic traceback",
+    },
+    reserved_resources_record: ["prn:rpm.rpmrepository:e2e-repository"],
+    created_resources: [],
+    logging_cid: "worker-failure-correlation-id",
+  };
+  await page.route("**/pulp/api/v3/tasks/e2e-worker-failure/", (route) =>
+    route.fulfill({ json: task }),
+  );
+  await page.goto("/tasks?task=e2e-worker-failure");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("Pulp worker stopped responding")).toBeVisible();
+  await expect(dialog.getByText(/Check whether Pulp was restarted/)).toBeVisible();
+  await expect(dialog.getByText(/This failed sync did not create/)).toBeVisible();
+  const technical = dialog.getByRole("button", {
+    name: "Technical details",
+    exact: true,
+  });
+  await expect(technical).toHaveAttribute("aria-expanded", "false");
+  await expect(dialog.getByText("worker-failure-correlation-id")).not.toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: "Raw resource records" }),
+  ).not.toBeVisible();
+  await technical.click();
+  await expect(dialog.getByText("worker-failure-correlation-id")).toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: "Raw resource records" }),
+  ).toBeVisible();
+  await technical.click();
+  const details = dialog.getByRole("button", { name: "Technical error details" });
+  await expect(details).toHaveAttribute("aria-expanded", "false");
+  await details.click();
+  await expect(dialog.getByText(/Worker diagnostic traceback/)).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(dialog.getByText("Pulp worker stopped responding")).toBeVisible();
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
 test("loads the PulpIT shell", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/PulpIT/);

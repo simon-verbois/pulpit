@@ -1,0 +1,27 @@
+# Optional local forward proxy; combine with compose-dev.yml or compose.yml.
+# Configure Pulpit Default Settings / Pulp remotes with http://squid:3128.
+services:
+  squid:
+    image: docker.io/ubuntu/squid:6.6-24.04_beta
+    volumes:
+      - ./squid/squid.conf:/etc/squid/squid.conf:ro
+      - ./squid/allowed-domains.txt:/etc/squid/allowed-domains.txt:ro
+    ports:
+      - "127.0.0.1:${SQUID_PORT:-3128}:3128"
+    healthcheck:
+      test: ["CMD", "squid", "-k", "check"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Synthetic ULN endpoint, only for controlled timeout reproduction.
+  uln-fixture:
+    image: docker.io/library/python:3.12-slim
+    profiles: ["proxy-repro"]
+    command: ["python", "-u", "/fixture/server.py"]
+    environment:
+      ULN_FIXTURE_LOGIN_DELAY: ${ULN_FIXTURE_LOGIN_DELAY:-0}
+      ULN_FIXTURE_METADATA_DELAY: ${ULN_FIXTURE_METADATA_DELAY:-0}
+    volumes:
+      - ./squid/uln-fixture.py:/fixture/server.py:ro

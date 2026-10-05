@@ -9,6 +9,9 @@ capabilities - see "Why this is a separate directory from `deployment/kube/`" be
 Requires a Podman new enough to ship the Quadlet generator (`/usr/libexec/podman/quadlet`,
 Podman >= 4.4).
 
+The shipped manifests impose no container CPU/RAM limits or reservations.
+Storage volume capacities remain explicit; see [deployment resource allocation](../../docs/DEPLOYMENT.md#cpu-and-memory-allocation).
+
 ## Deploying
 
 ```sh

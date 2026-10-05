@@ -115,7 +115,21 @@ export function JobsTab() {
 
   return (
     <>
-      {jobsQuery.isPending ? <LoadingState label="Loading background jobs" /> : null}
+      {jobsQuery.isPending ? (
+        <LoadingState
+          gridBreakPoint="grid-lg"
+          columns={[
+            "Job",
+            "Resource",
+            "Status",
+            "Requested by",
+            "Created",
+            "Duration",
+            "Actions",
+          ]}
+          label="Loading background jobs"
+        />
+      ) : null}
       {jobsQuery.isError ? (
         <ErrorState error={jobsQuery.error} onRetry={() => jobsQuery.refetch()} />
       ) : null}

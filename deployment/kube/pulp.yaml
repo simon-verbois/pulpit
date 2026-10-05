@@ -115,13 +115,6 @@ spec:
       containers:
         - name: pulp
           image: docker.io/simonverbois/pulp-pulpit:latest
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "1Gi"
-            limits:
-              cpu: "2"
-              memory: "4Gi"
           env:
             - name: PULP_SECRET_KEY
               valueFrom:

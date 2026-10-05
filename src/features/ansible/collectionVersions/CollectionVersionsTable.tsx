@@ -39,7 +39,18 @@ export function CollectionVersionsTable({
   repositoryKind,
 }: CollectionVersionsTableProps) {
   if (isPending) {
-    return <LoadingState label="Loading collections" />;
+    return (
+      <LoadingState
+        columns={[
+          "Namespace",
+          "Name",
+          "Version",
+          "Tags",
+          ...(repositoryKind ? ["Repositories"] : []),
+        ]}
+        label="Loading collections"
+      />
+    );
   }
   if (isError) {
     return <ErrorState error={error} onRetry={onRetry} />;

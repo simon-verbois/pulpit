@@ -51,7 +51,11 @@ export function RepositoryDistributionsTab({
   return (
     <>
       {distributionsQuery.isPending ? (
-        <LoadingState label="Loading distributions" />
+        <LoadingState
+          gridBreakPoint="grid-lg"
+          columns={["Name", "Base path", "Client configuration", "Actions"]}
+          label="Loading distributions"
+        />
       ) : null}
       {distributionsQuery.isError ? (
         <ErrorState

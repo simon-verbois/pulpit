@@ -87,7 +87,12 @@ export function UsersPage() {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        {usersQuery.isPending ? <LoadingState label="Loading users" /> : null}
+        {usersQuery.isPending ? (
+          <LoadingState
+            columns={["Username", "Name", "Email", "Status", "Actions"]}
+            label="Loading users"
+          />
+        ) : null}
         {usersQuery.isError ? (
           <ErrorState error={usersQuery.error} onRetry={() => usersQuery.refetch()} />
         ) : null}

@@ -33,7 +33,17 @@ export function ContentTable({
   repositoryKind,
 }: ContentTableProps) {
   if (isPending) {
-    return <LoadingState label="Loading gems" />;
+    return (
+      <LoadingState
+        columns={[
+          "Name",
+          "Version",
+          "Platform",
+          ...(repositoryKind ? ["Repositories"] : []),
+        ]}
+        label="Loading gems"
+      />
+    );
   }
   if (isError) {
     return <ErrorState error={error} onRetry={onRetry} />;

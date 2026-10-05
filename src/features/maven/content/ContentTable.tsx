@@ -33,7 +33,18 @@ export function ContentTable({
   repositoryKind,
 }: ContentTableProps) {
   if (isPending) {
-    return <LoadingState label="Loading artifacts" />;
+    return (
+      <LoadingState
+        columns={[
+          "Group ID",
+          "Artifact ID",
+          "Version",
+          "Filename",
+          ...(repositoryKind ? ["Repositories"] : []),
+        ]}
+        label="Loading artifacts"
+      />
+    );
   }
   if (isError) {
     return <ErrorState error={error} onRetry={onRetry} />;

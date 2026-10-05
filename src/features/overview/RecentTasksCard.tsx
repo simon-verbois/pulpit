@@ -53,7 +53,12 @@ export function RecentTasksCard() {
     <Card isCompact isFullHeight className="pulpit-dashboard-panel">
       <CardTitle>System task log</CardTitle>
       <CardBody>
-        {tasksQuery.isPending ? <LoadingState label="Loading recent tasks" /> : null}
+        {tasksQuery.isPending ? (
+          <LoadingState
+            columns={["Task", "Resource", "State", "Created"]}
+            label="Loading recent tasks"
+          />
+        ) : null}
         {tasksQuery.isError ? (
           <ErrorState error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />
         ) : null}

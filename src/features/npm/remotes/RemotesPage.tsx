@@ -54,7 +54,12 @@ export function RemotesPage() {
         actions={<Button onClick={() => setIsCreateOpen(true)}>Create remote</Button>}
       />
       <PageSection hasBodyWrapper={false}>
-        {remotesQuery.isPending ? <LoadingState label="Loading remotes" /> : null}
+        {remotesQuery.isPending ? (
+          <LoadingState
+            columns={["Name", "URL", "Policy", "Actions"]}
+            label="Loading remotes"
+          />
+        ) : null}
         {remotesQuery.isError ? (
           <ErrorState error={remotesQuery.error} onRetry={() => remotesQuery.refetch()} />
         ) : null}

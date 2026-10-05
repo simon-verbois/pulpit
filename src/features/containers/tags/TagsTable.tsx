@@ -42,7 +42,17 @@ export function TagsTable({
   repositoryKind,
 }: TagsTableProps) {
   if (isPending) {
-    return <LoadingState label="Loading tags" />;
+    return (
+      <LoadingState
+        columns={[
+          "Tag",
+          "Created",
+          ...(repositoryKind ? ["Repositories"] : []),
+          ...(onUntag ? ["Actions"] : []),
+        ]}
+        label="Loading tags"
+      />
+    );
   }
   if (isError) {
     return <ErrorState error={error} onRetry={onRetry} />;

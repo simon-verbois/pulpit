@@ -10,6 +10,39 @@ const COMPOSITE_GUARD = `e2e-composite-guard-${RUN_ID}`;
 
 test.describe.configure({ mode: "serial" });
 
+test("Access tabs stay aligned when switching to and from LDAP", async ({ page }) => {
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("/admin?tab=access&subtab=users");
+    await expect(
+      page.getByRole("button", { name: "Create user", exact: true }),
+    ).toBeVisible();
+    const selectors = ["General", "Access", "Users", "Groups", "Roles", "LDAP"];
+    const positions = await Promise.all(
+      selectors.map((name) => page.getByRole("tab", { name, exact: true }).boundingBox()),
+    );
+    for (const name of ["Groups", "Roles", "LDAP", "Users"]) {
+      await page.getByRole("tab", { name, exact: true }).click();
+      if (name === "LDAP") {
+        await expect(page.getByLabel("Enable LDAP authentication")).toBeVisible();
+      } else {
+        await expect(
+          page.getByRole("button", {
+            name: `Create ${name === "Users" ? "user" : name === "Groups" ? "group" : "role"}`,
+            exact: true,
+          }),
+        ).toBeVisible();
+      }
+      for (const [index, tab] of selectors.entries()) {
+        const box = await page.getByRole("tab", { name: tab, exact: true }).boundingBox();
+        expect(box).not.toBeNull();
+        expect(Math.abs(box!.x - positions[index]!.x)).toBeLessThan(1);
+        expect(Math.abs(box!.y - positions[index]!.y)).toBeLessThan(1);
+      }
+    }
+  }
+});
+
 test("Administration: TLS exposes only self-signed and manual certificate paths", async ({
   page,
 }) => {

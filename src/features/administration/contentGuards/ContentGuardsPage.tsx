@@ -92,7 +92,13 @@ export function ContentGuardsPage() {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        {guardsQuery.isPending ? <LoadingState label="Loading content guards" /> : null}
+        {guardsQuery.isPending ? (
+          <LoadingState
+            gridBreakPoint="grid-lg"
+            columns={["Name", "Type", "Description", "Actions"]}
+            label="Loading content guards"
+          />
+        ) : null}
         {guardsQuery.isError ? (
           <ErrorState error={guardsQuery.error} onRetry={() => guardsQuery.refetch()} />
         ) : null}

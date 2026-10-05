@@ -9,6 +9,9 @@ convention but not tested against a real cluster from this repo.
 
 Run every command below from the repo root.
 
+The shipped manifests impose no container CPU/RAM limits or reservations.
+Storage volume capacities remain explicit; see [deployment resource allocation](../../docs/DEPLOYMENT.md#cpu-and-memory-allocation).
+
 ## Prerequisites
 
 - A cluster with a storageClass that supports `ReadWriteMany` for

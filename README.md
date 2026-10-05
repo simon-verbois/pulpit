@@ -64,6 +64,81 @@ different about each.
 - A reachable Pulp instance — the bundled Compose stack runs one for you, or point Pulpit at an
   existing Pulp deployment (see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md))
 
+### Estimated hardware requirements
+
+These are **planning estimates, not benchmarks or guaranteed capacity**. They cover
+Pulp, PostgreSQL, Redis, Pulpit/core and the operating system together, assuming
+mostly RPM/Debian repositories, local storage, daily incremental syncs, limited
+version retention and moderate client traffic. TB means decimal terabytes;
+RAM uses GiB. Content means **unique retained artifacts after deduplication**,
+including artifacts still referenced by older versions. Count packages/manifests,
+concurrent syncs and client demand as well as repositories: 200 small repositories
+can cost less than one enormous package catalog.
+
+| Example workload                         | Concurrent syncs to start with | Host vCPU | Host RAM   | Usable local disk budget, excluding backups             |
+| ---------------------------------------- | ------------------------------ | --------- | ---------- | ------------------------------------------------------- |
+| Lab: 5–10 repos, 100 GB content          | 1                              | 4         | 8–16 GiB   | 250–300 GB SSD                                          |
+| Small production: 50–100 repos, 1 TB     | 2                              | 8         | 32 GiB     | 1.8–2 TB SSD                                            |
+| Medium production: **200 repos, 2.5 TB** | **4**                          | **16**    | **64 GiB** | **4–5 TB SSD**, preferably fast SSD/NVMe for PostgreSQL |
+| Larger production: 500 repos, 10 TB      | 4–8                            | 24–32     | 96–128 GiB | 15–20 TB; separate DB and content storage               |
+
+For **200 repositories / 2.5 TB**, a practical initial target is **16 vCPU,
+64 GiB RAM and about 5 TB usable SSD capacity**. Start with four task workers,
+reserve roughly 24–32 GiB for their aggregate peak memory, 12–16 GiB for the
+PostgreSQL workload (including its OS cache), and leave the rest for API/content
+processes, Redis, Pulpit and headroom. These allocations are starting budgets,
+not measured process requirements. Package-heavy RPM repositories can exceed
+ordinary worker memory assumptions; validate the largest repository first.
+Pulp's [hardware guidance](https://pulpproject.org/pulpcore/docs/admin/reference/hardware-requirements/)
+suggests roughly one CPU per concurrent task worker and highlights large RPM syncs
+as especially memory intensive.
+
+A storage calculation for that example is: 2.5 TB retained artifacts + 0.5 TB
+expected growth + 0.2 TB provisional DB/WAL/metadata budget + 0.15 TB staging +
+0.05 TB OS/logs = 3.4 TB occupied. Keeping 20% of the filesystem free requires
+`3.4 / 0.8 = 4.25 TB` usable; provision approximately 5 TB. Measure the DB and
+staging budget on representative repos: object count, publication count and
+package metadata can change those numbers substantially. RAID/mirror overhead,
+replicas, snapshots and backups require additional raw or separate capacity.
+Old versions share unchanged artifacts; retention does not multiply every
+repository's entire size, but it does keep superseded content alive.
+
+Use at least 1 Gb/s networking for moderate demand; consider 10 Gb/s for parallel
+client downloads or large sync windows. At a theoretical sustained 1 Gb/s,
+transferring 2.5 TB alone takes about 5.6 hours, before metadata processing,
+upstream limits, latency, checksums or publication. More CPU does not remove that
+network floor. On-demand storage can approach the full upstream size as clients
+request more content; do not size a hard disk limit assuming a fixed cache fraction.
+
+Before purchasing or scaling, sync several representative repos including the
+largest, then test the intended concurrency while clients download content.
+Record peak worker RSS, database/WAL growth, storage latency, throughput, CPU
+throttling and API p95 latency. Use the peak results plus growth allowance to
+adjust these estimates. For sustained larger workloads, scale API, content and
+workers independently with an external PostgreSQL and shared/object storage;
+Pulp documents this [component scaling model](https://pulpproject.org/pulp-operator/docs/admin/guides/install/ha/).
+
+### Pulp performance tuning
+
+The detailed [performance guide](docs/PERFORMANCE.md) distinguishes settings
+verified in the local stack from recommendations to benchmark. Main priorities:
+
+- Give PostgreSQL low-latency SSD/NVMe storage and preserve memory for its cache.
+- Size task workers and per-remote downloads together; more concurrency can
+  reduce throughput when the DB, storage or upstream proxy saturates.
+- Keep routine RPM sync optimization enabled, stagger schedules, and avoid
+  repeatedly publishing an unchanged repository version.
+- Keep staging and local artifact storage on the same filesystem, and use Redis
+  for content-serving cache. Redis does not cache every management API list.
+- Retain only versions needed for rollback and use Pulp's supported orphan cleanup
+  to reclaim unreferenced artifacts; version deletion alone may not free files.
+
+The shipped Docker, Kubernetes and Podman deployments set no container CPU/RAM
+caps or reservations. Storage volume capacities remain explicit. Size the host
+and worker counts for your workload; removing resource caps does not increase
+the configured number of workers. Restart-sensitive tuning must be deployed
+between syncs.
+
 ### Quick start
 
 ```sh

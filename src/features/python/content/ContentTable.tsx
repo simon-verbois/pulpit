@@ -33,7 +33,18 @@ export function ContentTable({
   repositoryKind,
 }: ContentTableProps) {
   if (isPending) {
-    return <LoadingState label="Loading packages" />;
+    return (
+      <LoadingState
+        columns={[
+          "Name",
+          "Version",
+          "Type",
+          "Filename",
+          ...(repositoryKind ? ["Repositories"] : []),
+        ]}
+        label="Loading packages"
+      />
+    );
   }
   if (isError) {
     return <ErrorState error={error} onRetry={onRetry} />;

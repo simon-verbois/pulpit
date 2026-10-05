@@ -113,7 +113,13 @@ export function RolesPage() {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        {rolesQuery.isPending ? <LoadingState label="Loading roles" /> : null}
+        {rolesQuery.isPending ? (
+          <LoadingState
+            gridBreakPoint="grid-lg"
+            columns={["Name", "Type", "Description", "Permissions", "Actions"]}
+            label="Loading roles"
+          />
+        ) : null}
         {rolesQuery.isError ? (
           <ErrorState error={rolesQuery.error} onRetry={() => rolesQuery.refetch()} />
         ) : null}

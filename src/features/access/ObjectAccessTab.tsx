@@ -64,7 +64,12 @@ export function ObjectAccessTab({
 
   return (
     <>
-      {rolesQuery.isPending ? <LoadingState label="Loading access" /> : null}
+      {rolesQuery.isPending ? (
+        <LoadingState
+          columns={["Role", "Granted to", "Type", "Actions"]}
+          label="Loading access"
+        />
+      ) : null}
       {rolesQuery.isError ? (
         <ErrorState error={rolesQuery.error} onRetry={() => rolesQuery.refetch()} />
       ) : null}

@@ -122,6 +122,7 @@ function AdministrationPageContent({
     <>
       <PageHeader
         title="Administration"
+        className="pulpit-administration-header"
         description="Instance-wide configuration: what every user sees, users/groups/roles, LDAP authentication, repository signing, Pulp signing services, content guards, TLS, and a global default proxy for every Remote."
         actions={headerAction}
       />

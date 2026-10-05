@@ -61,7 +61,10 @@ export function RepositoriesPage() {
       />
       <PageSection hasBodyWrapper={false}>
         {repositoriesQuery.isPending ? (
-          <LoadingState label="Loading repositories" />
+          <LoadingState
+            columns={["Name", "Description", "Size", "Actions"]}
+            label="Loading repositories"
+          />
         ) : null}
         {repositoriesQuery.isError ? (
           <ErrorState

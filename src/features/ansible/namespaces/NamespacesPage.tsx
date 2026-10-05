@@ -120,7 +120,10 @@ export function NamespacesPage() {
           />
         ) : null}
         {distributionBasePath && namespacesQuery.isPending ? (
-          <LoadingState label="Loading namespaces" />
+          <LoadingState
+            columns={["Actions", "Name", "Company", "Email", "Actions"]}
+            label="Loading namespaces"
+          />
         ) : null}
         {distributionBasePath && namespacesQuery.isError ? (
           <ErrorState

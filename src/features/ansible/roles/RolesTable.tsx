@@ -39,7 +39,17 @@ export function RolesTable({
   repositoryKind,
 }: RolesTableProps) {
   if (isPending) {
-    return <LoadingState label="Loading roles" />;
+    return (
+      <LoadingState
+        columns={[
+          "Namespace",
+          "Name",
+          "Version",
+          ...(repositoryKind ? ["Repositories"] : []),
+        ]}
+        label="Loading roles"
+      />
+    );
   }
   if (isError) {
     return <ErrorState error={error} onRetry={onRetry} />;

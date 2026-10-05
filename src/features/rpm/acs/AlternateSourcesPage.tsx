@@ -47,7 +47,10 @@ export function AlternateSourcesPage() {
       />
       <PageSection hasBodyWrapper={false}>
         {acsQuery.isPending ? (
-          <LoadingState label="Loading alternate content sources" />
+          <LoadingState
+            columns={["Name", "Paths", "Last refreshed", "Actions"]}
+            label="Loading alternate content sources"
+          />
         ) : null}
         {acsQuery.isError ? (
           <ErrorState error={acsQuery.error} onRetry={() => acsQuery.refetch()} />

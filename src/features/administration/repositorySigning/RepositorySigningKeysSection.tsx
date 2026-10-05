@@ -132,7 +132,18 @@ export function RepositorySigningKeysSection({
         <Stack hasGutter>
           {keysQuery.isPending ? (
             <StackItem>
-              <LoadingState label="Loading signing keys" />
+              <LoadingState
+                columns={[
+                  "Status",
+                  "Fingerprint",
+                  "Identity",
+                  "Algorithm",
+                  "Created",
+                  "Expires",
+                  "Actions",
+                ]}
+                label="Loading signing keys"
+              />
             </StackItem>
           ) : null}
           {keysQuery.isError ? (

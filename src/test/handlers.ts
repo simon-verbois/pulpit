@@ -4845,7 +4845,9 @@ const taskHistoryHandlers = [
     const url = new URL(request.url);
     const state = url.searchParams.get("state");
     const nameContains = url.searchParams.get("name__contains");
+    const names = url.searchParams.get("name__in")?.split(",");
     let results = taskHistory;
+    if (names) results = results.filter((t) => t.name && names.includes(t.name));
     if (state) {
       results = results.filter((t) => t.state === state);
     }

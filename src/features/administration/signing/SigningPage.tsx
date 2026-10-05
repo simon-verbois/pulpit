@@ -95,7 +95,10 @@ export function SigningPage() {
         />
 
         {servicesQuery.isPending ? (
-          <LoadingState label="Loading signing services" />
+          <LoadingState
+            columns={["Name", "Public key fingerprint", "Actions"]}
+            label="Loading signing services"
+          />
         ) : null}
         {servicesQuery.isError ? (
           <ErrorState

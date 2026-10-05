@@ -154,7 +154,16 @@ export function RemotesPage() {
           </ToolbarContent>
         </Toolbar>
 
-        {activeQuery.isPending ? <LoadingState label="Loading remotes" /> : null}
+        {activeQuery.isPending ? (
+          <LoadingState
+            columns={
+              kind === "git"
+                ? ["Name", "URL", "Git ref", "Actions"]
+                : ["Name", "URL", "Policy", "Actions"]
+            }
+            label="Loading remotes"
+          />
+        ) : null}
         {activeQuery.isError ? (
           <ErrorState error={activeQuery.error} onRetry={() => activeQuery.refetch()} />
         ) : null}

@@ -119,7 +119,69 @@ answers synchronously with `{"ok", "detail", "url"}`; a failed probe is still HT
 `ok: false`, only a missing/unviewable remote is 404 (view permission on the remote required).
 External Pulp deployments without the extension get a 404 from the "Test" action.
 
+**VERIFIED locally with pulp_rpm 3.38.5 / pulpcore 3.116.1 (2026-10-05):** the
+ULN downloader forwards the saved `proxy_url` and proxy credentials to both the
+XML-RPC login (`rpc/api`) and metadata download (`XMLRPC/GET-REQ/...`). However,
+the login creates a separate `aiohttp_xmlrpc` session: it does not inherit the
+remote's CA/client certificates, `tls_validation`, or timeout settings. A
+read-only check using an unsaved remote with `total_timeout=7` and
+`tls_validation=False` confirmed a 7-second metadata timeout with TLS validation
+disabled, versus the login's default 300-second timeout and default TLS
+validation. The Pulpit probe caps the whole operation at 60 seconds. Login
+failures are retried four times and wrapped as `UlnCredentialsError`, so a proxy
+or certificate error can surface as a generic ULN login failure. **TODO:** verify
+the actual error and installed plugin version in production before attributing
+a production timeout to this behavior; especially check HTTPS inspection and
+whether the proxy is saved on the remote rather than only in environment variables.
+
+**VERIFIED local proxy reproduction (2026-10-05):** with the optional
+`deployment/docker/compose-proxy.yml` Squid overlay and the saved remote proxy
+`http://squid:3128`, the real `ol9_x86_64_baseos_latest` channel succeeded in
+approximately 1.4 seconds (direct and proxied). Disallowed HTTP and HTTPS
+destinations, and disallowed ports, returned 403 from Squid. This does not
+reproduce the production failure with a plain CONNECT proxy.
+
+The optional `uln-fixture` service reproduced a controlled slow login: with a
+70-second login delay and a remote `total_timeout=5`, a direct request to the
+Pulp API application returned HTTP 200 / `ok: false` / "No answer within 60
+seconds." after 60.2 seconds. Squid recorded an aborted XML-RPC POST after
+60 seconds. Through the reference Pulpit nginx, the browser instead received
+HTTP 504 after 60.1 seconds and displayed "Pulp is currently unavailable."
+Both reference nginx API routes leave `proxy_read_timeout` at its default
+60 seconds, competing with the probe's own deadline. This synthetic test
+demonstrates timeout handling, not the cause of the production network issue.
+See the Docker README for commands and dummy fixture settings.
+
+**VERIFIED live (pulpcore 3.116.1):** fatal task `error` objects are not limited
+to `description`/`traceback`/`error_code`. Lost workers report only
+`{"reason": "Worker has gone missing."}` and forcible worker termination can
+report `{"reason": "Killed by signal 9."}`. Display failed tasks even when
+`description` is absent. Signal 9 does not itself establish an OOM cause;
+confirm that separately in host logs. RPM syncs can retain downloaded files
+after failure while the repository remains at its previous completed version.
+
+## Streaming download timeout policy
+
+**VERIFIED locally (pulpcore 3.116.1, 2026-10-05):** the upstream shared
+`DownloaderFactory` uses `remote.total_timeout or aiohttp.client.DEFAULT_TIMEOUT.total`;
+null and zero therefore restore a 300-second total deadline. The derived Docker
+image applies a guarded build-time policy setting `total=None` and defaulting
+`sock_read` to 300 seconds while retaining positive remote inactivity settings.
+This applies across plugins using this factory, including ULN. It overrides
+saved total timeout values; it is a deployment policy, not an upstream API guarantee.
+
+Real HTTP streaming tests in the deployed image verified that a one-second
+transfer succeeds despite a saved 0.2-second total timeout, that an idle
+connection still expires, and that the default read inactivity timeout is 300
+seconds. Connection acquisition timeout remains configurable.
+
 ## Pagination
+
+**VERIFIED live (pulpcore 3.116.1):** `/tasks/` accepts a comma-separated
+`name__in` list of exact task names alongside `name__contains` and `state`.
+The Tasks type filter uses exact names of supported Pulp task functions so
+type, free-text name search and state intersect server-side before pagination.
+Use All types to search custom task functions outside the known type catalog.
 
 Pulp's list endpoints use limit/offset-style pagination with `count`/`next`/`previous` in the
 response envelope. Confirm the exact parameter names and envelope shape against the live schema

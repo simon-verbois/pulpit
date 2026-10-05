@@ -15,7 +15,10 @@ export function TlsCertificateHistorySection() {
       <CardTitle>History</CardTitle>
       <CardBody>
         {historyQuery.isPending ? (
-          <LoadingState label="Loading certificate history" />
+          <LoadingState
+            columns={["Event", "Source", "Triggered by", "Expires", "When"]}
+            label="Loading certificate history"
+          />
         ) : null}
         {historyQuery.isError ? (
           <ErrorState error={historyQuery.error} onRetry={() => historyQuery.refetch()} />

@@ -1,0 +1,4 @@
+# Exact hostnames only. Add each repository/redirect destination explicitly.
+linux-update.oracle.com
+# Local synthetic endpoint (no Internet destination).
+uln-fixture

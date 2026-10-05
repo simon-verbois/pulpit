@@ -142,7 +142,17 @@ export function RemotesPage() {
           </ToolbarContent>
         </Toolbar>
 
-        {activeQuery.isPending ? <LoadingState label="Loading remotes" /> : null}
+        {activeQuery.isPending ? (
+          <LoadingState
+            gridBreakPoint="grid-lg"
+            columns={
+              kind === "uln"
+                ? ["Name", "Channel URL", "ULN server", "Actions"]
+                : ["Name", "URL", "Policy", "Actions"]
+            }
+            label="Loading remotes"
+          />
+        ) : null}
         {activeQuery.isError ? (
           <ErrorState error={activeQuery.error} onRetry={() => activeQuery.refetch()} />
         ) : null}

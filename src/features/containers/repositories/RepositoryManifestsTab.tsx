@@ -43,7 +43,12 @@ export function RepositoryManifestsTab({
 
   return (
     <>
-      {manifestsQuery.isPending ? <LoadingState label="Loading manifests" /> : null}
+      {manifestsQuery.isPending ? (
+        <LoadingState
+          columns={["Digest", "Media type", "Architecture", "OS", "Size"]}
+          label="Loading manifests"
+        />
+      ) : null}
       {manifestsQuery.isError ? (
         <ErrorState
           error={manifestsQuery.error}

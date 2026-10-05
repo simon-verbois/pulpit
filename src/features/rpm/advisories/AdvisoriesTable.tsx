@@ -58,7 +58,19 @@ export function AdvisoriesTable({
   repositoryKind,
 }: AdvisoriesTableProps) {
   if (isPending) {
-    return <LoadingState label="Loading advisories" />;
+    return (
+      <LoadingState
+        columns={[
+          "ID",
+          "Title",
+          "Type",
+          "Severity",
+          "Issued",
+          ...(repositoryKind ? ["Repositories"] : []),
+        ]}
+        label="Loading advisories"
+      />
+    );
   }
   if (isError) {
     return <ErrorState error={error} onRetry={onRetry} />;

@@ -621,6 +621,16 @@ body {
   line-height: 1.2;
 }
 
+/* Tabs must keep their position when the selected settings page has no
+   header action. Reserve the same height as a default PatternFly button. */
+.pulpit-administration-header > .pf-v6-l-flex {
+  min-block-size: calc(
+    var(--pf-t--global--font--size--body--default) *
+      var(--pf-t--global--font--line-height--body) + 2 *
+      var(--pf-t--global--spacer--control--vertical--default)
+  );
+}
+
 /* Every routed screen uses the same inset working surface as the dashboard.
    PageHeader is the stable boundary: the PageSection immediately following
    it is the page's primary functional block, whether that block is a list,

@@ -30,7 +30,9 @@ export function GroupMembersTab({ group }: { group: Group }) {
 
   return (
     <>
-      {membersQuery.isPending ? <LoadingState label="Loading members" /> : null}
+      {membersQuery.isPending ? (
+        <LoadingState columns={["Username", "Actions"]} label="Loading members" />
+      ) : null}
       {membersQuery.isError ? (
         <ErrorState error={membersQuery.error} onRetry={() => membersQuery.refetch()} />
       ) : null}

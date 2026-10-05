@@ -35,6 +35,7 @@ import { rpmRepositoryByNameKey, rpmRepositoryVersionsKey } from "./queryKeys";
  * so the tab's shape doesn't shift around as different repos are viewed. */
 function ContentSection({
   title,
+  columns,
   isPending,
   isError,
   error,
@@ -42,6 +43,7 @@ function ContentSection({
   children,
 }: {
   title: string;
+  columns: readonly string[];
   isPending: boolean;
   isError: boolean;
   error?: unknown;
@@ -56,7 +58,9 @@ function ContentSection({
       isExpanded={isExpanded}
       onToggle={(_event, expanded) => setIsExpanded(expanded)}
     >
-      {isPending ? <LoadingState label={`Loading ${title.toLowerCase()}`} /> : null}
+      {isPending ? (
+        <LoadingState columns={columns} label={`Loading ${title.toLowerCase()}`} />
+      ) : null}
       {isError ? <ErrorState error={error} /> : null}
       {!isPending && !isError && count === 0 ? (
         <EmptyState variant="xs" title="None in this repository." />
@@ -127,6 +131,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </Toolbar>
 
       <ContentSection
+        columns={["ID", "Name", "Packages", "Default"]}
         title="Package groups"
         isPending={groupsQuery.isPending}
         isError={groupsQuery.isError}
@@ -156,6 +161,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["ID", "Name", "Groups"]}
         title="Package categories"
         isPending={categoriesQuery.isPending}
         isError={categoriesQuery.isError}
@@ -183,6 +189,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["ID", "Name", "Groups", "Options"]}
         title="Package environments"
         isPending={environmentsQuery.isPending}
         isError={environmentsQuery.isError}
@@ -212,6 +219,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["Name", "Pattern"]}
         title="Package langpacks"
         isPending={langpacksQuery.isPending}
         isError={langpacksQuery.isError}
@@ -237,6 +245,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["Name", "Stream", "Version", "Arch", "Context"]}
         title="Modulemd"
         isPending={modulemdsQuery.isPending}
         isError={modulemdsQuery.isError}
@@ -268,6 +277,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["Module", "Default stream"]}
         title="Modulemd defaults"
         isPending={modulemdDefaultsQuery.isPending}
         isError={modulemdDefaultsQuery.isError}
@@ -293,6 +303,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["Module", "Stream", "Message", "Obsoleted by"]}
         title="Modulemd obsoletes"
         isPending={modulemdObsoletesQuery.isPending}
         isError={modulemdObsoletesQuery.isError}
@@ -326,6 +337,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["Release", "Version", "Arch"]}
         title="Distribution trees"
         isPending={distributionTreesQuery.isPending}
         isError={distributionTreesQuery.isError}
@@ -353,6 +365,7 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
       </ContentSection>
 
       <ContentSection
+        columns={["Data type", "Relative path"]}
         title="Repo metadata files"
         isPending={repoMetadataFilesQuery.isPending}
         isError={repoMetadataFilesQuery.isError}

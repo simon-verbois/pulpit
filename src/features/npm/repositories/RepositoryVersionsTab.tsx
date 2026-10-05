@@ -35,7 +35,10 @@ export function RepositoryVersionsTab({ repository }: { repository: NpmRepositor
   return (
     <>
       {versionsQuery.isPending ? (
-        <LoadingState label="Loading repository versions" />
+        <LoadingState
+          columns={["Version", "Created", "Content"]}
+          label="Loading repository versions"
+        />
       ) : null}
       {versionsQuery.isError ? (
         <ErrorState error={versionsQuery.error} onRetry={() => versionsQuery.refetch()} />

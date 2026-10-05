@@ -31,7 +31,13 @@ export interface PulpTask {
   finished_at?: string | null;
   // Shape isn't fixed by the schema; `description` is what pulpcore's own
   // tasks actually populate, but never assume it's present.
-  error?: { description?: string } | null;
+  error?: {
+    description?: string;
+    reason?: string;
+    error_code?: string;
+    traceback?: string;
+    [key: string]: unknown;
+  } | null;
   // The rest VERIFIED live against a real /pulp/api/v3/tasks/ response -
   // every mutation across the whole app ultimately lands in this same
   // persistent, Pulp-owned task record, which is the audit trail Pulpit
@@ -93,6 +99,8 @@ export interface ListTasksParams {
   offset: number;
   state?: PulpTaskState;
   name__contains?: string;
+  /** Comma-separated exact task names; VERIFIED live against pulpcore 3.116.1. */
+  name__in?: string;
   ordering?: string;
 }
 

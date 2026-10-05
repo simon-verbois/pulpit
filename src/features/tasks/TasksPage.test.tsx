@@ -14,10 +14,95 @@ import {
 import type { PulpTask } from "../../api/client/tasks";
 import { humanizeTaskName } from "./humanizeTaskName";
 import { TasksPage } from "./TasksPage";
+import { TaskDetailModal } from "./TaskDetailModal";
 
 const BASE = "/pulp/api/v3/tasks/";
 
 describe("TasksPage", () => {
+  it("combines type and state filters across the history and saves them in the URL", async () => {
+    renderApp(<TasksPage />, {
+      route: "/tasks?type=publish&state=failed",
+      path: "/tasks",
+    });
+    expect(await screen.findByText("failed")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by task type")).toHaveValue("publish");
+    expect(screen.queryByText("completed")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Filter by task type"), {
+      target: { value: "sync" },
+    });
+    expect(await screen.findByText("No matching tasks")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Filter by state"), { target: { value: "" } });
+    expect(await screen.findByText("completed")).toBeInTheDocument();
+    expect(screen.queryByText("failed")).not.toBeInTheDocument();
+  });
+
+  it("resets pagination before applying a task type and sends both name filters to Pulp", async () => {
+    const queries: URLSearchParams[] = [];
+    server.use(
+      http.get(BASE, ({ request }) => {
+        queries.push(new URL(request.url).searchParams);
+        return HttpResponse.json({
+          count: 100,
+          next: null,
+          previous: null,
+          results: [TASK_HISTORY_FIXTURE_COMPLETED],
+        });
+      }),
+    );
+    renderApp(<TasksPage />);
+    await screen.findByText("completed");
+    fireEvent.click(screen.getByRole("button", { name: "Go to next page" }));
+    await screen.findByText("completed");
+    fireEvent.change(screen.getByLabelText("Filter by task type"), {
+      target: { value: "sync" },
+    });
+    await screen.findByText("completed");
+    const query = queries.at(-1)!;
+    expect(query.get("offset")).toBe("0");
+    expect(query.get("name__in")).toContain(
+      "pulp_rpm.app.tasks.synchronizing.synchronize",
+    );
+    fireEvent.change(screen.getByLabelText("Search tasks by name"), {
+      target: { value: "rpm" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await screen.findByText("completed");
+    expect(queries.at(-1)!.get("name__contains")).toBe("rpm");
+    expect(queries.at(-1)!.get("name__in")).toContain("synchronize");
+  });
+  it("explains a missing worker and reveals the original error on request", async () => {
+    const task: PulpTask = {
+      ...TASK_HISTORY_FIXTURE_FAILED,
+      error: { reason: "Worker has gone missing.", traceback: "Diagnostic traceback" },
+    };
+    server.use(http.get(task.pulp_href, () => HttpResponse.json(task)));
+    renderApp(
+      <TaskDetailModal href={task.pulp_href} initialTask={task} onClose={() => {}} />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("Pulp worker stopped responding"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/Check whether Pulp was restarted/),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Diagnostic traceback/)).not.toBeVisible();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Technical error details" }),
+    );
+    expect(within(dialog).getByText(/Diagnostic traceback/)).toBeVisible();
+  });
+
+  it("shows a useful failure message even if Pulp supplied no error", async () => {
+    const task: PulpTask = { ...TASK_HISTORY_FIXTURE_FAILED, error: null };
+    server.use(http.get(task.pulp_href, () => HttpResponse.json(task)));
+    renderApp(
+      <TaskDetailModal href={task.pulp_href} initialTask={task} onClose={() => {}} />,
+    );
+    expect(
+      await screen.findByText(/without providing an error message/),
+    ).toBeInTheDocument();
+  });
   it("lists pulpit-core background jobs on their own tab, with their repository", async () => {
     renderApp(<TasksPage />, { route: "/tasks?tab=jobs", path: "/tasks" });
 
@@ -139,7 +224,7 @@ describe("TasksPage", () => {
     expect(dialog).toBeInTheDocument();
   });
 
-  it("still shows the raw Pulp task name in full in the detail modal", async () => {
+  it("keeps diagnostics hidden until technical details are expanded", async () => {
     renderApp(<TasksPage />);
 
     const completedRow = await screen.findByRole("row", {
@@ -148,9 +233,18 @@ describe("TasksPage", () => {
     fireEvent.click(within(completedRow).getByRole("button", { name: "View details" }));
 
     const dialog = await screen.findByRole("dialog");
-    expect(
-      within(dialog).getByText(TASK_HISTORY_FIXTURE_COMPLETED.name!),
-    ).toBeInTheDocument();
+    const taskName = within(dialog).getByText(TASK_HISTORY_FIXTURE_COMPLETED.name!);
+    expect(taskName).not.toBeVisible();
+    expect(within(dialog).getByText("State")).toBeVisible();
+    expect(within(dialog).getByText("Duration")).toBeVisible();
+    const toggle = within(dialog).getByRole("button", {
+      name: "Technical details",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(taskName).toBeVisible();
+    fireEvent.click(toggle);
+    expect(taskName).not.toBeVisible();
   });
 
   it("shows an empty state when there are no tasks", async () => {
@@ -187,7 +281,11 @@ describe("TasksPage", () => {
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(TASK_HISTORY_FIXTURE_FAILED.logging_cid!),
-    ).toBeInTheDocument();
+    ).not.toBeVisible();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Technical details" }));
+    expect(
+      within(dialog).getByText(TASK_HISTORY_FIXTURE_FAILED.logging_cid!),
+    ).toBeVisible();
   });
 
   it("filters by state", async () => {

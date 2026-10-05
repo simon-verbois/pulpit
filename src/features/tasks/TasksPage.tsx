@@ -44,6 +44,7 @@ import { useTaskResources } from "./useTaskResources";
 import { useTasksQuery } from "./useTasksQuery";
 import { JobsTab } from "./JobsTab";
 import { CancelTaskModal } from "./CancelTaskModal";
+import { TASK_TYPES } from "./taskTypes";
 
 const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
   { value: "", label: "All states" },
@@ -106,10 +107,13 @@ export function TasksPage() {
  * the task need not be on the current page.
  */
 function PulpTasksTab() {
-  const [stateFilter, setStateFilter] = useState<PulpTaskState | "">("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
+  const stateFilter =
+    STATE_OPTIONS.find((option) => option.value === searchParams.get("state"))?.value ??
+    "";
+  const taskType = TASK_TYPES.find((type) => type.value === searchParams.get("type"));
   const [taskToCancel, setTaskToCancel] = useState<PulpTask | null>(null);
   const viewingTaskId = searchParams.get("task");
   const pagination = usePulpPagination();
@@ -119,9 +123,18 @@ function PulpTasksTab() {
     offset: pagination.offset,
     state: stateFilter || undefined,
     name__contains: search || undefined,
+    name__in: taskType?.names.join(","),
   });
 
-  const isFiltered = search !== "" || stateFilter !== "";
+  const isFiltered = search !== "" || stateFilter !== "" || Boolean(taskType);
+
+  const setFilter = (key: "type" | "state", value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    pagination.onSetPage(undefined, 1);
+    setSearchParams(next, { replace: true });
+  };
 
   const rows = useMemo(
     () =>
@@ -152,7 +165,7 @@ function PulpTasksTab() {
           <FormSelect
             aria-label="Filter by state"
             value={stateFilter}
-            onChange={(_event, value) => setStateFilter(value as PulpTaskState | "")}
+            onChange={(_event, value) => setFilter("state", value)}
           >
             {STATE_OPTIONS.map((option) => (
               <FormSelectOption
@@ -163,16 +176,32 @@ function PulpTasksTab() {
             ))}
           </FormSelect>
         </ToolbarItem>
+        <ToolbarItem>
+          <FormSelect
+            aria-label="Filter by task type"
+            value={taskType?.value ?? ""}
+            onChange={(_event, value) => setFilter("type", value)}
+          >
+            <FormSelectOption value="" label="All types" />
+            {TASK_TYPES.map((type) => (
+              <FormSelectOption key={type.value} value={type.value} label={type.label} />
+            ))}
+          </FormSelect>
+        </ToolbarItem>
         <ToolbarItem style={{ width: "18rem" }}>
           <SearchInput
             aria-label="Search tasks by name"
             placeholder="Search by task name…"
             value={searchInput}
             onChange={(_event, value) => setSearchInput(value)}
-            onSearch={() => setSearch(searchInput)}
+            onSearch={() => {
+              setSearch(searchInput);
+              pagination.onSetPage(undefined, 1);
+            }}
             onClear={() => {
               setSearchInput("");
               setSearch("");
+              pagination.onSetPage(undefined, 1);
             }}
           />
         </ToolbarItem>
@@ -193,7 +222,21 @@ function PulpTasksTab() {
 
   return (
     <>
-      {tasksQuery.isPending ? <LoadingState label="Loading tasks" /> : null}
+      {tasksQuery.isPending ? (
+        <LoadingState
+          gridBreakPoint="grid-lg"
+          columns={[
+            "Task",
+            "Resource",
+            "State",
+            "Created by",
+            "Created",
+            "Duration",
+            "Actions",
+          ]}
+          label="Loading tasks"
+        />
+      ) : null}
       {tasksQuery.isError ? (
         <ErrorState error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />
       ) : null}
@@ -209,7 +252,7 @@ function PulpTasksTab() {
           <EmptyState
             variant="sm"
             title="No matching tasks"
-            body="Try a different search or state filter."
+            body="Try a different search, task type or state filter."
           />
         </>
       ) : null}

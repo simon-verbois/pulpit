@@ -84,7 +84,9 @@ export function GroupsPage() {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        {groupsQuery.isPending ? <LoadingState label="Loading groups" /> : null}
+        {groupsQuery.isPending ? (
+          <LoadingState columns={["Name", "Actions"]} label="Loading groups" />
+        ) : null}
         {groupsQuery.isError ? (
           <ErrorState error={groupsQuery.error} onRetry={() => groupsQuery.refetch()} />
         ) : null}

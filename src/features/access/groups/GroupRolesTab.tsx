@@ -33,7 +33,12 @@ export function GroupRolesTab({ group }: { group: Group }) {
 
   return (
     <>
-      {rolesQuery.isPending ? <LoadingState label="Loading role assignments" /> : null}
+      {rolesQuery.isPending ? (
+        <LoadingState
+          columns={["Role", "Scope", "Actions"]}
+          label="Loading role assignments"
+        />
+      ) : null}
       {rolesQuery.isError ? (
         <ErrorState error={rolesQuery.error} onRetry={() => rolesQuery.refetch()} />
       ) : null}

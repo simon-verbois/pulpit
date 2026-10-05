@@ -38,7 +38,12 @@ export function SearchPage() {
         description="Find a collection across every Ansible repository at once."
       />
       <PageSection hasBodyWrapper={false}>
-        {searchQuery.isPending ? <LoadingState label="Searching collections" /> : null}
+        {searchQuery.isPending ? (
+          <LoadingState
+            columns={["Namespace", "Name", "Version", "Repository", "Status"]}
+            label="Searching collections"
+          />
+        ) : null}
         {searchQuery.isError ? (
           <ErrorState error={searchQuery.error} onRetry={() => searchQuery.refetch()} />
         ) : null}

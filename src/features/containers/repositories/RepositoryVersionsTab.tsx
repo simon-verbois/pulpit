@@ -42,7 +42,10 @@ export function RepositoryVersionsTab({
   return (
     <>
       {versionsQuery.isPending ? (
-        <LoadingState label="Loading repository versions" />
+        <LoadingState
+          columns={["Version", "Created", "Content", "Actions"]}
+          label="Loading repository versions"
+        />
       ) : null}
       {versionsQuery.isError ? (
         <ErrorState error={versionsQuery.error} onRetry={() => versionsQuery.refetch()} />
