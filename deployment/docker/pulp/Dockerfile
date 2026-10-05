@@ -11,7 +11,7 @@
 FROM docker.io/pulp/pulp:stable
 
 COPY download-timeouts/apply.py /tmp/apply-download-timeouts.py
-RUN python /tmp/apply-download-timeouts.py && rm /tmp/apply-download-timeouts.py
+RUN python3 /tmp/apply-download-timeouts.py && rm /tmp/apply-download-timeouts.py
 
 COPY distribution-path-policy /tmp/pulp-distribution-path-policy
 COPY remote-check /tmp/pulp-remote-check

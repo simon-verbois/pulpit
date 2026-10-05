@@ -1,4 +1,4 @@
-"""Run inside the derived Pulp image: python /tmp/test_timeouts.py."""
+"""Run inside the derived Pulp image: python3 /tmp/test_timeouts.py."""
 
 import asyncio
 import unittest
