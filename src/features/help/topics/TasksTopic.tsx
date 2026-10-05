@@ -28,6 +28,12 @@ export function TasksTopic() {
         ran, which resources it touched, and — for a failed task — Pulp's actual error
         message instead of just "something failed."
       </Content>
+      <Content component="p">
+        A waiting or running Pulp task also has a <strong>Stop</strong> action. Confirming
+        it asks Pulp to cancel the work safely; the state may briefly show as canceling
+        before it becomes canceled. If the task finishes first, Pulp reports the conflict
+        and Pulpit leaves the task unchanged.
+      </Content>
     </Content>
   );
 }

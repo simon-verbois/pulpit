@@ -5,10 +5,11 @@ export function AnsibleCollectionsTopic() {
     <Content>
       <Content component="p">
         Lists every collection version across <strong>every</strong> Ansible repository at
-        once — namespace, name, version, and tags. Use it to see what's available without
-        picking a repository first; to add a collection to a specific repository, use that
-        repository's own <strong>Collections</strong> tab instead (see the Repositories
-        help page).
+        once — namespace, name, version, tags, and the repositories whose current version
+        contains it. Repository names open their detail pages. Use it to see what's
+        available without picking a repository first; to add a collection to a specific
+        repository, use that repository's own <strong>Collections</strong> tab instead
+        (see the Repositories help page).
       </Content>
 
       <Content component="h3">Deprecating a collection</Content>

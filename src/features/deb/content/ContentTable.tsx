@@ -3,6 +3,8 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { RepositoryMembershipCell } from "../../../components/RepositoryMembershipCell";
+import type { RepositoryKind } from "../../../api/client/repositoryMembership";
 import type { DebContent } from "../../../api/client/deb/types";
 
 interface ContentTableProps {
@@ -16,6 +18,7 @@ interface ContentTableProps {
   /** Set by a repository-detail tab caller (nested in a bigger page) -
    * unset for the equivalent top-level list page, which stays full-page. */
   emptyStateVariant?: "sm";
+  repositoryKind?: RepositoryKind;
 }
 
 export function ContentTable({
@@ -27,6 +30,7 @@ export function ContentTable({
   emptyTitle,
   emptyBody,
   emptyStateVariant,
+  repositoryKind,
 }: ContentTableProps) {
   if (isPending) {
     return <LoadingState label="Loading packages" />;
@@ -45,6 +49,7 @@ export function ContentTable({
           <Th>Package</Th>
           <Th>Version</Th>
           <Th>Architecture</Th>
+          {repositoryKind ? <Th>Repositories</Th> : null}
         </Tr>
       </Thead>
       <Tbody>
@@ -53,6 +58,14 @@ export function ContentTable({
             <Td dataLabel="Package">{pkg.package ?? "—"}</Td>
             <Td dataLabel="Version">{pkg.version ?? "—"}</Td>
             <Td dataLabel="Architecture">{pkg.architecture ?? "—"}</Td>
+            {repositoryKind ? (
+              <Td dataLabel="Repositories">
+                <RepositoryMembershipCell
+                  contentHref={pkg.pulp_href}
+                  repositoryKind={repositoryKind}
+                />
+              </Td>
+            ) : null}
           </Tr>
         ))}
       </Tbody>

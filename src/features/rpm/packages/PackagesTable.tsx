@@ -4,6 +4,8 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { RepositoryMembershipCell } from "../../../components/RepositoryMembershipCell";
+import type { RepositoryKind } from "../../../api/client/repositoryMembership";
 import type { RpmPackage } from "../../../api/client/rpm/types";
 
 function formatSize(bytes: number): string {
@@ -32,6 +34,7 @@ interface PackagesTableProps {
    * whose toolbar action (e.g. "Upload package") is hidden while the list
    * is empty, so the empty state stays the sole CTA. */
   emptyAction?: ReactNode;
+  repositoryKind?: RepositoryKind;
 }
 
 export function PackagesTable({
@@ -44,6 +47,7 @@ export function PackagesTable({
   emptyBody,
   emptyStateVariant,
   emptyAction,
+  repositoryKind,
 }: PackagesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading packages" />;
@@ -70,6 +74,7 @@ export function PackagesTable({
           <Th>Version</Th>
           <Th>Arch</Th>
           <Th>Size</Th>
+          {repositoryKind ? <Th>Repositories</Th> : null}
         </Tr>
       </Thead>
       <Tbody>
@@ -81,6 +86,14 @@ export function PackagesTable({
             </Td>
             <Td dataLabel="Arch">{pkg.arch}</Td>
             <Td dataLabel="Size">{formatSize(pkg.size_package)}</Td>
+            {repositoryKind ? (
+              <Td dataLabel="Repositories">
+                <RepositoryMembershipCell
+                  contentHref={pkg.pulp_href}
+                  repositoryKind={repositoryKind}
+                />
+              </Td>
+            ) : null}
           </Tr>
         ))}
       </Tbody>

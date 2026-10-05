@@ -60,8 +60,8 @@ detail page has one tab per concern: Overview, Collections, Roles, Versions, Dis
   equivalent - a cross-repository "find this collection anywhere" tool, since Ansible's Galaxy-v3
   API provides one and RPM's doesn't.
 
-Implemented as PatternFly `Masthead` (product mark + wordmark, Tasks indicator, Help, a small
-"Pulp API" link, User menu) + `Sidebar`/`Nav` (the tree above) + `PageSection` content area. No
+Implemented as PatternFly `Masthead` (static product mark + wordmark, Tasks indicator, Helper,
+theme toggle, User menu) + `Sidebar`/`Nav` (the tree above) + `PageSection` content area. No
 breadcrumb trail - one was tried (a `PulpIT > <page>` row above every page's content, driven by
 `handle: {crumb}` route metadata) but removed per direct user feedback ("partout... retire les");
 each page's own `PageHeader` title already says where you are. `PageHeader` likewise renders no
@@ -84,12 +84,15 @@ milestone added to every Repository detail page across RPM, Ansible, and Contain
 scoped to that repository without needing to know its href at all. See `docs/PULP_API.md` "Access
 endpoints" for the live-verified API behavior behind both.
 
-**The product mark is the navigation toggle** (`AppLayout.tsx`). It replaces the hamburger inside
-PatternFly's `PageToggleButton`; the monochrome "PulpIT" wordmark remains aligned beside it but
-outside the click target, so hover/focus treatment covers only the blue mark. This preserves
-PatternFly's managed sidebar behavior, `aria-expanded` state, and responsive access to the
-sidebar. `.pulpit-brand-text` uses PatternFly's heading family and weight only; it inherits the
-masthead foreground instead of adding a brand color.
+The masthead actions are presented as four distinct, evenly spaced controls rather than loose
+text: each has a subtle brand-tinted surface, border, shared radius, and visible hover/focus
+treatment. This keeps Tasks, Helper, the theme switch, and the user menu recognizable as
+interactive targets without giving them the visual weight of primary page actions.
+
+**The product mark is static product identity** (`AppLayout.tsx`), not a navigation control.
+The sidebar stays open and the mark has no click, hover, focus, or collapse behavior.
+`.pulpit-brand-text` uses PatternFly's heading family and weight only; it inherits the masthead
+foreground instead of adding a brand color.
 
 ## Authentication
 
@@ -101,7 +104,7 @@ message on bad credentials) - not a browser-native Basic-auth prompt; see `docs/
 for the mechanics.
 
 Once authenticated, the masthead's right side shows a user menu (`src/app/layout/UserMenu.tsx`) -
-a `MenuToggle` with a person icon and the current username, opening a `Dropdown` with "Log out" -
+a text-only `MenuToggle` with the current username, opening a `Dropdown` with "Log out" -
 rather than plain inline text, so it reads as a real control instead of a status line. This is
 the only Access/identity surface in the masthead itself (see `docs/RBAC.md` for the separate
 Users/Groups/Roles management pages under **Access**). `.pf-v6-c-masthead__content` (Tasks, Help,
@@ -113,6 +116,12 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
 
 - `PageSection` with a page header (title, primary action button, e.g. "Create repository") above
   the content.
+- The application canvas remains visible around the page's primary functional surface. Every
+  non-dashboard page places its list, settings form, or tab set in one inset PatternFly surface
+  using the same border, radius, and restrained shadow as Overview's dashboard panels. Toolbars
+  and tables share that surface rather than appearing as separate edge-to-edge white bands.
+  Detail and Administration tabs form the surface header and their content remains inside it.
+  This is one panel per functional block, never a card per table row or form field.
 - List pages: toolbar (search/filter) + table + pagination, not a grid of cards.
 - Detail pages: tabs (e.g. Overview | Packages | Versions | Distribution | Permissions for an RPM
   repository), not one long scroll.
@@ -145,6 +154,11 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
 - Sortable columns where the API supports server-side ordering; otherwise client-side within the
   current page only (never silently sort only the current page and imply it's global).
 - Server-side pagination reflecting Pulp's actual `count`, matching `docs/PULP_API.md`.
+- Paginated tables derive their initial page size from the viewport height so the table fills the
+  useful space without routinely forcing a page-level vertical scrollbar. Resizing continues to
+  adjust that automatic value and returns to page one; once a user explicitly selects a page size,
+  that choice remains fixed for the lifetime of the view. The active automatic value is included
+  alongside the standard PatternFly choices in the page-size menu.
 - Tables with enough columns to overflow a tablet viewport use PatternFly's responsive grid at
   the `grid-lg` breakpoint and provide `dataLabel` on every data cell. The stacked layout keeps
   values and row actions visible without relying on users discovering a hidden horizontal scroll.
@@ -152,9 +166,10 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
   middle truncation. The complete value remains available in a tooltip and can be copied without
   selecting wrapped table text.
 - Row actions via a kebab/dropdown menu; destructive actions require confirmation (see below).
-- Status is plain, semibold text via the shared `StatusIndicator`; no pills, colored dots, or
-  decorative icons. Category values and tags are plain text or dedicated table columns. Color is
-  reserved for actionable alerts and validation, not routine state.
+- Status is rendered through the shared `StatusIndicator` as a compact, rounded PatternFly label.
+  Its text always carries the complete meaning; color reinforces success, failure, warning, or an
+  in-progress state but is never the only signal. Category values and tags remain plain text or
+  dedicated table columns.
 
 ## Forms
 
@@ -167,6 +182,11 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
 - Simple single-column settings forms use the shared `pulpit-readable-form` width so fields and
   helper text remain easy to scan on wide displays. Large technical values may use the full width
   when their content genuinely benefits from it.
+- Longer settings pages group fields by task before placing them in a responsive PatternFly grid:
+  three columns for short, independent groups on wide desktops, two columns at intermediate
+  widths, and one column on narrow screens. Column spans are chosen per group (for example,
+  directory connection/bind/search groups or signing cards), not applied mechanically to every
+  field; long technical values and tables keep the width they need.
 - Multi-line client configuration is previewed in a PatternFly code block with copy and explicit
   show-more/show-less controls instead of expanding every table row by default.
 - Validation errors shown inline, mapped from Pulp's `400` field-level error payload
@@ -208,7 +228,7 @@ The masthead's "Help" button (`src/app/layout/HelpButton.tsx`) toggles a **help 
 (`src/app/layout/HelpPanel.tsx`) open/closed — clicking it again while open closes it, the same
 toggle behavior as the Tasks indicator — rather than linking out to Pulp's own Swagger/ReDoc docs.
 
-**Help and Tasks share `Page`'s one `notificationDrawer` slot** (`AppLayout.tsx`), rather than each
+**Helper and Tasks share `Page`'s one `notificationDrawer` slot** (`AppLayout.tsx`), rather than each
 having its own independent `Drawer`: `notificationDrawer` renders `<HelpPanel>` when Help is open,
 `<TasksDrawer>` otherwise, and `isNotificationDrawerExpanded` is `isDrawerOpen || isHelpOpen`.
 `TasksIndicator` takes an `onToggle` prop (`AppLayout.tsx` passes `() => setIsHelpOpen(false)`) and
@@ -224,10 +244,8 @@ any `DrawerPanelContent` size props - no `widths`, `isResizable`, `defaultSize`/
   between them, except while Help is open: `AppLayout.tsx` widens the shared slot specifically for
   Help (`drawerDefaultSize="44rem"`, vs. PatternFly's plain default for `TasksDrawer`) since Help's
   two-level content needs more room to stay readable than the Tasks list does — this is the one size
-  prop that does differ between them, deliberately, not an oversight. A small "Pulp API" link
-  (`src/app/layout/PulpApiDocsLink.tsx`, `ExternalLinkAltIcon`, opens in a new tab) sits immediately
-  to the right of Help, so Pulp's own generated API reference is still one click away — it's just no
-  longer the primary destination.
+  prop that does differ between them, deliberately, not an oversight. The masthead control is
+  labeled "Helper" while the panel heading remains the concise noun "Help".
 
 **Two levels, mirroring the real app navigation, not one flat block per category.** The panel's
 left side (`Nav`) lists the same top-level categories as `src/app/layout/navTree.ts` (Overview,
@@ -339,19 +357,35 @@ content, task, sync) rather than inventing friendlier-but-different frontend ter
 with the project's principle of preserving Pulp's own semantics rather than inventing frontend
 ones.
 
-## Product mark
+## Product mark and iconography
 
-PulpIT's mark is the `cil-layers` icon from [CoreUI Icons](https://github.com/coreui/coreui-icons)
-(three stacked layers — read as "layered content/repositories," which maps onto Pulp's own
-repository _version_ model) on a rounded brand-blue badge, white icon on `#0066cc`. It's a single
-static SVG file, `public/pulpit-mark.svg`, used unmodified in three places: the masthead
-(`PageToggleButton`, `src/app/layout/AppLayout.tsx`), the login page brand slot
-(`brandImgSrc`, `src/features/auth/LoginPage.tsx`), and the browser favicon (`index.html`). The
-icon artwork is CC BY 4.0 — see `README.md` "Credits" for the attribution this requires; the
-badge/color composition around it is original. No Red Hat marks, no Pulp trademarks used in a way
-that implies affiliation.
+PulpIT's product mark uses Lucide's generic `package-open` pictogram inside a rounded blue tile.
+It represents the import, management, and distribution of packages without borrowing another
+product's brand mark. The full mark lives in `public/pulpit-mark.svg`; a small-size treatment lives
+in `public/favicon.svg`. The masthead and login page use the full mark, while `index.html` uses the
+favicon. The copied SVG path is licensed under ISC; the required notice is preserved in
+`THIRD_PARTY_NOTICES.md`.
+
+Recognizable technology and plugin brands use the official paths and colors from the `simple-icons`
+package. Generic interface actions and concepts (navigation, help, theme, tasks, storage, status)
+use PulpIT's small internal line-icon set in `src/components/icons/UiIcon.tsx`; brand marks are not
+repurposed as action glyphs. Both sets render through shared components so sizing, accessible names,
+and decorative treatment stay consistent. Simple Icons data is CC0 1.0; represented trademarks
+remain the property of their owners. No Red Hat marks or Pulp trademarks are used in a way that
+implies affiliation.
 
 ## Theming
+
+PulpIT's primary brand color is azure blue (`#2563eb` in the light theme, with a lighter
+`#60a5fa` dark-theme counterpart). PatternFly's semantic brand tokens are mapped to this palette,
+so links, primary actions, focus treatments, active navigation, progress indicators, and product
+identity stay consistent. Orange remains reserved for warnings and the coral environment marker,
+preventing brand actions from being confused with operational status.
+
+Light and dark themes share exactly the same shell geometry: sidebar width, masthead padding,
+main-container edge treatment, page-section spacing, cards, and tables do not move when the theme
+changes. Only semantic surface, border, text, and interaction colors vary. Theme-specific
+PatternFly defaults must not reintroduce an inset outer card or different page margins.
 
 PatternFly v6 ships a dark theme as a single CSS class, `pf-v6-theme-dark`, applied to `<html>` —
 there's no built-in toggle component or automatic `prefers-color-scheme` wiring (verified against
@@ -367,25 +401,24 @@ the PatternFly dark-theme handbook), so Pulpit provides its own:
   it in `localStorage` is fine (contrast with `docs/SECURITY.md`'s rule against credentials there).
 - `ThemeProvider` wraps the whole app (`src/app/App.tsx`), above the router, so both the
   authenticated shell and the standalone `/login` route share one theme.
-- A masthead `ThemeToggle` button (sun/moon icon, `@patternfly/react-icons`) lets the user flip it.
+- A masthead `ThemeToggle` button (sun/moon icon from PulpIT's internal UI set) lets the user flip it.
 - `src/styles/global.css` strengthens PatternFly's semantic subtle-text and border tokens in both
   themes and raises the body weight slightly. This is deliberate resilience for compressed remote
   application gateways: labels, table rules, and secondary text stay legible without changing
   component structure or hardcoding per-component colors.
-- The login page's background is a plain CSS `radial-gradient` glow (brand-color, via
-  `color-mix()`), scoped to `.pulpit-login-page` in `src/styles/global.css` — **not**
-  PatternFly's bundled `PF-Bkg-Generic-*.svg` login art. That asset has an opaque rect _and_ a
-  gaussian-blurred shape baked into the SVG itself; at the small size a login page clamps it to,
-  both produced visible artifacts (a hard-edged box where the rect's fill didn't match the real
-  page background, and color banding in the blur) that a `mask-image` fade couldn't fully hide
-  (the mask's own radius was easy to get wrong relative to the tiny clamped image, which is what
-  happened the first time this was tried). A CSS gradient we fully control has neither problem and
-  needs no theme-swapping logic. This is a small, targeted exception to "no custom CSS" (ADR 0002)
-  — layout glue, not a component reimplementation.
-- The authenticated shell does **not** carry this glow — it was tried there too (a
-  `pulpit-app-shell` class, same rule family) but read as visual noise behind dense working
-  screens, unlike the login page's one-time decorative moment. Removed per direct user feedback;
-  kept scoped to `.pulpit-login-page` only.
+- The authenticated light-theme shell uses PatternFly component variables to make its layers
+  unambiguous: a white masthead, a stronger neutral navigation rail, and a white working surface
+  with a visible border, restrained shadow, and smaller radius. The current navigation item uses
+  the semantic brand-subtle surface, so selection remains identifiable by both its blue accent and
+  its background. These overrides are deliberately excluded from dark mode, whose hierarchy stays
+  owned by PatternFly.
+- The login page uses the same neutral canvas, opaque panel surface, border, radius, and
+  restrained shadow as the dashboard. PatternFly's composable Login components keep the
+  product mark and name inside the card, above the centered, single-column form at every
+  viewport width. Shared release/changelog/license links sit in a separated band inside the
+  bottom of the card, in normal document flow so they remain reachable on short screens and
+  at increased zoom. Both themes use the existing
+  semantic and dashboard surface tokens; the former decorative login glow is removed.
 - Don't introduce other custom dark-mode CSS overrides — PatternFly's design tokens
   (`--pf-t--...`) already repaint correctly when the class is toggled (ADR 0002: don't reimplement
   what PatternFly already does).

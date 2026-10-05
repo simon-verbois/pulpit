@@ -6,22 +6,18 @@ test("loads the PulpIT shell", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
 });
 
-test("the PulpIT mark toggles the sidebar", async ({ page }) => {
+test("the PulpIT mark is static and the sidebar stays available", async ({ page }) => {
   await page.goto("/");
-  const toggle = page.getByRole("button", { name: "Toggle navigation" });
   const nav = page.getByRole("navigation", { name: "PulpIT navigation" });
+  const brand = page.locator(".pulpit-brand-lockup");
 
   await expect(page.locator(".pulpit-brand-text")).toHaveText("PulpIT");
-  await expect(toggle).not.toContainText("PulpIT");
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(brand).toBeVisible();
+  await expect(brand.locator("img")).toHaveAttribute("src", "/pulpit-mark.svg");
+  await expect(page.getByRole("button", { name: "Toggle navigation" })).toHaveCount(0);
   await expect(nav).toBeVisible();
 
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(nav).not.toBeVisible();
-
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await brand.click();
   await expect(nav).toBeVisible();
 });
 
@@ -61,7 +57,7 @@ test("clicking elsewhere in the app closes an open Tasks or Help panel", async (
   // Help: open it, then click the sidebar (not the close button, not the
   // Help/Tasks toggle buttons themselves) - it should close. The drawer can
   // overlay the main area at narrower desktop widths.
-  await page.getByRole("button", { name: "Help" }).click();
+  await page.getByRole("button", { name: "Helper" }).click();
   await expect(helpHeading).toBeVisible();
   await page.getByRole("navigation", { name: "PulpIT navigation" }).click();
   await expect(helpHeading).not.toBeVisible();
@@ -74,7 +70,7 @@ test("clicking elsewhere in the app closes an open Tasks or Help panel", async (
 
   // Clicking the OTHER toggle button while one is open must still just
   // switch panels normally, not be swallowed by the outside-click handler.
-  await page.getByRole("button", { name: "Help" }).click();
+  await page.getByRole("button", { name: "Helper" }).click();
   await expect(helpHeading).toBeVisible();
   await page.getByRole("button", { name: /Tasks/ }).click();
   await expect(tasksHeading).toBeVisible();
@@ -92,13 +88,16 @@ test("Overview page reaches the real Pulp status endpoint", async ({ page }) => 
   const rpm = status.versions.find(
     (component: { component: string }) => component.component === "rpm",
   );
-  const rpmRow = components.getByRole("row", { name: /^rpm\b/ });
+  const rpmRow = components
+    .getByText("rpm", { exact: true })
+    .locator("xpath=ancestor::tr");
   await expect(rpmRow.getByText(rpm.version, { exact: true })).toBeVisible();
   await expect(components.getByRole("row", { name: /^core\b/ })).toHaveCount(0);
   await expect(
     page.getByText("A snapshot of the Pulp instance PulpIT is managing."),
   ).toHaveCount(0);
-  await expect(page.locator(".pf-v6-c-label, .pf-v6-c-badge")).toHaveCount(0);
+  await expect(page.getByText("Connected", { exact: true }).first()).toBeVisible();
+  await expect(page.locator(".pf-v6-c-label").first()).toBeVisible();
 });
 
 test("Tasks page shows Pulp's real task history, not just this session's", async ({
@@ -125,6 +124,53 @@ test("Tasks page shows Pulp's real task history, not just this session's", async
   await expect(dialog).not.toBeVisible();
 });
 
+test("a running Pulp task can be stopped from task history", async ({ page }) => {
+  let state = "running";
+  let cancellationBody: unknown;
+
+  await page.route("**/pulp/api/v3/tasks/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const task = {
+      pulp_href: "/pulp/api/v3/tasks/e2e-running/",
+      name: "pulpcore.app.tasks.repository.sync",
+      state,
+      pulp_created: "2026-10-04T07:00:00Z",
+      started_at: "2026-10-04T07:00:01Z",
+      finished_at: null,
+      error: null,
+      created_by: null,
+      reserved_resources_record: [],
+      created_resources: [],
+    };
+
+    if (request.method() === "PATCH") {
+      cancellationBody = request.postDataJSON();
+      state = "canceling";
+      await route.fulfill({ json: { ...task, state } });
+      return;
+    }
+    if (request.method() === "GET" && url.pathname === "/pulp/api/v3/tasks/") {
+      await route.fulfill({
+        json: { count: 1, next: null, previous: null, results: [task] },
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/tasks");
+  await page.getByRole("button", { name: "Stop", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Stop task?" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Stop task" }).click();
+
+  await expect(page.getByText("canceling", { exact: true })).toBeVisible();
+  expect(cancellationBody).toEqual({ state: "canceled" });
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Stop", exact: true })).toHaveCount(0);
+});
+
 test("legacy pulp-ui path is not exposed", async ({ page }) => {
   const response = await page.goto("/ui/");
   expect(response?.status()).toBe(404);
@@ -138,13 +184,53 @@ test("the theme toggle switches dark/light and persists across a reload", async 
   // Light is Pulpit's default (docs/UX.md "Theming") - toggling to dark and
   // back exercises both the class and the persisted preference either way.
   await expect(html).not.toHaveClass(/pf-v6-theme-dark/);
+  await expect(html).toHaveCSS("--pulpit-primary", "#2563eb");
+  await expect(html).toHaveCSS("--pf-t--global--color--brand--default", "#2563eb");
 
   await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await expect(html).toHaveClass(/pf-v6-theme-dark/);
+  await expect(html).toHaveCSS("--pulpit-primary", "#60a5fa");
+  await expect(html).toHaveCSS("--pf-t--global--color--brand--default", "#60a5fa");
 
   await page.reload();
   await expect(html).toHaveClass(/pf-v6-theme-dark/);
 
   await page.getByRole("button", { name: "Switch to light theme" }).click();
   await expect(html).not.toHaveClass(/pf-v6-theme-dark/);
+});
+
+test("switching theme preserves the shell and Overview geometry", async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1106 });
+  await page.goto("/");
+  await expect(
+    page
+      .locator(".pulpit-dashboard-panel .pf-v6-c-table__tbody .pf-v6-c-table__tr")
+      .first(),
+  ).toBeVisible();
+
+  const selectors = [
+    ".pf-v6-c-page__sidebar",
+    ".pf-v6-c-page__main-container",
+    ".pulpit-overview-header",
+    ".pulpit-metric-gallery",
+    ".pulpit-dashboard-panel",
+  ];
+  const boxes = () =>
+    Promise.all(
+      selectors.map((selector) => page.locator(selector).first().boundingBox()),
+    );
+
+  const lightBoxes = await boxes();
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(page.locator("html")).toHaveClass(/pf-v6-theme-dark/);
+  const darkBoxes = await boxes();
+
+  for (let index = 0; index < selectors.length; index += 1) {
+    expect(lightBoxes[index]).not.toBeNull();
+    expect(darkBoxes[index]).not.toBeNull();
+    expect(darkBoxes[index]?.x).toBeCloseTo(lightBoxes[index]?.x ?? 0, 1);
+    expect(darkBoxes[index]?.y).toBeCloseTo(lightBoxes[index]?.y ?? 0, 1);
+    expect(darkBoxes[index]?.width).toBeCloseTo(lightBoxes[index]?.width ?? 0, 1);
+    expect(darkBoxes[index]?.height).toBeCloseTo(lightBoxes[index]?.height ?? 0, 1);
+  }
 });

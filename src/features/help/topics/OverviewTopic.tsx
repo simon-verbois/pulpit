@@ -11,6 +11,12 @@ export function OverviewTopic() {
         repository is empty.
       </Content>
       <Content component="p">
+        The cards at the top summarize live infrastructure health. Colored status labels
+        always include text, so you never need to rely on color alone. The component table
+        links repository totals to the corresponding repository page, while the System
+        task log opens any listed operation directly in the full task view.
+      </Content>
+      <Content component="p">
         PulpIT is where you manage the content on your Pulp server: repositories,
         packages, remotes, and more. Nothing is stored in PulpIT itself — every page reads
         and writes directly to Pulp, so what you see here always matches what's actually
@@ -30,18 +36,17 @@ export function OverviewTopic() {
       <Content component="h3">Finding your way around</Content>
       <Content component="p">
         The left-hand navigation is grouped by content type. <strong>RPM</strong>,{" "}
-        <strong>Container Registry</strong>, and <strong>Ansible Galaxy</strong> each have
-        their own Repositories, Remotes, and related pages. <strong>Tasks</strong>,{" "}
+        <strong>Container</strong>, and <strong>Ansible</strong> each have their own
+        Repositories, Remotes, and related pages. <strong>Tasks</strong>,{" "}
         <strong>Access</strong>, and <strong>Administration</strong> apply across all of
         them.
       </Content>
 
       <Content component="h3">Getting help while you work</Content>
       <Content component="p">
-        Click <strong>Help</strong> in the top bar any time — it opens on the topic for
+        Click <strong>Helper</strong> in the top bar any time — it opens on the topic for
         whatever page you're currently on. Use the list on the left to jump to a different
-        topic. If you need Pulp's raw API reference instead, use the{" "}
-        <strong>Pulp API</strong> link next to Help.
+        topic.
       </Content>
     </Content>
   );

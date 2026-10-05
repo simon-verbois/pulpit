@@ -21,6 +21,10 @@ import { formatBytes } from "../lib/formatBytes";
 import { VERIFIED_VERSIONS } from "../lib/pulpCompatibility";
 import { NAV_TREE } from "../app/layout/navTree";
 import { StatusIndicator } from "./StatusIndicator";
+import { MetricCard } from "../features/overview/MetricCard";
+import { SERVICE_METADATA } from "../features/overview/serviceMetadata";
+import { BrandIcon } from "./icons/BrandIcon";
+import { UiIcon } from "./icons/UiIcon";
 
 // A status component's name doubles as its nav module id (rpm, deb, container,
 // ansible, file, hugging_face, gem, maven, npm, python) - see NAV_TREE's own
@@ -30,35 +34,30 @@ import { StatusIndicator } from "./StatusIndicator";
 const NAV_MODULE_IDS = new Set(
   NAV_TREE.filter((node) => node.type === "group").map((node) => node.id),
 );
+const NAV_MODULE_ORDER = new Map(
+  NAV_TREE.filter((node) => node.type === "group").map((node, index) => [node.id, index]),
+);
 
-function ConnectionLabel({ connected }: { connected: boolean | undefined }) {
-  if (connected === undefined) {
-    return <StatusIndicator color="grey">Unknown</StatusIndicator>;
-  }
-  return connected ? (
-    <StatusIndicator color="green">Connected</StatusIndicator>
-  ) : (
-    <StatusIndicator color="red">Disconnected</StatusIndicator>
-  );
+function connectionText(connected: boolean | undefined) {
+  if (connected === undefined) return "Unknown";
+  return connected ? "Connected" : "Disconnected";
 }
 
-function StatTile({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Card isCompact>
-      <CardTitle>{title}</CardTitle>
-      <CardBody>{children}</CardBody>
-    </Card>
-  );
-}
-
-function StorageUsage({ storage }: { storage: NonNullable<PulpStatus["storage"]> }) {
+function storageUsage(storage: NonNullable<PulpStatus["storage"]>) {
   if (storage.used === undefined || storage.total === undefined || storage.total === 0) {
-    return storage.free !== undefined
-      ? `${formatBytes(storage.free)} free`
-      : "Reported, but no usable figures";
+    return {
+      text:
+        storage.free !== undefined
+          ? `${formatBytes(storage.free)} free`
+          : "No usable figures",
+      percent: undefined,
+    };
   }
   const percentUsed = Math.round((storage.used / storage.total) * 100);
-  return `${formatBytes(storage.used)} / ${formatBytes(storage.total)} (${percentUsed}%)`;
+  return {
+    text: `${formatBytes(storage.used)} / ${formatBytes(storage.total)} (${percentUsed}%)`,
+    percent: percentUsed,
+  };
 }
 
 function RepositoryCountCell({
@@ -131,47 +130,69 @@ export function PulpStatusSummary({
   visibleModuleIds?: string[] | null;
 }) {
   const tiles: ReactNode[] = [];
+  const databaseConnected = status.database_connection?.connected;
+  const redisConnected = status.redis_connection?.connected;
 
   if (status.database_connection) {
     tiles.push(
-      <StatTile key="database" title="Database">
-        <ConnectionLabel connected={status.database_connection.connected} />
-      </StatTile>,
+      <MetricCard
+        key="database"
+        label="Database"
+        value={connectionText(databaseConnected)}
+        icon={<BrandIcon name="database" branded />}
+      />,
     );
   }
   if (status.redis_connection !== undefined && status.redis_connection !== null) {
     tiles.push(
-      <StatTile key="redis" title="Redis">
-        <ConnectionLabel connected={status.redis_connection.connected} />
-      </StatTile>,
+      <MetricCard
+        key="redis"
+        label="Redis"
+        value={connectionText(redisConnected)}
+        icon={<BrandIcon name="redis" branded />}
+      />,
     );
   }
   if (status.online_workers) {
     tiles.push(
-      <StatTile key="workers" title="Online workers">
-        {status.online_workers.length}
-      </StatTile>,
+      <MetricCard
+        key="workers"
+        label="Online workers"
+        value={`${status.online_workers.length} Ready`}
+        icon={<UiIcon name="workers" />}
+      />,
     );
   }
   if (status.online_api_apps) {
     tiles.push(
-      <StatTile key="api-apps" title="Online API apps">
-        {status.online_api_apps.length}
-      </StatTile>,
+      <MetricCard
+        key="api-apps"
+        label="Online API apps"
+        value={`${status.online_api_apps.length} Running`}
+        icon={<UiIcon name="api" />}
+      />,
     );
   }
   if (status.online_content_apps) {
     tiles.push(
-      <StatTile key="content-apps" title="Online content apps">
-        {status.online_content_apps.length}
-      </StatTile>,
+      <MetricCard
+        key="content-apps"
+        label="Online content apps"
+        value={`${status.online_content_apps.length} Running`}
+        icon={<BrandIcon name="storage" />}
+      />,
     );
   }
   if (status.storage) {
+    const usage = storageUsage(status.storage);
     tiles.push(
-      <StatTile key="storage" title="Storage">
-        <StorageUsage storage={status.storage} />
-      </StatTile>,
+      <MetricCard
+        key="storage"
+        label="Storage"
+        value={usage.text}
+        icon={<UiIcon name="storage" />}
+        isStorage
+      />,
     );
   }
   // Pulpit has no GUI for most components a Pulp instance reports (e.g.
@@ -191,21 +212,28 @@ export function PulpStatusSummary({
   // never applying here since these are already the components Pulp
   // itself reported) - this table should never list a plugin the user
   // can't actually navigate to from the sidebar.
-  const implementedVersions = (status.versions ?? []).filter(
-    (v) =>
-      v.component !== "core" &&
-      v.component in VERIFIED_VERSIONS &&
-      (!NAV_MODULE_IDS.has(v.component) ||
-        visibleModuleIds == null ||
-        visibleModuleIds.includes(v.component)),
-  );
+  const implementedVersions = (status.versions ?? [])
+    .filter(
+      (v) =>
+        v.component !== "core" &&
+        v.component in VERIFIED_VERSIONS &&
+        (!NAV_MODULE_IDS.has(v.component) ||
+          visibleModuleIds == null ||
+          visibleModuleIds.includes(v.component)),
+    )
+    .sort(
+      (a, b) =>
+        (NAV_MODULE_ORDER.get(a.component) ?? Number.MAX_SAFE_INTEGER) -
+        (NAV_MODULE_ORDER.get(b.component) ?? Number.MAX_SAFE_INTEGER),
+    );
 
   return (
-    <Stack hasGutter>
+    <Stack hasGutter className="pulpit-status-stack">
       {tiles.length > 0 ? (
         <StackItem>
           <Gallery
             hasGutter
+            className="pulpit-metric-gallery"
             style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
           >
             {tiles}
@@ -215,38 +243,69 @@ export function PulpStatusSummary({
 
       {implementedVersions.length > 0 ? (
         <StackItem>
-          <Table aria-label="Pulp components" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Component</Th>
-                <Th>Version</Th>
-                {repositoryCountsQuery ? <Th>Repositories</Th> : null}
-                {componentSizesQuery ? <Th>Size</Th> : null}
-              </Tr>
-            </Thead>
-            <Tbody>
-              {implementedVersions.map((v) => (
-                <Tr key={v.component}>
-                  <Td dataLabel="Component">{v.component}</Td>
-                  <Td dataLabel="Version">{v.version}</Td>
-                  {repositoryCountsQuery ? (
-                    <Td dataLabel="Repositories">
-                      <RepositoryCountCell
-                        query={repositoryCountsQuery}
-                        component={v.component}
-                        path={repositoryPaths?.[v.component]}
-                      />
-                    </Td>
-                  ) : null}
-                  {componentSizesQuery ? (
-                    <Td dataLabel="Size">
-                      <SizeCell query={componentSizesQuery} component={v.component} />
-                    </Td>
-                  ) : null}
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
+          <Card isCompact className="pulpit-dashboard-panel">
+            <CardTitle>Modules</CardTitle>
+            <CardBody>
+              <Table aria-label="Pulp components" variant="compact" borders={false}>
+                <Thead>
+                  <Tr>
+                    <Th>Service type</Th>
+                    <Th>Component</Th>
+                    <Th>Version</Th>
+                    <Th>Version status</Th>
+                    {repositoryCountsQuery ? <Th>Repositories</Th> : null}
+                    {componentSizesQuery ? <Th>Size</Th> : null}
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {implementedVersions.map((v) => (
+                    <Tr key={v.component}>
+                      <Td dataLabel="Service type">
+                        <span className="pulpit-service-type">
+                          <BrandIcon
+                            name={SERVICE_METADATA[v.component].icon}
+                            branded
+                            size="1.5rem"
+                          />
+                          {SERVICE_METADATA[v.component].label}
+                        </span>
+                      </Td>
+                      <Td dataLabel="Component">{v.component}</Td>
+                      <Td dataLabel="Version">{v.version}</Td>
+                      <Td dataLabel="Version status">
+                        <StatusIndicator
+                          color={
+                            v.version === VERIFIED_VERSIONS[v.component]
+                              ? "green"
+                              : "yellow"
+                          }
+                          isCompact
+                        >
+                          {v.version === VERIFIED_VERSIONS[v.component]
+                            ? "Verified"
+                            : "Review compatibility"}
+                        </StatusIndicator>
+                      </Td>
+                      {repositoryCountsQuery ? (
+                        <Td dataLabel="Repositories">
+                          <RepositoryCountCell
+                            query={repositoryCountsQuery}
+                            component={v.component}
+                            path={repositoryPaths?.[v.component]}
+                          />
+                        </Td>
+                      ) : null}
+                      {componentSizesQuery ? (
+                        <Td dataLabel="Size">
+                          <SizeCell query={componentSizesQuery} component={v.component} />
+                        </Td>
+                      ) : null}
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </CardBody>
+          </Card>
         </StackItem>
       ) : null}
     </Stack>

@@ -6,9 +6,10 @@ export function MavenContentTopic() {
       <Content component="p">
         A read-only view of every Maven artifact Pulp knows about, across{" "}
         <strong>every</strong> repository - not scoped to one. Each row shows the
-        artifact's group ID, artifact ID, version, and filename, parsed from its own Maven
-        coordinates. Search by group ID to narrow the list; there's no per-repository
-        filter here (use a repository's own <strong>Content</strong> tab for that).
+        artifact's group ID, artifact ID, version, filename, and the repositories whose
+        current version contains it. Repository names open their detail pages. Search by
+        group ID to narrow the list; there's no per-repository filter here (use a
+        repository's own <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">
         Artifacts appear here once they've been uploaded to a repository. There's no

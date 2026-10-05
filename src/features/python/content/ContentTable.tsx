@@ -3,6 +3,8 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { RepositoryMembershipCell } from "../../../components/RepositoryMembershipCell";
+import type { RepositoryKind } from "../../../api/client/repositoryMembership";
 import type { PythonContent } from "../../../api/client/python/types";
 
 interface ContentTableProps {
@@ -16,6 +18,7 @@ interface ContentTableProps {
   /** Set by a repository-detail tab caller (nested in a bigger page) -
    * unset for the equivalent top-level list page, which stays full-page. */
   emptyStateVariant?: "sm";
+  repositoryKind?: RepositoryKind;
 }
 
 export function ContentTable({
@@ -27,6 +30,7 @@ export function ContentTable({
   emptyTitle,
   emptyBody,
   emptyStateVariant,
+  repositoryKind,
 }: ContentTableProps) {
   if (isPending) {
     return <LoadingState label="Loading packages" />;
@@ -46,6 +50,7 @@ export function ContentTable({
           <Th>Version</Th>
           <Th>Type</Th>
           <Th>Filename</Th>
+          {repositoryKind ? <Th>Repositories</Th> : null}
         </Tr>
       </Thead>
       <Tbody>
@@ -57,6 +62,14 @@ export function ContentTable({
             <Td dataLabel="Filename">
               <code>{pkg.filename ?? "—"}</code>
             </Td>
+            {repositoryKind ? (
+              <Td dataLabel="Repositories">
+                <RepositoryMembershipCell
+                  contentHref={pkg.pulp_href}
+                  repositoryKind={repositoryKind}
+                />
+              </Td>
+            ) : null}
           </Tr>
         ))}
       </Tbody>

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { Button, Card, CardBody, CardFooter, CardTitle } from "@patternfly/react-core";
+import { Card, CardBody, CardTitle } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { taskIdFromHref } from "../../api/client/tasks";
 import { primaryTaskResource } from "../../api/client/taskResources";
@@ -15,8 +15,16 @@ import { TaskResourceCell } from "../tasks/TaskResourceCell";
 import { TASK_STATE_COLOR } from "../tasks/taskStateColor";
 import { useTaskResources } from "../tasks/useTaskResources";
 import { useTasksQuery } from "../tasks/useTasksQuery";
+import { UiIcon, type UiIconName } from "../../components/icons/UiIcon";
 
 const RECENT_TASKS_LIMIT = 5;
+
+function taskIcon(name: string | undefined): UiIconName {
+  if (!name) return "tasks";
+  if (/import|download|synchroniz|sync/i.test(name)) return "download";
+  if (/upload|publish|sign/i.test(name)) return "upload";
+  return "tasks";
+}
 
 /**
  * The most recent entries of Pulp's own persistent task history (the same
@@ -42,8 +50,8 @@ export function RecentTasksCard() {
   );
 
   return (
-    <Card isCompact isFullHeight>
-      <CardTitle>Recent tasks</CardTitle>
+    <Card isCompact isFullHeight className="pulpit-dashboard-panel">
+      <CardTitle>System task log</CardTitle>
       <CardBody>
         {tasksQuery.isPending ? <LoadingState label="Loading recent tasks" /> : null}
         {tasksQuery.isError ? (
@@ -57,7 +65,7 @@ export function RecentTasksCard() {
           />
         ) : null}
         {tasksQuery.isSuccess && tasksQuery.data.results.length > 0 ? (
-          <Table aria-label="Recent tasks" variant="compact" borders={false}>
+          <Table aria-label="System task log" variant="compact" borders={false}>
             <Thead>
               <Tr>
                 <Th>Task</Th>
@@ -75,7 +83,12 @@ export function RecentTasksCard() {
                     navigate(`/tasks?task=${taskIdFromHref(task.pulp_href)}`)
                   }
                 >
-                  <Td dataLabel="Task">{task.name ? taskActionLabel(task.name) : "—"}</Td>
+                  <Td dataLabel="Task">
+                    <span className="pulpit-task-type">
+                      <UiIcon name={taskIcon(task.name)} size="1.25rem" />
+                      {task.name ? taskActionLabel(task.name) : "—"}
+                    </span>
+                  </Td>
                   <Td dataLabel="Resource">
                     <TaskResourceCell
                       resource={resource}
@@ -99,15 +112,6 @@ export function RecentTasksCard() {
           </Table>
         ) : null}
       </CardBody>
-      <CardFooter>
-        <Button
-          variant="link"
-          isInline
-          component={(props) => <Link to="/tasks" {...props} />}
-        >
-          View all tasks
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

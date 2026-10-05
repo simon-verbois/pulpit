@@ -56,7 +56,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/pulp": { target: PULP_DEV_TARGET, changeOrigin: true },
+      "/pulp/": { target: PULP_DEV_TARGET, changeOrigin: true },
       "/v2": { target: PULP_DEV_TARGET, changeOrigin: true },
     },
   },

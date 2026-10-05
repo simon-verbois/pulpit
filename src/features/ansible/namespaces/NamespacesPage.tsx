@@ -103,6 +103,7 @@ export function NamespacesPage() {
                   itemCount={namespacesQuery.data?.count ?? 0}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact

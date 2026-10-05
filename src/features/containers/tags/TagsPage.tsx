@@ -66,6 +66,7 @@ export function TagsPage() {
                   itemCount={totalCount}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
@@ -81,6 +82,7 @@ export function TagsPage() {
           error={tagsQuery.error}
           onRetry={() => tagsQuery.refetch()}
           tags={paged}
+          repositoryKind="container"
           emptyTitle={isFiltered ? "No matching tags" : "No tags yet"}
           emptyBody={
             isFiltered

@@ -7,7 +7,6 @@ import {
   MenuToggle,
   type MenuToggleElement,
 } from "@patternfly/react-core";
-import { UserIcon } from "@patternfly/react-icons";
 
 import { useCurrentUserQuery } from "../../hooks/useCurrentUserQuery";
 import { useLogoutMutation } from "../../features/auth/useLogoutMutation";
@@ -34,7 +33,6 @@ export function UserMenu() {
         <MenuToggle
           ref={toggleRef}
           variant="plain"
-          icon={<UserIcon />}
           isExpanded={isOpen}
           onClick={() => setIsOpen((open) => !open)}
         >

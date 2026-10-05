@@ -53,7 +53,7 @@ describe("HelpButton + HelpPanel", () => {
   it("defaults to the Overview topic on the home route and switches topics", () => {
     renderHarness("/");
 
-    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    fireEvent.click(screen.getByRole("button", { name: "Helper" }));
     expect(
       screen.getByText(/PulpIT is where you manage the content/, { exact: false }),
     ).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("HelpButton + HelpPanel", () => {
   it("opens directly on the specific page for the current route, not just its category", () => {
     renderHarness("/rpm/repositories");
 
-    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    fireEvent.click(screen.getByRole("button", { name: "Helper" }));
     // Deep-links to the Repositories page itself (not just the RPM
     // category's overview) - getHelpLocationForPath matches the most
     // specific page path available.
@@ -83,7 +83,7 @@ describe("HelpButton + HelpPanel", () => {
   it("expands a category's sub-pages and lets you pick one, without losing the others", () => {
     renderHarness("/");
 
-    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    fireEvent.click(screen.getByRole("button", { name: "Helper" }));
     const helpTopicsNav = screen.getByRole("navigation", { name: "Help topics" });
 
     fireEvent.click(within(helpTopicsNav).getByText("RPM"));
@@ -105,7 +105,7 @@ describe("HelpButton + HelpPanel", () => {
   it("flat, single-page categories (Tasks) have no sub-page list", () => {
     renderHarness("/");
 
-    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    fireEvent.click(screen.getByRole("button", { name: "Helper" }));
     const helpTopicsNav = screen.getByRole("navigation", { name: "Help topics" });
 
     fireEvent.click(within(helpTopicsNav).getByText("Tasks"));
@@ -116,7 +116,7 @@ describe("HelpButton + HelpPanel", () => {
 
   it("shares one slot with Tasks - opening either closes the other", () => {
     renderHarness("/");
-    const helpButton = screen.getByRole("button", { name: "Help" });
+    const helpButton = screen.getByRole("button", { name: "Helper" });
     const tasksButton = screen.getByRole("button", { name: /Tasks/ });
 
     fireEvent.click(helpButton);

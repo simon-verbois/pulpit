@@ -5,10 +5,10 @@ export function GemContentTopic() {
     <Content>
       <Content component="p">
         A read-only view of every gem Pulp knows about, across <strong>every</strong>{" "}
-        repository - not scoped to one. Each row shows the gem's name, version, and
-        platform, parsed from its own embedded metadata. Search by name to narrow the
-        list; there's no per-repository filter here (use a repository's own{" "}
-        <strong>Content</strong> tab for that).
+        repository - not scoped to one. Each row shows the gem's name, version, platform,
+        and the repositories whose current version contains it. Repository names open
+        their detail pages. Search by name to narrow the list; there's no per-repository
+        filter here (use a repository's own <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">
         Gems appear here once a repository has synced content that includes them, or a gem

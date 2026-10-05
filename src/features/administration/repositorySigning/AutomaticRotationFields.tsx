@@ -119,7 +119,7 @@ function AutomaticRotationFieldsForm({
 
       <StackItem>
         <Grid hasGutter>
-          <GridItem span={6}>
+          <GridItem span={12} md={6}>
             <FormGroup label="Default key validity" fieldId="validity-days">
               <NumberInput
                 id="validity-days"
@@ -152,7 +152,7 @@ function AutomaticRotationFieldsForm({
               </FormHelperText>
             </FormGroup>
           </GridItem>
-          <GridItem span={6}>
+          <GridItem span={12} md={6}>
             <FormGroup label="Generate replacement" fieldId="generate-before">
               <NumberInput
                 id="generate-before"
@@ -183,7 +183,7 @@ function AutomaticRotationFieldsForm({
               </FormHelperText>
             </FormGroup>
           </GridItem>
-          <GridItem span={6}>
+          <GridItem span={12} md={6}>
             <FormGroup label="Publish replacement" fieldId="activate-before">
               <NumberInput
                 id="activate-before"
@@ -214,7 +214,7 @@ function AutomaticRotationFieldsForm({
               </FormHelperText>
             </FormGroup>
           </GridItem>
-          <GridItem span={6}>
+          <GridItem span={12} md={6}>
             <FormGroup label="Old public key retention" fieldId="retention-days">
               <NumberInput
                 id="retention-days"

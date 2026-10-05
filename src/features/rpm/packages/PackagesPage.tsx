@@ -62,6 +62,7 @@ export function PackagesPage() {
                   itemCount={packagesQuery.data?.count ?? 0}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
@@ -77,6 +78,7 @@ export function PackagesPage() {
           error={packagesQuery.error}
           onRetry={() => packagesQuery.refetch()}
           packages={packagesQuery.data?.results}
+          repositoryKind="rpm"
           emptyTitle={isFiltered ? "No matching RPM packages" : "No RPM packages yet"}
           emptyBody={
             isFiltered

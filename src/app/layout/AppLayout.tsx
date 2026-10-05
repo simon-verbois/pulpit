@@ -4,11 +4,9 @@ import {
   Masthead,
   MastheadContent,
   MastheadMain,
-  MastheadToggle,
   Page,
   PageSidebar,
   PageSidebarBody,
-  PageToggleButton,
   SkipToContent,
 } from "@patternfly/react-core";
 
@@ -19,7 +17,6 @@ import { AppNav } from "./AppNav";
 import { DevBanner } from "./DevBanner";
 import { HelpButton } from "./HelpButton";
 import { HelpPanel } from "./HelpPanel";
-import { PulpApiDocsLink } from "./PulpApiDocsLink";
 import { TasksDrawer } from "./TasksDrawer";
 import { TasksIndicator } from "./TasksIndicator";
 import { ThemeToggle } from "./ThemeToggle";
@@ -104,26 +101,16 @@ function AppShell() {
   const masthead = (
     <Masthead>
       <MastheadMain>
-        {/* The product mark replaces the hamburger as the navigation control.
-            Keep the wordmark outside the button so hover/focus treatment is
-            limited to the blue mark, while PageToggleButton retains the
-            managed-sidebar and aria-expanded wiring. */}
-        <MastheadToggle className="pulpit-brand-lockup">
-          <PageToggleButton
-            id="pulpit-nav-toggle"
-            aria-label="Toggle navigation"
-            className="pulpit-brand-toggle"
-          >
-            <img
-              src="/pulpit-mark.svg"
-              alt=""
-              width={32}
-              height={32}
-              style={{ display: "block" }}
-            />
-          </PageToggleButton>
+        <div className="pulpit-brand-lockup" aria-label="PulpIT">
+          <img
+            src="/pulpit-mark.svg"
+            alt=""
+            width={32}
+            height={32}
+            style={{ display: "block" }}
+          />
           <span className="pulpit-brand-text">PulpIT</span>
-        </MastheadToggle>
+        </div>
       </MastheadMain>
       <MastheadContent className="pulpit-masthead-actions">
         <TasksIndicator onToggle={() => setIsHelpOpen(false)} />
@@ -133,7 +120,6 @@ function AppShell() {
             setIsHelpOpen((open) => !open);
           }}
         />
-        <PulpApiDocsLink />
         <ThemeToggle />
         <UserMenu />
       </MastheadContent>
@@ -170,7 +156,6 @@ function AppShell() {
         mainAriaLabel="Main content"
         masthead={masthead}
         sidebar={sidebar}
-        isManagedSidebar
         notificationDrawer={
           isHelpOpen ? (
             <HelpPanel onClose={() => setIsHelpOpen(false)} />

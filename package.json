@@ -25,12 +25,12 @@
   },
   "dependencies": {
     "@patternfly/react-core": "^6.6.1",
-    "@patternfly/react-icons": "^6.6.1",
     "@patternfly/react-table": "^6.6.1",
     "@tanstack/react-query": "^5.102.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3"
+    "react-router-dom": "^7.18.3",
+    "simple-icons": "^16.33.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -6,8 +6,9 @@ export function DebContentTopic() {
       <Content component="p">
         A read-only view of every Debian package Pulp knows about, across{" "}
         <strong>every</strong> repository - not scoped to one. Each row shows the
-        package's name, version, and architecture. Search by package name to narrow the
-        list; there's no per-repository filter here (use a repository's own{" "}
+        package's name, version, architecture, and the repositories whose current version
+        contains it. Repository names open their detail pages. Search by package name to
+        narrow the list; there's no per-repository filter here (use a repository's own{" "}
         <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">

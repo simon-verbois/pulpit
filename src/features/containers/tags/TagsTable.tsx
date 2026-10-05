@@ -5,6 +5,8 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { TaskActionButton } from "../../../components/TaskActionButton";
+import { RepositoryMembershipCell } from "../../../components/RepositoryMembershipCell";
+import type { RepositoryKind } from "../../../api/client/repositoryMembership";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import type { ContainerTag } from "../../../api/client/container/types";
 
@@ -23,6 +25,7 @@ interface TagsTableProps {
    * global Tags page (mirroring RPM's global Packages page) is read-only. */
   onUntag?: (tag: ContainerTag) => void;
   taskResourceHref?: string;
+  repositoryKind?: RepositoryKind;
 }
 
 export function TagsTable({
@@ -36,6 +39,7 @@ export function TagsTable({
   emptyStateVariant,
   onUntag,
   taskResourceHref,
+  repositoryKind,
 }: TagsTableProps) {
   if (isPending) {
     return <LoadingState label="Loading tags" />;
@@ -53,6 +57,7 @@ export function TagsTable({
         <Tr>
           <Th>Tag</Th>
           <Th>Created</Th>
+          {repositoryKind ? <Th>Repositories</Th> : null}
           {onUntag ? <Th screenReaderText="Actions" /> : null}
         </Tr>
       </Thead>
@@ -61,6 +66,14 @@ export function TagsTable({
           <Tr key={tag.pulp_href}>
             <Td dataLabel="Tag">{tag.name}</Td>
             <Td dataLabel="Created">{formatRelativeTime(tag.pulp_created)}</Td>
+            {repositoryKind ? (
+              <Td dataLabel="Repositories">
+                <RepositoryMembershipCell
+                  contentHref={tag.pulp_href}
+                  repositoryKind={repositoryKind}
+                />
+              </Td>
+            ) : null}
             {onUntag ? (
               <Td dataLabel="Actions" isActionCell>
                 {taskResourceHref ? (

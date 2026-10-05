@@ -6,6 +6,13 @@ import { server } from "../../test/mswServer";
 import { renderApp } from "../../test/renderApp";
 import { OverviewPage } from "./OverviewPage";
 
+async function findComponentRow(component: string): Promise<HTMLElement> {
+  const cell = await screen.findByText(component, { exact: true });
+  const row = cell.closest("tr");
+  if (!row) throw new Error(`No table row found for ${component}`);
+  return row;
+}
+
 describe("OverviewPage", () => {
   it("renders real Pulp status data once loaded", async () => {
     renderApp(<OverviewPage />);
@@ -13,9 +20,26 @@ describe("OverviewPage", () => {
     expect(screen.getByText("3.38.5")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument(); // database
     expect(screen.getByText("Disconnected")).toBeInTheDocument(); // redis
+    expect(screen.getByText("2 Ready")).toBeInTheDocument(); // workers
+    expect(screen.getAllByText("2 Running")).toHaveLength(2); // API and content apps
+    expect(screen.getByText("Modules")).toBeInTheDocument();
+    expect(document.querySelectorAll(".pulpit-metric-card__indicator")).toHaveLength(0);
+    const storageCard = screen.getByText("Storage").closest(".pulpit-metric-card");
+    expect(storageCard).not.toBeNull();
+    expect(
+      within(storageCard as HTMLElement).queryByRole("progressbar"),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText(/\d+(\.\d+)? [A-Z]?B \/ \d+(\.\d+)? [A-Z]?B/),
     ).toBeInTheDocument(); // storage
+  });
+
+  it("orders modules like the navigation, with RPM first", async () => {
+    renderApp(<OverviewPage />);
+
+    const table = await screen.findByRole("grid", { name: "Pulp components" });
+    const rows = within(table).getAllByRole("row");
+    expect(within(rows[1]).getByText("rpm", { exact: true })).toBeInTheDocument();
   });
 
   it("never shows a row for core - it isn't a content plugin, always a dash for Repositories/Size (by request)", async () => {
@@ -35,19 +59,19 @@ describe("OverviewPage", () => {
   it("shows each installed plugin's repository count inline in the component table, linking to its Repositories page", async () => {
     renderApp(<OverviewPage />);
 
-    const rpmRow = await screen.findByRole("row", { name: /^rpm\b/ });
+    const rpmRow = await findComponentRow("rpm");
     expect(await within(rpmRow).findByRole("link", { name: "1" })).toHaveAttribute(
       "href",
       "/rpm/repositories",
     );
 
-    const ansibleRow = screen.getByRole("row", { name: /^ansible\b/ });
+    const ansibleRow = await findComponentRow("ansible");
     expect(await within(ansibleRow).findByRole("link", { name: "1" })).toHaveAttribute(
       "href",
       "/ansible/repositories",
     );
 
-    const containerRow = screen.getByRole("row", { name: /^container\b/ });
+    const containerRow = await findComponentRow("container");
     expect(await within(containerRow).findByRole("link", { name: "1" })).toHaveAttribute(
       "href",
       "/containers/repositories",
@@ -74,13 +98,13 @@ describe("OverviewPage", () => {
   it("shows each installed plugin's content size inline in the component table, dash for one with none", async () => {
     renderApp(<OverviewPage />);
 
-    const rpmRow = await screen.findByRole("row", { name: /^rpm\b/ });
+    const rpmRow = await findComponentRow("rpm");
     expect(await within(rpmRow).findByText("195.7 KB")).toBeInTheDocument();
 
-    const ansibleRow = screen.getByRole("row", { name: /^ansible\b/ });
+    const ansibleRow = await findComponentRow("ansible");
     expect(within(ansibleRow).getByText("2.0 KB")).toBeInTheDocument();
 
-    const containerRow = screen.getByRole("row", { name: /^container\b/ });
+    const containerRow = await findComponentRow("container");
     expect(within(containerRow).getByText("51.0 KB")).toBeInTheDocument();
   });
 
@@ -93,8 +117,8 @@ describe("OverviewPage", () => {
 
     renderApp(<OverviewPage />);
 
-    expect(await screen.findByRole("row", { name: /^ansible\b/ })).toBeInTheDocument();
-    expect(screen.queryByRole("row", { name: /^rpm\b/ })).not.toBeInTheDocument();
+    expect(await findComponentRow("ansible")).toBeInTheDocument();
+    expect(screen.queryByText("rpm", { exact: true })).not.toBeInTheDocument();
   });
 
   it("keeps showing the loading state (not every plugin row) while nav-visibility is still loading, so rows don't flash in then disappear once it resolves", () => {
@@ -113,13 +137,13 @@ describe("OverviewPage", () => {
   it("shows every visible plugin's repository count, not just rpm/ansible/container", async () => {
     renderApp(<OverviewPage />);
 
-    const debRow = await screen.findByRole("row", { name: /^deb\b/ });
+    const debRow = await findComponentRow("deb");
     expect(await within(debRow).findByRole("link", { name: "1" })).toHaveAttribute(
       "href",
       "/deb/repositories",
     );
 
-    const fileRow = screen.getByRole("row", { name: /^file\b/ });
+    const fileRow = await findComponentRow("file");
     expect(await within(fileRow).findByRole("link", { name: "1" })).toHaveAttribute(
       "href",
       "/files/repositories",
@@ -136,7 +160,7 @@ describe("OverviewPage", () => {
 
     renderApp(<OverviewPage />);
 
-    const rpmRow = await screen.findByRole("row", { name: /^rpm\b/ });
+    const rpmRow = await findComponentRow("rpm");
     // Repositories count still resolves fine independently of the failed
     // Size fetch (rpm has a repository count of 1, no dash there).
     expect(await within(rpmRow).findByRole("link", { name: "1" })).toBeInTheDocument();

@@ -11,6 +11,8 @@ import {
   FlexItem,
   Form,
   FormGroup,
+  Grid,
+  GridItem,
   Stack,
   StackItem,
 } from "@patternfly/react-core";
@@ -84,88 +86,96 @@ function RepositorySigningGeneralForm({
       ) : null}
 
       <StackItem>
-        <Card isCompact>
-          <CardTitle>Signing</CardTitle>
-          <CardBody>
-            <Form>
-              <Checkbox
-                id="signing-enabled"
-                label="Signing enabled"
-                isChecked={settings.signing_enabled}
-                onChange={(_e, checked) => onChange({ signing_enabled: checked })}
-              />
-              <Checkbox
-                id="package-signing-enabled"
-                label="Package signing enabled"
-                isChecked={settings.package_signing_enabled}
-                onChange={(_e, checked) => onChange({ package_signing_enabled: checked })}
-              />
-              <Checkbox
-                id="metadata-signing-enabled"
-                label="Metadata signing enabled"
-                isChecked={settings.metadata_signing_enabled}
-                onChange={(_e, checked) =>
-                  onChange({ metadata_signing_enabled: checked })
-                }
-              />
-            </Form>
-          </CardBody>
-        </Card>
-      </StackItem>
+        <Grid hasGutter>
+          <GridItem span={12} md={6} xl={3}>
+            <Card isCompact isFullHeight>
+              <CardTitle>Signing</CardTitle>
+              <CardBody>
+                <Form>
+                  <Checkbox
+                    id="signing-enabled"
+                    label="Signing enabled"
+                    isChecked={settings.signing_enabled}
+                    onChange={(_e, checked) => onChange({ signing_enabled: checked })}
+                  />
+                  <Checkbox
+                    id="package-signing-enabled"
+                    label="Package signing enabled"
+                    isChecked={settings.package_signing_enabled}
+                    onChange={(_e, checked) =>
+                      onChange({ package_signing_enabled: checked })
+                    }
+                  />
+                  <Checkbox
+                    id="metadata-signing-enabled"
+                    label="Metadata signing enabled"
+                    isChecked={settings.metadata_signing_enabled}
+                    onChange={(_e, checked) =>
+                      onChange({ metadata_signing_enabled: checked })
+                    }
+                  />
+                </Form>
+              </CardBody>
+            </Card>
+          </GridItem>
 
-      <StackItem>
-        <Card isCompact>
-          <CardTitle>Public key</CardTitle>
-          <CardBody>
-            <Form>
-              <FormGroup label="Filename" fieldId="public-key-filename">
-                <Flex alignItems={{ default: "alignItemsFlexStart" }}>
-                  <FlexItem grow={{ default: "grow" }}>
-                    <BasePathField
-                      id="public-key-filename"
-                      prefix={`${contentOrigin}/keys/`}
-                      value={publicKeyFilename}
-                      onChange={setPublicKeyFilename}
-                    />
-                  </FlexItem>
-                  <FlexItem>
-                    <Button
-                      variant="secondary"
-                      isDisabled={!isFilenameDirty || !publicKeyFilename}
-                      isLoading={isFilenameDirty && isSaving}
-                      onClick={() => onChange({ public_key_filename: publicKeyFilename })}
-                    >
-                      Save
+          <GridItem span={12} md={6} xl={5}>
+            <Card isCompact isFullHeight>
+              <CardTitle>Public key</CardTitle>
+              <CardBody>
+                <Form>
+                  <FormGroup label="Filename" fieldId="public-key-filename">
+                    <Flex alignItems={{ default: "alignItemsFlexStart" }}>
+                      <FlexItem grow={{ default: "grow" }}>
+                        <BasePathField
+                          id="public-key-filename"
+                          prefix={`${contentOrigin}/keys/`}
+                          value={publicKeyFilename}
+                          onChange={setPublicKeyFilename}
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <Button
+                          variant="secondary"
+                          isDisabled={!isFilenameDirty || !publicKeyFilename}
+                          isLoading={isFilenameDirty && isSaving}
+                          onClick={() =>
+                            onChange({ public_key_filename: publicKeyFilename })
+                          }
+                        >
+                          Save
+                        </Button>
+                      </FlexItem>
+                    </Flex>
+                  </FormGroup>
+                </Form>
+              </CardBody>
+            </Card>
+          </GridItem>
+
+          <GridItem span={12} xl={4}>
+            <Card isCompact isFullHeight>
+              <CardTitle>Existing repositories</CardTitle>
+              <CardBody>
+                <Stack hasGutter>
+                  <StackItem>
+                    <Content component="small">
+                      Signing above applies automatically to every repository from now on
+                      - new repositories need no per-repository choice. A repository
+                      created before signing was turned on doesn't otherwise catch up on
+                      its own; use this to bring every existing repository into line now.
+                    </Content>
+                  </StackItem>
+                  <StackItem>
+                    <Button variant="danger" onClick={() => setIsApplyOpen(true)}>
+                      Sign all repositories…
                     </Button>
-                  </FlexItem>
-                </Flex>
-              </FormGroup>
-            </Form>
-          </CardBody>
-        </Card>
-      </StackItem>
-
-      <StackItem>
-        <Card isCompact>
-          <CardTitle>Existing repositories</CardTitle>
-          <CardBody>
-            <Stack hasGutter>
-              <StackItem>
-                <Content component="small">
-                  Signing above applies automatically to every repository from now on -
-                  new repositories need no per-repository choice. A repository created
-                  before signing was turned on doesn't otherwise catch up on its own; use
-                  this to bring every existing repository into line now.
-                </Content>
-              </StackItem>
-              <StackItem>
-                <Button variant="danger" onClick={() => setIsApplyOpen(true)}>
-                  Sign all repositories…
-                </Button>
-              </StackItem>
-            </Stack>
-          </CardBody>
-        </Card>
+                  </StackItem>
+                </Stack>
+              </CardBody>
+            </Card>
+          </GridItem>
+        </Grid>
       </StackItem>
 
       {isApplyOpen ? (

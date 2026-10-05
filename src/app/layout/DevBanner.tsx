@@ -1,3 +1,5 @@
+import { UiIcon } from "../../components/icons/UiIcon";
+
 /**
  * A loud, centered tab overlaying the top of the masthead - only ever
  * rendered when `VITE_DEV_BANNER` was set at build time (compose-dev.yml's
@@ -28,6 +30,7 @@ export function DevBanner() {
       <span aria-hidden="true" className="pulpit-dev-banner-date">
         {` — ${__BUILD_DATE__}`}
       </span>
+      <UiIcon name="eye-off" size="1rem" aria-hidden="true" />
     </div>
   );
 }

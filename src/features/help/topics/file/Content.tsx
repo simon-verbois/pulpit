@@ -6,8 +6,9 @@ export function FileContentTopic() {
       <Content component="p">
         A read-only view of every file content unit Pulp knows about, across{" "}
         <strong>every</strong> repository - not scoped to one. Each row shows the file's
-        relative path and SHA256 checksum. Search by relative path to narrow the list;
-        there's no per-repository filter here (use a repository's own{" "}
+        relative path, SHA256 checksum, and the repositories whose current version
+        contains it. Repository names open their detail pages. Search by relative path to
+        narrow the list; there's no per-repository filter here (use a repository's own{" "}
         <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">

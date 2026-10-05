@@ -62,8 +62,9 @@ export function OverviewPage() {
       <PageHeader
         title="Overview"
         description="A snapshot of the Pulp instance PulpIT is managing."
+        className="pulpit-overview-header"
       />
-      <PageSection hasBodyWrapper={false}>
+      <PageSection hasBodyWrapper={false} className="pulpit-overview-content">
         {isInitialLoad ? <LoadingState label="Loading Pulp status" /> : null}
         {statusQuery.isError ? (
           <ErrorState error={statusQuery.error} onRetry={() => statusQuery.refetch()} />

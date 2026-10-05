@@ -147,7 +147,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   },
   {
     id: "containers",
-    label: "Container Registry",
+    label: "Container",
     pathPrefix: "/containers",
     pages: [
       { id: "overview", label: "Overview", Component: ContainersOverviewTopic },
@@ -173,7 +173,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   },
   {
     id: "ansible",
-    label: "Ansible Galaxy",
+    label: "Ansible",
     pathPrefix: "/ansible",
     pages: [
       { id: "overview", label: "Overview", Component: AnsibleOverviewTopic },

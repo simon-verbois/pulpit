@@ -6,8 +6,9 @@ export function NpmContentTopic() {
       <Content component="p">
         A read-only view of every NPM package Pulp knows about, across{" "}
         <strong>every</strong> repository - not scoped to one. Each row shows the
-        package's name, version, and relative path. Search by name to narrow the list;
-        there's no per-repository filter here (use a repository's own{" "}
+        package's name, version, relative path, and the repositories whose current version
+        contains it. Repository names open their detail pages. Search by name to narrow
+        the list; there's no per-repository filter here (use a repository's own{" "}
         <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">

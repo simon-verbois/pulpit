@@ -14,6 +14,17 @@
    a slow/high-latency connection (e.g. a remote-desktop/bastion session)
    without changing how anything looks once settled. */
 :root {
+  --pulpit-primary: #2563eb;
+  --pulpit-primary-hover: #1d4ed8;
+  --pulpit-primary-clicked: #1e40af;
+  --pulpit-primary-soft: #dbeafe;
+  --pulpit-primary-soft-hover: #bfdbfe;
+  --pf-t--global--color--brand--default: var(--pulpit-primary);
+  --pf-t--global--color--brand--hover: var(--pulpit-primary-hover);
+  --pf-t--global--color--brand--clicked: var(--pulpit-primary-clicked);
+  --pf-t--global--color--brand--subtle--default: var(--pulpit-primary-soft);
+  --pf-t--global--color--brand--subtle--hover: var(--pulpit-primary-soft-hover);
+  --pf-t--global--color--brand--subtle--clicked: #93c5fd;
   --pf-t--global--duration--200: 120ms;
   --pf-t--global--duration--300: 150ms;
   --pf-t--global--duration--400: 150ms;
@@ -28,7 +39,76 @@
   --pf-t--global--border--color--subtle: var(--pf-t--color--gray--30);
 }
 
+/* The default PF6 light shell puts its canvas, masthead, and persistent
+   sidebar on nearly identical gray surfaces. Keep the component structure
+   and semantic palette, but give those layers an explicit enterprise-style
+   hierarchy: white chrome, a stronger neutral navigation rail, and a
+   bordered working surface. Component variables are used here so dialogs,
+   cards, tables, and other PatternFly surfaces retain their native colors.
+   The selector intentionally excludes dark mode, whose native hierarchy is
+   already strong and should continue to be controlled by PatternFly. */
+:root:not(.pf-v6-theme-dark) .pf-v6-c-masthead {
+  --pf-v6-c-masthead--BackgroundColor: var(
+    --pf-t--global--background--color--primary--default
+  );
+}
+
+:root:not(.pf-v6-theme-dark) .pf-v6-c-page {
+  --pf-v6-c-page__sidebar--Width--base: 14.25rem;
+  --pf-v6-c-page__sidebar--Width: 14.25rem;
+  --pf-v6-c-page__sidebar--xl--Width: 14.25rem;
+  --pf-v6-c-page__sidebar--BackgroundColor: var(
+    --pf-t--global--background--color--tertiary--default
+  );
+  --pf-v6-c-page__sidebar--xl--BackgroundColor: var(
+    --pf-t--global--background--color--tertiary--default
+  );
+  --pf-v6-c-page__sidebar--xl--BackdropFilter: none;
+  --pf-v6-c-page__main-container--BackgroundColor: var(
+    --pf-t--global--background--color--primary--default
+  );
+  --pf-v6-c-page__main-container--BorderColor: var(
+    --pf-t--global--border--color--default
+  );
+  --pf-v6-c-page__main-container--BorderBlockStartWidth: var(
+    --pf-t--global--border--width--regular
+  );
+  --pf-v6-c-page__main-container--BorderBlockEndWidth: var(
+    --pf-t--global--border--width--regular
+  );
+  --pf-v6-c-page__main-container--BorderInlineStartWidth: var(
+    --pf-t--global--border--width--regular
+  );
+  --pf-v6-c-page__main-container--BorderInlineEndWidth: var(
+    --pf-t--global--border--width--regular
+  );
+  --pf-v6-c-page__main-container--BorderRadius: var(
+    --pf-t--global--border--radius--small
+  );
+  --pf-v6-c-page__main-container--BoxShadow: var(--pf-t--global--box-shadow--sm);
+}
+
+:root:not(.pf-v6-theme-dark) .pf-v6-c-page__sidebar .pf-v6-c-nav {
+  --pf-v6-c-nav__link--hover--BackgroundColor: var(
+    --pf-t--global--background--color--primary--hover
+  );
+  --pf-v6-c-nav__link--m-current--BackgroundColor: var(
+    --pf-t--global--color--brand--subtle--default
+  );
+}
+
 .pf-v6-theme-dark {
+  --pulpit-primary: #60a5fa;
+  --pulpit-primary-hover: #93c5fd;
+  --pulpit-primary-clicked: #bfdbfe;
+  --pulpit-primary-soft: #172554;
+  --pulpit-primary-soft-hover: #1e3a8a;
+  --pf-t--global--color--brand--default: var(--pulpit-primary);
+  --pf-t--global--color--brand--hover: var(--pulpit-primary-hover);
+  --pf-t--global--color--brand--clicked: var(--pulpit-primary-clicked);
+  --pf-t--global--color--brand--subtle--default: var(--pulpit-primary-soft);
+  --pf-t--global--color--brand--subtle--hover: var(--pulpit-primary-soft-hover);
+  --pf-t--global--color--brand--subtle--clicked: #1e40af;
   --pf-t--global--font--weight--body--default: 450;
   --pf-t--global--text--color--subtle: var(--pf-t--color--gray--20);
   --pf-t--global--border--color--default: var(--pf-t--color--gray--50);
@@ -72,7 +152,17 @@ body,
 }
 
 .pf-v6-c-page .pf-v6-c-page__main-container {
+  /* PatternFly's stylesheet is injected after this file and its single-class
+     align-self rule otherwise wins during the initial layout. Keep the
+     working area deterministic before and after a theme switch. */
+  align-self: stretch;
+  block-size: calc(100% - var(--pulpit-footer-band));
   max-height: calc(100% - var(--pulpit-footer-band));
+  /* The sidebar is intentionally persistent, so PatternFly's generic
+     transition: all has no layout change to animate here. Leaving it on
+     made the main region briefly interpolate its height on initial render
+     and theme changes, producing a visible footer/canvas jump. */
+  transition: none;
 }
 
 .pulpit-footer {
@@ -183,20 +273,62 @@ body {
   margin-block-start: calc(var(--pf-v6-c-page__main-section--RowGap) * -1);
 }
 
-/* A plain CSS glow behind the login card, in place of PatternFly's bundled
-   PF-Bkg-Generic-*.svg background art (that asset has an opaque rect + a
-   gaussian-blurred shape baked into the SVG itself, which produced both a
-   hard-edged box and visible color banding at the small clamped size a
-   login page uses it at - see docs/UX.md "Theming"). A gradient we control
-   directly has neither problem and works identically in both themes. */
-.pulpit-login-page .pf-v6-c-login {
-  background-image: radial-gradient(
-    ellipse 60rem 45rem at 100% 100%,
-    color-mix(in srgb, var(--pf-t--global--color--brand--default) 35%, transparent) 0%,
-    color-mix(in srgb, var(--pf-t--global--color--brand--default) 12%, transparent) 50%,
-    transparent 100%
+/* Use the dashboard's surfaces and panel treatment while keeping the
+   PatternFly login form and its accessibility behavior. A single column
+   prevents the product mark from moving beside the form on wide screens. */
+.pulpit-login-page.pf-v6-c-login {
+  --pf-v6-c-login__main--BackgroundColor: var(
+    --pf-t--global--background--color--primary--default
   );
-  background-repeat: no-repeat;
+  --pf-v6-c-login__main--BackdropFilter: none;
+  --pf-v6-c-login__main--BorderWidth: 1px;
+  --pf-v6-c-login__main--BorderColor: var(--pulpit-panel-border);
+  --pf-v6-c-login__main--BorderRadius: var(--pulpit-panel-radius);
+  --pf-v6-c-login__main--BoxShadow: var(--pulpit-panel-shadow);
+  --pf-v6-c-login__main--MarginBlockEnd: 0;
+  --pf-v6-c-login__main-body--PaddingBlockEnd: var(--pf-t--global--spacer--2xl);
+  min-block-size: 100svh;
+  align-items: center;
+  padding: var(--pf-t--global--spacer--2xl) var(--pf-t--global--spacer--md);
+  background: var(--pulpit-canvas);
+}
+
+.pulpit-login-page .pf-v6-c-login__container {
+  display: flex;
+  flex-direction: column;
+  max-inline-size: 28rem;
+  padding-inline: 0;
+}
+
+.pulpit-login-page .pulpit-brand-lockup {
+  display: flex;
+  padding-inline-start: 0;
+  justify-content: flex-start;
+  gap: var(--pf-t--global--spacer--sm);
+  grid-column: 1 / -1;
+  order: -1;
+  margin-block-end: var(--pf-t--global--spacer--sm);
+}
+
+.pulpit-login-page .pulpit-login-footer {
+  padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md);
+  border-block-start: 1px solid var(--pulpit-panel-border);
+}
+
+.pulpit-login-page .pf-v6-c-login__main {
+  inline-size: 100%;
+}
+
+.pulpit-login-page .pf-v6-c-login__main-header-desc {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* Keep the release links in flow so they cannot overlap a tall form or
+   its validation message on short screens or at increased browser zoom. */
+.pulpit-login-page .pulpit-footer {
+  position: static;
+  height: auto;
+  text-align: center;
 }
 
 /* PatternFly's SearchInput (text-input-group.css) only sets outline-offset
@@ -253,22 +385,13 @@ body {
   --pf-v6-c-button--disabled--BackgroundColor: transparent;
 }
 
-/* The product mark is the navigation control; the adjacent wordmark is
-   deliberately outside its hover/focus surface. */
+/* Static product identity. The mark deliberately is not a sidebar toggle. */
 .pulpit-brand-lockup {
   display: inline-flex;
   align-items: center;
   gap: var(--pf-t--global--spacer--sm);
-}
-
-.pulpit-brand-toggle {
-  width: 3rem;
-  justify-content: center;
-  color: inherit;
-}
-
-.pulpit-brand-toggle .pf-v6-c-button__text {
-  display: block;
+  min-block-size: 3rem;
+  padding-inline-start: 0.5rem;
 }
 
 .pulpit-brand-text {
@@ -277,4 +400,687 @@ body {
   font-weight: var(--pf-t--global--font--weight--heading--default);
   letter-spacing: 0.015em;
   color: inherit;
+}
+
+/* Dashboard V2 ----------------------------------------------------------- */
+
+:root {
+  --pulpit-canvas: #edf3f4;
+  --pulpit-sidebar: #e8eff1;
+  --pulpit-accent: var(--pulpit-primary);
+  --pulpit-accent-soft: var(--pulpit-primary-soft);
+  --pulpit-dev: #ed8273;
+  --pulpit-panel-radius: 0.75rem;
+  --pulpit-panel-shadow: 0 2px 5px color-mix(in srgb, #23343b 16%, transparent);
+  --pulpit-panel-border: #d3dcdf;
+  --pulpit-chrome-border: #cbd5d8;
+  --pulpit-icon-surface: #eef2f3;
+  --pulpit-icon-color: #44555b;
+  --pulpit-progress-track: #cdd7da;
+  --pulpit-table-head: #e2eaec;
+  --pulpit-table-rule: #d7dfe1;
+  --pulpit-table-row-hover: #f1f6f7;
+}
+
+/* Keep the V2 surfaces theme-aware. This block must follow the light V2
+   defaults above: both selectors have the same specificity, so putting the
+   dark values earlier would silently restore the light canvas and sidebar. */
+.pf-v6-theme-dark {
+  --pulpit-canvas: #17191c;
+  --pulpit-sidebar: #111315;
+  --pulpit-panel-border: #525b62;
+  --pulpit-panel-shadow: 0 2px 5px rgb(0 0 0 / 28%);
+  --pulpit-chrome-border: #3f474d;
+  --pulpit-icon-surface: #eef2f3;
+  --pulpit-icon-color: #44555b;
+  --pulpit-progress-track: #66747b;
+  --pulpit-table-head: #343b40;
+  --pulpit-table-rule: #4b545a;
+  --pulpit-table-row-hover: #30363a;
+}
+
+:root:not(.pf-v6-theme-dark) .pf-v6-c-page,
+.pf-v6-theme-dark .pf-v6-c-page {
+  --pf-v6-c-page__sidebar--Width--base: 14.25rem;
+  --pf-v6-c-page__sidebar--Width: 14.25rem;
+  --pf-v6-c-page__sidebar--xl--Width: 14.25rem;
+  --pf-v6-c-page__sidebar--xl--BackdropFilter: none;
+  --pf-v6-c-page__main-container--BackgroundColor: transparent;
+  --pf-v6-c-page__main-container--BorderBlockStartWidth: 0;
+  --pf-v6-c-page__main-container--BorderBlockEndWidth: 0;
+  --pf-v6-c-page__main-container--BorderInlineStartWidth: 0;
+  --pf-v6-c-page__main-container--BorderInlineEndWidth: 0;
+  --pf-v6-c-page__main-container--BorderRadius: 0;
+  --pf-v6-c-page__main-container--BoxShadow: none;
+  --pf-v6-c-page__main-container--MarginInlineEnd: 0;
+  --pf-v6-c-page--BackgroundColor: var(--pulpit-canvas);
+  --pf-v6-c-page__sidebar--BackgroundColor: var(--pulpit-sidebar);
+  --pf-v6-c-page__sidebar--xl--BackgroundColor: var(--pulpit-sidebar);
+}
+
+.pf-v6-c-masthead {
+  --pf-v6-c-masthead--PaddingBlock: 0.5rem;
+  --pf-v6-c-masthead--PaddingInline: 0.625rem;
+  border-block-start: 4px solid var(--pulpit-dev);
+  border-block-end: 1px solid var(--pulpit-chrome-border);
+  box-shadow: 0 1px 2px color-mix(in srgb, #23343b 6%, transparent);
+}
+
+.pf-v6-c-page__main-section {
+  --pf-v6-c-page__main-section--BackgroundColor: transparent;
+}
+
+.pulpit-brand-lockup {
+  gap: 0.5rem;
+}
+
+.pulpit-brand-text {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.pulpit-masthead-actions {
+  gap: 0.5rem;
+}
+
+.pulpit-masthead-actions :is(.pf-v6-c-button, .pf-v6-c-menu-toggle) {
+  align-items: center;
+  min-block-size: 2.125rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--pulpit-primary) 12%, #e2e8f0);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--pulpit-primary-soft) 36%, white);
+  box-shadow: none;
+  font-size: 0.925rem;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.pulpit-masthead-actions :is(.pf-v6-c-button, .pf-v6-c-menu-toggle):hover {
+  border-color: color-mix(in srgb, var(--pulpit-primary) 28%, #d5dde0);
+  background: color-mix(in srgb, var(--pulpit-primary-soft) 74%, white);
+  box-shadow: none;
+}
+
+.pulpit-masthead-actions :is(.pf-v6-c-button, .pf-v6-c-menu-toggle):focus-visible {
+  outline: 2px solid var(--pulpit-primary);
+  outline-offset: 2px;
+}
+
+.pulpit-masthead-actions svg {
+  display: block;
+}
+
+.pulpit-masthead-actions .pulpit-theme-toggle {
+  inline-size: 2.125rem;
+  padding-inline: 0;
+  justify-content: center;
+}
+
+.pf-v6-theme-dark .pulpit-masthead-actions :is(.pf-v6-c-button, .pf-v6-c-menu-toggle) {
+  border-color: color-mix(in srgb, var(--pulpit-primary) 20%, #334155);
+  background: color-mix(in srgb, var(--pulpit-primary-soft) 38%, #111827);
+}
+
+.pf-v6-theme-dark
+  .pulpit-masthead-actions
+  :is(.pf-v6-c-button, .pf-v6-c-menu-toggle):hover {
+  border-color: color-mix(in srgb, var(--pulpit-primary) 38%, #475569);
+  background: color-mix(in srgb, var(--pulpit-primary-soft-hover) 68%, #111827);
+}
+
+/* Floating navigation with real product logos and a full active surface. */
+.pf-v6-c-page__sidebar .pf-v6-c-nav {
+  --pf-v6-c-nav--PaddingBlockStart: var(--pf-t--global--spacer--md);
+  --pf-v6-c-nav--PaddingInlineStart: 0.875rem;
+  --pf-v6-c-nav--PaddingInlineEnd: 0.875rem;
+  --pf-v6-c-nav__list--RowGap: 0.25rem;
+  --pf-v6-c-nav__link--PaddingBlockStart: 0.62rem;
+  --pf-v6-c-nav__link--PaddingBlockEnd: 0.62rem;
+  --pf-v6-c-nav__link--PaddingInlineStart: 0.75rem;
+  --pf-v6-c-nav__link--PaddingInlineEnd: 0.75rem;
+  --pf-v6-c-nav__link--BorderRadius: 0.625rem;
+  --pf-v6-c-nav__link--ColumnGap: 0.75rem;
+  --pf-v6-c-nav__link--m-current--BorderWidth: 0;
+  --pf-v6-c-nav__item--accent--ScaleY: 0;
+  --pf-v6-c-nav__item--current--accent--ScaleY: 0;
+  font-size: 1rem;
+}
+
+.pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  padding-inline: 0;
+}
+
+.pf-v6-c-page__sidebar .pf-v6-c-nav__link-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  font-size: 1.1rem;
+}
+
+/* PatternFly aligns nav-link contents on their text baseline by default.
+   Fixed-size SVG wrappers consequently sit roughly 4px above the label's
+   visual center; these icon-and-label links require geometric centering. */
+.pf-v6-c-page__sidebar .pf-v6-c-nav__link {
+  align-items: center;
+}
+
+:root:not(.pf-v6-theme-dark) .pf-v6-c-page__sidebar .pf-v6-c-nav {
+  --pf-v6-c-nav__link--hover--BackgroundColor: color-mix(
+    in srgb,
+    var(--pulpit-accent-soft) 58%,
+    transparent
+  );
+  --pf-v6-c-nav__link--m-current--BackgroundColor: var(--pulpit-accent-soft);
+  --pf-v6-c-nav__link--m-current--Color: #1e3a8a;
+  --pf-v6-c-nav__link--m-current__link-icon--Color: var(--pulpit-accent);
+}
+
+.pf-v6-theme-dark .pf-v6-c-page__sidebar .pf-v6-c-nav {
+  --pf-v6-c-nav__link--hover--BackgroundColor: color-mix(
+    in srgb,
+    var(--pulpit-accent-soft) 62%,
+    transparent
+  );
+  --pf-v6-c-nav__link--m-current--BackgroundColor: var(--pulpit-accent-soft);
+  --pf-v6-c-nav__link--m-current--Color: #dbeafe;
+  --pf-v6-c-nav__link--m-current__link-icon--Color: var(--pulpit-accent);
+}
+
+/* Environment tab, intentionally prominent like the supplied reference. */
+.pulpit-dev-banner {
+  inset-block-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  inline-size: 25.5rem;
+  min-inline-size: 0;
+  min-block-size: 3.35rem;
+  box-sizing: border-box;
+  background: var(--pulpit-dev);
+  color: #581c18;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+  padding: 0.85rem 1.4rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  box-shadow: 0 3px 8px color-mix(in srgb, #7a332c 24%, transparent);
+}
+
+.pf-v6-c-page__main-section.pulpit-page-header {
+  padding: 1.5rem 1.625rem 1.1875rem;
+}
+
+.pulpit-page-header h1 {
+  font-size: 1.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Every routed screen uses the same inset working surface as the dashboard.
+   PageHeader is the stable boundary: the PageSection immediately following
+   it is the page's primary functional block, whether that block is a list,
+   a settings form, or a tab set. Keeping the treatment here avoids dozens of
+   subtly different plugin-local wrappers and also gives future pages the
+   house style automatically. Overview is deliberately excluded because it
+   already composes several independent dashboard panels. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs) {
+  margin: 0 1rem 1.75rem 1.625rem;
+  inline-size: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--pulpit-panel-border);
+  border-radius: var(--pulpit-panel-radius);
+  background: var(--pf-t--global--background--color--primary--default);
+  box-shadow: var(--pulpit-panel-shadow);
+  overflow: hidden;
+}
+
+/* Tables own their horizontal rhythm and tab bodies contain their own
+   PageSections, so these two page anatomies need a full-bleed outer panel. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-section:is(
+    :has(> .pf-v6-c-toolbar),
+    :has(> .pf-v6-c-table),
+    .pf-m-tabs
+  ) {
+  padding: 0;
+}
+
+.pulpit-page-header:not(.pulpit-overview-header) + .pf-v6-c-page__main-tabs {
+  padding: 0;
+  /* Long settings forms should scroll inside their own controls only when
+     necessary. A bottom margin participates in the Page main region's
+     scroll height and created a needless page scrollbar on desktop; the
+     reserved footer band already supplies the required bottom breathing
+     room for tabbed pages. */
+  margin-block-end: 0;
+}
+
+/* A list toolbar is the panel's calm control strip, not another floating
+   block. Top-level lists and data tabs use exactly the same inset. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-section
+  > .pf-v6-c-toolbar {
+  --pf-v6-c-toolbar--BackgroundColor: transparent;
+  --pf-v6-c-toolbar--PaddingBlockStart: 1rem;
+  --pf-v6-c-toolbar--PaddingBlockEnd: 1rem;
+  --pf-v6-c-toolbar--PaddingInlineStart: 1.125rem;
+  --pf-v6-c-toolbar--PaddingInlineEnd: 1.125rem;
+  border-block-end: 1px solid var(--pulpit-table-rule);
+}
+
+/* PatternFly's hasBodyWrapper={false} tab bodies default to vertical-only
+   padding. That leaves description lists and controls touching the panel's
+   left edge even though the tab labels themselves are inset. Descriptive
+   bodies inherit the same horizontal rhythm as the tab row. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-tabs
+  .pf-v6-c-tab-content
+  > .pf-v6-c-page__main-section {
+  padding: 1rem 1.125rem;
+}
+
+/* Data tabs remain full-bleed so their table header reaches both panel
+   edges. The toolbar supplies the inset for controls; removing the section
+   row gap makes the table start immediately below that control strip. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-tabs
+  .pf-v6-c-tab-content
+  > .pf-v6-c-page__main-section:is(:has(> .pf-v6-c-toolbar), :has(> .pf-v6-c-table)) {
+  padding: 0;
+}
+
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-tabs
+  .pf-v6-c-tab-content
+  > .pf-v6-c-page__main-section
+  > .pf-v6-c-toolbar {
+  --pf-v6-c-toolbar--BackgroundColor: transparent;
+  --pf-v6-c-toolbar--PaddingBlockStart: 1rem;
+  --pf-v6-c-toolbar--PaddingBlockEnd: 1rem;
+  --pf-v6-c-toolbar--PaddingInlineStart: 1.125rem;
+  --pf-v6-c-toolbar--PaddingInlineEnd: 1.125rem;
+  border-block-end: 1px solid var(--pulpit-table-rule);
+}
+
+/* Lists and tables nested in detail/admin tabs share the dashboard's table
+   density and hierarchy. The scope stops at the primary page surface so
+   drawers and modals retain PatternFly's native presentation. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
+  .pf-v6-c-table {
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table--cell--PaddingBlockStart: 0.76rem;
+  --pf-v6-c-table--cell--PaddingBlockEnd: 0.76rem;
+  --pf-v6-c-table--cell--PaddingInlineStart: 1.25rem;
+  --pf-v6-c-table--cell--PaddingInlineEnd: 1.25rem;
+  font-size: 0.96rem;
+}
+
+.pulpit-page-header:not(.pulpit-overview-header)
+  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
+  .pf-v6-c-table__thead {
+  background: var(--pulpit-table-head);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.86rem;
+}
+
+.pulpit-page-header:not(.pulpit-overview-header)
+  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
+  .pf-v6-c-table__tbody
+  .pf-v6-c-table__tr {
+  border-block-end: 1px solid var(--pulpit-table-rule);
+  transition: background-color var(--pf-t--global--motion--duration--fade--short)
+    var(--pf-t--global--motion--timing-function--default);
+}
+
+.pulpit-page-header:not(.pulpit-overview-header)
+  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
+  .pf-v6-c-table__tbody
+  .pf-v6-c-table__tr:last-child {
+  border-block-end: 0;
+}
+
+.pulpit-page-header:not(.pulpit-overview-header)
+  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
+  .pf-v6-c-table__tbody
+  .pf-v6-c-table__tr:hover {
+  background: var(--pulpit-table-row-hover);
+}
+
+/* Tabs are the surface header. Their PageSection bodies keep normal
+   PatternFly padding, while a second-level tab row remains visually nested
+   rather than appearing to be another page-wide white band. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-tabs
+  > .pf-v6-c-tabs {
+  --pf-v6-c-tabs--BackgroundColor: transparent;
+  padding-inline: 1.125rem;
+}
+
+/* PatternFly maps both hover and focus to the same filled tab surface. A
+   pointer click therefore leaves a grey rounded highlight behind until
+   focus moves elsewhere, competing with the blue active underline. Pointer
+   focus uses the active underline alone; keyboard focus keeps an explicit
+   brand outline so operability never relies on color or focus removal. */
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-tabs
+  .pf-v6-c-tabs__link:focus:not(:focus-visible) {
+  --pf-v6-c-tabs__link--BackgroundColor: transparent;
+  --pf-v6-c-tabs__link--BorderColor: transparent;
+}
+
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-tabs
+  .pf-v6-c-tabs__link:focus-visible {
+  --pf-v6-c-tabs__link--BackgroundColor: transparent;
+  outline: 2px solid var(--pulpit-primary);
+  outline-offset: -3px;
+}
+
+.pulpit-page-header:not(.pulpit-overview-header)
+  + .pf-v6-c-page__main-tabs
+  .pf-v6-c-tabs
+  .pf-v6-c-tabs {
+  padding-inline: 0;
+  background: color-mix(in srgb, var(--pulpit-table-head) 42%, transparent);
+}
+
+/* Dense settings choices remain one coherent form, but each option gets a
+   subtle hit area and enough separation to scan across wide screens. */
+.pulpit-settings-options > .pf-v6-l-grid__item {
+  display: flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--pulpit-table-rule);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--pulpit-table-head) 34%, transparent);
+}
+
+.pf-v6-c-page__main-section.pulpit-overview-content {
+  padding: 0 1rem 1.75rem 1.625rem;
+}
+
+.pulpit-overview-content > .pf-v6-l-stack,
+.pulpit-status-stack {
+  row-gap: 1.25rem;
+}
+
+.pf-v6-l-stack.pf-m-gutter.pulpit-status-stack,
+.pf-v6-l-gallery.pf-m-gutter.pulpit-metric-gallery {
+  row-gap: 1.25rem;
+  column-gap: 1.25rem;
+}
+
+.pf-v6-c-page .pf-v6-c-page__main-container {
+  padding-inline-end: 0;
+}
+
+.pulpit-metric-card,
+.pulpit-dashboard-panel {
+  --pf-v6-c-card--BorderRadius: var(--pulpit-panel-radius);
+  --pf-v6-c-card--BorderColor: var(--pulpit-panel-border);
+  box-shadow: var(--pulpit-panel-shadow);
+}
+
+.pulpit-dashboard-panel {
+  overflow: hidden;
+}
+
+.pulpit-metric-card {
+  min-block-size: 6rem;
+  overflow: hidden;
+}
+
+.pulpit-metric-card .pf-v6-c-card__body {
+  padding: 1rem 1.125rem;
+}
+
+.pulpit-metric-card__header {
+  min-block-size: 2.5rem;
+}
+
+.pulpit-metric-card__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-inline-size: 0;
+}
+
+.pulpit-metric-card__label {
+  color: var(--pf-t--global--text--color--regular);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.pulpit-metric-card__content {
+  margin-inline-start: 3.25rem;
+}
+
+.pulpit-metric-card__value {
+  min-block-size: auto;
+  color: var(--pf-t--global--text--color--regular);
+  font-size: clamp(0.9rem, 0.25vw + 0.75rem, 1rem);
+  font-weight: 550;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulpit-metric-card__detail {
+  margin-block-start: 0.25rem;
+  color: var(--pf-t--global--text--color--regular);
+  font-size: 0.95rem;
+}
+
+.pulpit-metric-card__icon {
+  display: grid;
+  place-items: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: 0.45rem;
+  color: var(--pulpit-icon-color);
+  background: var(--pulpit-icon-surface);
+  font-size: 1.35rem;
+}
+
+.pulpit-metric-card__indicator {
+  display: block;
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  border: 3px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.pulpit-metric-card__indicator--success {
+  color: #2fbf71;
+  background: #2fbf71;
+}
+
+.pulpit-metric-card__indicator--danger {
+  color: #d84a4a;
+  background: #d84a4a;
+}
+
+.pulpit-metric-card__indicator--neutral {
+  color: #87969b;
+  background: #87969b;
+}
+
+.pulpit-metric-card--storage .pulpit-metric-card__value {
+  white-space: nowrap;
+}
+
+.pulpit-metric-card__progress {
+  margin-block-start: 0.65rem;
+  --pf-v6-c-progress__bar--Height: 0.45rem;
+  --pf-v6-c-progress__indicator--BackgroundColor: var(--pulpit-accent);
+  --pf-v6-c-progress__bar--BackgroundColor: var(--pulpit-progress-track);
+}
+
+.pulpit-dashboard-panel > .pf-v6-c-card__title {
+  padding: 1rem 1.125rem;
+  font-size: 1.18rem;
+  font-weight: 600;
+}
+
+.pulpit-dashboard-panel > .pf-v6-c-card__body {
+  padding: 0;
+}
+
+.pulpit-dashboard-panel .pf-v6-c-table {
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table--cell--PaddingBlockStart: 0.76rem;
+  --pf-v6-c-table--cell--PaddingBlockEnd: 0.76rem;
+  --pf-v6-c-table--cell--PaddingInlineStart: 1.25rem;
+  --pf-v6-c-table--cell--PaddingInlineEnd: 1.25rem;
+  font-size: 0.96rem;
+}
+
+.pulpit-dashboard-panel .pf-v6-c-table__thead {
+  background: var(--pulpit-table-head);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.86rem;
+}
+
+.pulpit-dashboard-panel .pf-v6-c-table__tbody .pf-v6-c-table__tr {
+  border-block-end: 1px solid var(--pulpit-table-rule);
+  transition: background-color var(--pf-t--global--motion--duration--fade--short)
+    var(--pf-t--global--motion--timing-function--default);
+}
+
+.pulpit-dashboard-panel .pf-v6-c-table__tbody .pf-v6-c-table__tr:last-child {
+  border-block-end: 0;
+}
+
+.pulpit-dashboard-panel .pf-v6-c-table__tbody .pf-v6-c-table__tr:hover {
+  background: var(--pulpit-table-row-hover);
+}
+
+.pulpit-service-type,
+.pulpit-task-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 550;
+}
+
+.pulpit-task-type {
+  gap: 0.75rem;
+}
+
+.pulpit-dashboard-panel .pf-v6-c-label {
+  padding-inline: 0.65rem;
+  padding-block: 0.22rem;
+  font-size: 0.8rem;
+}
+
+.pulpit-warnings-panel {
+  min-block-size: 11.25rem;
+}
+
+.pulpit-warnings-panel > .pf-v6-c-card__body {
+  display: flex;
+  align-items: center;
+  min-block-size: 7rem;
+  padding: 1rem 2.5rem 1.5rem;
+}
+
+.pulpit-healthy-state {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.pulpit-healthy-state__icon {
+  display: grid;
+  place-items: center;
+  inline-size: 5rem;
+  block-size: 5rem;
+  color: #2e9b69;
+  font-size: 5rem;
+}
+
+.pulpit-healthy-state__title {
+  margin-block-end: 0.25rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+@media (max-width: 75rem) {
+  .pulpit-dev-banner {
+    min-inline-size: auto;
+  }
+
+  .pulpit-metric-card__content {
+    margin-inline-start: 0;
+  }
+}
+
+@media (max-width: 48rem) {
+  .pulpit-dev-banner {
+    inset-block-start: 1.35rem;
+    inset-inline-start: 9rem;
+    transform: none;
+    inline-size: auto;
+    min-block-size: auto;
+    padding: 0.125rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0;
+  }
+
+  .pulpit-dev-banner::before {
+    content: "Dev";
+    font-size: var(--pf-t--global--font--size--sm);
+  }
+
+  .pulpit-dev-banner > span,
+  .pulpit-dev-banner > svg {
+    display: none;
+  }
+
+  .pf-v6-c-page__main-section.pulpit-page-header {
+    padding: 1.25rem 1rem 0.875rem;
+  }
+
+  .pulpit-page-header:not(.pulpit-overview-header)
+    + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs) {
+    margin-inline: 1rem;
+    margin-block-end: 1.25rem;
+    border-radius: 0.625rem;
+  }
+
+  .pulpit-page-header:not(.pulpit-overview-header) + .pf-v6-c-page__main-tabs {
+    margin-block-end: 0;
+  }
+
+  .pulpit-page-header .pf-v6-l-flex {
+    row-gap: 0.75rem;
+  }
+
+  .pf-v6-c-page__main-section.pulpit-overview-content {
+    padding-inline: 1rem;
+  }
+
+  .pulpit-metric-card {
+    min-block-size: 6rem;
+  }
+
+  .pulpit-dashboard-panel {
+    --pf-v6-c-card--BorderRadius: 0.625rem;
+  }
+
+  .pulpit-dashboard-panel .pf-v6-c-table {
+    --pf-v6-c-table--cell--PaddingInlineStart: 1.5rem;
+    --pf-v6-c-table--cell--PaddingInlineEnd: 1.5rem;
+  }
 }

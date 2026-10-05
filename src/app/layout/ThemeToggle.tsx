@@ -1,7 +1,7 @@
 import { Button } from "@patternfly/react-core";
-import { MoonIcon, SunIcon } from "@patternfly/react-icons";
 
 import { useTheme } from "../theme/ThemeContext";
+import { UiIcon } from "../../components/icons/UiIcon";
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -9,10 +9,11 @@ export function ThemeToggle() {
 
   return (
     <Button
+      className="pulpit-theme-toggle"
       variant="plain"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       onClick={toggleTheme}
-      icon={isDark ? <SunIcon /> : <MoonIcon />}
+      icon={<UiIcon name={isDark ? "sun" : "moon"} />}
     />
   );
 }

@@ -77,7 +77,7 @@ export const NAV_TREE: NavNode[] = [
   ),
   group(
     "container",
-    "Container Registry",
+    "Container",
     [
       item("Repositories", "/containers/repositories"),
       item("Tags", "/containers/tags"),
@@ -87,7 +87,7 @@ export const NAV_TREE: NavNode[] = [
   ),
   group(
     "ansible",
-    "Ansible Galaxy",
+    "Ansible",
     [
       item("Repositories", "/ansible/repositories"),
       item("Collections", "/ansible/collections"),

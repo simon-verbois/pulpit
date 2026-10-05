@@ -4,6 +4,8 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { RepositoryMembershipCell } from "../../../components/RepositoryMembershipCell";
+import type { RepositoryKind } from "../../../api/client/repositoryMembership";
 import type { CollectionVersion } from "../../../api/client/ansible/types";
 
 interface CollectionVersionsTableProps {
@@ -21,6 +23,7 @@ interface CollectionVersionsTableProps {
    * whose toolbar action (e.g. "Upload collection") is hidden while the
    * list is empty, so the empty state stays the sole CTA. */
   emptyAction?: ReactNode;
+  repositoryKind?: RepositoryKind;
 }
 
 export function CollectionVersionsTable({
@@ -33,6 +36,7 @@ export function CollectionVersionsTable({
   emptyBody,
   emptyStateVariant,
   emptyAction,
+  repositoryKind,
 }: CollectionVersionsTableProps) {
   if (isPending) {
     return <LoadingState label="Loading collections" />;
@@ -59,6 +63,7 @@ export function CollectionVersionsTable({
           <Th>Name</Th>
           <Th>Version</Th>
           <Th>Tags</Th>
+          {repositoryKind ? <Th>Repositories</Th> : null}
         </Tr>
       </Thead>
       <Tbody>
@@ -70,6 +75,14 @@ export function CollectionVersionsTable({
             <Td dataLabel="Tags">
               {cv.tags.length > 0 ? cv.tags.map((tag) => tag.name).join(", ") : "—"}
             </Td>
+            {repositoryKind ? (
+              <Td dataLabel="Repositories">
+                <RepositoryMembershipCell
+                  contentHref={cv.pulp_href}
+                  repositoryKind={repositoryKind}
+                />
+              </Td>
+            ) : null}
           </Tr>
         ))}
       </Tbody>

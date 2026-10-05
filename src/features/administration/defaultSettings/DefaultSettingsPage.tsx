@@ -8,6 +8,9 @@ import {
   Form,
   FormGroup,
   FormHelperText,
+  FormSection,
+  Grid,
+  GridItem,
   HelperText,
   HelperTextItem,
   PageSection,
@@ -107,7 +110,7 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
   };
 
   return (
-    <Stack hasGutter className="pulpit-readable-form">
+    <Stack hasGutter>
       <StackItem>
         <Content component="h2">Proxy</Content>
         <Content component="small">
@@ -129,80 +132,101 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
           />
         ) : null}
         <Form>
-          <FormGroup label="Proxy URL" fieldId="default-settings-proxy-url">
-            <TextInput
-              id="default-settings-proxy-url"
-              placeholder="http://proxy.example.com:3128"
-              autoComplete="off"
-              value={proxyUrl}
-              onChange={(_event, value) => setProxyUrl(value)}
-            />
-          </FormGroup>
-          <FormGroup label="Proxy username" fieldId="default-settings-proxy-username">
-            <TextInput
-              id="default-settings-proxy-username"
-              autoComplete="off"
-              value={proxyUsername}
-              onChange={(_event, value) => setProxyUsername(value)}
-            />
-          </FormGroup>
-          <FormGroup label="Proxy password" fieldId="default-settings-proxy-password">
-            <TextInput
-              id="default-settings-proxy-password"
-              type="password"
-              autoComplete="new-password"
-              value={proxyPassword}
-              onChange={(_event, value) => setProxyPassword(value)}
-            />
-            {passwordHint ? (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>{passwordHint}</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            ) : null}
-          </FormGroup>
-          <FormGroup fieldId="default-settings-proxy-skip-tls-validation">
-            <Checkbox
-              id="default-settings-proxy-skip-tls-validation"
-              label="Skip TLS certificate validation"
-              isChecked={skipTlsValidation}
-              onChange={(_event, checked) => setSkipTlsValidation(checked)}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem variant={skipTlsValidation ? "warning" : undefined}>
-                  Pulp has one TLS-validation setting per Remote, shared by the proxy and
-                  the origin server - there is no way to skip it for only the proxy.
-                  Enabling this also skips certificate validation for the remote's own URL
-                  once applied.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
-          <FormGroup
-            label="Trusted CA certificate (PEM)"
-            fieldId="default-settings-proxy-ca-cert"
-          >
-            <TextArea
-              id="default-settings-proxy-ca-cert"
-              rows={8}
-              resizeOrientation="vertical"
-              autoComplete="off"
-              placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
-              value={caCert}
-              onChange={(_event, value) => setCaCert(value)}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  Applied to every new Remote's own <code>ca_cert</code> field (in
-                  addition to the system's own trusted CAs) - most commonly needed to
-                  trust a corporate TLS-inspecting proxy. Leave blank for none.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
+          <Grid hasGutter>
+            <GridItem span={12} md={6} xl={4}>
+              <FormSection title="Connection" titleElement="h3">
+                <FormGroup label="Proxy URL" fieldId="default-settings-proxy-url">
+                  <TextInput
+                    id="default-settings-proxy-url"
+                    placeholder="http://proxy.example.com:3128"
+                    autoComplete="off"
+                    value={proxyUrl}
+                    onChange={(_event, value) => setProxyUrl(value)}
+                  />
+                </FormGroup>
+                <FormGroup fieldId="default-settings-proxy-skip-tls-validation">
+                  <Checkbox
+                    id="default-settings-proxy-skip-tls-validation"
+                    label="Skip TLS certificate validation"
+                    isChecked={skipTlsValidation}
+                    onChange={(_event, checked) => setSkipTlsValidation(checked)}
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant={skipTlsValidation ? "warning" : undefined}>
+                        Pulp has one TLS setting per Remote. Enabling this also skips
+                        validation for the remote's own URL once applied.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+              </FormSection>
+            </GridItem>
+
+            <GridItem span={12} md={6} xl={4}>
+              <FormSection title="Authentication" titleElement="h3">
+                <FormGroup
+                  label="Proxy username"
+                  fieldId="default-settings-proxy-username"
+                >
+                  <TextInput
+                    id="default-settings-proxy-username"
+                    autoComplete="off"
+                    value={proxyUsername}
+                    onChange={(_event, value) => setProxyUsername(value)}
+                  />
+                </FormGroup>
+                <FormGroup
+                  label="Proxy password"
+                  fieldId="default-settings-proxy-password"
+                >
+                  <TextInput
+                    id="default-settings-proxy-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={proxyPassword}
+                    onChange={(_event, value) => setProxyPassword(value)}
+                  />
+                  {passwordHint ? (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem>{passwordHint}</HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  ) : null}
+                </FormGroup>
+              </FormSection>
+            </GridItem>
+
+            <GridItem span={12} xl={4}>
+              <FormSection title="Trust" titleElement="h3">
+                <FormGroup
+                  label="Trusted CA certificate (PEM)"
+                  fieldId="default-settings-proxy-ca-cert"
+                >
+                  <TextArea
+                    id="default-settings-proxy-ca-cert"
+                    rows={8}
+                    resizeOrientation="vertical"
+                    autoComplete="off"
+                    placeholder={
+                      "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+                    }
+                    value={caCert}
+                    onChange={(_event, value) => setCaCert(value)}
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Added to each new Remote's <code>ca_cert</code> field. Use it for
+                        a corporate TLS-inspecting proxy; leave blank for none.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+              </FormSection>
+            </GridItem>
+          </Grid>
         </Form>
       </StackItem>
 

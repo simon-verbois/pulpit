@@ -69,6 +69,19 @@ export function getTask(href: string): Promise<PulpTask> {
   return pulpFetch<PulpTask>(href);
 }
 
+/**
+ * Request cancellation of a waiting/running task. VERIFIED against the live
+ * pulpcore 3.116.1 OpenAPI schema: PATCH the task's own href with the desired
+ * state, returning the updated task synchronously (200; 409 if cancellation
+ * conflicts with its current state).
+ */
+export function cancelTask(href: string): Promise<PulpTask> {
+  return pulpFetch<PulpTask>(href, {
+    method: "PATCH",
+    body: JSON.stringify({ state: "canceled" }),
+  });
+}
+
 /** The task's UUID, the last segment of its href - what `/tasks?task=<id>` carries. */
 export function taskIdFromHref(href: string): string {
   return href.split("/").filter(Boolean).pop() ?? href;

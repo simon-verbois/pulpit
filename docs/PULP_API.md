@@ -89,6 +89,12 @@ list endpoint has no `created_by` filter at all, despite the field being present
   auditability") - distinct from the masthead Tasks drawer, which only tracks individual task
   hrefs returned by mutations made in the current browser tab (`src/api/tasks/TasksContext.tsx`).
 
+Task cancellation is **VERIFIED against the live pulpcore 3.116.1 schema**: `PATCH` the task's
+own `pulp_href` with `{"state":"canceled"}`. The operation is synchronous and returns the updated
+task with HTTP 200; Pulp documents HTTP 409 when cancellation conflicts with the task's current
+state. Pulpit consequently offers Stop only for `waiting` and `running` tasks and still handles a
+409 in case the task reaches a terminal state before the confirmation is submitted.
+
 ## Distribution base-path policy
 
 **VERIFIED in the derived reference Pulp image:** the `pulp-distribution-path-policy` extension
@@ -126,6 +132,13 @@ Pulp repositories, repository versions, and most other resources are addressed b
 URLs, not simple numeric/UUID IDs. Pulpit's browser routes use stable, human-readable UI
 slugs/IDs (see `docs/UX.md` / routing) and keep the actual Pulp href inside the fetched resource
 object / TanStack Query cache — hrefs are not encoded directly into browser URLs.
+
+**VERIFIED against the live pulpcore 3.116.1 schema:** the RPM, Debian, File, Gem,
+Hugging Face, Maven, NPM, Python, Container, and Ansible repository collection endpoints
+all expose `latest_with_content=<content href>`. It returns repositories whose latest
+version contains that content unit. Global content tables use this current-membership
+filter instead of historical repository-version membership, so a repository disappears
+from the row after the content is removed from its current version.
 
 ## RPM endpoints (VERIFIED against pulpcore 3.116.0 / pulp_rpm 3.38.5)
 

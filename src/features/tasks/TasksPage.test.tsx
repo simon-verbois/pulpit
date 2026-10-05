@@ -11,6 +11,7 @@ import {
   TASK_HISTORY_FIXTURE_COMPLETED,
   TASK_HISTORY_FIXTURE_FAILED,
 } from "../../test/handlers";
+import type { PulpTask } from "../../api/client/tasks";
 import { humanizeTaskName } from "./humanizeTaskName";
 import { TasksPage } from "./TasksPage";
 
@@ -66,6 +67,76 @@ describe("TasksPage", () => {
     });
     expect(within(failedRow).getByText("failed")).toBeInTheDocument();
     expect(within(failedRow).getByText("System")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Stop" })).not.toBeInTheDocument();
+  });
+
+  it("stops a running task after confirmation and refreshes its state", async () => {
+    const runningTask: PulpTask = {
+      ...TASK_HISTORY_FIXTURE_COMPLETED,
+      pulp_href: `${BASE}running-1/`,
+      state: "running",
+      finished_at: null,
+    };
+    let currentTask = runningTask;
+    let requestBody: unknown;
+    server.use(
+      http.get(BASE, () =>
+        HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [currentTask],
+        }),
+      ),
+      http.patch(`${BASE}:id/`, async ({ request }) => {
+        requestBody = await request.json();
+        currentTask = { ...currentTask, state: "canceling" };
+        return HttpResponse.json(currentTask);
+      }),
+    );
+
+    renderApp(<TasksPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Stop" }));
+    const dialog = screen.getByRole("dialog", { name: "Stop task?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Stop task" }));
+
+    expect(await screen.findByText("canceling")).toBeInTheDocument();
+    expect(requestBody).toEqual({ state: "canceled" });
+    expect(screen.queryByRole("dialog", { name: "Stop task?" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the stop confirmation open and shows Pulp conflicts", async () => {
+    const runningTask: PulpTask = {
+      ...TASK_HISTORY_FIXTURE_COMPLETED,
+      pulp_href: `${BASE}running-2/`,
+      state: "running",
+      finished_at: null,
+    };
+    server.use(
+      http.get(BASE, () =>
+        HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [runningTask],
+        }),
+      ),
+      http.patch(`${BASE}:id/`, () =>
+        HttpResponse.json({ detail: "Task is already completed." }, { status: 409 }),
+      ),
+    );
+
+    renderApp(<TasksPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Stop" }));
+    const dialog = screen.getByRole("dialog", { name: "Stop task?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Stop task" }));
+
+    expect(
+      await within(dialog).findByText("Task is already completed."),
+    ).toBeInTheDocument();
+    expect(dialog).toBeInTheDocument();
   });
 
   it("still shows the raw Pulp task name in full in the detail modal", async () => {

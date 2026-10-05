@@ -5,6 +5,8 @@ import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { StatusIndicator } from "../../../components/StatusIndicator";
+import { RepositoryMembershipCell } from "../../../components/RepositoryMembershipCell";
+import type { RepositoryKind } from "../../../api/client/repositoryMembership";
 import type { RpmAdvisory } from "../../../api/client/rpm/types";
 
 const SEVERITY_COLOR: Record<string, "red" | "orange" | "yellow" | "green" | "grey"> = {
@@ -40,6 +42,7 @@ interface AdvisoriesTableProps {
    * whose toolbar action (e.g. "Upload advisory") is hidden while the list
    * is empty, so the empty state stays the sole CTA. */
   emptyAction?: ReactNode;
+  repositoryKind?: RepositoryKind;
 }
 
 export function AdvisoriesTable({
@@ -52,6 +55,7 @@ export function AdvisoriesTable({
   emptyBody,
   emptyStateVariant,
   emptyAction,
+  repositoryKind,
 }: AdvisoriesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading advisories" />;
@@ -79,6 +83,7 @@ export function AdvisoriesTable({
           <Th>Type</Th>
           <Th>Severity</Th>
           <Th>Issued</Th>
+          {repositoryKind ? <Th>Repositories</Th> : null}
         </Tr>
       </Thead>
       <Tbody>
@@ -91,6 +96,14 @@ export function AdvisoriesTable({
               <SeverityLabel severity={advisory.severity} />
             </Td>
             <Td dataLabel="Issued">{advisory.issued_date}</Td>
+            {repositoryKind ? (
+              <Td dataLabel="Repositories">
+                <RepositoryMembershipCell
+                  contentHref={advisory.pulp_href}
+                  repositoryKind={repositoryKind}
+                />
+              </Td>
+            ) : null}
           </Tr>
         ))}
       </Tbody>

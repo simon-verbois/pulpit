@@ -205,8 +205,8 @@ No formal contribution process yet — this is an early-stage project. See
 
 ## Credits
 
-Pulpit's product mark (`public/pulpit-mark.svg`) is built on the **cil-layers** icon from
-[CoreUI Icons](https://github.com/coreui/coreui-icons), licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (icon artwork). The icon is unmodified;
-the surrounding badge/color composition is original to Pulpit. See
-[`docs/UX.md`](docs/UX.md) "Product mark".
+Pulpit's product mark and favicon use Lucide's generic `package-open` pictogram under the ISC
+license. Technology and plugin brand marks come from [Simple Icons](https://simpleicons.org/),
+whose icon data is released under CC0 1.0; the represented names and trademarks remain the
+property of their respective owners. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and
+[`docs/UX.md`](docs/UX.md) "Product mark and iconography".

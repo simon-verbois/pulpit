@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
   EmptyState as PfEmptyState,
   EmptyStateBody,
@@ -6,7 +6,11 @@ import {
   EmptyStateActions,
 } from "@patternfly/react-core";
 import type { EmptyStateProps as PfEmptyStateProps } from "@patternfly/react-core";
-import { CubesIcon } from "@patternfly/react-icons";
+import { UiIcon } from "./icons/UiIcon";
+
+function DefaultEmptyStateIcon(props: ComponentProps<"svg">) {
+  return <UiIcon {...props} name="storage" />;
+}
 
 interface EmptyStateProps {
   title: string;
@@ -24,7 +28,7 @@ export function EmptyState({
   title,
   body,
   action,
-  icon = CubesIcon,
+  icon = DefaultEmptyStateIcon,
   variant,
 }: EmptyStateProps) {
   return (

@@ -9,6 +9,7 @@ import {
 } from "@patternfly/react-core";
 
 import type { Warning } from "../lib/warnings";
+import { UiIcon } from "./icons/UiIcon";
 
 /**
  * The Overview page's one warnings card, merging every source that has
@@ -23,11 +24,23 @@ export function OverviewWarnings({ sources }: { sources: Warning[][] }) {
   const warnings = sources.flat();
 
   return (
-    <Card isCompact>
+    <Card isCompact className="pulpit-dashboard-panel pulpit-warnings-panel">
       <CardTitle>Warnings</CardTitle>
       <CardBody>
         {warnings.length === 0 ? (
-          <Content component="small">No issues detected.</Content>
+          <div className="pulpit-healthy-state">
+            <div className="pulpit-healthy-state__icon" aria-hidden="true">
+              <UiIcon name="shield-check" />
+            </div>
+            <div>
+              <Content component="p" className="pulpit-healthy-state__title">
+                No issues detected.
+              </Content>
+              <Content component="small">
+                Your system is healthy. Check logs for details.
+              </Content>
+            </div>
+          </div>
         ) : (
           <Stack hasGutter>
             {warnings.map((warning) => (

@@ -6,7 +6,7 @@ import {
   TASK_HISTORY_FIXTURE_COMPLETED,
   TASK_HISTORY_FIXTURE_FAILED,
 } from "../../test/handlers";
-import { listTasks } from "./tasks";
+import { cancelTask, listTasks } from "./tasks";
 
 const BASE = "/pulp/api/v3/tasks/";
 
@@ -38,5 +38,24 @@ describe("tasks adapter", () => {
   it("filters by state and name__contains", async () => {
     const page = await listTasks({ limit: 20, offset: 0, state: "failed" });
     expect(page.results).toEqual([TASK_HISTORY_FIXTURE_FAILED]);
+  });
+
+  it("requests cancellation on the task href and returns the updated task", async () => {
+    let requestBody: unknown;
+    server.use(
+      http.patch(`${BASE}:id/`, async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json({
+          ...TASK_HISTORY_FIXTURE_COMPLETED,
+          pulp_href: `${BASE}running-1/`,
+          state: "canceling",
+        });
+      }),
+    );
+
+    const task = await cancelTask(`${BASE}running-1/`);
+
+    expect(requestBody).toEqual({ state: "canceled" });
+    expect(task.state).toBe("canceling");
   });
 });

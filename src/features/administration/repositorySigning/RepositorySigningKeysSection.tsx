@@ -15,8 +15,6 @@ import {
   StackItem,
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
-import EllipsisVIcon from "@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon";
-import EyeIcon from "@patternfly/react-icons/dist/esm/icons/eye-icon";
 
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
@@ -30,6 +28,7 @@ import { ExtendExpirationModal } from "./ExtendExpirationModal";
 import { SigningKeyDetailsModal } from "./SigningKeyDetailsModal";
 import { KeyPulpServicesStatus } from "./KeyPulpServicesStatus";
 import { SIGNING_KEY_STATE_COLOR, SIGNING_KEY_STATE_LABEL } from "./signingKeyState";
+import { UiIcon } from "../../../components/icons/UiIcon";
 
 function KeyRowActions({ signingKey }: { signingKey: SigningKey }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,7 +48,7 @@ function KeyRowActions({ signingKey }: { signingKey: SigningKey }) {
             onClick={() => setIsOpen((v) => !v)}
             aria-label="Key actions"
           >
-            <EllipsisVIcon />
+            <UiIcon name="menu" />
           </MenuToggle>
         )}
       >
@@ -210,7 +209,7 @@ export function RepositorySigningKeysSection({
                               <Button
                                 variant="plain"
                                 aria-label="Inspect key"
-                                icon={<EyeIcon />}
+                                icon={<UiIcon name="eye" />}
                                 onClick={() => setInspectKey(key)}
                               />
                             </FlexItem>

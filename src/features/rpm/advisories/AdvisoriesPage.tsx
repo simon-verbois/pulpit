@@ -57,6 +57,7 @@ export function AdvisoriesPage() {
                   itemCount={advisoriesQuery.data?.count ?? 0}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
@@ -72,6 +73,7 @@ export function AdvisoriesPage() {
           error={advisoriesQuery.error}
           onRetry={() => advisoriesQuery.refetch()}
           advisories={advisoriesQuery.data?.results}
+          repositoryKind="rpm"
           emptyTitle={isFiltered ? "No matching RPM advisories" : "No RPM advisories yet"}
           emptyBody={
             isFiltered

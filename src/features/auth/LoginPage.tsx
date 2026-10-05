@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { LoginForm, LoginPage as PfLoginPage } from "@patternfly/react-core";
-import ExclamationCircleIcon from "@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon";
+import {
+  Login,
+  LoginForm,
+  LoginMainBody,
+  LoginMainFooter,
+  LoginMainHeader,
+  Title,
+} from "@patternfly/react-core";
 
+import { AppFooter } from "../../app/layout/AppFooter";
 import { PulpApiError } from "../../api/errors/PulpApiError";
 import { useCurrentUserQuery } from "../../hooks/useCurrentUserQuery";
+import { UiIcon } from "../../components/icons/UiIcon";
 import { useLoginMutation } from "./useLoginMutation";
 
 function errorMessageFor(error: unknown): string {
@@ -47,23 +55,20 @@ export function LoginPage() {
   };
 
   return (
-    // pulpit-login-page: a plain CSS radial-gradient glow, see
-    // src/styles/global.css - PatternFly's bundled login background art
-    // (PF-Bkg-Generic-*.svg) has an opaque rect + blurred shapes baked into
-    // the SVG that don't blend cleanly at small clamped sizes (visible hard
-    // edge, visible banding in the blur), so we don't use it.
-    <div className="pulpit-login-page">
-      <PfLoginPage
-        loginTitle="Log in to PulpIT"
-        loginSubtitle="Use your Pulp account credentials."
-        brandImgSrc="/pulpit-mark.svg"
-        brandImgAlt="PulpIT"
-        brandImgProps={{ alt: "PulpIT", style: { width: 56, height: 56 } }}
-      >
+    <Login className="pulpit-login-page">
+      <LoginMainHeader>
+        <div className="pulpit-brand-lockup">
+          <img src="/pulpit-mark.svg" alt="" width={36} height={36} />
+          <Title headingLevel="h1" size="xl" className="pulpit-brand-text">
+            PulpIT
+          </Title>
+        </div>
+      </LoginMainHeader>
+      <LoginMainBody>
         <LoginForm
           showHelperText={loginMutation.isError}
           helperText={errorMessageFor(loginMutation.error)}
-          helperTextIcon={<ExclamationCircleIcon />}
+          helperTextIcon={<UiIcon name="warning" />}
           usernameLabel="Username"
           usernameValue={username}
           onChangeUsername={(_event, value) => setUsername(value)}
@@ -76,7 +81,10 @@ export function LoginPage() {
           loginButtonLabel={loginMutation.isPending ? "Logging in..." : "Log in"}
           onLoginButtonClick={handleSubmit}
         />
-      </PfLoginPage>
-    </div>
+      </LoginMainBody>
+      <LoginMainFooter className="pulpit-login-footer">
+        <AppFooter />
+      </LoginMainFooter>
+    </Login>
   );
 }

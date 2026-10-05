@@ -85,6 +85,20 @@ describe("LdapSettingsPage", () => {
     );
   });
 
+  it("shows group and attribute settings without an advanced-settings disclosure", async () => {
+    mockSettings();
+
+    renderApp(<LdapSettingsPage />);
+
+    expect(await screen.findByRole("heading", { name: "Group lookup" })).toBeVisible();
+    expect(screen.getByLabelText("Group search base")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Attribute mapping" })).toBeVisible();
+    expect(screen.getByLabelText("First name attribute")).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /advanced settings/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows a normalized error state when settings fail to load", async () => {
     server.use(http.get(SETTINGS_URL, () => new HttpResponse(null, { status: 502 })));
 

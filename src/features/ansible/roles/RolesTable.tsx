@@ -4,6 +4,8 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
+import { RepositoryMembershipCell } from "../../../components/RepositoryMembershipCell";
+import type { RepositoryKind } from "../../../api/client/repositoryMembership";
 import type { AnsibleRole } from "../../../api/client/ansible/types";
 
 interface RolesTableProps {
@@ -21,6 +23,7 @@ interface RolesTableProps {
    * whose toolbar action (e.g. "Upload role") is hidden while the list is
    * empty, so the empty state stays the sole CTA. */
   emptyAction?: ReactNode;
+  repositoryKind?: RepositoryKind;
 }
 
 export function RolesTable({
@@ -33,6 +36,7 @@ export function RolesTable({
   emptyBody,
   emptyStateVariant,
   emptyAction,
+  repositoryKind,
 }: RolesTableProps) {
   if (isPending) {
     return <LoadingState label="Loading roles" />;
@@ -58,6 +62,7 @@ export function RolesTable({
           <Th>Namespace</Th>
           <Th>Name</Th>
           <Th>Version</Th>
+          {repositoryKind ? <Th>Repositories</Th> : null}
         </Tr>
       </Thead>
       <Tbody>
@@ -66,6 +71,14 @@ export function RolesTable({
             <Td dataLabel="Namespace">{role.namespace}</Td>
             <Td dataLabel="Name">{role.name}</Td>
             <Td dataLabel="Version">{role.version}</Td>
+            {repositoryKind ? (
+              <Td dataLabel="Repositories">
+                <RepositoryMembershipCell
+                  contentHref={role.pulp_href}
+                  repositoryKind={repositoryKind}
+                />
+              </Td>
+            ) : null}
           </Tr>
         ))}
       </Tbody>

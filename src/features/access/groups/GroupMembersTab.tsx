@@ -54,6 +54,7 @@ export function GroupMembersTab({ group }: { group: Group }) {
                   itemCount={membersQuery.data.count}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact

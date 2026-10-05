@@ -5,14 +5,16 @@ import {
   Checkbox,
   Content,
   Divider,
-  ExpandableSection,
   Flex,
   FlexItem,
   Form,
   FormGroup,
   FormHelperText,
+  FormSection,
   FormSelect,
   FormSelectOption,
+  Grid,
+  GridItem,
   HelperText,
   HelperTextItem,
   PageSection,
@@ -61,7 +63,6 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
   const testConnection = useTestLdapConnectionMutation();
   const testJob = useJob(testConnection.data?.id);
   const [isApplyOpen, setIsApplyOpen] = useState(false);
-  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false);
 
   const [enabled, setEnabled] = useState(settings.enabled);
   const [serverUri, setServerUri] = useState(settings.server_uri);
@@ -157,11 +158,9 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
       <StackItem>
         <Content component="h2">LDAP authentication</Content>
         <Content component="small">
-          Configures Pulp's own LDAP authentication backend (Django/django-auth-ldap) -
-          local accounts (including the "admin" service account this app itself uses) keep
-          working exactly as before, LDAP is only tried for a username with no local
-          match. Saving here only stores a draft; use "Apply" below to actually push it to
-          Pulp.
+          Configures Pulp's LDAP authentication backend. Local accounts, including admin,
+          keep working; LDAP is tried only when no local username matches. Save stores a
+          draft; use Apply to push it to Pulp.
         </Content>
       </StackItem>
 
@@ -178,223 +177,254 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
           />
         ) : null}
         <Form>
-          <FormGroup fieldId="ldap-enabled">
-            <Checkbox
-              id="ldap-enabled"
-              label="Enable LDAP authentication"
-              isChecked={enabled}
-              onChange={(_event, checked) => setEnabled(checked)}
-            />
-          </FormGroup>
+          <Grid hasGutter>
+            <GridItem span={12}>
+              <FormGroup fieldId="ldap-enabled">
+                <Checkbox
+                  id="ldap-enabled"
+                  label="Enable LDAP authentication"
+                  isChecked={enabled}
+                  onChange={(_event, checked) => setEnabled(checked)}
+                />
+              </FormGroup>
+            </GridItem>
 
-          <FormGroup label="Server URI" fieldId="ldap-server-uri">
-            <TextInput
-              id="ldap-server-uri"
-              placeholder="ldaps://ldap.example.com:636"
-              autoComplete="off"
-              value={serverUri}
-              onChange={(_event, value) => setServerUri(value)}
-            />
-          </FormGroup>
-          <FormGroup fieldId="ldap-start-tls">
-            <Checkbox
-              id="ldap-start-tls"
-              label="Use STARTTLS"
-              isChecked={startTls}
-              onChange={(_event, checked) => setStartTls(checked)}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  For a plain <code>ldap://</code> server that upgrades to TLS after
-                  connecting. Not needed for <code>ldaps://</code>, which is already
-                  encrypted from the start.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
-          <FormGroup label="CA certificate (PEM)" fieldId="ldap-ca-cert">
-            <TextArea
-              id="ldap-ca-cert"
-              rows={6}
-              resizeOrientation="vertical"
-              autoComplete="off"
-              placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
-              value={caCert}
-              onChange={(_event, value) => setCaCert(value)}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  The CA that signed the LDAP server's certificate, for{" "}
-                  <code>ldaps://</code> or STARTTLS - needed when it's an internal CA Pulp
-                  doesn't already trust. Several certificates may be pasted one after
-                  another. Leave blank to use the system's trusted CAs.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
-          <FormGroup label="Bind DN" fieldId="ldap-bind-dn">
-            <TextInput
-              id="ldap-bind-dn"
-              placeholder="cn=readonly,dc=example,dc=com"
-              autoComplete="off"
-              value={bindDn}
-              onChange={(_event, value) => setBindDn(value)}
-            />
-          </FormGroup>
-          <FormGroup label="Bind password" fieldId="ldap-bind-password">
-            <TextInput
-              id="ldap-bind-password"
-              type="password"
-              autoComplete="new-password"
-              value={bindPassword}
-              onChange={(_event, value) => setBindPassword(value)}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>{passwordHint}</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
+            <GridItem span={12} md={6} xl={4}>
+              <FormSection title="Connection" titleElement="h3">
+                <Grid hasGutter>
+                  <GridItem span={12} xl={7}>
+                    <FormGroup label="Server URI" fieldId="ldap-server-uri">
+                      <TextInput
+                        id="ldap-server-uri"
+                        placeholder="ldaps://ldap.example.com:636"
+                        autoComplete="off"
+                        value={serverUri}
+                        onChange={(_event, value) => setServerUri(value)}
+                      />
+                    </FormGroup>
+                  </GridItem>
+                  <GridItem span={12} xl={5}>
+                    <FormGroup fieldId="ldap-start-tls">
+                      <Checkbox
+                        id="ldap-start-tls"
+                        label="Use STARTTLS"
+                        isChecked={startTls}
+                        onChange={(_event, checked) => setStartTls(checked)}
+                      />
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem>
+                            Upgrades a plain <code>ldap://</code> connection to TLS.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    </FormGroup>
+                  </GridItem>
+                  <GridItem span={12}>
+                    <FormGroup label="CA certificate (PEM)" fieldId="ldap-ca-cert">
+                      <TextArea
+                        id="ldap-ca-cert"
+                        rows={3}
+                        resizeOrientation="vertical"
+                        autoComplete="off"
+                        placeholder={
+                          "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+                        }
+                        value={caCert}
+                        onChange={(_event, value) => setCaCert(value)}
+                      />
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem>
+                            Paste internal CA certificates consecutively; leave blank to
+                            use Pulp's system trust store.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    </FormGroup>
+                  </GridItem>
+                </Grid>
+              </FormSection>
+            </GridItem>
 
-          <Divider />
+            <GridItem span={12} md={6} xl={4}>
+              <FormSection title="Bind account" titleElement="h3">
+                <FormGroup label="Bind DN" fieldId="ldap-bind-dn">
+                  <TextInput
+                    id="ldap-bind-dn"
+                    placeholder="cn=readonly,dc=example,dc=com"
+                    autoComplete="off"
+                    value={bindDn}
+                    onChange={(_event, value) => setBindDn(value)}
+                  />
+                </FormGroup>
+                <FormGroup label="Bind password" fieldId="ldap-bind-password">
+                  <TextInput
+                    id="ldap-bind-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={bindPassword}
+                    onChange={(_event, value) => setBindPassword(value)}
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>{passwordHint}</HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+              </FormSection>
+            </GridItem>
 
-          <FormGroup label="User search base" fieldId="ldap-user-search-base">
-            <TextInput
-              id="ldap-user-search-base"
-              placeholder="ou=people,dc=example,dc=com"
-              autoComplete="off"
-              value={userSearchBase}
-              onChange={(_event, value) => setUserSearchBase(value)}
-            />
-          </FormGroup>
-          <FormGroup label="User search filter" fieldId="ldap-user-search-filter">
-            <TextInput
-              id="ldap-user-search-filter"
-              autoComplete="off"
-              value={userSearchFilter}
-              onChange={(_event, value) => setUserSearchFilter(value)}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  <code>%(user)s</code> is replaced with whatever username was typed into
-                  the login form.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
+            <GridItem span={12} md={6} xl={4}>
+              <FormSection title="User lookup" titleElement="h3">
+                <FormGroup label="User search base" fieldId="ldap-user-search-base">
+                  <TextInput
+                    id="ldap-user-search-base"
+                    placeholder="ou=people,dc=example,dc=com"
+                    autoComplete="off"
+                    value={userSearchBase}
+                    onChange={(_event, value) => setUserSearchBase(value)}
+                  />
+                </FormGroup>
+                <FormGroup label="User search filter" fieldId="ldap-user-search-filter">
+                  <TextInput
+                    id="ldap-user-search-filter"
+                    autoComplete="off"
+                    value={userSearchFilter}
+                    onChange={(_event, value) => setUserSearchFilter(value)}
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        <code>%(user)s</code> is replaced with the username entered on the
+                        login form.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+              </FormSection>
+            </GridItem>
+          </Grid>
         </Form>
       </StackItem>
 
       <StackItem>
-        <ExpandableSection
-          toggleText={isAdvancedExpanded ? "Hide advanced settings" : "Advanced settings"}
-          isExpanded={isAdvancedExpanded}
-          onToggle={(_event, expanded) => setIsAdvancedExpanded(expanded)}
-        >
-          <Form>
-            <FormGroup label="Group search base" fieldId="ldap-group-search-base">
-              <TextInput
-                id="ldap-group-search-base"
-                placeholder="ou=groups,dc=example,dc=com"
-                autoComplete="off"
-                value={groupSearchBase}
-                onChange={(_event, value) => setGroupSearchBase(value)}
-              />
-            </FormGroup>
-            <FormGroup label="Group search filter" fieldId="ldap-group-search-filter">
-              <TextInput
-                id="ldap-group-search-filter"
-                autoComplete="off"
-                value={groupSearchFilter}
-                onChange={(_event, value) => setGroupSearchFilter(value)}
-              />
-            </FormGroup>
-            <FormGroup label="Group type" fieldId="ldap-group-type">
-              <FormSelect
-                id="ldap-group-type"
-                value={groupType}
-                onChange={(_event, value) => setGroupType(value as LdapGroupType)}
-              >
-                {GROUP_TYPE_OPTIONS.map((option) => (
-                  <FormSelectOption
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
+        <Form>
+          <Grid hasGutter>
+            <GridItem span={12} lg={8}>
+              <FormSection title="Group lookup" titleElement="h3">
+                <Grid hasGutter>
+                  <GridItem span={12} xl={4}>
+                    <FormGroup label="Group search base" fieldId="ldap-group-search-base">
+                      <TextInput
+                        id="ldap-group-search-base"
+                        placeholder="ou=groups,dc=example,dc=com"
+                        autoComplete="off"
+                        value={groupSearchBase}
+                        onChange={(_event, value) => setGroupSearchBase(value)}
+                      />
+                    </FormGroup>
+                  </GridItem>
+                  <GridItem span={12} xl={4}>
+                    <FormGroup
+                      label="Group search filter"
+                      fieldId="ldap-group-search-filter"
+                    >
+                      <TextInput
+                        id="ldap-group-search-filter"
+                        autoComplete="off"
+                        value={groupSearchFilter}
+                        onChange={(_event, value) => setGroupSearchFilter(value)}
+                      />
+                    </FormGroup>
+                  </GridItem>
+                  <GridItem span={12} xl={4}>
+                    <FormGroup label="Group type" fieldId="ldap-group-type">
+                      <FormSelect
+                        id="ldap-group-type"
+                        value={groupType}
+                        onChange={(_event, value) => setGroupType(value as LdapGroupType)}
+                      >
+                        {GROUP_TYPE_OPTIONS.map((option) => (
+                          <FormSelectOption
+                            key={option.value}
+                            value={option.value}
+                            label={option.label}
+                          />
+                        ))}
+                      </FormSelect>
+                    </FormGroup>
+                  </GridItem>
+                  <GridItem span={12} xl={4}>
+                    <FormGroup fieldId="ldap-mirror-groups">
+                      <Checkbox
+                        id="ldap-mirror-groups"
+                        label="Mirror LDAP groups as Pulp groups"
+                        isChecked={mirrorGroups}
+                        onChange={(_event, checked) => setMirrorGroups(checked)}
+                      />
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem>
+                            Creates or updates matching Pulp groups on login.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    </FormGroup>
+                  </GridItem>
+                  <GridItem span={12} xl={8}>
+                    <FormGroup label="Require group DN" fieldId="ldap-require-group-dn">
+                      <TextInput
+                        id="ldap-require-group-dn"
+                        placeholder="cn=pulp-users,ou=groups,dc=example,dc=com"
+                        autoComplete="off"
+                        value={requireGroupDn}
+                        onChange={(_event, value) => setRequireGroupDn(value)}
+                      />
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem>
+                            Optional. If set, only members of this group may log in.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    </FormGroup>
+                  </GridItem>
+                </Grid>
+              </FormSection>
+            </GridItem>
+
+            <GridItem span={12} lg={4}>
+              <FormSection title="Attribute mapping" titleElement="h3">
+                <FormGroup label="First name attribute" fieldId="ldap-attr-first-name">
+                  <TextInput
+                    id="ldap-attr-first-name"
+                    autoComplete="off"
+                    value={attrFirstName}
+                    onChange={(_event, value) => setAttrFirstName(value)}
                   />
-                ))}
-              </FormSelect>
-            </FormGroup>
-            <FormGroup fieldId="ldap-mirror-groups">
-              <Checkbox
-                id="ldap-mirror-groups"
-                label="Mirror LDAP groups as Pulp groups"
-                isChecked={mirrorGroups}
-                onChange={(_event, checked) => setMirrorGroups(checked)}
-              />
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>
-                    Creates/updates matching Groups on every login from the user's LDAP
-                    group membership - they then show up in the Access tab like any other
-                    group, ready to have roles assigned.
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
-            <FormGroup label="Require group DN" fieldId="ldap-require-group-dn">
-              <TextInput
-                id="ldap-require-group-dn"
-                placeholder="cn=pulp-users,ou=groups,dc=example,dc=com"
-                autoComplete="off"
-                value={requireGroupDn}
-                onChange={(_event, value) => setRequireGroupDn(value)}
-              />
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>
-                    Optional - if set, only members of this group may log in at all. Leave
-                    blank to allow any user this directory can successfully bind as.
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
-
-            <Divider />
-
-            <Content component="h3">Attribute mapping</Content>
-            <FormGroup label="First name attribute" fieldId="ldap-attr-first-name">
-              <TextInput
-                id="ldap-attr-first-name"
-                autoComplete="off"
-                value={attrFirstName}
-                onChange={(_event, value) => setAttrFirstName(value)}
-              />
-            </FormGroup>
-            <FormGroup label="Last name attribute" fieldId="ldap-attr-last-name">
-              <TextInput
-                id="ldap-attr-last-name"
-                autoComplete="off"
-                value={attrLastName}
-                onChange={(_event, value) => setAttrLastName(value)}
-              />
-            </FormGroup>
-            <FormGroup label="Email attribute" fieldId="ldap-attr-email">
-              <TextInput
-                id="ldap-attr-email"
-                autoComplete="off"
-                value={attrEmail}
-                onChange={(_event, value) => setAttrEmail(value)}
-              />
-            </FormGroup>
-          </Form>
-        </ExpandableSection>
-      </StackItem>
-
-      <StackItem>
-        <Flex>
+                </FormGroup>
+                <FormGroup label="Last name attribute" fieldId="ldap-attr-last-name">
+                  <TextInput
+                    id="ldap-attr-last-name"
+                    autoComplete="off"
+                    value={attrLastName}
+                    onChange={(_event, value) => setAttrLastName(value)}
+                  />
+                </FormGroup>
+                <FormGroup label="Email attribute" fieldId="ldap-attr-email">
+                  <TextInput
+                    id="ldap-attr-email"
+                    autoComplete="off"
+                    value={attrEmail}
+                    onChange={(_event, value) => setAttrEmail(value)}
+                  />
+                </FormGroup>
+              </FormSection>
+            </GridItem>
+          </Grid>
+        </Form>
+        <Flex style={{ marginTop: "var(--pf-t--global--spacer--sm)" }}>
           <FlexItem>
             <Button
               variant="primary"
@@ -502,30 +532,34 @@ function LdapSettingsForm({ settings }: { settings: LdapSettings }) {
       </StackItem>
 
       <StackItem>
-        <Content component="h3">Apply</Content>
-        <Content component="small">
-          Pushes the settings saved above out to Pulp and restarts its API process to pick
-          them up - a brief, instance-wide interruption (see the confirmation dialog).
-          Testing the connection above first is strongly recommended.
-        </Content>
-      </StackItem>
-      <StackItem>
-        <Button
-          variant="danger"
-          isDisabled={isDirty}
-          onClick={() => setIsApplyOpen(true)}
-        >
-          Apply…
-        </Button>
-        {isDirty ? (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant="warning">
-                Save your changes above first.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        ) : null}
+        <Grid hasGutter>
+          <GridItem span={12} md={10}>
+            <Content component="h3">Apply</Content>
+            <Content component="small">
+              Pushes the saved settings to Pulp and restarts its API process - a brief,
+              instance-wide interruption. Testing the connection first is strongly
+              recommended.
+            </Content>
+          </GridItem>
+          <GridItem span={12} md={2}>
+            <Button
+              variant="danger"
+              isDisabled={isDirty}
+              onClick={() => setIsApplyOpen(true)}
+            >
+              Apply…
+            </Button>
+            {isDirty ? (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="warning">
+                    Save your changes above first.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            ) : null}
+          </GridItem>
+        </Grid>
       </StackItem>
 
       {isApplyOpen ? (

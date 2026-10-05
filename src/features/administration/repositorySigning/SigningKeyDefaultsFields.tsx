@@ -79,7 +79,7 @@ function SigningKeyDefaultsFieldsForm({
 
   return (
     <Grid hasGutter>
-      <GridItem span={6}>
+      <GridItem span={12} md={6}>
         <FormGroup label="Key name" fieldId={`${idPrefix}key-name`}>
           <TextInput
             id={`${idPrefix}key-name`}
@@ -101,7 +101,7 @@ function SigningKeyDefaultsFieldsForm({
           </FormHelperText>
         </FormGroup>
       </GridItem>
-      <GridItem span={6}>
+      <GridItem span={12} md={6}>
         <FormGroup label="Identity (GPG UID name)" fieldId={`${idPrefix}identity-name`}>
           <TextInput
             id={`${idPrefix}identity-name`}
@@ -123,7 +123,7 @@ function SigningKeyDefaultsFieldsForm({
           </FormHelperText>
         </FormGroup>
       </GridItem>
-      <GridItem span={6}>
+      <GridItem span={12} md={6}>
         <FormGroup label="Email (optional)" fieldId={`${idPrefix}identity-contact`}>
           <TextInput
             id={`${idPrefix}identity-contact`}
@@ -142,7 +142,7 @@ function SigningKeyDefaultsFieldsForm({
           />
         </FormGroup>
       </GridItem>
-      <GridItem span={6}>
+      <GridItem span={12} md={6}>
         <FormGroup label="Algorithm" fieldId={`${idPrefix}algorithm`}>
           <FormSelect
             id={`${idPrefix}algorithm`}
@@ -155,7 +155,7 @@ function SigningKeyDefaultsFieldsForm({
           </FormSelect>
         </FormGroup>
       </GridItem>
-      <GridItem span={6}>
+      <GridItem span={12} md={6}>
         <FormGroup label="Public key filename" fieldId={`${idPrefix}public-key-filename`}>
           <TextInput
             id={`${idPrefix}public-key-filename`}
@@ -177,7 +177,7 @@ function SigningKeyDefaultsFieldsForm({
           </FormHelperText>
         </FormGroup>
       </GridItem>
-      <GridItem span={6}>
+      <GridItem span={12} md={6}>
         <FormGroup
           label="RPM signing service name"
           fieldId={`${idPrefix}rpm-service-name`}
@@ -194,7 +194,7 @@ function SigningKeyDefaultsFieldsForm({
           />
         </FormGroup>
       </GridItem>
-      <GridItem span={6}>
+      <GridItem span={12} md={6}>
         <FormGroup
           label="Metadata signing service name"
           fieldId={`${idPrefix}metadata-service-name`}

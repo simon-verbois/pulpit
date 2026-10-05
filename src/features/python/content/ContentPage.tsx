@@ -62,6 +62,7 @@ export function ContentPage() {
                   itemCount={contentQuery.data?.count ?? 0}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
@@ -77,6 +78,7 @@ export function ContentPage() {
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
           content={contentQuery.data?.results}
+          repositoryKind="python"
           emptyTitle={isFiltered ? "No matching Python content" : "No Python content yet"}
           emptyBody={
             isFiltered

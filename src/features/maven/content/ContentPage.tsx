@@ -66,6 +66,7 @@ export function ContentPage() {
                   itemCount={totalCount}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
@@ -81,6 +82,7 @@ export function ContentPage() {
           error={contentQuery.error}
           onRetry={() => contentQuery.refetch()}
           content={paged}
+          repositoryKind="maven"
           emptyTitle={isFiltered ? "No matching Maven content" : "No Maven content yet"}
           emptyBody={
             isFiltered

@@ -95,6 +95,7 @@ export function CollectionVersionsPage() {
                   itemCount={totalCount}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
@@ -110,6 +111,7 @@ export function CollectionVersionsPage() {
           error={collectionVersionsQuery.error}
           onRetry={() => collectionVersionsQuery.refetch()}
           collectionVersions={paged}
+          repositoryKind="ansible"
           emptyTitle={isFiltered ? "No matching collections" : "No collections yet"}
           emptyBody={
             isFiltered

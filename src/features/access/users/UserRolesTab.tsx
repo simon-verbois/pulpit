@@ -57,6 +57,7 @@ export function UserRolesTab({ user }: { user: User }) {
                   itemCount={rolesQuery.data.count}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact

@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Button,
+  Flex,
+  FlexItem,
   FormSelect,
   FormSelectOption,
   PageSection,
@@ -41,6 +43,7 @@ import { TASK_STATE_COLOR } from "./taskStateColor";
 import { useTaskResources } from "./useTaskResources";
 import { useTasksQuery } from "./useTasksQuery";
 import { JobsTab } from "./JobsTab";
+import { CancelTaskModal } from "./CancelTaskModal";
 
 const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
   { value: "", label: "All states" },
@@ -107,6 +110,7 @@ function PulpTasksTab() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
+  const [taskToCancel, setTaskToCancel] = useState<PulpTask | null>(null);
   const viewingTaskId = searchParams.get("task");
   const pagination = usePulpPagination();
 
@@ -177,6 +181,7 @@ function PulpTasksTab() {
             itemCount={tasksQuery.data?.count ?? 0}
             page={pagination.page}
             perPage={pagination.perPage}
+            perPageOptions={pagination.perPageOptions}
             onSetPage={pagination.onSetPage}
             onPerPageSelect={pagination.onPerPageSelect}
             isCompact
@@ -259,9 +264,24 @@ function PulpTasksTab() {
                       : "—"}
                   </Td>
                   <Td dataLabel="Actions" isActionCell>
-                    <Button variant="link" onClick={() => setViewingTask(task)}>
-                      View details
-                    </Button>
+                    <Flex flexWrap={{ default: "nowrap" }}>
+                      <FlexItem>
+                        <Button variant="link" onClick={() => setViewingTask(task)}>
+                          View details
+                        </Button>
+                      </FlexItem>
+                      {task.state === "waiting" || task.state === "running" ? (
+                        <FlexItem>
+                          <Button
+                            variant="link"
+                            isDanger
+                            onClick={() => setTaskToCancel(task)}
+                          >
+                            Stop
+                          </Button>
+                        </FlexItem>
+                      ) : null}
+                    </Flex>
                   </Td>
                 </Tr>
               ))}
@@ -278,6 +298,9 @@ function PulpTasksTab() {
           }
           onClose={() => setViewingTask(null)}
         />
+      ) : null}
+      {taskToCancel ? (
+        <CancelTaskModal task={taskToCancel} onClose={() => setTaskToCancel(null)} />
       ) : null}
     </>
   );

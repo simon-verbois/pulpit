@@ -6,9 +6,10 @@ export function RpmAdvisoriesTopic() {
       <Content component="p">
         A read-only view of every RPM advisory (errata - security, bugfix, and enhancement
         updates) Pulp knows about, across <strong>every</strong> repository. Each row
-        shows the advisory's ID, title, type, severity (color-coded), and issue date.
-        Search narrows the list by ID/title/description; there's no per-repository filter
-        here (use a repository's own <strong>Advisories</strong> tab for that).
+        shows the advisory's ID, title, type, severity (color-coded), issue date, and the
+        repositories whose current version contains it. Repository names open their detail
+        pages. Search narrows the list by ID/title/description; there's no per-repository
+        filter here (use a repository's own <strong>Advisories</strong> tab for that).
       </Content>
       <Content component="p">
         Most advisories arrive automatically when you sync a remote whose upstream already

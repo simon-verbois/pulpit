@@ -66,6 +66,7 @@ export function RolesPage() {
                   itemCount={totalCount}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
@@ -81,6 +82,7 @@ export function RolesPage() {
           error={rolesQuery.error}
           onRetry={() => rolesQuery.refetch()}
           roles={paged}
+          repositoryKind="ansible"
           emptyTitle={isFiltered ? "No matching roles" : "No roles yet"}
           emptyBody={
             isFiltered

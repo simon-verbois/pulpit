@@ -10,7 +10,7 @@ import {
   TextInputGroupMain,
   TextInputGroupUtilities,
 } from "@patternfly/react-core";
-import { CloseIcon } from "@patternfly/react-icons";
+import { UiIcon } from "../../components/icons/UiIcon";
 
 import { MODAL_TYPEAHEAD_POPPER_PROPS } from "./modalTypeaheadPopperProps";
 
@@ -171,7 +171,7 @@ export function SearchableMultiSelect({
           <Button
             variant="plain"
             aria-label={`Clear selected ${ariaLabel.toLocaleLowerCase()}`}
-            icon={<CloseIcon />}
+            icon={<UiIcon name="close" />}
             onClick={(event) => {
               event.stopPropagation();
               onChange([]);

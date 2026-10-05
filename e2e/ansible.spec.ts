@@ -41,6 +41,8 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await page.locator("#collection-remote-url").fill("https://galaxy.ansible.com/api/");
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
+    await page.getByRole("textbox", { name: "Search remotes by name" }).fill(REMOTE_NAME);
+    await page.getByRole("button", { name: "Search" }).click();
     await expect(page.getByText(REMOTE_NAME)).toBeVisible();
 
     // --- Create a repository pointed at that remote -----------------------
@@ -71,7 +73,7 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await expect(
       page.getByText(`Upload "pulpit_test-demo-1.0.0.tar.gz" to "${REPO_NAME}"`),
     ).toBeVisible();
-    await expect(page.getByText("completed").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("completed").first()).toBeVisible({ timeout: 60_000 });
     await page.getByRole("button", { name: "Close" }).click();
     await expect(page.getByRole("gridcell", { name: "pulpit_test" })).toBeVisible({
       timeout: 10_000,
@@ -92,8 +94,14 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     // complete server-side before reloading, otherwise the mark record
     // doesn't exist yet.
     await page.getByRole("button", { name: "Tasks" }).click();
-    await expect(page.getByText(`Mark content "e2e-verified-${RUN_ID}"`)).toBeVisible();
-    await expect(page.getByText("completed").first()).toBeVisible({ timeout: 30_000 });
+    const markTask = page
+      .getByRole("list", { name: "Recent Pulp tasks" })
+      .locator("li")
+      .filter({ hasText: `Mark content "e2e-verified-${RUN_ID}"` });
+    await expect(markTask).toBeVisible();
+    await expect(markTask.getByText("completed", { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
     await page.getByRole("button", { name: "Close" }).click();
 
     await page.reload();

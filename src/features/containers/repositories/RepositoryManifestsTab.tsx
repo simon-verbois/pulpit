@@ -66,6 +66,7 @@ export function RepositoryManifestsTab({
                   itemCount={manifestsQuery.data?.count ?? 0}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact

@@ -9,8 +9,7 @@ import {
   InputGroupItem,
   TextInput,
 } from "@patternfly/react-core";
-import EyeIcon from "@patternfly/react-icons/dist/esm/icons/eye-icon";
-import EyeSlashIcon from "@patternfly/react-icons/dist/esm/icons/eye-slash-icon";
+import { UiIcon } from "../../../components/icons/UiIcon";
 
 import {
   evaluatePasswordPolicy,
@@ -69,7 +68,7 @@ export function PasswordField({
           <Button
             variant="control"
             aria-label={isRevealed ? "Hide password" : "Show password"}
-            icon={isRevealed ? <EyeSlashIcon /> : <EyeIcon />}
+            icon={<UiIcon name={isRevealed ? "eye-off" : "eye"} />}
             onClick={() => setIsRevealed((v) => !v)}
           />
         </InputGroupItem>

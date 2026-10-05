@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Button, Checkbox, Content, Stack, StackItem } from "@patternfly/react-core";
+import {
+  Button,
+  Checkbox,
+  Content,
+  Grid,
+  GridItem,
+  Stack,
+  StackItem,
+} from "@patternfly/react-core";
 
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
@@ -102,18 +110,18 @@ function NavVisibilityForm({ settings }: { settings: NavVisibilitySettings }) {
         </Content>
       </StackItem>
       <StackItem>
-        <Stack hasGutter>
+        <Grid hasGutter className="pulpit-settings-options">
           {NAV_VISIBILITY_MODULES.map((mod) => (
-            <StackItem key={mod.id}>
+            <GridItem key={mod.id} span={12} md={6} xl={4}>
               <Checkbox
                 id={`nav-visibility-${mod.id}`}
                 label={`Show "${mod.label}"`}
                 isChecked={allowed.has(mod.id)}
                 onChange={(_event, checked) => toggle(mod.id, checked)}
               />
-            </StackItem>
+            </GridItem>
           ))}
-        </Stack>
+        </Grid>
       </StackItem>
       <StackItem>
         <Button

@@ -110,7 +110,7 @@ test("a11y: Create Repository modal (RPM) has no WCAG 2.1 AA violations", async 
 test("a11y: Help panel has no WCAG 2.1 AA violations", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector("nav");
-  await page.getByRole("button", { name: "Help" }).click();
+  await page.getByRole("button", { name: "Helper" }).click();
   await expect(page.getByRole("heading", { name: "Help", exact: true })).toBeVisible();
   const violations = await scanCurrentPage(page);
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
@@ -169,7 +169,7 @@ test.describe("keyboard operability", () => {
   }) => {
     await page.goto("/");
     await page.waitForSelector("nav");
-    const helpButton = page.getByRole("button", { name: "Help" });
+    const helpButton = page.getByRole("button", { name: "Helper" });
     await helpButton.click();
     await expect(page.getByRole("heading", { name: "Help", exact: true })).toBeVisible();
     await page.keyboard.press("Escape");

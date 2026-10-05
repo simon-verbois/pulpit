@@ -12,10 +12,8 @@ describe("AppNav", () => {
     renderApp(<AppNav />);
 
     expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Container Registry" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Container" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ansible" })).toBeInTheDocument();
   });
 
   it("hides a plugin's nav group when the status endpoint reports it isn't installed", async () => {
@@ -32,9 +30,7 @@ describe("AppNav", () => {
 
     expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
     await waitFor(() =>
-      expect(
-        screen.queryByRole("button", { name: "Ansible Galaxy" }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole("button", { name: "Ansible" })).not.toBeInTheDocument(),
     );
   });
 
@@ -45,9 +41,7 @@ describe("AppNav", () => {
 
     expect(screen.getByText("Loading navigation")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "RPM" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Ansible Galaxy" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ansible" })).not.toBeInTheDocument();
   });
 
   it("fails open (shows every group) if the status request errors", async () => {
@@ -60,7 +54,7 @@ describe("AppNav", () => {
     // No status data ever arrives, so nothing is ever positively confirmed
     // absent - the groups are present once the (errored) request settles.
     expect(await screen.findByRole("button", { name: "RPM" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ansible Galaxy" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ansible" })).toBeInTheDocument();
   });
 
   it("shows only the granted modules when nav-visibility is restricted", async () => {

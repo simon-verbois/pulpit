@@ -14,9 +14,14 @@ masthead/nav shell, empty/loading states) that already solve most of what an adm
 
 ## Decision
 
-Use PatternFly (`@patternfly/react-core`, `@patternfly/react-table`, `@patternfly/react-icons`)
-as the near-exclusive component library. Compose the application shell from PatternFly's
+Use PatternFly (`@patternfly/react-core`, `@patternfly/react-table`) as the near-exclusive
+component library. Compose the application shell from PatternFly's
 Masthead + Sidebar + PageSection primitives per the navigation structure in `docs/UX.md`.
+
+Iconography is deliberately separate from the component framework: official technology logos come
+from `simple-icons`, while generic actions and concepts use PulpIT's compact internal SVG set. This
+keeps brand artwork accurate and gives the application one visually consistent functional icon
+language without introducing another component or CSS framework.
 
 Do not build a custom design system or pull in Tailwind/Bootstrap/MUI/Chakra. Custom CSS is
 limited to small layout glue, not component reimplementation.
@@ -59,6 +64,5 @@ ESLint 9 -> 10 upgrade should be revisited as soon as `eslint-plugin-jsx-a11y` s
 - UI velocity depends on PatternFly's component coverage; gaps are filled with small, genuinely
   reusable components in `src/components/`, not a parallel styling system.
 - The team must stay current with PatternFly's release notes when upgrading.
-- Visual identity is "PatternFly + a small Pulpit product mark" (a single icon-on-badge SVG, plus
-  PatternFly's own bundled light/dark theme and login background art), not a from-scratch brand —
-  see `docs/UX.md` "Product mark" and "Theming" for the concrete decisions and their sources.
+- Visual identity is "PatternFly + PulpIT's product mark and icon layer," not a separate custom
+  component system — see `docs/UX.md` "Product mark and iconography" and "Theming".

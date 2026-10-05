@@ -6,9 +6,10 @@ export function PythonContentTopic() {
       <Content component="p">
         A read-only view of every Python package Pulp knows about, across{" "}
         <strong>every</strong> repository - not scoped to one. Each row shows the
-        package's name, version, type (wheel/sdist), and filename. Search by name to
-        narrow the list; there's no per-repository filter here (use a repository's own{" "}
-        <strong>Content</strong> tab for that).
+        package's name, version, type (wheel/sdist), filename, and the repositories whose
+        current version contains it. Repository names open their detail pages. Search by
+        name to narrow the list; there's no per-repository filter here (use a repository's
+        own <strong>Content</strong> tab for that).
       </Content>
       <Content component="p">
         Packages appear here once a repository has synced content that includes them, or a

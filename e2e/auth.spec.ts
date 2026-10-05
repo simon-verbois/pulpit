@@ -30,7 +30,7 @@ test("the API never triggers the browser's native Basic-auth prompt", async ({
 test("an unauthenticated visitor is redirected to /login", async ({ page }) => {
   await page.goto("/admin?tab=repository-signing");
   await expect(page).toHaveURL(/\/login\?next=/);
-  await expect(page.getByRole("heading", { name: "Log in to PulpIT" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "PulpIT", exact: true })).toBeVisible();
 });
 
 test("wrong credentials show an error and do not log in", async ({ page }) => {

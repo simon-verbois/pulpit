@@ -71,6 +71,7 @@ export function RepositoryDistributionsTab({
                   itemCount={distributionsQuery.data.count}
                   page={pagination.page}
                   perPage={pagination.perPage}
+                  perPageOptions={pagination.perPageOptions}
                   onSetPage={pagination.onSetPage}
                   onPerPageSelect={pagination.onPerPageSelect}
                   isCompact
