@@ -32,6 +32,8 @@ os.environ.setdefault(
 # of where it happens to run.
 os.environ.setdefault("PULPIT_CORE_TLS_CERT_DIR", tempfile.mkdtemp(prefix="pulpit-tls-tests-"))
 
+os.environ.setdefault("PULPIT_EGRESS_DIR", tempfile.mkdtemp(prefix="pulpit-egress-tests-"))
+
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -81,6 +83,12 @@ def _clean_tables():
     with _engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             conn.execute(text(f'DELETE FROM "{table.name}"'))
+    from pulpit_egress import publish
+
+    from app.core.crypto import _fernet
+    get_settings.cache_clear()
+    _fernet.cache_clear()
+    publish({"proxy_url": "", "ca_cert": None, "tls_validation": True, "bypass_hosts": ["localhost", "pulp", "testserver"]})
     yield
 
 

@@ -131,7 +131,12 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await expect(deprecateDialog).not.toBeVisible();
 
     await page.reload();
-    await expect(page.getByText("pulpit_test.demo")).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page
+        .getByRole("row")
+        .filter({ has: page.getByRole("gridcell", { name: "pulpit_test", exact: true }) })
+        .filter({ has: page.getByRole("gridcell", { name: "demo", exact: true }) }),
+    ).toBeVisible({ timeout: 20_000 });
 
     await page.goto(`/ansible/repositories/${REPO_NAME}`);
 

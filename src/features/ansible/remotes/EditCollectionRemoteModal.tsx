@@ -61,13 +61,8 @@ export function EditCollectionRemoteModal({
   // (VERIFIED live, see CollectionRemote.hidden_fields); blank on submit
   // means "leave unchanged", not "clear".
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
-    proxy_url: remote.proxy_url ?? "",
-    proxy_username: "",
-    proxy_password: "",
     username: "",
     password: "",
-    tls_validation: remote.tls_validation,
-    ca_cert: remote.ca_cert ?? "",
   });
   const updateMutation = useUpdateCollectionRemoteMutation();
   const tokenIsSet = remote.hidden_fields.find((f) => f.name === "token")?.is_set;
@@ -87,13 +82,8 @@ export function EditCollectionRemoteModal({
           sync_dependencies: syncDependencies,
           signed_only: signedOnly,
           sync_highest_versions: syncHighestVersions ?? null,
-          proxy_url: connectionSettings.proxy_url || null,
-          proxy_username: connectionSettings.proxy_username || undefined,
-          proxy_password: connectionSettings.proxy_password || undefined,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
-          tls_validation: connectionSettings.tls_validation,
-          ca_cert: connectionSettings.ca_cert || null,
         },
       },
       { onSuccess: () => onClose() },

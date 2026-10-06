@@ -15,9 +15,8 @@ from pulp_remote_check.probe import (
     probe_url,
 )
 
-# ULN login alone retries up to 4 times (pulp_rpm UlnDownloader), so leave
-# room for that plus the metadata download itself.
-PROBE_TIMEOUT_SECONDS = 60
+# Return a structured result before either nginx reaches its 60-second deadline.
+PROBE_TIMEOUT_SECONDS = 45
 
 
 def _can_view(user, remote, perm):

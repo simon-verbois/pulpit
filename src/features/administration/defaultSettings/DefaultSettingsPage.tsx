@@ -4,7 +4,6 @@ import {
   Button,
   Checkbox,
   Content,
-  Divider,
   Form,
   FormGroup,
   FormHelperText,
@@ -26,7 +25,6 @@ import { PulpApiError } from "../../../api/errors/PulpApiError";
 import type { DefaultSettings } from "../../../api/client/pulpitCore/types";
 import { useDefaultSettingsQuery } from "./useDefaultSettingsQuery";
 import { useUpdateDefaultSettingsMutation } from "./useUpdateDefaultSettingsMutation";
-import { ApplyProxyToAllRemotesModal } from "./ApplyProxyToAllRemotesModal";
 
 export function DefaultSettingsPage() {
   const settingsQuery = useDefaultSettingsQuery();
@@ -57,7 +55,6 @@ export function DefaultSettingsPage() {
 
 function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
   const updateSettings = useUpdateDefaultSettingsMutation();
-  const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [proxyUrl, setProxyUrl] = useState(settings.proxy_url);
   const [proxyUsername, setProxyUsername] = useState(settings.proxy_username);
   // Blank on load - GET never echoes the password back (VERIFIED live,
@@ -69,9 +66,8 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
   );
   // Unlike proxyPassword above, this is public material and IS echoed back
   // by GET (models.py's docstring) - prefilled with the real current value,
-  // not blank. Applied to every new Remote's own native `ca_cert` field
-  // (RemoteConnectionSettingsFields.tsx) - replaces the old trusted_ca
-  // module's docker-exec mechanism.
+  // not blank. Published to the shared egress policy and the containers'
+  // system trust stores (deployment/docker/pulp/global-network).
   const [caCert, setCaCert] = useState(settings.proxy_ca_cert ?? "");
 
   const passwordHint = settings.proxy_password_is_set
@@ -114,12 +110,18 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
       <StackItem>
         <Content component="h2">Proxy</Content>
         <Content component="small">
-          Applied automatically to every new Remote (each Remote's Create/Edit form can
-          still override it under its own advanced connection settings).
+          One global policy for existing and new remotes, ULN authentication, and outgoing
+          application connections. Changes apply to the next connection; active transfers
+          are allowed to finish.
         </Content>
       </StackItem>
 
       <StackItem>
+        {updateSettings.isSuccess && !isDirty ? (
+          <Alert variant="success" isInline title="Global network policy saved">
+            New outbound connections use this configuration.
+          </Alert>
+        ) : null}
         {updateSettings.isError ? (
           <Alert
             variant="danger"
@@ -154,8 +156,8 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
                   <FormHelperText>
                     <HelperText>
                       <HelperTextItem variant={skipTlsValidation ? "warning" : undefined}>
-                        Pulp has one TLS setting per Remote. Enabling this also skips
-                        validation for the remote's own URL once applied.
+                        Enabling this disables TLS certificate checks for outgoing
+                        application connections. Prefer adding your trusted CA below.
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
@@ -218,8 +220,8 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
                   <FormHelperText>
                     <HelperText>
                       <HelperTextItem>
-                        Added to each new Remote's <code>ca_cert</code> field. Use it for
-                        a corporate TLS-inspecting proxy; leave blank for none.
+                        Trusted globally in addition to public CAs, including Oracle ULN
+                        login. No per-remote setup or manual container copy is required.
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
@@ -240,42 +242,6 @@ function ProxySettingsForm({ settings }: { settings: DefaultSettings }) {
           Save
         </Button>
       </StackItem>
-
-      <StackItem>
-        <Divider />
-      </StackItem>
-
-      <StackItem>
-        <Content component="h3">Apply to existing remotes</Content>
-        <Content component="small">
-          The proxy settings above are only applied automatically to a Remote at the
-          moment it's created (or when its own Create/Edit form explicitly opts in). Use
-          this to retroactively overwrite every existing Remote's proxy with whatever is
-          currently saved above instead.
-        </Content>
-      </StackItem>
-      <StackItem>
-        <Button
-          variant="danger"
-          isDisabled={isDirty}
-          onClick={() => setIsApplyOpen(true)}
-        >
-          Apply to all remotes…
-        </Button>
-        {isDirty ? (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant="warning">
-                Save your changes above first.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        ) : null}
-      </StackItem>
-
-      {isApplyOpen ? (
-        <ApplyProxyToAllRemotesModal onClose={() => setIsApplyOpen(false)} />
-      ) : null}
     </Stack>
   );
 }

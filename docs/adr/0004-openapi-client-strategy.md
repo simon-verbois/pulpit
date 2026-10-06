@@ -137,3 +137,13 @@ project's dev Compose stack) rather than assuming:
   rewrite.
 - Revisiting the generator choice (e.g., adopting Orval) is expected to happen eventually; when it
   does, update this ADR rather than silently changing the pipeline.
+
+### Superseded proxy configuration, 2026-10-05
+
+Per-remote defaults did not cover the separate ULN login session or container
+tools. The global network policy replaces those defaults: pulpit-core publishes
+one infrastructure manifest on a dedicated shared volume, the derived Pulp
+image enforces it at outbound client/factory boundaries, and root reconcilers
+maintain system CA trust. Per-remote overrides are removed from Pulpit. This is
+an infrastructure capability requiring secret handling and filesystem access,
+not a BFF or replication of Pulp resource state (ADR 0006).

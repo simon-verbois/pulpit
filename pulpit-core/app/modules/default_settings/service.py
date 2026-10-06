@@ -35,3 +35,23 @@ def update_settings(db: Session, row: DefaultSettings, changes: dict) -> Default
         row.proxy_ca_cert = ca_cert if ca_cert != "" else None
     db.flush()
     return row
+
+
+def publish_global_policy(row: DefaultSettings) -> None:
+    """Publish runtime infrastructure policy, never duplicate Pulp resources."""
+    from urllib.parse import urlsplit
+
+    from pulpit_egress import publish
+
+    from app.core.config import get_settings
+    from app.core.crypto import decrypt_secret
+
+    internal = urlsplit(get_settings().pulp_base_url).hostname
+    publish({
+        "proxy_url": row.proxy_url,
+        "proxy_username": row.proxy_username,
+        "proxy_password": decrypt_secret(row.proxy_password_encrypted) if row.proxy_password_encrypted else None,
+        "ca_cert": row.proxy_ca_cert,
+        "tls_validation": row.proxy_tls_validation,
+        "bypass_hosts": sorted({"localhost", "127.0.0.1", "::1", "pulp", "pulp-pulp", "redis", internal or "localhost"}),
+    })

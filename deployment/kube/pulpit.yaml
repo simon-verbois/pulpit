@@ -1,3 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pulpit-egress
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 64Mi
+---
 # Mirrors compose.yml's `pulpit` service. The only workload reachable from
 # outside the cluster (Service/Ingress below); Pulp (pulp.yaml) is
 # internal-only.
@@ -77,6 +87,8 @@ spec:
             - containerPort: 8080
             - containerPort: 8443
           volumeMounts:
+            - name: pulpit-egress
+              mountPath: /var/lib/pulpit-egress
             - name: pulpit-data
               mountPath: /var/lib/pulpit
             - name: pulpit-signing-gnupghome
@@ -102,6 +114,9 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 5
       volumes:
+        - name: pulpit-egress
+          persistentVolumeClaim:
+            claimName: pulpit-egress
         - name: pulpit-data
           persistentVolumeClaim:
             claimName: pulpit-data

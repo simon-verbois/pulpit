@@ -47,13 +47,8 @@ export function EditRemoteModal({
   // on the read side (see HuggingFaceRemoteCreate's own doc comment).
   const [hfToken, setHfToken] = useState("");
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
-    proxy_url: remote.proxy_url ?? "",
-    proxy_username: "",
-    proxy_password: "",
     username: "",
     password: "",
-    tls_validation: remote.tls_validation,
-    ca_cert: remote.ca_cert ?? "",
   });
   const updateMutation = useUpdateHuggingFaceRemoteMutation();
 
@@ -66,13 +61,8 @@ export function EditRemoteModal({
           name: name !== remote.name ? name : undefined,
           url,
           policy,
-          proxy_url: connectionSettings.proxy_url || null,
-          proxy_username: connectionSettings.proxy_username || undefined,
-          proxy_password: connectionSettings.proxy_password || undefined,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
-          tls_validation: connectionSettings.tls_validation,
-          ca_cert: connectionSettings.ca_cert || null,
           ...(hfToken ? { hf_token: hfToken } : {}),
         },
       },

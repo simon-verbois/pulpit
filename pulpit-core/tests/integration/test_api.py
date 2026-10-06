@@ -24,9 +24,8 @@ def client(db):
 
     def _override_full_user():
         # Staff by default: a couple of routes exercised through this
-        # fixture (default_settings PATCH /settings, GET /proxy-credentials
-        # - see their own module docstrings) are staff-gated, and without
-        # this override `require_staff_user`'s own `get_full_user` dependency
+        # fixture (e.g. default_settings PATCH /settings) are staff-gated,
+        # and without this override `require_staff_user`'s own `get_full_user` dependency
         # would fall through to a real (failing, in tests) Pulp lookup
         # instead of the fake session `_override_auth` above already
         # provides. Tests that specifically exercise the non-staff-rejected
@@ -391,29 +390,15 @@ def test_proxy_credentials_requires_auth(db):
 
 
 def test_proxy_credentials_returns_the_decrypted_password(client):
-    client.patch(
-        "/api/v1/default_settings/settings",
-        json={
-            "proxy_url": "http://proxy.example.com:3128",
-            "proxy_username": "svc-proxy",
-            "proxy_password": "s3cret",
-        },
-    )
     response = client.get("/api/v1/default_settings/proxy-credentials")
-    assert response.status_code == 200
-    body = response.json()
-    assert body == {
-        "proxy_url": "http://proxy.example.com:3128",
-        "proxy_username": "svc-proxy",
-        "proxy_password": "s3cret",
-        "proxy_ca_cert": None,
-    }
+    assert response.status_code == 410
+    assert "password" not in response.json()
 
 
 def test_proxy_credentials_password_is_null_when_unset(client):
     response = client.get("/api/v1/default_settings/proxy-credentials")
-    assert response.status_code == 200
-    assert response.json()["proxy_password"] is None
+    assert response.status_code == 410
+    assert "password" not in response.json()
 
 
 _TEST_PEM = "-----BEGIN CERTIFICATE-----\nMIIC...fake...==\n-----END CERTIFICATE-----\n"
@@ -426,8 +411,7 @@ def test_patch_default_settings_updates_proxy_ca_cert(client):
     assert response.status_code == 200
     assert response.json()["proxy_ca_cert"] == _TEST_PEM.strip()
 
-    credentials = client.get("/api/v1/default_settings/proxy-credentials").json()
-    assert credentials["proxy_ca_cert"] == _TEST_PEM.strip()
+    assert client.get("/api/v1/default_settings/proxy-credentials").status_code == 410
 
 
 def test_patch_default_settings_rejects_non_pem_ca_cert(client):

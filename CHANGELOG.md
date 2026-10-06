@@ -9,9 +9,250 @@ footer.
 
 ### Added
 
+- One global outbound network policy, configured in Administration → Global Proxy Settings: proxy
+  URL and credentials, TLS validation, and a trusted CA certificate. It applies to every existing
+  and new remote of every plugin, to the Oracle ULN XML-RPC login session (which per-remote
+  settings never covered), to the Python HTTP clients in Pulp and Pulpit (aiohttp, requests,
+  HTTPX), to their child processes (`HTTP(S)_PROXY`/`NO_PROXY` and CA-bundle variables), and to
+  `curl`/`git` inside both containers, including from `docker exec`/`podman exec`. A change takes
+  effect on the next outbound connection without a restart; transfers already in progress finish
+  unchanged. Pulpit writes the policy to a new private shared volume and the derived Pulp image
+  enforces it through a new `pulpit-egress` package; a supervised root process in each container
+  adds the configured CA to the system trust store (or removes it when cleared) within a few
+  seconds. Internal Pulp/Redis traffic and loopback health checks always bypass the proxy. A
+  required policy that is missing or malformed makes outbound connections fail instead of silently
+  going direct to the Internet.
+- Repository detail pages (all plugins): the Overview tab now summarizes the latest version
+  (linked to the Versions tab), its content counts with readable type names (e.g. "35 packages,
+  4 advisories, 2 package groups"), the repository's size, and its creation date.
+
+### Changed
+
+- **Upgrade:** Pulpit and Pulp now share a new `pulpit_egress` volume (read-write in Pulpit,
+  read-only in Pulp at `/var/lib/pulpit-egress`), and Pulp sets `PULPIT_EGRESS_REQUIRED=true`. The
+  shipped `compose.yml`, `compose-dev.yml`, Podman manifests (new `pulpit-egress` PVC, RWO) and
+  Kubernetes manifests (new `pulpit-egress` PVC, ReadWriteMany, 64Mi) are updated, and
+  `deploy.sh reset` removes the new volume. Deploy the matching Pulp and Pulpit images together
+  with the volume, between syncs; custom manifests must add the volume and the environment
+  variable themselves. Pulpit publishes the saved settings at startup, so existing Global Proxy
+  Settings carry over.
+- Remote create/edit dialogs (all plugins) no longer have per-remote Proxy URL, proxy
+  username/password, Skip TLS validation, or Trusted CA fields - "Advanced connection settings"
+  keeps only the origin server credentials, with a note that proxy and TLS are managed centrally.
+  Per-remote values already stored in Pulp are left in place but ignored: the derived Pulp image
+  replaces them with the global policy when it opens a connection. A remote that relied on its own
+  proxy while the global proxy was empty now connects directly, so set the global proxy before
+  upgrading if that applies. Client certificates (mTLS) and origin credentials stay per remote.
+- Repository detail pages (all plugins): "Sync now" is the page's single primary action, in the
+  header; Edit, Publish, Re-sign, Sign/Mark/Unmark content and Delete move into an "Actions"
+  dropdown next to it, following PatternFly's actions guidance. The action rows on the Overview
+  tab are gone, and so are its secondary sub-lines (the default remote's URL - still on the
+  Remotes page it links to).
+- Repository tables (all plugins) keep Sync as the only inline row action and move Edit, Publish
+  and Delete (danger, behind a separator) into a per-row kebab menu. Renaming a repository from its
+  list now stays on the list instead of jumping to the renamed repository.
+- Modal footers: the rightmost button is always the one that ends the modal. The remote "Test"
+  dialog now shows "Test again" to the left of Close, and the job dialogs (LDAP apply, signing key
+  generation, sign all repositories, re-sign) hide their action button once the job succeeded,
+  leaving Close alone on the right.
+- Clicking a button or toggle no longer leaves it looking hovered: PatternFly's `:focus` styles
+  are rewritten to `:focus-visible` at build time. Keyboard focus looks the same as before.
+- The remote "Test" action now gives up after 45 seconds instead of 60, so its structured result
+  arrives before nginx's 60-second upstream timeout instead of the browser getting an HTTP 504.
+
+### Removed
+
+- Global Proxy Settings' "Apply to all remotes…" action, its confirmation dialog and the background
+  job that overwrote every remote's proxy fields - the global policy now applies to all remotes on
+  its own. `POST /default_settings/apply-proxy-to-all-remotes` now returns HTTP 410.
+- The staff-only `GET /default_settings/proxy-credentials` endpoint, which returned the decrypted
+  proxy password to the browser to prefill remote forms. It now returns HTTP 410; the proxy
+  password is only decrypted server-side when the runtime policy is written.
+
+## 2026.41.1 — 2026-10-05
+
+### Added
+
+- Actions on an existing resource now stay locked for as long as the Pulp task they started is
+  running, not just while the first HTTP request is pending. The button that started the task
+  shows a spinner, every other action on the same repository, remote, distribution, namespace or
+  tag is disabled until Pulp reports a final state, and the tooltip names the running task. The
+  lock is app-wide, so moving between a list and a detail page doesn't release it. Covers sync,
+  publish, resign, upload, copy, sign, mark/unmark, tag/untag, edit and delete for every content
+  type.
+- Tasks: waiting and running Pulp tasks have a "Stop" action. A confirmation dialog asks Pulp to
+  cancel the task; if it finishes first, Pulp's HTTP 409 is reported and the task is left as is.
+- Tasks: a task-type filter (Sync, Publish, Create, Update, Delete, Modify content, Sign, Orphan
+  cleanup, Prune packages) combines with the state filter and name search. It is applied
+  server-side, before pagination, and the type and state filters are kept in the URL so a filtered
+  view can be bookmarked or shared.
+- Failed tasks now explain the failure in plain language and say what to check next: missing
+  worker, out-of-memory, SIGKILL, a download timeout naming the affected `.rpm`, ULN login
+  failure, proxy 407, TLS certificate errors, and 401/403. A failed sync is explained as not having
+  produced a new repository version. The raw error and traceback stay under "Technical error
+  details".
+- Global content tables (RPM packages and advisories, container tags, Ansible collection versions
+  and roles, and Debian, File, Gem, Hugging Face, Maven, npm and Python content) gain a
+  "Repositories" column linking the repositories whose _latest_ version contains each unit.
+- RPM distributions can be pinned to a specific repository version: "Create distribution" offers
+  "Follow the latest published version" (the previous behavior) or "Pin a repository version",
+  with a picker of retained versions. Pulpit publishes the selected version, waits for the task,
+  then points the distribution at that publication, so its URL stays on that snapshot.
+- ULN remotes can now be edited (name, channel URL, ULN server base URL, credentials). Saved
+  credentials are never shown; leaving username or password blank keeps the stored value.
+- Long technical values in tables (remote and ULN server URLs, role and content-guard names) are
+  shortened in the middle, with the full value in a tooltip and a compact copy button.
+- Optional `deployment/docker/compose-proxy.yml`: an allow-listed Squid forward proxy and a
+  synthetic ULN endpoint (`proxy-repro` profile) with configurable delays, to reproduce proxy and
+  timeout behavior locally without contacting Oracle.
+- Documentation: hardware and capacity estimates by workload size in the README, a new
+  `docs/PERFORMANCE.md`, and Pulp tuning notes in `deployment/docker/README.md`.
+  `THIRD_PARTY_NOTICES.md` records the Lucide (ISC) and Simple Icons (CC0) licensing.
+
+### Changed
+
+- The derived Pulp image no longer applies a total request deadline to streaming downloads
+  (ULN included): an active transfer may run for hours. A per-connection read-inactivity timeout
+  still applies - the remote's `sock_read_timeout`, or 300 seconds when unset or zero - and saved
+  `total_timeout` values are ignored. The build-time patch is guarded: if Pulp's downloader factory
+  changes upstream, the image build fails instead of silently restoring the deadline. Deploying it
+  restarts Pulp, so cancel active syncs first and rerun them afterwards.
+- None of the shipped deployments (Docker Compose, Kubernetes, Podman) set CPU or memory limits,
+  reservations or requests anymore - size the host with the new capacity estimates. Storage (PVC)
+  requests are unchanged. Existing Compose containers keep their old caps until recreated.
+- RPM distribution names and base paths are now generated from the repository name:
+  `rpm/<repository>` for a distribution following the latest version, `rpm/<repository>-v<N>` for
+  one pinned to version N. A repository's Distributions tab also lists its version-pinned
+  distributions (Pulp's `repository` filter leaves them out) and drops its separate Base path
+  column.
+- The RPM "Repo config" and Ansible "Client configuration" snippets on Distributions tabs show a
+  three-line preview with a Copy button and a "Show full configuration" / "Show less" toggle,
+  instead of the whole snippet on every row. Expanding one no longer resizes the table's columns.
+- Visual refresh: a new product mark (Lucide's `package-open`) and matching favicon, an azure blue
+  brand color (`#2563eb` light, `#60a5fa` dark), shared shell geometry for both themes, each
+  page's content in a single inset panel, official technology logos for plugin groups in the
+  navigation and Overview, and a small internal line-icon set (`@patternfly/react-icons` is no
+  longer a dependency).
+- Statuses are colored PatternFly labels again (their text always carries the full meaning),
+  replacing the plain-text treatment from 2026.37.8.
+- The masthead's product mark is static again and the sidebar stays open (the mark is no longer a
+  navigation toggle). The masthead has four evenly styled controls: Tasks, "Helper" (renamed from
+  "Help"), the theme toggle, and a text-only user menu.
+- Overview: health tiles became metric cards (e.g. "3 Ready" workers); the component table became
+  a "Modules" panel in navigation order with a service-type icon and a "Version status" column
+  ("Verified" / "Review compatibility"); "Recent tasks" is renamed "System task log".
+- Navigation groups "Container Registry" and "Ansible Galaxy" are renamed "Container" and
+  "Ansible".
+- The login page was rebuilt with PatternFly's composable Login components, with the mark, name,
+  and the version/changelog/license footer inside the card.
+- Paginated tables pick their default page size from the viewport height (5 to 50 rows) and follow
+  window resizes until the user picks a page size explicitly.
+- Longer settings pages (LDAP, Global Proxy Settings, Repository Signing, navigation visibility)
+  lay their field groups out in a responsive grid (three, two, or one column), and simple forms
+  use a narrower width on wide screens.
+- The task details dialog leads with a compact summary (state, duration, author, start/finish
+  time), then the failure explanation and live progress; resources, raw records, the task
+  function, href and correlation ID moved into a collapsed "Technical details" section.
+- Tables show their real column headings with skeleton rows while loading (announced to screen
+  readers) instead of a bare spinner.
+- Wide tables (tasks, background jobs, remotes, distributions, roles, content guards) switch to a
+  stacked, labeled layout on tablet-width screens instead of a hidden sideways scroll, and
+  Administration tabs that don't fit move into a "More" menu.
+- The "Development build" banner is smaller and hides its build date on narrow screens (still
+  available on hover and to screen readers).
+- The ULN server base URL is prefilled with `https://linux-update.oracle.com/` when creating a ULN
+  remote, instead of only being shown as a placeholder.
+
+### Fixed
+
+- Changing the search, state or type filter on the Tasks page returns to the first page, so a
+  filter can no longer land on an empty page beyond the new result count.
+- Administration tabs no longer shift vertically when switching to a settings page without a
+  header action.
+- Checkbox lists in the role permissions picker and the "Prune packages" dialog had no spacing
+  between items, so their labels ran together.
+- Extra vertical space between a toolbar and the table under it is gone.
+- Disabled link-style row actions no longer render as a solid gray bar.
+
+### Removed
+
+- The "Pulp API" link in the masthead. Pulp's own API reference is still served at `<api>/docs/`.
+- The Overview "Recent tasks" card's "View all tasks" footer link.
+
+## 2026.40.2 — 2026-09-30
+
+### Added
+
+- "Re-sign now" on an RPM repository (shown when package or metadata signing is enabled), for a
+  repository that didn't end up fully signed after a failed resign job, a signing-service hiccup,
+  or a configuration change that never landed. It re-applies the signing policy to that repository
+  with the user's own Pulp credentials (so Pulp's permissions decide who may do it), then queues a
+  full resign pass that re-signs every package not signed with the active key. A dialog reports
+  how many packages were checked, re-signed, and failed. A resign already in flight is reused, and
+  a queued incremental pass is widened to a full one. Backed by
+  `POST /pulpit-core/api/v1/signing/repositories/resign`.
+- Tasks page: a "Background jobs" tab next to Pulp tasks lists `pulpit-core`'s own jobs (resigns,
+  metadata publishes, ...) with a detail dialog, and these jobs can be tracked in the Tasks drawer.
+  Staff see every job, other users only their own; scheduled heartbeat jobs are hidden by default.
+  Backed by a new `GET /pulpit-core/api/v1/jobs` endpoint, which never exposes a job's payload.
+- Running sync, publish, and sign tasks show Pulp's own progress reports in the Tasks drawer, on
+  the Tasks page, and in the task detail dialog.
+- Tasks name the repository, remote, or distribution they act on, with a short action label
+  ("Sync", "Publish", "Modify content", ...). The Tasks page gains a Duration column and keeps
+  polling while any listed task is running.
+- Clicking a task in the Tasks drawer or the Overview "Recent tasks" card opens it on the Tasks
+  page (`/tasks?task=<id>`).
+- Administration → Access → LDAP: an optional custom CA certificate (PEM) to trust for `ldaps://`
+  or STARTTLS, for directories signed by a private CA. "Test connection" uses it, and the derived
+  Pulp image's LDAP reconciler points django-auth-ldap at it. Empty keeps the system CAs only.
+- RPM repository Overview shows the default remote's name and type (standard or ULN), linking to
+  the Remotes page pre-filtered on it.
+
+### Fixed
+
+- Bumped the transitive npm dependencies `brace-expansion` and `undici` to clear `npm audit`
+  advisories.
+
+## 2026.40.1 — 2026-09-30
+
+### Added
+
 - "Test" action on RPM and ULN remotes: runs a real, read-only request with the remote's saved
-  configuration (ULN login included) and reports whether the repository metadata is reachable,
-  via a new `pulp-remote-check` extension in the derived Pulp image.
+  configuration (ULN login, proxy, and TLS included) and reports whether the repository metadata
+  (`repodata/repomd.xml`) is reachable, without syncing or storing anything. Served by a new
+  `pulp-remote-check` extension in the derived Pulp image; against a Pulp image without it the
+  action is simply disabled.
+- `start-pulpit.sh` / `stop-pulpit.sh` development wrappers: `start-pulpit.sh` cleanly restarts the
+  dev stack (keeping local data, or wiping it with `--reset`), and `stop-pulpit.sh` stops it while
+  keeping its volumes.
+
+### Changed
+
+- Pulp publishes no host port in `compose.yml` or the Podman manifests anymore - Pulpit's nginx is
+  the only entry point (`compose-dev.yml` keeps its loopback port for the Vite dev server).
+- Podman manifests no longer set CPU/memory requests or limits.
+- Pulp session lifetime is now 8 hours (`PULP_SESSION_COOKIE_AGE=28800`) in every deployment,
+  instead of Django's two-week default; it is absolute (not extended by activity), and an expired
+  session returns to Pulpit's login page.
+
+### Fixed
+
+- Podman `deploy.sh up` no longer reports a failure for a stack that comes up fine: the unit now
+  allows 15 minutes to start (`TimeoutStartSec=900`, systemd's 90s default was routinely exceeded
+  on first boot) and the health wait was raised to match. It also only runs
+  `systemctl --user start` - the `enable` call always failed (Quadlet units are generated) and the
+  extra `restart` is gone, so apply a manifest, image tag, or config edit with `down` then `up`.
+- The fixed footer (version / Changelog / License) overlapped the bottom of the main content card
+  on any page tall enough to fill the viewport (most visible on short remote-session screens):
+  PatternFly only leaves 24px below the card. A dedicated footer band is now reserved at every
+  width.
+- ULN remotes were missing from the RPM repository "Default remote" select (create and edit),
+  which only listed standard remotes; both kinds are now listed, grouped by type.
+
+## 2026.37.8 — 2026-09-11
+
+### Added
+
 - Incremental, parallel, idempotent RPM package resigning: a repository sync never re-signed
   newly-added packages under Pulpit's key before (Pulp's on-upload signing doesn't cover synced
   content), and re-signing an existing repository always reprocessed every package sequentially
@@ -28,10 +269,6 @@ footer.
 
 ### Changed
 
-- Pulp publishes no host port in `compose.yml` or the Podman manifests anymore - Pulpit's nginx is
-  the only entry point (`compose-dev.yml` keeps its loopback port for the Vite dev server).
-- Podman manifests no longer set CPU/memory requests or limits.
-- Pulp session lifetime is now 8 hours (`PULP_SESSION_COOKIE_AGE=28800`) in every deployment.
 - Routine statuses, counts, categories, and selections now use aligned plain text or dedicated
   table columns instead of colored dots, pills, and badges. Generic page taglines were also
   removed, while text weight and border contrast were increased in both themes for clearer
@@ -59,17 +296,6 @@ footer.
 
 ### Fixed
 
-- Podman `deploy.sh up` no longer reports a failure for a stack that comes up fine: the unit now
-  allows 15 minutes to start (`TimeoutStartSec=900`, systemd's 90s default was routinely exceeded
-  on first boot) and the health wait was raised to match. It also only runs
-  `systemctl --user start` - the `enable` call always failed (Quadlet units are generated) and the
-  extra `restart` is gone.
-- The fixed footer (version / Changelog / License) overlapped the bottom of the main content card
-  on any page tall enough to fill the viewport (most visible on short remote-session screens):
-  PatternFly only leaves 24px below the card. A dedicated footer band is now reserved at every
-  width.
-- ULN remotes were missing from the RPM repository "Default remote" select (create and edit),
-  which only listed standard remotes; both kinds are now listed, grouped by type.
 - The left nav sidebar and the Overview page's component table both "failed open" (showed every
   plugin/module) while status/nav-visibility were still loading on every page load, so a
   transient failure would never hide real navigation - correct for an actual error, but on an

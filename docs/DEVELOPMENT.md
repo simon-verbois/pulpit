@@ -125,3 +125,6 @@ public endpoint directly to isolate "is this a Pulp problem or an nginx routing 
 
 See `docs/ARCHITECTURE.md` for the API layer layout and the tree in the root `README.md` for the
 full repository/frontend layout.
+
+The shared runtime network library is installed by `make pulpit-core-install`; for manual
+backend setup, install `deployment/docker/pulp/global-network` alongside pulpit-core.

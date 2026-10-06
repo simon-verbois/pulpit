@@ -87,6 +87,10 @@ envsubst '${TLS_CERT_PATH} ${TLS_KEY_PATH}' \
 #     already-open connections and doesn't re-trigger it, so the loop does
 #     not need to run for the container's whole lifetime, just long enough
 #     to observe both sides' startup connections settle.
+mkdir -p /var/lib/pulpit-egress
+chown pulpit:700 /var/lib/pulpit-egress
+chmod 2770 /var/lib/pulpit-egress
+
 mkdir -p /var/lib/pulpit
 chown pulpit:700 /var/lib/pulpit
 chmod 2770 /var/lib/pulpit
@@ -205,6 +209,9 @@ core_pid=$!
 setpriv --reuid=700 --regid=700 --clear-groups -- python3 -m worker.main &
 worker_pid=$!
 
+pulpit-egress-trust &
+egress_watch_pid=$!
+
 watch_tls_reload &
 reload_watch_pid=$!
 
@@ -215,11 +222,11 @@ settle_pulpit_data_perms &
 settle_pid=$!
 
 terminate() {
-    kill -TERM "${nginx_pid}" "${core_pid}" "${worker_pid}" "${reload_watch_pid}" "${settle_pid}" 2>/dev/null
+    kill -TERM "${nginx_pid}" "${core_pid}" "${worker_pid}" "${reload_watch_pid}" "${egress_watch_pid}" "${settle_pid}" 2>/dev/null
 }
 trap terminate TERM INT
 
-wait -n "${nginx_pid}" "${core_pid}" "${worker_pid}" "${reload_watch_pid}"
+wait -n "${nginx_pid}" "${core_pid}" "${worker_pid}" "${reload_watch_pid}" "${egress_watch_pid}"
 exit_code=$?
 terminate
 wait

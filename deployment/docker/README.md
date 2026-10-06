@@ -55,13 +55,12 @@ restarting Pulp or Pulpit:
 docker compose -f deployment/docker/compose-dev.yml -f deployment/docker/compose-proxy.yml --env-file .env up -d --no-deps squid
 ```
 
-In **Administration > Default Settings**, set **Proxy URL** to
-`http://squid:3128` and save. This supplies the default for remotes using the
-instance default; existing remotes must also be edited to use this proxy.
-For the ULN remote being tested, save that URL under **Advanced connection
-settings**. Squid has no proxy credentials, and TLS validation should remain
-enabled. Do not use `localhost:3128` inside Pulp: that refers to the Pulp
-container itself. The host-only diagnostic address is `http://127.0.0.1:3128`.
+In **Administration > Global Proxy Settings**, set **Proxy URL** to
+`http://squid:3128` and save. Existing and new remotes, including ULN login,
+use this global policy automatically. Squid has no proxy credentials, and TLS
+validation should remain enabled. Do not use `localhost:3128` inside Pulp:
+that refers to the Pulp container itself. The host-only diagnostic address
+is `http://127.0.0.1:3128`.
 
 Edit `squid/allowed-domains.txt` to allow additional repository hosts (including
 redirect targets), then reload Squid:
@@ -77,8 +76,8 @@ Filtering follows Squid's [domain ACL](https://www.squid-cache.org/Doc/config/ac
 HTTPS is tunneled using CONNECT, so this setup filters destination hostnames,
 not encrypted URL paths, and does not inspect TLS. The `uln-fixture` hostname
 is also allowed for the optional local reproduction below. This proxy does
-not impose a network firewall on Pulp; remotes configured without a proxy
-can still connect directly.
+not impose a network firewall on Pulp; clearing the global proxy allows
+direct connections unless the host network itself blocks them.
 
 Quick host checks (clear any `NO_PROXY` bypass):
 
@@ -103,17 +102,16 @@ Create a separate ULN remote in Pulpit with these settings:
 | ULN server base URL | `http://uln-fixture/`                    |
 | ULN username        | `dummy`                                  |
 | ULN password        | `dummy`                                  |
-| Proxy URL           | `http://squid:3128`                      |
 
 Use dummy credentials only. The fixture discards request bodies without
 logging them. It returns a synthetic session key and minimal metadata, and
 must not be used for syncs or as evidence that Oracle authentication works.
 Click **Test** and inspect Squid and fixture logs. For an API comparison,
 PATCH the fixture remote with `{"total_timeout": 5}`. A 70-second login exceeds
-Pulpit's 60-second probe limit even when the remote's total timeout is 5 seconds,
-because pulp_rpm 3.38.5 does not apply that timeout to the login session.
-The reference nginx proxies also have a 60-second read timeout, so the browser
-may receive HTTP 504 before Pulp's structured failure response arrives.
+Pulpit's 45-second probe limit. The independent ULN login session is covered
+by the global proxy/CA policy and the outer probe deadline; it does not use
+the remote's download timeout. The structured timeout response arrives before
+the reference nginx proxy's 60-second read timeout.
 
 Return the fixture to immediate responses with:
 
@@ -124,5 +122,5 @@ ULN_FIXTURE_LOGIN_DELAY=0 docker compose -f deployment/docker/compose-dev.yml -f
 `ULN_FIXTURE_METADATA_DELAY` separately delays the metadata download. Changes
 to either delay require recreating the fixture through `up -d` as above.
 Keep the proxy overlay in subsequent full-stack Compose commands. Before
-stopping Squid, clear or replace the proxy on affected remotes and in Default
+stopping Squid, clear or replace the proxy in Global Proxy
 Settings; those saved settings outlive the proxy container.

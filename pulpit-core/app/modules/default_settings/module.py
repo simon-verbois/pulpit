@@ -4,7 +4,6 @@ signing; see app/modules/signing/module.py)."""
 
 from fastapi import APIRouter
 
-from app.modules.default_settings import jobs as default_settings_jobs
 from app.modules.default_settings.routes.apply_proxy import (
     router as apply_proxy_router,
 )
@@ -22,4 +21,12 @@ router.include_router(apply_proxy_router)
 
 
 def register() -> None:
-    default_settings_jobs.register()
+    from pulpit_egress import install
+
+    from app.core.database.session import SessionLocal
+    from app.modules.default_settings import service
+    install()
+    with SessionLocal() as db:
+        row = service.get_settings_row(db)
+        db.commit()
+        service.publish_global_policy(row)

@@ -22,13 +22,8 @@ import {
 import { useCreateGitRemoteMutation } from "./useCreateGitRemoteMutation";
 
 const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
-  proxy_url: "",
-  proxy_username: "",
-  proxy_password: "",
   username: "",
   password: "",
-  tls_validation: true,
-  ca_cert: "",
 };
 
 /** No sync policy here (VERIFIED live schema: GitRemote has no `policy`
@@ -48,13 +43,8 @@ export function CreateGitRemoteModal({ onClose }: { onClose: () => void }) {
         url,
         git_ref: gitRef || undefined,
         metadata_only: metadataOnly,
-        proxy_url: connectionSettings.proxy_url || undefined,
-        proxy_username: connectionSettings.proxy_username || undefined,
-        proxy_password: connectionSettings.proxy_password || undefined,
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
-        tls_validation: connectionSettings.tls_validation,
-        ca_cert: connectionSettings.ca_cert || undefined,
       },
       { onSuccess: () => onClose() },
     );

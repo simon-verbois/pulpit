@@ -242,6 +242,7 @@ reset() {
     for volume in \
         pulpit-data \
         pulpit-tls \
+        pulpit-egress \
         pulpit-signing-gnupghome \
         pulpit-signing-scripts \
         pulp-var-lib-containers \

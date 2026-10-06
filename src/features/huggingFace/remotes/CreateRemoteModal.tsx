@@ -30,13 +30,8 @@ const POLICIES: { value: RemotePolicy; label: string }[] = [
 ];
 
 const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
-  proxy_url: "",
-  proxy_username: "",
-  proxy_password: "",
   username: "",
   password: "",
-  tls_validation: true,
-  ca_cert: "",
 };
 
 export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
@@ -54,13 +49,8 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         name,
         url,
         policy,
-        proxy_url: connectionSettings.proxy_url || undefined,
-        proxy_username: connectionSettings.proxy_username || undefined,
-        proxy_password: connectionSettings.proxy_password || undefined,
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
-        tls_validation: connectionSettings.tls_validation,
-        ca_cert: connectionSettings.ca_cert || undefined,
         // Both optional and plugin-specific (not part of the generic
         // RemoteConnectionSettingsFields shared by every plugin) - for
         // pointing at a self-hosted/private Hugging Face Hub instead of

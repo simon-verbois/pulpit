@@ -116,6 +116,8 @@ spec:
         - name: pulp
           image: docker.io/simonverbois/pulp-pulpit:latest
           env:
+            - name: PULPIT_EGRESS_REQUIRED
+              value: "true"
             - name: PULP_SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -132,6 +134,9 @@ spec:
           ports:
             - containerPort: 80
           volumeMounts:
+            - name: pulpit-egress
+              mountPath: /var/lib/pulpit-egress
+              readOnly: true
             - name: pulp-etc
               mountPath: /etc/pulp
             - name: pulp-var-lib-pulp
@@ -169,6 +174,9 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 10
       volumes:
+        - name: pulpit-egress
+          persistentVolumeClaim:
+            claimName: pulpit-egress
         - name: pulp-etc
           persistentVolumeClaim:
             claimName: pulp-etc

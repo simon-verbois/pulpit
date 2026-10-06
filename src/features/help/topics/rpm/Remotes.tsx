@@ -30,13 +30,14 @@ export function RpmRemotesTopic() {
         </Content>
       </Content>
       <Content component="p">
-        Expand <strong>Advanced connection settings</strong> to set a proxy
-        URL/credentials or origin server credentials for sources that need them. Once
-        saved, this page only shows whether a password is currently set, never the value
-        itself - leave a field blank when editing to keep the existing one, or type a new
-        value to replace it. <strong>Edit</strong> changes any of these fields, including
-        the sync policy; <strong>Delete</strong> removes the remote (repositories that
-        used it as their default keep working, just without one).
+        Expand <strong>Advanced connection settings</strong> to set origin server
+        credentials for sources that need them. Proxy, TLS validation and trusted CA
+        certificates are managed in Administration → Global Proxy Settings. Once saved,
+        this page only shows whether a password is currently set, never the value itself -
+        leave a field blank when editing to keep the existing one, or type a new value to
+        replace it. <strong>Edit</strong> changes any of these fields, including the sync
+        policy; <strong>Delete</strong> removes the remote (repositories that used it as
+        their default keep working, just without one).
       </Content>
 
       <Content component="h3">ULN remotes</Content>

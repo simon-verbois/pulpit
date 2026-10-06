@@ -4,9 +4,8 @@
 `bind_password_is_set` - same write-only convention as
 DefaultSettingsRead.proxy_password_is_set (pulpit-core/app/modules/
 default_settings/schemas.py). There is no "read back the real password"
-endpoint for this module (unlike default_settings' `/proxy-credentials`):
-nothing in the browser ever needs the decrypted value - only
-jobs.py's own apply/test-connection jobs do, and they read the DB row
+endpoint for this module: nothing in the browser ever needs the
+decrypted value - only jobs.py's own apply/test-connection jobs do, and they read the DB row
 directly."""
 
 import uuid

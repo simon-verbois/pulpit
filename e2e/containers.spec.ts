@@ -62,7 +62,10 @@ test.describe("Containers: remote -> repository -> sync -> tags/manifests -> dis
 
     // --- Manifests tab shows real manifest metadata --------------------------
     await page.getByRole("tab", { name: "Manifests" }).click();
-    await expect(page.getByRole("gridcell", { name: "amd64" }).first()).toBeVisible({
+    const manifests = page.getByRole("grid", { name: "Manifests", exact: true });
+    await expect(
+      manifests.getByRole("gridcell", { name: "linux", exact: true }).first(),
+    ).toBeVisible({
       timeout: 10_000,
     });
 

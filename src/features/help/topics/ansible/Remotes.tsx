@@ -48,11 +48,11 @@ export function AnsibleRemotesTopic() {
 
       <Content component="h3">Setting up a proxy or authentication</Content>
       <Content component="p">
-        Every remote kind has a <strong>Connection settings</strong> section for a proxy
-        URL/credentials or origin server credentials. Once saved, Pulpit only shows
-        whether a password is currently set, never the value itself — leave a password
-        field blank when editing to keep the existing one, or type a new value to replace
-        it.
+        Every remote kind has a <strong>Connection settings</strong> section for origin
+        server credentials. Proxy, TLS validation and trusted CA certificates are managed
+        in Administration → Global Proxy Settings. Once saved, Pulpit only shows whether a
+        password is currently set, never the value itself — leave a password field blank
+        when editing to keep the existing one, or type a new value to replace it.
       </Content>
 
       <Content component="h3">Editing and deleting</Content>

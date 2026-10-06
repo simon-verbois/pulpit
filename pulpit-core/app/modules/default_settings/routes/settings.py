@@ -36,5 +36,10 @@ def patch_settings(
         # proxy_password (service.update_settings) - every other field
         # updates fine with no key configured at all.
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    try:
+        service.publish_global_policy(row)
+    except OSError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Could not publish the global network policy; check the shared egress volume.") from exc
     db.commit()
     return DefaultSettingsRead.model_validate(row)

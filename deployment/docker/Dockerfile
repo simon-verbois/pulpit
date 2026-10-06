@@ -85,6 +85,9 @@ RUN groupadd --system pulpit \
     && groupadd --gid 700 pulpit-signing \
     && useradd --system --gid pulpit --groups pulpit-signing --create-home pulpit
 
+COPY deployment/docker/pulp/global-network /tmp/pulpit-egress
+RUN pip install --no-cache-dir /tmp/pulpit-egress && rm -rf /tmp/pulpit-egress
+
 COPY pulpit-core/pyproject.toml ./
 COPY pulpit-core/app ./app
 COPY pulpit-core/worker ./worker

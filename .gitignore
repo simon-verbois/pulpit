@@ -55,3 +55,6 @@ pulpit-core/.venv/
 pulpit-core/.pytest_cache/
 pulpit-core/*.egg-info/
 
+
+# Editable installation of the shared runtime policy package
+deployment/docker/pulp/global-network/*.egg-info/

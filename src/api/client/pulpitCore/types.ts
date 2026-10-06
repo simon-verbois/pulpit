@@ -193,17 +193,6 @@ export interface DefaultSettingsUpdate {
   proxy_ca_cert?: string;
 }
 
-/** The real, decrypted default proxy - deliberately a separate type/request
- * from DefaultSettings above. Fetched only at the moment
- * RemoteConnectionSettingsFields.tsx actually needs to apply the default
- * proxy to a Remote, never by the Default Settings page itself. */
-export interface DefaultProxyCredentials {
-  proxy_url: string;
-  proxy_username: string;
-  proxy_password: string | null;
-  proxy_ca_cert: string | null;
-}
-
 // Mirrors pulpit-core/app/modules/nav_visibility/schemas.py. UI-visibility
 // convenience only - never an authorization boundary, see that module's
 // models.py docstring. `module_id` values match src/app/layout/navTree.ts's

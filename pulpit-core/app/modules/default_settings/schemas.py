@@ -1,14 +1,7 @@
-"""Pydantic request/response models for the default-settings API.
+"""Global outbound policy API models; proxy credentials are always write-only.
 
-`DefaultSettingsRead` never has a field for the raw proxy password - only
-`proxy_password_is_set` (whether one is configured) - matching Pulp's own
-Remote.proxy_password handling (write-only, VERIFIED live: GET never
-echoes it back, see src/components/RemoteConnectionSettingsFields.tsx on
-the frontend). `ProxyCredentials` is the one deliberate exception: the
-actual decrypted value, returned only by its own narrow endpoint
-(routes/proxy_credentials.py), fetched only at the moment the frontend
-needs to actually apply the default proxy to a new/edited Remote - never
-by the general settings GET this page's own form uses to render itself.
+The private runtime manifest receives the decrypted credential server-side.
+The retired credential-export endpoint returns HTTP 410.
 """
 
 import uuid
@@ -56,13 +49,3 @@ class DefaultSettingsUpdate(BaseModel):
             # validate either way.
             return value
         return validate_ca_cert_pem(value)
-
-
-class ProxyCredentials(BaseModel):
-    """The real, decrypted proxy settings - see this module's docstring on
-    why this is a separate schema/endpoint from DefaultSettingsRead."""
-
-    proxy_url: str
-    proxy_username: str
-    proxy_password: str | None
-    proxy_ca_cert: str | None

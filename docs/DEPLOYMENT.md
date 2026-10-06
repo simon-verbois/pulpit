@@ -355,25 +355,38 @@ a real Squid proxy on the same Compose network) and a manual `curl -x <proxy> ..
 API still made its request directly - nothing appeared in the proxy's access log. So there is no
 compose.yml env var to set for this; adding one would silently do nothing for sync traffic.
 
-The mechanism that **does** work is Pulp's own per-remote `proxy_url` (`proxy_username`/
-`proxy_password` alongside it, all standard pulpcore Remote fields, not RPM-specific) - VERIFIED
-by setting it directly on a remote and confirming a subsequent sync's outbound request actually
-appeared in the test proxy's access log. Pulpit exposes these under "Advanced connection
-settings" in every plugin's Create/Edit Remote modals - RPM, Container, and Ansible alike
-(collapsed by default). Since Pulp never echoes a
-remote's `proxy_username`/`proxy_password`/origin `username`/`password` back on GET (it only
-reports whether one `is_set`), the edit form shows them blank with a "currently set" hint rather
-than the actual value - leaving a field blank on save keeps whatever was set before.
+The outgoing proxy is configured only in **Administration > Global Proxy Settings**.
+Saving publishes one private, atomic runtime policy through the `pulpit_egress`
+volume (Kubernetes PVC `pulpit-egress`, RWX). Pulp mounts it read-only; Pulpit's
+API/worker publish it. Existing and new remotes, ULN XML-RPC authentication,
+managed aiohttp/requests/httpx clients and child processes use this policy on
+new connections. Per-remote proxy/CA/TLS fields are no longer exposed by Pulpit;
+legacy values stored in Pulp are ignored by the derived image. Origin credentials
+and client certificates remain per-remote.
 
-A corporate TLS-inspecting proxy typically presents its own certificate, signed by an internal CA
-the system trust store doesn't know about. Pulp's per-remote `tls_validation` (VERIFIED live: one
-flag shared by the proxy connection AND the origin server, no way to relax just one) and `ca_cert`
-(VERIFIED directly in pulpcore's `DownloaderFactory`: builds one `SSLContext` per remote's aiohttp
-session, trusting `ca_cert` **in addition to**, not instead of, the system's own CA bundle) are
-pulpcore's own answer to this - no container-filesystem trust-store automation needed. Pulpit's
-Administration > Default Settings page lets an administrator set both once (**Skip TLS
-certificate validation** / **Trusted CA certificate (PEM)**), auto-applied to every new Remote's
-own fields (still overridable per Remote under its own "Advanced connection settings").
+The configured public CA is trusted alongside public roots. A supervised root
+reconciler adds/removes the managed CA in both container system trust stores
+(checked every two seconds; system extraction can take a few more seconds);
+Python clients consume the policy immediately. Managed
+child processes receive HTTP(S)_PROXY/NO_PROXY and certificate-bundle variables.
+The image's curl/git entry points read the policy at invocation, including tools
+started through `docker exec`/`podman exec`. Raw container `env` output cannot
+reflect a policy saved after process creation; applications do not depend on
+that snapshot. Internal Pulp and loopback health requests bypass the proxy.
+
+The shared JSON contains proxy credentials and is mode 0640, restricted to the
+application identities (shared group 700) and root. CA bundles are public.
+Database passwords remain encrypted; the legacy browser credential-export and
+bulk-apply endpoints return 410. Missing/malformed required policy fails external
+connections rather than silently selecting direct Internet access. Initial
+loopback health works before policy publication. Install both matching images
+and the new volume together, between syncs. Saving later needs no restart.
+
+Changes affect new connections, not already-established transfers. The GUI
+configures application egress; host image pulls, build-time package downloads,
+browsers and non-HTTP protocols are outside this policy. A blocked destination
+still needs its network rule opened. The connection test returns a structured
+result after at most 45 seconds, below nginx's 60-second upstream deadline.
 
 ## Podman
 

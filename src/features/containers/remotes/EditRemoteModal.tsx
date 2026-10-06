@@ -49,13 +49,8 @@ export function EditRemoteModal({
   // never echoes them back (VERIFIED live, see ContainerRemote.hidden_fields);
   // blank on submit means "leave unchanged", not "clear".
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
-    proxy_url: remote.proxy_url ?? "",
-    proxy_username: "",
-    proxy_password: "",
     username: "",
     password: "",
-    tls_validation: remote.tls_validation,
-    ca_cert: remote.ca_cert ?? "",
   });
   const updateMutation = useUpdateContainerRemoteMutation();
 
@@ -79,13 +74,8 @@ export function EditRemoteModal({
           policy,
           includes,
           excludes,
-          proxy_url: connectionSettings.proxy_url || null,
-          proxy_username: connectionSettings.proxy_username || undefined,
-          proxy_password: connectionSettings.proxy_password || undefined,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
-          tls_validation: connectionSettings.tls_validation,
-          ca_cert: connectionSettings.ca_cert || null,
         },
       },
       { onSuccess: () => onClose() },

@@ -33,13 +33,8 @@ const POLICIES: { value: RemotePolicy; label: string }[] = [
 ];
 
 const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
-  proxy_url: "",
-  proxy_username: "",
-  proxy_password: "",
   username: "",
   password: "",
-  tls_validation: true,
-  ca_cert: "",
 };
 
 /** Unlike every other plugin's remote in this app, this one has a second
@@ -65,13 +60,8 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         components: components || undefined,
         architectures: architectures || undefined,
         policy,
-        proxy_url: connectionSettings.proxy_url || undefined,
-        proxy_username: connectionSettings.proxy_username || undefined,
-        proxy_password: connectionSettings.proxy_password || undefined,
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
-        tls_validation: connectionSettings.tls_validation,
-        ca_cert: connectionSettings.ca_cert || undefined,
       },
       { onSuccess: () => onClose() },
     );

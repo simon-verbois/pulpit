@@ -105,7 +105,7 @@ api-generate: ## Generate TypeScript types from the fetched schema
 ## --- pulpit-core / signing (ADR 0006, docs/signing.md) ----------------------
 
 pulpit-core-install: ## Install pulpit-core's Python dependencies into pulpit-core/.venv
-	cd pulpit-core && python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+	cd pulpit-core && python3 -m venv .venv && . .venv/bin/activate && pip install -e ../deployment/docker/pulp/global-network -e ".[dev]"
 
 pulpit-core-test: ## Run pulpit-core's pytest suite (defaults to a real Postgres at localhost:15432 - set PULPIT_CORE_DATABASE_URL=sqlite:///... to use SQLite instead, see tests/conftest.py)
 	cd pulpit-core && . .venv/bin/activate && pytest

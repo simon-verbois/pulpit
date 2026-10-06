@@ -127,7 +127,7 @@ remote's CA/client certificates, `tls_validation`, or timeout settings. A
 read-only check using an unsaved remote with `total_timeout=7` and
 `tls_validation=False` confirmed a 7-second metadata timeout with TLS validation
 disabled, versus the login's default 300-second timeout and default TLS
-validation. The Pulpit probe caps the whole operation at 60 seconds. Login
+validation. The original Pulpit probe capped the whole operation at 60 seconds. The global-network deployment now uses 45 seconds to finish before nginx. Login
 failures are retried four times and wrapped as `UlnCredentialsError`, so a proxy
 or certificate error can surface as a generic ULN login failure. **TODO:** verify
 the actual error and installed plugin version in production before attributing
@@ -578,3 +578,19 @@ returned 200 with the repository object, not a task. Core now handles both this
 synchronous response (JobRead already marked success) and a task response (queued
 polling job). Never infer asynchronous behavior solely from the PATCH method or
 from earlier plugin versions.
+
+## Global outbound network policy (2026-10-05)
+
+The derived Pulp image installs `pulpit-egress` at the remote-check plugin's
+Django startup. It replaces legacy per-remote proxy/CA/TLS values in the downloader
+factory's in-memory copy, without persisting invented Pulp settings. Origin
+credentials and mTLS remain intact. Request hooks enforce global proxy/CA for
+aiohttp (including the separate ULN XML-RPC session), requests and HTTPX.
+Pulpit publishes this infrastructure policy from its own singleton configuration
+through a private shared volume. This is not a cache of Pulp resource data.
+
+The existing settings API still uses PATCH and synchronous JSON responses.
+`/default_settings/proxy-credentials` and `/apply-proxy-to-all-remotes` are retired
+with HTTP 410; no proxy secret needs to be returned to browser remote forms.
+`VERIFIED` tests must cover real HTTPS through a CONNECT proxy, separate XML-RPC
+login, policy rotation/removal, subprocesses and internal bypass.

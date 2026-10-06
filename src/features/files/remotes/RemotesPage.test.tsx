@@ -91,7 +91,7 @@ describe("RemotesPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("edits a remote's proxy settings and tracks the task", async () => {
+  it("edits origin credentials without a per-remote proxy and tracks the task", async () => {
     renderApp(<RemotesPage />, { withTasksDrawer: true });
 
     await screen.findByText(FILE_REMOTE_FIXTURE.name);
@@ -101,8 +101,8 @@ describe("RemotesPage", () => {
     fireEvent.click(
       within(dialog).getByRole("button", { name: /advanced connection settings/i }),
     );
-    fireEvent.change(dialog.querySelector("#edit-remote-proxy-url") as HTMLInputElement, {
-      target: { value: "http://proxy.example.com:3128" },
+    fireEvent.change(dialog.querySelector("#edit-remote-username") as HTMLInputElement, {
+      target: { value: "origin-user" },
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
 

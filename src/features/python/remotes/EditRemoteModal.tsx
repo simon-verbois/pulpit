@@ -82,13 +82,8 @@ export function EditRemoteModal({
   );
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
-    proxy_url: remote.proxy_url ?? "",
-    proxy_username: "",
-    proxy_password: "",
     username: "",
     password: "",
-    tls_validation: remote.tls_validation,
-    ca_cert: remote.ca_cert ?? "",
   });
   const updateMutation = useUpdatePythonRemoteMutation();
 
@@ -118,13 +113,8 @@ export function EditRemoteModal({
           package_types: packageTypes,
           exclude_platforms: excludePlatforms,
           keep_latest_packages: keepLatestPackages ?? 0,
-          proxy_url: connectionSettings.proxy_url || null,
-          proxy_username: connectionSettings.proxy_username || undefined,
-          proxy_password: connectionSettings.proxy_password || undefined,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
-          tls_validation: connectionSettings.tls_validation,
-          ca_cert: connectionSettings.ca_cert || null,
         },
       },
       { onSuccess: () => onClose() },

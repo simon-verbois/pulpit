@@ -30,14 +30,11 @@ def test_apply_proxy_to_all_remotes_requires_staff(db):
         main_module.app.dependency_overrides.clear()
 
 
-def test_apply_proxy_to_all_remotes_enqueues_a_job_for_staff(db):
+def test_legacy_bulk_action_directs_staff_to_global_settings(db):
     client = _client(db, is_staff=True)
     try:
         response = client.post("/api/v1/default_settings/apply-proxy-to-all-remotes")
-        assert response.status_code == 202
-        body = response.json()
-        assert body["job_type"] == "default_settings.apply_proxy_to_all_remotes"
-        assert body["status"] == "queued"
-        assert body["requested_by"] == "admin"
+        assert response.status_code == 410
+        assert "automatically" in response.json()["detail"]
     finally:
         main_module.app.dependency_overrides.clear()

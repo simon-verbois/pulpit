@@ -58,13 +58,8 @@ const EXCLUDE_PLATFORMS: PythonExcludePlatform[] = [
 ];
 
 const EMPTY_CONNECTION_SETTINGS: RemoteConnectionSettings = {
-  proxy_url: "",
-  proxy_username: "",
-  proxy_password: "",
   username: "",
   password: "",
-  tls_validation: true,
-  ca_cert: "",
 };
 
 export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
@@ -106,13 +101,8 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         package_types: packageTypes.length > 0 ? packageTypes : undefined,
         exclude_platforms: excludePlatforms.length > 0 ? excludePlatforms : undefined,
         keep_latest_packages: keepLatestPackages,
-        proxy_url: connectionSettings.proxy_url || undefined,
-        proxy_username: connectionSettings.proxy_username || undefined,
-        proxy_password: connectionSettings.proxy_password || undefined,
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
-        tls_validation: connectionSettings.tls_validation,
-        ca_cert: connectionSettings.ca_cert || undefined,
       },
       { onSuccess: () => onClose() },
     );
