@@ -22,7 +22,11 @@ COPY pulpit-ldap-reconciler /usr/local/bin/pulpit-ldap-reconciler
 COPY s6/pulpit-egress-trust /etc/s6-overlay/s6-rc.d/pulpit-egress-trust
 COPY s6/pulpit-ldap-reconciler /etc/s6-overlay/s6-rc.d/pulpit-ldap-reconciler
 
-RUN pip install --no-cache-dir /tmp/pulpit-egress /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check \
+# --no-build-isolation: build with the setuptools the base image already
+# ships instead of downloading it from PyPI - these three local packages
+# then install without any network access (a PyPI read timeout used to fail
+# the image build).
+RUN pip install --no-cache-dir --no-build-isolation /tmp/pulpit-egress /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check \
  && rm -rf /tmp/pulpit-egress /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check \
  && chmod 0755 /etc/s6-overlay/s6-rc.d/pulpit-egress-trust/run /usr/local/bin/pulpit-signing-reconciler \
       /etc/s6-overlay/s6-rc.d/pulpit-signing-reconciler/run \
