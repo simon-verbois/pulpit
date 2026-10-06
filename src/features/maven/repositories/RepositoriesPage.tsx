@@ -17,13 +17,14 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { RepositorySizeCell } from "../../../components/RepositorySizeCell";
-import { TaskActionButton } from "../../../components/TaskActionButton";
+import { RepositoryRowActions } from "../../../components/RepositoryRowActions";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useRepositoryContentSizesQuery } from "../../../hooks/useRepositoryContentSizesQuery";
 import type { MavenRepository } from "../../../api/client/maven/types";
 import { useMavenRepositoriesQuery } from "./useMavenRepositoriesQuery";
 import { useDeleteMavenRepositoryMutation } from "./useDeleteMavenRepositoryMutation";
 import { CreateRepositoryModal } from "./CreateRepositoryModal";
+import { EditRepositoryModal } from "./EditRepositoryModal";
 
 /** No Sync/Publish row actions here - VERIFIED live: this plugin has
  * neither a repository `sync/` endpoint nor a publication endpoint at all;
@@ -34,6 +35,7 @@ export function RepositoriesPage() {
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<MavenRepository | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<MavenRepository | null>(null);
   const pagination = usePulpPagination();
   const sizesQuery = useRepositoryContentSizesQuery();
   const deleteMutation = useDeleteMavenRepositoryMutation();
@@ -133,15 +135,12 @@ export function RepositoriesPage() {
                       />
                     </Td>
                     <Td dataLabel="Actions" isActionCell>
-                      <TaskActionButton
+                      <RepositoryRowActions
+                        repositoryName={repository.name}
                         resourceHref={repository.pulp_href}
-                        taskAction="delete"
-                        variant="link"
-                        isDanger
-                        onClick={() => setPendingDelete(repository)}
-                      >
-                        Delete
-                      </TaskActionButton>
+                        onEdit={() => setPendingEdit(repository)}
+                        onDelete={() => setPendingDelete(repository)}
+                      />
                     </Td>
                   </Tr>
                 ))}
@@ -153,6 +152,13 @@ export function RepositoriesPage() {
 
       {isCreateOpen ? (
         <CreateRepositoryModal onClose={() => setIsCreateOpen(false)} />
+      ) : null}
+      {pendingEdit ? (
+        <EditRepositoryModal
+          repository={pendingEdit}
+          onClose={() => setPendingEdit(null)}
+          navigateOnRename={false}
+        />
       ) : null}
       {pendingDelete ? (
         <ConfirmDeleteModal

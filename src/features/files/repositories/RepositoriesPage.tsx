@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
-  Flex,
-  FlexItem,
   Pagination,
   PageSection,
   SearchInput,
@@ -19,7 +17,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { RepositorySizeCell } from "../../../components/RepositorySizeCell";
-import { TaskActionButton } from "../../../components/TaskActionButton";
+import { RepositoryRowActions } from "../../../components/RepositoryRowActions";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useRepositoryContentSizesQuery } from "../../../hooks/useRepositoryContentSizesQuery";
 import type { FileRepository } from "../../../api/client/file/types";
@@ -33,12 +31,14 @@ import {
   fileRepositoryVersionsKey,
 } from "./queryKeys";
 import { CreateRepositoryModal } from "./CreateRepositoryModal";
+import { EditRepositoryModal } from "./EditRepositoryModal";
 
 export function RepositoriesPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<FileRepository | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<FileRepository | null>(null);
   const pagination = usePulpPagination();
   const sizesQuery = useRepositoryContentSizesQuery();
   const deleteMutation = useDeleteFileRepositoryMutation();
@@ -140,70 +140,39 @@ export function RepositoriesPage() {
                       />
                     </Td>
                     <Td dataLabel="Actions" isActionCell>
-                      <Flex
-                        flexWrap={{ default: "nowrap" }}
-                        spaceItems={{ default: "spaceItemsNone" }}
-                        justifyContent={{ default: "justifyContentFlexEnd" }}
-                      >
-                        <FlexItem>
-                          <TaskActionButton
-                            resourceHref={repository.pulp_href}
-                            taskAction="sync"
-                            variant="link"
-                            isDisabled={!repository.remote || syncMutation.isPending}
-                            title={
-                              repository.remote
-                                ? undefined
-                                : "Edit this repository to set a default remote before syncing"
-                            }
-                            onClick={() =>
-                              syncMutation.mutate({
-                                href: repository.pulp_href,
-                                name: repository.name,
-                                invalidateKeys: [
-                                  fileRepositoryByNameKey(repository.name),
-                                  fileRepositoriesListRootKey,
-                                  fileRepositoryVersionsKey(repository.versions_href),
-                                ],
-                              })
-                            }
-                          >
-                            Sync
-                          </TaskActionButton>
-                        </FlexItem>
-                        <FlexItem>
-                          <TaskActionButton
-                            resourceHref={repository.pulp_href}
-                            taskAction="publish"
-                            variant="link"
-                            isDisabled={publishMutation.isPending}
-                            title={
-                              repository.autopublish
-                                ? "Autopublish is on for this repository - only needed to force a republish"
-                                : undefined
-                            }
-                            onClick={() =>
-                              publishMutation.mutate({
-                                href: repository.pulp_href,
-                                name: repository.name,
-                              })
-                            }
-                          >
-                            Publish
-                          </TaskActionButton>
-                        </FlexItem>
-                        <FlexItem>
-                          <TaskActionButton
-                            resourceHref={repository.pulp_href}
-                            taskAction="delete"
-                            variant="link"
-                            isDanger
-                            onClick={() => setPendingDelete(repository)}
-                          >
-                            Delete
-                          </TaskActionButton>
-                        </FlexItem>
-                      </Flex>
+                      <RepositoryRowActions
+                        repositoryName={repository.name}
+                        resourceHref={repository.pulp_href}
+                        sync={{
+                          isDisabled: !repository.remote || syncMutation.isPending,
+                          title: repository.remote
+                            ? undefined
+                            : "Edit this repository to set a default remote before syncing",
+                          onClick: () =>
+                            syncMutation.mutate({
+                              href: repository.pulp_href,
+                              name: repository.name,
+                              invalidateKeys: [
+                                fileRepositoryByNameKey(repository.name),
+                                fileRepositoriesListRootKey,
+                                fileRepositoryVersionsKey(repository.versions_href),
+                              ],
+                            }),
+                        }}
+                        publish={{
+                          isDisabled: publishMutation.isPending,
+                          title: repository.autopublish
+                            ? "Autopublish is on for this repository - only needed to force a republish"
+                            : undefined,
+                          onClick: () =>
+                            publishMutation.mutate({
+                              href: repository.pulp_href,
+                              name: repository.name,
+                            }),
+                        }}
+                        onEdit={() => setPendingEdit(repository)}
+                        onDelete={() => setPendingDelete(repository)}
+                      />
                     </Td>
                   </Tr>
                 ))}
@@ -215,6 +184,13 @@ export function RepositoriesPage() {
 
       {isCreateOpen ? (
         <CreateRepositoryModal onClose={() => setIsCreateOpen(false)} />
+      ) : null}
+      {pendingEdit ? (
+        <EditRepositoryModal
+          repository={pendingEdit}
+          onClose={() => setPendingEdit(null)}
+          navigateOnRename={false}
+        />
       ) : null}
       {pendingDelete ? (
         <ConfirmDeleteModal

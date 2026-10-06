@@ -774,18 +774,10 @@ body {
   padding-inline: 1.125rem;
 }
 
-/* PatternFly maps both hover and focus to the same filled tab surface. A
-   pointer click therefore leaves a grey rounded highlight behind until
-   focus moves elsewhere, competing with the blue active underline. Pointer
-   focus uses the active underline alone; keyboard focus keeps an explicit
-   brand outline so operability never relies on color or focus removal. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-tabs
-  .pf-v6-c-tabs__link:focus:not(:focus-visible) {
-  --pf-v6-c-tabs__link--BackgroundColor: transparent;
-  --pf-v6-c-tabs__link--BorderColor: transparent;
-}
-
+/* Pointer focus no longer paints the filled hover surface on tabs (see the
+   `:focus` -> `:focus-visible` rewrite in vite.config.ts). Keyboard focus
+   swaps that grey surface - which competes with the blue active underline -
+   for an explicit brand outline, so operability never relies on color. */
 .pulpit-page-header:not(.pulpit-overview-header)
   + .pf-v6-c-page__main-tabs
   .pf-v6-c-tabs__link:focus-visible {

@@ -95,7 +95,8 @@ describe("RepositoriesPage", () => {
     ).toBeInTheDocument();
     expect(syncButton).toBeDisabled();
     expect(syncButton).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /^Actions for / }));
+    expect(await screen.findByRole("menuitem", { name: /^Publish/ })).toBeDisabled();
   });
 
   it("opens a tracked task on the Tasks page when its drawer item is clicked", async () => {
@@ -131,11 +132,37 @@ describe("RepositoriesPage", () => {
     renderApp(<RepositoriesPage />, { withTasksDrawer: true });
 
     await screen.findByText(RPM_REPO_FIXTURE.name);
-    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Actions for / }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /^Publish/ }));
 
     expect(
       await screen.findByText(`Publish repository "${RPM_REPO_FIXTURE.name}"`),
     ).toBeInTheDocument();
+  });
+
+  it("edits a repository from its row menu and stays on the list after a rename", async () => {
+    renderApp(<RepositoriesPage />, {
+      route: "/rpm/repositories",
+      path: "/rpm/repositories",
+      withTasksDrawer: true,
+    });
+
+    await screen.findByText(RPM_REPO_FIXTURE.name);
+    fireEvent.click(
+      screen.getByRole("button", { name: `Actions for ${RPM_REPO_FIXTURE.name}` }),
+    );
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Edit" }));
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
+      target: { value: "renamed-from-list" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByText("renamed-from-list")).toBeInTheDocument();
+    // No route matches the detail URL here - had the modal navigated, the list would be gone.
+    expect(screen.getByRole("heading", { name: "RPM repositories" })).toBeInTheDocument();
   });
 
   it("creates a repository synchronously (201, no task) and navigates to its detail page", async () => {
@@ -478,7 +505,8 @@ describe("RepositoriesPage", () => {
     renderApp(<RepositoriesPage />, { withTasksDrawer: true });
 
     await screen.findByText(RPM_REPO_FIXTURE.name);
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Actions for / }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /^Delete/ }));
 
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));

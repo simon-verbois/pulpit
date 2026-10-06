@@ -211,8 +211,9 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await page.goto("/ansible/repositories");
     await page
       .getByRole("row", { name: new RegExp(REPO_NAME) })
-      .getByRole("button", { name: "Delete" })
+      .getByRole("button", { name: `Actions for ${REPO_NAME}` })
       .click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
     await expect(page.getByRole("row", { name: new RegExp(REPO_NAME) })).not.toBeVisible({

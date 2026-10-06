@@ -27,9 +27,12 @@ import { useUpdateAnsibleRepositoryMutation } from "./useUpdateAnsibleRepository
 export function EditRepositoryModal({
   repository,
   onClose,
+  navigateOnRename = true,
 }: {
   repository: AnsibleRepository;
   onClose: () => void;
+  /** Follow a rename to the new detail URL - off when editing from the list. */
+  navigateOnRename?: boolean;
 }) {
   const [name, setName] = useState(repository.name);
   const [description, setDescription] = useState(repository.description ?? "");
@@ -64,7 +67,7 @@ export function EditRepositoryModal({
       {
         onSuccess: () => {
           onClose();
-          if (name !== repository.name) {
+          if (navigateOnRename && name !== repository.name) {
             navigate(`/ansible/repositories/${encodeURIComponent(name)}`);
           }
         },

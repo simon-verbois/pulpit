@@ -105,7 +105,8 @@ describe("Container RepositoriesPage", () => {
     renderApp(<RepositoriesPage />, { withTasksDrawer: true });
 
     await screen.findByText(CONTAINER_REPO_FIXTURE.name);
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Actions for / }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /^Delete/ }));
 
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));

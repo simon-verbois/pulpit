@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
+import type { Plugin as PostCssPlugin } from "postcss";
 import react from "@vitejs/plugin-react";
 
 // Local dev convenience only (Mode A - see docs/DEVELOPMENT.md).
@@ -43,8 +44,27 @@ function formatBuildDate(date: Date, timeZone: string): string {
 const BUILD_TZ = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
 const BUILD_DATE = formatBuildDate(new Date(), BUILD_TZ);
 
+// PatternFly styles hover and focus identically (`:is(:hover, :focus)` on
+// buttons, menu toggles, nav/tab links, toggle groups, sort headers...), so a
+// mouse click leaves the hover color stuck on the control until focus moves
+// elsewhere - e.g. a row's kebab after its menu closes. Rewriting those
+// `:focus` selectors to `:focus-visible` keeps the exact same look for
+// keyboard focus while pointer focus no longer mimics a hover. (`:focus-within`
+// and existing `:focus-visible` selectors are left untouched.)
+const patternflyFocusVisible: PostCssPlugin = {
+  postcssPlugin: "pulpit-patternfly-focus-visible",
+  Rule(rule) {
+    if (rule.source?.input.file?.includes("@patternfly")) {
+      rule.selector = rule.selector.replace(/:focus(?![-\w])/g, ":focus-visible");
+    }
+  },
+};
+
 export default defineConfig({
   plugins: [react()],
+  css: {
+    postcss: { plugins: [patternflyFocusVisible] },
+  },
   resolve: {
     alias: {
       "@": "/src",

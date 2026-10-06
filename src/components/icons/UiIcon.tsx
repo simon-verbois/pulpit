@@ -11,6 +11,7 @@ export type UiIconName =
   | "external"
   | "help"
   | "home"
+  | "kebab"
   | "menu"
   | "moon"
   | "publish"
@@ -62,6 +63,7 @@ const paths: Record<UiIconName, ReactNode> = {
     </>
   ),
   home: <path d="m3 11 9-7 9 7M5 10v10h14V10M9 20v-6h6v6" />,
+  kebab: <path d="M12 5h.01M12 12h.01M12 19h.01" />,
   menu: <path d="M5 7h14M5 12h14M5 17h14" />,
   moon: <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z" />,
   publish: <path d="M12 16V3m0 0L7 8m5-5 5 5M5 14v6h14v-6" />,
