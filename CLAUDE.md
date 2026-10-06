@@ -40,6 +40,6 @@ rather than improvising. Key rules that have caused real bugs in this project wh
   `FlexItem`), with the Cancel/Close button first in the JSX and the primary/danger action
   last, so the confirm button sits closest to the modal's edge. More generally, the rightmost
   button is always the one that finishes the modal (Save/Create/Delete, or Close when there's
-  nothing left to confirm): a non-terminal action like "Test again" goes to the *left* of Close,
+  nothing left to confirm): a non-terminal action like "Test again" goes to the _left_ of Close,
   and once a background job has succeeded, hide its (now pointless) action button so Close is
   rightmost.
