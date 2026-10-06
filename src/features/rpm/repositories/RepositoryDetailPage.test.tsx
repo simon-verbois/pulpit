@@ -10,6 +10,11 @@ import {
   RPM_REMOTE_FIXTURE,
   RPM_REPO_FIXTURE,
 } from "../../../test/handlers";
+import {
+  clickRepositoryAction,
+  openRepositoryActions,
+  repositoryActionName,
+} from "../../../test/repositoryActions";
 import { RepositoryDetailPage } from "./RepositoryDetailPage";
 
 function renderDetail(name = RPM_REPO_FIXTURE.name) {
@@ -35,9 +40,43 @@ describe("RepositoryDetailPage", () => {
       "href",
       `/rpm/remotes?search=${encodeURIComponent(RPM_REMOTE_FIXTURE.name)}`,
     );
-    expect(screen.getByText(RPM_REMOTE_FIXTURE.url)).toBeInTheDocument();
     // Signing is off globally in the default fixture - nothing to re-sign with.
-    expect(screen.queryByRole("button", { name: "Re-sign now" })).not.toBeInTheDocument();
+    await openRepositoryActions();
+    expect(
+      screen.queryByRole("menuitem", { name: repositoryActionName("Re-sign now") }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("summarizes the latest version and links it to the Versions tab", async () => {
+    server.use(
+      http.get(RPM_REPO_FIXTURE.latest_version_href, () =>
+        HttpResponse.json({
+          pulp_href: RPM_REPO_FIXTURE.latest_version_href,
+          number: 1,
+          repository: RPM_REPO_FIXTURE.pulp_href,
+          pulp_created: "2026-01-02T10:00:00Z",
+          content_summary: {
+            added: {},
+            removed: {},
+            present: {
+              "rpm.package": { count: 35, href: "" },
+              "rpm.advisory": { count: 1, href: "" },
+            },
+          },
+        }),
+      ),
+    );
+    renderDetail();
+
+    expect(await screen.findByText("35 packages, 1 advisory")).toBeInTheDocument();
+    // Sync now is the page's one primary action, in the header.
+    expect(screen.getByRole("button", { name: "Sync now" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Version 1" }));
+    expect(screen.getByRole("tab", { name: "Versions" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 
   it("re-signs the repository and reports the result", async () => {
@@ -78,7 +117,8 @@ describe("RepositoryDetailPage", () => {
     );
     renderDetail();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Re-sign now" }));
+    await screen.findByRole("tab", { name: "Overview" });
+    await clickRepositoryAction("Re-sign now");
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Re-sign" }));
 
@@ -96,8 +136,7 @@ describe("RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    const publishButton = screen.getByRole("button", { name: "Publish now" });
-    fireEvent.click(publishButton);
+    await clickRepositoryAction("Publish now");
 
     expect(
       await screen.findByText(`Publish repository "${RPM_REPO_FIXTURE.name}"`),
@@ -108,7 +147,7 @@ describe("RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await clickRepositoryAction("Edit");
 
     const dialog = await screen.findByRole("dialog");
     const descriptionField = within(dialog).getByLabelText("Description", {
@@ -130,7 +169,7 @@ describe("RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await clickRepositoryAction("Edit");
 
     const dialog = await screen.findByRole("dialog");
     const nameField = within(dialog).getByLabelText("Name", { exact: false });
@@ -168,10 +207,11 @@ describe("RepositoryDetailPage", () => {
     await screen.findByRole("tab", { name: "Overview" });
     fireEvent.click(screen.getByRole("tab", { name: "Versions" }));
 
-    expect(await screen.findByText(/Version 1/)).toBeInTheDocument();
-    expect(screen.getByText("Current")).toBeInTheDocument();
-    expect(screen.getByText("35 packages")).toBeInTheDocument();
-    expect(screen.getByText(/Version 0/)).toBeInTheDocument();
+    const panel = await screen.findByRole("tabpanel");
+    expect(await within(panel).findByText(/Version 1/)).toBeInTheDocument();
+    expect(within(panel).getByText("Current")).toBeInTheDocument();
+    expect(within(panel).getByText("35 packages")).toBeInTheDocument();
+    expect(within(panel).getByText(/Version 0/)).toBeInTheDocument();
   });
 
   it("switches to the Packages tab and offers an upload action", async () => {
@@ -231,7 +271,7 @@ describe("RepositoryDetailPage", () => {
     });
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Delete repository" }));
+    await clickRepositoryAction("Delete repository");
 
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));

@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Flex,
-  FlexItem,
-  PageSection,
-  Tab,
-  TabTitleText,
-  Tabs,
-} from "@patternfly/react-core";
+import { PageSection, Tab, TabTitleText, Tabs } from "@patternfly/react-core";
 
 import { PageHeader } from "../../../components/PageHeader";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
-import { TaskActionButton } from "../../../components/TaskActionButton";
+import { RepositoryHeaderActions } from "../../../components/RepositoryHeaderActions";
 import { useUrlTab } from "../../../hooks/useUrlTab";
 import { useNpmRepositoryByNameQuery } from "./useNpmRepositoryByNameQuery";
 import { useDeleteNpmRepositoryMutation } from "./useDeleteNpmRepositoryMutation";
@@ -24,6 +17,12 @@ import { RepositoryVersionsTab } from "./RepositoryVersionsTab";
 import { RepositoryDistributionsTab } from "./RepositoryDistributionsTab";
 import { ObjectAccessTab } from "../../access/ObjectAccessTab";
 import { EditRepositoryModal } from "./EditRepositoryModal";
+import {
+  npmRepositoriesListRootKey,
+  npmRepositoryByNameKey,
+  npmRepositoryVersionsKey,
+} from "./queryKeys";
+import { useSyncNpmRepositoryMutation } from "./useSyncNpmRepositoryMutation";
 
 export function RepositoryDetailPage() {
   const { name = "" } = useParams<{ name: string }>();
@@ -34,6 +33,7 @@ export function RepositoryDetailPage() {
 
   const repositoryQuery = useNpmRepositoryByNameQuery(name);
   const deleteMutation = useDeleteNpmRepositoryMutation();
+  const syncMutation = useSyncNpmRepositoryMutation();
 
   if (repositoryQuery.isPending) {
     return (
@@ -81,35 +81,38 @@ export function RepositoryDetailPage() {
         title={repository.name}
         description={repository.description ?? undefined}
         actions={
-          <Flex spaceItems={{ default: "spaceItemsSm" }}>
-            <FlexItem>
-              <TaskActionButton
-                resourceHref={repository.pulp_href}
-                taskAction="edit"
-                variant="secondary"
-                onClick={() => setIsEditOpen(true)}
-              >
-                Edit
-              </TaskActionButton>
-            </FlexItem>
-            <FlexItem>
-              <TaskActionButton
-                resourceHref={repository.pulp_href}
-                taskAction="delete"
-                variant="danger"
-                onClick={() => setIsConfirmingDelete(true)}
-              >
-                Delete repository
-              </TaskActionButton>
-            </FlexItem>
-          </Flex>
+          <RepositoryHeaderActions
+            resourceHref={repository.pulp_href}
+            sync={{
+              isDisabled: !repository.remote || syncMutation.isPending,
+              isLoading: syncMutation.isPending,
+              description: repository.remote
+                ? undefined
+                : "This repository has no default remote configured",
+              onClick: () =>
+                syncMutation.mutate({
+                  href: repository.pulp_href,
+                  name: repository.name,
+                  invalidateKeys: [
+                    npmRepositoryByNameKey(repository.name),
+                    npmRepositoriesListRootKey,
+                    npmRepositoryVersionsKey(repository.versions_href),
+                  ],
+                }),
+            }}
+            onEdit={() => setIsEditOpen(true)}
+            onDelete={() => setIsConfirmingDelete(true)}
+          />
         }
       />
       <PageSection hasBodyWrapper={false} type="tabs">
         <Tabs activeKey={activeTab} onSelect={(_event, key) => setActiveTab(key)}>
           <Tab eventKey="overview" title={<TabTitleText>Overview</TabTitleText>}>
             <PageSection hasBodyWrapper={false}>
-              <RepositoryOverviewTab repository={repository} />
+              <RepositoryOverviewTab
+                repository={repository}
+                onShowVersions={() => setActiveTab("versions")}
+              />
             </PageSection>
           </Tab>
           <Tab eventKey="content" title={<TabTitleText>Content</TabTitleText>}>

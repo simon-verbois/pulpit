@@ -56,7 +56,9 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     await syncButton.click();
     await expect(syncButton).toBeDisabled();
     await expect(syncButton).toHaveAttribute("aria-busy", "true");
-    await expect(page.getByRole("button", { name: "Publish now" })).toBeDisabled();
+    await page.getByRole("button", { name: "Actions" }).click();
+    await expect(page.getByRole("menuitem", { name: /^Publish now/ })).toBeDisabled();
+    await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Tasks" })).toBeVisible();
     await page.getByRole("button", { name: "Tasks" }).click();
     const taskItem = page.getByText(`Sync repository "${REPO_NAME}"`);
@@ -73,9 +75,10 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
 
     // --- Versions tab shows the new version --------------------------------
     await page.getByRole("tab", { name: "Versions" }).click();
-    await expect(page.getByText(/Version 1/)).toBeVisible();
-    await expect(page.getByText("Current")).toBeVisible();
-    await expect(page.getByText("35 packages")).toBeVisible();
+    const versionsPanel = page.getByRole("tabpanel");
+    await expect(versionsPanel.getByText(/Version 1/)).toBeVisible();
+    await expect(versionsPanel.getByText("Current")).toBeVisible();
+    await expect(versionsPanel.getByText("35 packages")).toBeVisible();
 
     // --- Upload an additional package directly ----------------------------
     await page.getByRole("tab", { name: "Packages" }).click();

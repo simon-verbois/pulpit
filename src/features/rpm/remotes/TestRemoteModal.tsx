@@ -66,17 +66,17 @@ export function TestRemoteModal({
           style={{ width: "100%" }}
         >
           <FlexItem>
-            <Button variant="link" onClick={onClose}>
-              Close
-            </Button>
-          </FlexItem>
-          <FlexItem>
             <Button
               variant="secondary"
               isDisabled={testQuery.isFetching}
               onClick={() => testQuery.refetch()}
             >
               Test again
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button variant="link" onClick={onClose}>
+              Close
             </Button>
           </FlexItem>
         </Flex>

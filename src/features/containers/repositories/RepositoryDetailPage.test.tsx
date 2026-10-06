@@ -8,6 +8,7 @@ import {
   CONTAINER_DISTRIBUTION_FIXTURE,
   CONTAINER_REPO_FIXTURE,
 } from "../../../test/handlers";
+import { clickRepositoryAction } from "../../../test/repositoryActions";
 import { RepositoryDetailPage } from "./RepositoryDetailPage";
 
 function renderDetail(name = CONTAINER_REPO_FIXTURE.name) {
@@ -37,7 +38,7 @@ describe("Container RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await clickRepositoryAction("Edit");
 
     const dialog = await screen.findByRole("dialog");
     const descriptionField = within(dialog).getByLabelText("Description", {
@@ -59,7 +60,7 @@ describe("Container RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await clickRepositoryAction("Edit");
 
     const dialog = await screen.findByRole("dialog");
     const nameField = within(dialog).getByLabelText("Name", { exact: false });
@@ -97,9 +98,10 @@ describe("Container RepositoryDetailPage", () => {
     await screen.findByRole("tab", { name: "Overview" });
     fireEvent.click(screen.getByRole("tab", { name: "Versions" }));
 
-    expect(await screen.findByText(/Version 1/)).toBeInTheDocument();
-    expect(screen.getByText("Current")).toBeInTheDocument();
-    expect(screen.getByText(/1 tags, 1 manifests/)).toBeInTheDocument();
+    const panel = await screen.findByRole("tabpanel");
+    expect(await within(panel).findByText(/Version 1/)).toBeInTheDocument();
+    expect(within(panel).getByText("Current")).toBeInTheDocument();
+    expect(within(panel).getByText(/1 tags, 1 manifests/)).toBeInTheDocument();
   });
 
   it("switches to the Tags tab and offers a manual tag action", async () => {
@@ -150,7 +152,7 @@ describe("Container RepositoryDetailPage", () => {
     });
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Delete repository" }));
+    await clickRepositoryAction("Delete repository");
 
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));

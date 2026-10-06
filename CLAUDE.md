@@ -38,4 +38,8 @@ rather than improvising. Key rules that have caused real bugs in this project wh
   left-packed flex row, not right-aligned) - always wrap its contents in a
   `Flex justifyContent={{ default: "justifyContentFlexEnd" }}` (each button in its own
   `FlexItem`), with the Cancel/Close button first in the JSX and the primary/danger action
-  last, so the confirm button sits closest to the modal's edge.
+  last, so the confirm button sits closest to the modal's edge. More generally, the rightmost
+  button is always the one that finishes the modal (Save/Create/Delete, or Close when there's
+  nothing left to confirm): a non-terminal action like "Test again" goes to the *left* of Close,
+  and once a background job has succeeded, hide its (now pointless) action button so Close is
+  rightmost.

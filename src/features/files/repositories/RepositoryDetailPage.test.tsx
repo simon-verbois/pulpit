@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../../test/mswServer";
 import { renderApp } from "../../../test/renderApp";
 import { FILE_DISTRIBUTION_FIXTURE, FILE_REPO_FIXTURE } from "../../../test/handlers";
+import { clickRepositoryAction } from "../../../test/repositoryActions";
 import { RepositoryDetailPage } from "./RepositoryDetailPage";
 
 function renderDetail(name = FILE_REPO_FIXTURE.name) {
@@ -31,8 +32,7 @@ describe("RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    const publishButton = screen.getByRole("button", { name: "Publish now" });
-    fireEvent.click(publishButton);
+    await clickRepositoryAction("Publish now");
 
     expect(
       await screen.findByText(`Publish repository "${FILE_REPO_FIXTURE.name}"`),
@@ -43,7 +43,7 @@ describe("RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await clickRepositoryAction("Edit");
 
     const dialog = await screen.findByRole("dialog");
     const descriptionField = within(dialog).getByLabelText("Description", {
@@ -65,7 +65,7 @@ describe("RepositoryDetailPage", () => {
     renderDetail();
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await clickRepositoryAction("Edit");
 
     const dialog = await screen.findByRole("dialog");
     // id-based, not label-based: "Manifest filename" loosely matches "Name"
@@ -106,10 +106,11 @@ describe("RepositoryDetailPage", () => {
     await screen.findByRole("tab", { name: "Overview" });
     fireEvent.click(screen.getByRole("tab", { name: "Versions" }));
 
-    expect(await screen.findByText(/Version 1/)).toBeInTheDocument();
-    expect(screen.getByText("Current")).toBeInTheDocument();
-    expect(screen.getByText("5 files")).toBeInTheDocument();
-    expect(screen.getByText(/Version 0/)).toBeInTheDocument();
+    const panel = await screen.findByRole("tabpanel");
+    expect(await within(panel).findByText(/Version 1/)).toBeInTheDocument();
+    expect(within(panel).getByText("Current")).toBeInTheDocument();
+    expect(within(panel).getByText("5 files")).toBeInTheDocument();
+    expect(within(panel).getByText(/Version 0/)).toBeInTheDocument();
   });
 
   it("switches to the Content tab and offers an upload action", async () => {
@@ -149,7 +150,7 @@ describe("RepositoryDetailPage", () => {
     });
 
     await screen.findByRole("tab", { name: "Overview" });
-    fireEvent.click(screen.getByRole("button", { name: "Delete repository" }));
+    await clickRepositoryAction("Delete repository");
 
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));

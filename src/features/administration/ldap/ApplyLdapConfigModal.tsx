@@ -118,16 +118,18 @@ export function ApplyLdapConfigModal({ onClose }: { onClose: () => void }) {
               {jobSucceeded ? "Close" : "Cancel"}
             </Button>
           </FlexItem>
-          <FlexItem>
-            <Button
-              variant="danger"
-              isDisabled={isRunning || jobSucceeded}
-              isLoading={isRunning}
-              onClick={() => applyMutation.mutate()}
-            >
-              Apply
-            </Button>
-          </FlexItem>
+          {!jobSucceeded ? (
+            <FlexItem>
+              <Button
+                variant="danger"
+                isDisabled={isRunning}
+                isLoading={isRunning}
+                onClick={() => applyMutation.mutate()}
+              >
+                Apply
+              </Button>
+            </FlexItem>
+          ) : null}
         </Flex>
       </ModalFooter>
     </Modal>

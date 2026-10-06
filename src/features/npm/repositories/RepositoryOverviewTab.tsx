@@ -6,21 +6,19 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
-import { TaskActionButton } from "../../../components/TaskActionButton";
+import { RepositorySummary } from "../../../components/RepositorySummary";
 import type { NpmRepository } from "../../../api/client/npm/types";
-import {
-  npmRepositoriesListRootKey,
-  npmRepositoryByNameKey,
-  npmRepositoryVersionsKey,
-} from "./queryKeys";
-import { useSyncNpmRepositoryMutation } from "./useSyncNpmRepositoryMutation";
 
-/** No Publish section here - VERIFIED live: unlike gem/hugging_face, this
+/** No Publish action in the page header - VERIFIED live: unlike gem/hugging_face, this
  * plugin has no publication endpoint at all; a distribution serves this
  * repository's latest version directly, with no publish step. */
-export function RepositoryOverviewTab({ repository }: { repository: NpmRepository }) {
-  const syncMutation = useSyncNpmRepositoryMutation();
-
+export function RepositoryOverviewTab({
+  repository,
+  onShowVersions,
+}: {
+  repository: NpmRepository;
+  onShowVersions: () => void;
+}) {
   return (
     <DescriptionList isHorizontal>
       <DescriptionListGroup>
@@ -43,35 +41,7 @@ export function RepositoryOverviewTab({ repository }: { repository: NpmRepositor
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Sync</DescriptionListTerm>
-        <DescriptionListDescription>
-          <TaskActionButton
-            resourceHref={repository.pulp_href}
-            taskAction="sync"
-            isDisabled={!repository.remote || syncMutation.isPending}
-            isLoading={syncMutation.isPending}
-            title={
-              repository.remote
-                ? undefined
-                : "This repository has no default remote configured"
-            }
-            onClick={() =>
-              syncMutation.mutate({
-                href: repository.pulp_href,
-                name: repository.name,
-                invalidateKeys: [
-                  npmRepositoryByNameKey(repository.name),
-                  npmRepositoriesListRootKey,
-                  npmRepositoryVersionsKey(repository.versions_href),
-                ],
-              })
-            }
-          >
-            Sync now
-          </TaskActionButton>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+      <RepositorySummary repository={repository} onShowVersions={onShowVersions} />
     </DescriptionList>
   );
 }

@@ -160,29 +160,31 @@ export function ResignRepositoryModal({
         >
           <FlexItem>
             <Button variant="link" onClick={onClose}>
-              {jobSucceeded || jobFailed || isRunning ? "Close" : "Cancel"}
+              {jobSucceeded ? "Close" : "Cancel"}
             </Button>
           </FlexItem>
-          <FlexItem>
-            <Button
-              variant="primary"
-              isDisabled={isRunning || jobSucceeded}
-              isLoading={isRunning}
-              onClick={() =>
-                resignMutation.mutate({
-                  href: repository.pulp_href,
-                  name: repository.name,
-                  invalidateKeys: [
-                    rpmRepositoryByNameKey(repository.name),
-                    rpmRepositoriesListRootKey,
-                    rpmRepositoryVersionsKey(repository.versions_href),
-                  ],
-                })
-              }
-            >
-              Re-sign
-            </Button>
-          </FlexItem>
+          {!jobSucceeded ? (
+            <FlexItem>
+              <Button
+                variant="primary"
+                isDisabled={isRunning}
+                isLoading={isRunning}
+                onClick={() =>
+                  resignMutation.mutate({
+                    href: repository.pulp_href,
+                    name: repository.name,
+                    invalidateKeys: [
+                      rpmRepositoryByNameKey(repository.name),
+                      rpmRepositoriesListRootKey,
+                      rpmRepositoryVersionsKey(repository.versions_href),
+                    ],
+                  })
+                }
+              >
+                Re-sign
+              </Button>
+            </FlexItem>
+          ) : null}
         </Flex>
       </ModalFooter>
     </Modal>

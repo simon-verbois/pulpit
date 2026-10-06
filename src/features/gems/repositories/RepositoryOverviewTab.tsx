@@ -6,20 +6,16 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
-import { TaskActionButton } from "../../../components/TaskActionButton";
+import { RepositorySummary } from "../../../components/RepositorySummary";
 import type { GemRepository } from "../../../api/client/gem/types";
-import {
-  gemRepositoriesListRootKey,
-  gemRepositoryByNameKey,
-  gemRepositoryVersionsKey,
-} from "./queryKeys";
-import { useSyncGemRepositoryMutation } from "./useSyncGemRepositoryMutation";
-import { usePublishGemRepositoryMutation } from "./usePublishGemRepositoryMutation";
 
-export function RepositoryOverviewTab({ repository }: { repository: GemRepository }) {
-  const syncMutation = useSyncGemRepositoryMutation();
-  const publishMutation = usePublishGemRepositoryMutation();
-
+export function RepositoryOverviewTab({
+  repository,
+  onShowVersions,
+}: {
+  repository: GemRepository;
+  onShowVersions: () => void;
+}) {
   return (
     <DescriptionList isHorizontal>
       <DescriptionListGroup>
@@ -42,58 +38,7 @@ export function RepositoryOverviewTab({ repository }: { repository: GemRepositor
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Publish</DescriptionListTerm>
-        <DescriptionListDescription>
-          <TaskActionButton
-            resourceHref={repository.pulp_href}
-            taskAction="publish"
-            variant="secondary"
-            isDisabled={publishMutation.isPending}
-            isLoading={publishMutation.isPending}
-            // VERIFIED live: unlike RPM/File, this plugin has no
-            // `autopublish` field at all - publishing is always this
-            // explicit, manual step.
-            onClick={() =>
-              publishMutation.mutate({
-                href: repository.pulp_href,
-                name: repository.name,
-              })
-            }
-          >
-            Publish now
-          </TaskActionButton>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Sync</DescriptionListTerm>
-        <DescriptionListDescription>
-          <TaskActionButton
-            resourceHref={repository.pulp_href}
-            taskAction="sync"
-            isDisabled={!repository.remote || syncMutation.isPending}
-            isLoading={syncMutation.isPending}
-            title={
-              repository.remote
-                ? undefined
-                : "This repository has no default remote configured"
-            }
-            onClick={() =>
-              syncMutation.mutate({
-                href: repository.pulp_href,
-                name: repository.name,
-                invalidateKeys: [
-                  gemRepositoryByNameKey(repository.name),
-                  gemRepositoriesListRootKey,
-                  gemRepositoryVersionsKey(repository.versions_href),
-                ],
-              })
-            }
-          >
-            Sync now
-          </TaskActionButton>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+      <RepositorySummary repository={repository} onShowVersions={onShowVersions} />
     </DescriptionList>
   );
 }

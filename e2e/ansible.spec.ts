@@ -84,7 +84,8 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     // dead code - see docs/ROADMAP.md) --------------------------------------
     await page.getByRole("tab", { name: "Overview" }).click();
     await expect(page.getByText("None yet").first()).toBeVisible();
-    await page.getByRole("button", { name: "Mark content…", exact: true }).click();
+    await page.getByRole("button", { name: "Actions", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Mark content…" }).click();
     const markDialog = page.getByRole("dialog");
     await markDialog.getByLabel("Value", { exact: false }).fill(`e2e-verified-${RUN_ID}`);
     await markDialog.getByRole("button", { name: "Mark" }).click();

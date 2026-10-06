@@ -194,20 +194,22 @@ export function GenerateKeyModal({ onClose }: { onClose: () => void }) {
               {jobSucceeded ? "Close" : "Cancel"}
             </Button>
           </FlexItem>
-          <FlexItem>
-            <Button
-              variant="primary"
-              isDisabled={generateMutation.isPending || jobSucceeded}
-              isLoading={
-                generateMutation.isPending ||
-                job.data?.status === "queued" ||
-                job.data?.status === "running"
-              }
-              onClick={handleGenerate}
-            >
-              Generate
-            </Button>
-          </FlexItem>
+          {!jobSucceeded ? (
+            <FlexItem>
+              <Button
+                variant="primary"
+                isDisabled={generateMutation.isPending}
+                isLoading={
+                  generateMutation.isPending ||
+                  job.data?.status === "queued" ||
+                  job.data?.status === "running"
+                }
+                onClick={handleGenerate}
+              >
+                Generate
+              </Button>
+            </FlexItem>
+          ) : null}
         </Flex>
       </ModalFooter>
     </Modal>

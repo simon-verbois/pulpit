@@ -5047,6 +5047,22 @@ const pulpitCoreHandlers = [
   ),
 ];
 
+// Any plugin's single repository version (the detail pages' Overview reads
+// the latest one for its content summary and date). Per-test overrides win.
+const repositoryVersionHandlers = [
+  http.get(
+    "/pulp/api/v3/repositories/:plugin/:type/:id/versions/:number/",
+    ({ request, params }) =>
+      HttpResponse.json({
+        pulp_href: new URL(request.url).pathname,
+        number: Number(params.number),
+        repository: new URL(request.url).pathname.split("versions/")[0],
+        pulp_created: "2026-01-02T10:00:00Z",
+        content_summary: { added: {}, removed: {}, present: {} },
+      }),
+  ),
+];
+
 export const handlers = [
   ...authHandlers,
   ...rpmHandlers,
@@ -5063,4 +5079,5 @@ export const handlers = [
   ...administrationHandlers,
   ...taskHistoryHandlers,
   ...pulpitCoreHandlers,
+  ...repositoryVersionHandlers,
 ];

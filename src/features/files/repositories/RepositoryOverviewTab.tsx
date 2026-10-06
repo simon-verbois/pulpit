@@ -6,20 +6,16 @@ import {
 } from "@patternfly/react-core";
 
 import { StatusIndicator } from "../../../components/StatusIndicator";
-import { TaskActionButton } from "../../../components/TaskActionButton";
+import { RepositorySummary } from "../../../components/RepositorySummary";
 import type { FileRepository } from "../../../api/client/file/types";
-import {
-  fileRepositoriesListRootKey,
-  fileRepositoryByNameKey,
-  fileRepositoryVersionsKey,
-} from "./queryKeys";
-import { useSyncFileRepositoryMutation } from "./useSyncFileRepositoryMutation";
-import { usePublishFileRepositoryMutation } from "./usePublishFileRepositoryMutation";
 
-export function RepositoryOverviewTab({ repository }: { repository: FileRepository }) {
-  const syncMutation = useSyncFileRepositoryMutation();
-  const publishMutation = usePublishFileRepositoryMutation();
-
+export function RepositoryOverviewTab({
+  repository,
+  onShowVersions,
+}: {
+  repository: FileRepository;
+  onShowVersions: () => void;
+}) {
   return (
     <DescriptionList isHorizontal>
       <DescriptionListGroup>
@@ -54,60 +50,7 @@ export function RepositoryOverviewTab({ repository }: { repository: FileReposito
           <code>{repository.manifest || "PULP_MANIFEST"}</code>
         </DescriptionListDescription>
       </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Publish</DescriptionListTerm>
-        <DescriptionListDescription>
-          <TaskActionButton
-            resourceHref={repository.pulp_href}
-            taskAction="publish"
-            variant="secondary"
-            isDisabled={publishMutation.isPending}
-            isLoading={publishMutation.isPending}
-            title={
-              repository.autopublish
-                ? "Autopublish is on for this repository - only needed to force a republish"
-                : undefined
-            }
-            onClick={() =>
-              publishMutation.mutate({
-                href: repository.pulp_href,
-                name: repository.name,
-              })
-            }
-          >
-            Publish now
-          </TaskActionButton>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Sync</DescriptionListTerm>
-        <DescriptionListDescription>
-          <TaskActionButton
-            resourceHref={repository.pulp_href}
-            taskAction="sync"
-            isDisabled={!repository.remote || syncMutation.isPending}
-            isLoading={syncMutation.isPending}
-            title={
-              repository.remote
-                ? undefined
-                : "This repository has no default remote configured"
-            }
-            onClick={() =>
-              syncMutation.mutate({
-                href: repository.pulp_href,
-                name: repository.name,
-                invalidateKeys: [
-                  fileRepositoryByNameKey(repository.name),
-                  fileRepositoriesListRootKey,
-                  fileRepositoryVersionsKey(repository.versions_href),
-                ],
-              })
-            }
-          >
-            Sync now
-          </TaskActionButton>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+      <RepositorySummary repository={repository} onShowVersions={onShowVersions} />
     </DescriptionList>
   );
 }

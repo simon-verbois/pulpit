@@ -33,8 +33,7 @@ interface ApplySigningResult {
  * already apply the policy automatically at creation (no per-repository
  * opt-in), so this is only for repositories that existed before signing was
  * turned on. Can trigger real re-signing of already-synced packages, not
- * just a field change - explicit and irreversible, same spirit as
- * ApplyProxyToAllRemotesModal.tsx. */
+ * just a field change - explicit and irreversible. */
 export function ApplySigningToAllRepositoriesModal({ onClose }: { onClose: () => void }) {
   const applyMutation = useApplySigningToAllRepositoriesMutation();
   const job = useJob(applyMutation.data?.id);
@@ -141,16 +140,18 @@ export function ApplySigningToAllRepositoriesModal({ onClose }: { onClose: () =>
               {jobSucceeded ? "Close" : "Cancel"}
             </Button>
           </FlexItem>
-          <FlexItem>
-            <Button
-              variant="danger"
-              isDisabled={isRunning || jobSucceeded}
-              isLoading={isRunning}
-              onClick={() => applyMutation.mutate()}
-            >
-              Sign all repositories
-            </Button>
-          </FlexItem>
+          {!jobSucceeded ? (
+            <FlexItem>
+              <Button
+                variant="danger"
+                isDisabled={isRunning}
+                isLoading={isRunning}
+                onClick={() => applyMutation.mutate()}
+              >
+                Sign all repositories
+              </Button>
+            </FlexItem>
+          ) : null}
         </Flex>
       </ModalFooter>
     </Modal>

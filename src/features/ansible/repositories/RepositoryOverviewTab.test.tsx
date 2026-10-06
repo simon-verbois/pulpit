@@ -5,11 +5,27 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../../test/mswServer";
 import { renderApp } from "../../../test/renderApp";
 import { ANSIBLE_REPO_FIXTURE } from "../../../test/handlers";
+import { clickRepositoryAction } from "../../../test/repositoryActions";
+import { RepositoryDetailPage } from "./RepositoryDetailPage";
 import { RepositoryOverviewTab } from "./RepositoryOverviewTab";
+
+// Sign/Mark/Unmark live in the detail page's header "Actions" menu.
+function renderDetail() {
+  return renderApp(<RepositoryDetailPage />, {
+    route: `/ansible/repositories/${ANSIBLE_REPO_FIXTURE.name}`,
+    path: "/ansible/repositories/:name",
+    withTasksDrawer: true,
+  });
+}
 
 describe("Ansible RepositoryOverviewTab", () => {
   it("shows 'None yet' for signatures and marks when there are none", async () => {
-    renderApp(<RepositoryOverviewTab repository={ANSIBLE_REPO_FIXTURE} />);
+    renderApp(
+      <RepositoryOverviewTab
+        repository={ANSIBLE_REPO_FIXTURE}
+        onShowVersions={() => {}}
+      />,
+    );
 
     expect(await screen.findByText(ANSIBLE_REPO_FIXTURE.name)).toBeInTheDocument();
     expect(screen.getAllByText("None yet")).toHaveLength(2); // Signatures + Marks
@@ -32,11 +48,9 @@ describe("Ansible RepositoryOverviewTab", () => {
       ),
     );
 
-    renderApp(<RepositoryOverviewTab repository={ANSIBLE_REPO_FIXTURE} />, {
-      withTasksDrawer: true,
-    });
+    renderDetail();
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign content…" }));
+    await clickRepositoryAction("Sign content…");
     const dialog = await screen.findByRole("dialog");
     // The <select> options populate asynchronously once the signing
     // services query resolves - wait for the real option before selecting
@@ -55,11 +69,9 @@ describe("Ansible RepositoryOverviewTab", () => {
   });
 
   it("marks the repository's content and tracks the task", async () => {
-    renderApp(<RepositoryOverviewTab repository={ANSIBLE_REPO_FIXTURE} />, {
-      withTasksDrawer: true,
-    });
+    renderDetail();
 
-    fireEvent.click(screen.getByRole("button", { name: "Mark content…" }));
+    await clickRepositoryAction("Mark content…");
     const dialog = await screen.findByRole("dialog");
     fireEvent.change(within(dialog).getByLabelText("Value", { exact: false }), {
       target: { value: "certified" },
@@ -75,11 +87,9 @@ describe("Ansible RepositoryOverviewTab", () => {
   });
 
   it("unmarks the repository's content and tracks the task", async () => {
-    renderApp(<RepositoryOverviewTab repository={ANSIBLE_REPO_FIXTURE} />, {
-      withTasksDrawer: true,
-    });
+    renderDetail();
 
-    fireEvent.click(screen.getByRole("button", { name: "Unmark content…" }));
+    await clickRepositoryAction("Unmark content…");
     const dialog = await screen.findByRole("dialog");
     fireEvent.change(within(dialog).getByLabelText("Value", { exact: false }), {
       target: { value: "certified" },
@@ -129,7 +139,12 @@ describe("Ansible RepositoryOverviewTab", () => {
       ),
     );
 
-    renderApp(<RepositoryOverviewTab repository={ANSIBLE_REPO_FIXTURE} />);
+    renderApp(
+      <RepositoryOverviewTab
+        repository={ANSIBLE_REPO_FIXTURE}
+        onShowVersions={() => {}}
+      />,
+    );
 
     expect(await screen.findByText("1 collection version signed")).toBeInTheDocument();
     expect(screen.getByText("certified")).toBeInTheDocument();
