@@ -158,7 +158,7 @@ export function SearchableMultiSelect({
         >
           {selected.length > 0 ? (
             <span
-              className="pulpit-inline-values"
+              className="pulpit-multiselect-values"
               aria-label={`Selected ${ariaLabel.toLocaleLowerCase()}`}
             >
               {selected.join(", ")}

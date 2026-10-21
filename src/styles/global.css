@@ -385,6 +385,24 @@ textarea.pf-v6-c-form-control:focus-visible {
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
+/* Selected values shown inside a multi-typeahead's input group. PatternFly
+   lays the group's children out as a wrapping flex row where only the <input>
+   carries the control's vertical padding, so a bare span sat flush against
+   the top edge, smaller than the placeholder next to it. Give it the input's
+   own padding and font so both read as one line. */
+.pulpit-multiselect-values {
+  flex: none;
+  align-self: center;
+  max-width: 100%;
+  padding-block: var(--pf-v6-c-text-input-group__text-input--PaddingBlockStart)
+    var(--pf-v6-c-text-input-group__text-input--PaddingBlockEnd);
+  padding-inline-start: var(--pf-v6-c-text-input-group__text-input--PaddingInlineStart);
+  font-size: var(--pf-t--global--font--size--body--default);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--regular);
+  overflow-wrap: anywhere;
+}
+
 /* PatternFly gives every disabled button variant the same filled gray
    background. That is appropriate for primary/secondary controls, but turns
    a compact row of link actions into a segmented gray bar. Keep PatternFly's
