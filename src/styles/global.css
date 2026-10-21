@@ -1113,3 +1113,19 @@ textarea.pf-v6-c-form-control:focus-visible {
     calc(-1 * var(--pf-v6-c-label--PaddingBlockEnd));
   vertical-align: middle;
 }
+
+/* The row-action buttons stick out of their row (negative block margin above),
+   so a filled hover surface painted a grey box over the row's own hover
+   background and past its top edge. Show hover as an underline instead. */
+.pf-v6-c-table__tbody .pf-v6-c-table__action .pf-v6-c-button.pf-m-link,
+.pf-v6-c-table__tbody .pf-v6-c-table__action .pf-v6-c-button.pf-m-link:hover,
+.pf-v6-c-table__tbody .pf-v6-c-table__action .pf-v6-c-button.pf-m-link:focus-visible {
+  --pf-v6-c-button--m-link--BackgroundColor: transparent;
+  --pf-v6-c-button--m-link--hover--BackgroundColor: transparent;
+  --pf-v6-c-button--m-link--m-danger--hover--BackgroundColor: transparent;
+  background-color: transparent;
+}
+
+.pf-v6-c-table__tbody .pf-v6-c-table__action .pf-v6-c-button.pf-m-link:hover {
+  text-decoration: underline;
+}
