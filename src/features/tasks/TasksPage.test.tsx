@@ -93,6 +93,74 @@ describe("TasksPage", () => {
     expect(within(dialog).getByText(/Diagnostic traceback/)).toBeVisible();
   });
 
+  it("re-runs a failed sync against the same repository and remote", async () => {
+    const remoteHref = "/pulp/api/v3/remotes/rpm/rpm/retry-remote/";
+    const task: PulpTask = {
+      ...TASK_HISTORY_FIXTURE_COMPLETED,
+      name: "pulp_rpm.app.tasks.synchronizing.synchronize",
+      state: "failed",
+      error: { reason: "Killed by signal 9." },
+      reserved_resources_record: [
+        "prn:rpm.rpmrepository:test",
+        "shared:prn:rpm.rpmremote:retry-remote",
+      ],
+    };
+    let syncBody: unknown;
+    server.use(
+      http.get(task.pulp_href, () => HttpResponse.json(task)),
+      http.get("/pulp/api/v3/remotes/", () =>
+        HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              pulp_href: remoteHref,
+              prn: "prn:rpm.rpmremote:retry-remote",
+              name: "oracle-base-9",
+            },
+          ],
+        }),
+      ),
+      http.post(`${RPM_REPO_FIXTURE.pulp_href}sync/`, async ({ request }) => {
+        syncBody = await request.json();
+        return HttpResponse.json(
+          { task: "/pulp/api/v3/tasks/retried/" },
+          { status: 202 },
+        );
+      }),
+    );
+    renderApp(
+      <TaskDetailModal href={task.pulp_href} initialTask={task} onClose={() => {}} />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(await within(dialog).findByRole("button", { name: "Retry sync" }));
+    expect(await within(dialog).findByText("Sync restarted")).toBeInTheDocument();
+    expect(syncBody).toEqual({ remote: remoteHref });
+    expect(
+      within(dialog).queryByRole("button", { name: "Retry sync" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers no retry for a failed task that is not a sync", async () => {
+    const task: PulpTask = {
+      ...TASK_HISTORY_FIXTURE_FAILED,
+      reserved_resources_record: ["prn:rpm.rpmrepository:test"],
+    };
+    server.use(http.get(task.pulp_href, () => HttpResponse.json(task)));
+    renderApp(
+      <TaskDetailModal href={task.pulp_href} initialTask={task} onClose={() => {}} />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      (await within(dialog).findAllByText(RPM_REPO_FIXTURE.name, { exact: false }))
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(dialog).queryByRole("button", { name: "Retry sync" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows a useful failure message even if Pulp supplied no error", async () => {
     const task: PulpTask = { ...TASK_HISTORY_FIXTURE_FAILED, error: null };
     server.use(http.get(task.pulp_href, () => HttpResponse.json(task)));
