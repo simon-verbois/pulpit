@@ -4,6 +4,7 @@ import {
   buildDistributionBasePath,
   buildVersionedDistributionName,
   distributionPathPrefix,
+  distributionPathSegment,
 } from "./basePath";
 
 describe("distribution base-path policy", () => {
@@ -16,6 +17,14 @@ describe("distribution base-path policy", () => {
     expect(buildDistributionBasePath("container", "team/image")).toBe(
       "container/team/image",
     );
+  });
+
+  it("turns a name with spaces into a valid path segment", () => {
+    expect(distributionPathSegment("Oracle Linux 9 BaseOS Latest")).toBe(
+      "Oracle-Linux-9-BaseOS-Latest",
+    );
+    expect(distributionPathSegment("  ol9   baseos\tv2 ")).toBe("ol9-baseos-v2");
+    expect(distributionPathSegment("my-repo")).toBe("my-repo");
   });
 
   it("derives stable names for latest and version-pinned distributions", () => {

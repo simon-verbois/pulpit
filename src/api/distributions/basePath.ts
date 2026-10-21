@@ -24,6 +24,14 @@ export function buildDistributionBasePath(
   return `${distributionPathPrefix(module)}${suffix}`;
 }
 
+/** Pulp rejects a base path containing spaces (VERIFIED in pulpcore's
+ * relative-path validator: "Relative path cannot contain spaces."), while a
+ * distribution name may contain them. Turns a name into a path segment by
+ * collapsing each run of whitespace into one "-". */
+export function distributionPathSegment(name: string): string {
+  return name.trim().replace(/\s+/g, "-");
+}
+
 export function buildVersionedDistributionName(
   repositoryName: string,
   versionNumber?: number,

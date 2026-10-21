@@ -6,8 +6,11 @@ import {
   FlexItem,
   Form,
   FormGroup,
+  FormHelperText,
   FormSelect,
   FormSelectOption,
+  HelperText,
+  HelperTextItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -15,6 +18,7 @@ import {
   Radio,
   Stack,
   StackItem,
+  TextInput,
 } from "@patternfly/react-core";
 
 import { ErrorState } from "../../../components/ErrorState";
@@ -22,6 +26,7 @@ import { LoadingState } from "../../../components/LoadingState";
 import {
   buildDistributionBasePath,
   buildVersionedDistributionName,
+  distributionPathSegment,
 } from "../../../api/distributions/basePath";
 import { computeRpmRepoConfig } from "../../../api/client/rpm/repoConfig";
 import { listAllRepositoryVersions } from "../../../api/client/rpm/repositories";
@@ -46,13 +51,19 @@ interface CreateDistributionModalProps {
  *
  * A latest distribution points at the repository and follows future
  * publications. A pinned distribution first publishes the selected immutable
- * RepositoryVersion, waits for that publication resource, then points at it. */
+ * RepositoryVersion, then - after this dialog has closed - points at the
+ * resulting publication.
+ *
+ * The name defaults to "<repository>" or "<repository>-v<N>" and can be
+ * overridden; it is also the base path suffix, with spaces turned into "-". */
 export function CreateDistributionModal({
   repository,
   onClose,
 }: CreateDistributionModalProps) {
   const [target, setTarget] = useState<DistributionTarget>("latest");
   const [selectedVersionHref, setSelectedVersionHref] = useState("");
+  // undefined until edited, so the default keeps following the selected version.
+  const [customName, setCustomName] = useState<string>();
   const contentOrigin = useContentOrigin();
   const updateRepositoryMutation = useUpdateRpmRepositoryMutation();
   const publishMutation = usePublishRpmRepositoryMutation();
@@ -67,11 +78,15 @@ export function CreateDistributionModal({
     versionsQuery.data?.find((version) => version.pulp_href === selectedVersionHref) ??
     versionsQuery.data?.[0];
   const effectiveVersionHref = effectiveVersion?.pulp_href ?? "";
-  const distributionName = buildVersionedDistributionName(
+  const defaultName = buildVersionedDistributionName(
     repository.name,
     target === "version" ? effectiveVersion?.number : undefined,
   );
-  const basePath = buildDistributionBasePath("rpm", distributionName);
+  const distributionName = (customName ?? defaultName).trim();
+  const basePath = buildDistributionBasePath(
+    "rpm",
+    distributionPathSegment(distributionName),
+  );
   const isSubmitting =
     updateRepositoryMutation.isPending ||
     publishMutation.isPending ||
@@ -208,6 +223,24 @@ export function CreateDistributionModal({
               ) : null}
             </FormGroup>
           ) : null}
+          <FormGroup label="Name" isRequired fieldId="distribution-name">
+            <TextInput
+              id="distribution-name"
+              isRequired
+              value={customName ?? defaultName}
+              validated={distributionName ? "default" : "error"}
+              onChange={(_event, value) => setCustomName(value)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant={distributionName ? "default" : "error"}>
+                  {distributionName
+                    ? `Will be reachable at ${contentOrigin}/pulp/content/${basePath}/`
+                    : "Enter a name. It is also used in the distribution's URL."}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
         </Form>
       </ModalBody>
       <ModalFooter>
@@ -223,7 +256,11 @@ export function CreateDistributionModal({
           <FlexItem>
             <Button
               variant="primary"
-              isDisabled={isSubmitting || (target === "version" && !effectiveVersionHref)}
+              isDisabled={
+                isSubmitting ||
+                !distributionName ||
+                (target === "version" && !effectiveVersionHref)
+              }
               isLoading={isSubmitting}
               onClick={handleSubmit}
             >

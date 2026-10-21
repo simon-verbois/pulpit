@@ -708,9 +708,14 @@ const rpmHandlers = [
   http.get(DIST_BASE, ({ request }) => {
     const url = new URL(request.url);
     const repository = url.searchParams.get("repository");
-    const results = repository
-      ? distributions.filter((d) => d.repository === repository)
-      : distributions;
+    const name = url.searchParams.get("name");
+    const basePath = url.searchParams.get("base_path");
+    const results = distributions.filter(
+      (d) =>
+        (!repository || d.repository === repository) &&
+        (!name || d.name === name) &&
+        (!basePath || d.base_path === basePath),
+    );
     return HttpResponse.json({
       count: results.length,
       next: null,

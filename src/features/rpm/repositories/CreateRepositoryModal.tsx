@@ -21,7 +21,7 @@ import {
 
 import {
   buildDistributionBasePath,
-  distributionPathPrefix,
+  distributionPathSegment,
 } from "../../../api/distributions/basePath";
 import { listAllRpmRemoteOptions } from "../../../api/client/rpm/remotes";
 import { computeRpmRepoConfig } from "../../../api/client/rpm/repoConfig";
@@ -99,7 +99,10 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
           if (createDistribution) {
             createDistributionMutation.mutate({
               name: repository.name,
-              base_path: buildDistributionBasePath("rpm", repository.name),
+              base_path: buildDistributionBasePath(
+                "rpm",
+                distributionPathSegment(repository.name),
+              ),
               repository: repository.pulp_href,
               generate_repo_config: true,
             });
@@ -173,7 +176,7 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
               label="Create a distribution for this repository"
               description={
                 name
-                  ? `Will be reachable at ${contentOrigin}/pulp/content/${distributionPathPrefix("rpm")}${name}/`
+                  ? `Will be reachable at ${contentOrigin}/pulp/content/${buildDistributionBasePath("rpm", distributionPathSegment(name))}/`
                   : "Named after this repository - reachable at .../pulp/content/rpm/<name>/"
               }
               isChecked={createDistribution}

@@ -96,9 +96,9 @@ describe("RepositoryDistributionsTab", () => {
     expect(
       within(dialog).queryByLabelText("Repository", { exact: true }),
     ).not.toBeInTheDocument();
-    expect(
-      within(dialog).queryByLabelText("Name", { exact: false }),
-    ).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Name", { exact: false })).toHaveValue(
+      RPM_REPO_FIXTURE.name,
+    );
     expect(
       within(dialog).queryByLabelText("Base path", { exact: false }),
     ).not.toBeInTheDocument();
@@ -136,6 +136,77 @@ describe("RepositoryDistributionsTab", () => {
         name: `${RPM_REPO_FIXTURE.name}-v0`,
       }),
     ).toBeInTheDocument();
+  });
+
+  it("creates a pinned distribution under a custom name", async () => {
+    renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />, {
+      withTasksDrawer: true,
+    });
+
+    await screen.findByText(RPM_DISTRIBUTION_FIXTURE.name);
+    fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByLabelText("Pin a repository version"));
+    const versionSelect = await within(dialog).findByLabelText("Repository version");
+    fireEvent.change(versionSelect, {
+      target: { value: `${RPM_REPO_FIXTURE.versions_href}0/` },
+    });
+    const nameInput = within(dialog).getByLabelText("Name", { exact: false });
+    expect(nameInput).toHaveValue(`${RPM_REPO_FIXTURE.name}-v0`);
+    fireEvent.change(nameInput, { target: { value: "ol9-baseos-2026-10" } });
+    expect(
+      within(dialog).getByText(/\/pulp\/content\/rpm\/ol9-baseos-2026-10\/$/),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(
+      await screen.findByRole("cell", { name: "ol9-baseos-2026-10" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps spaces in the name but not in the base path", async () => {
+    renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />, {
+      withTasksDrawer: true,
+    });
+
+    await screen.findByText(RPM_DISTRIBUTION_FIXTURE.name);
+    fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
+      target: { value: "Oracle Linux 9 BaseOS Latest" },
+    });
+    expect(
+      within(dialog).getByText(/\/pulp\/content\/rpm\/Oracle-Linux-9-BaseOS-Latest\/$/),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(
+      await screen.findByRole("cell", { name: "Oracle Linux 9 BaseOS Latest" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the dialog open when the distribution name is taken", async () => {
+    renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />, {
+      withTasksDrawer: true,
+    });
+
+    await screen.findByText(RPM_DISTRIBUTION_FIXTURE.name);
+    fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByLabelText("Pin a repository version"));
+    await within(dialog).findByLabelText("Repository version");
+    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
+      target: { value: RPM_DISTRIBUTION_FIXTURE.name },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
+
+    expect(await within(dialog).findByText(/already exists/)).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("deletes a distribution after confirmation", async () => {

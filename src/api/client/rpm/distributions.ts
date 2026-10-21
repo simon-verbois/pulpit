@@ -25,6 +25,29 @@ export function listRpmDistributions(
   return pulpFetch<PulpPage<RpmDistribution>>(`${BASE}${buildQuery(params)}`);
 }
 
+/** Pulp rejects a distribution whose `name` or `base_path` is already taken
+ * (400), but a pinned distribution is only created once its publication task
+ * finishes - after the create dialog has closed. Checking both up front keeps
+ * that common mistake in the dialog. */
+export async function findRpmDistributionConflict(
+  name: string,
+  basePath: string,
+): Promise<string | undefined> {
+  const [byName, byBasePath] = await Promise.all([
+    pulpFetch<PulpPage<RpmDistribution>>(
+      `${BASE}${buildQuery({ name, limit: 1, fields: "pulp_href" })}`,
+    ),
+    pulpFetch<PulpPage<RpmDistribution>>(
+      `${BASE}${buildQuery({ base_path: basePath, limit: 1, fields: "pulp_href" })}`,
+    ),
+  ]);
+  if (byName.count > 0) return `A distribution named "${name}" already exists.`;
+  if (byBasePath.count > 0) {
+    return `A distribution already serves the base path "${basePath}".`;
+  }
+  return undefined;
+}
+
 async function listAllRpmDistributions(): Promise<RpmDistribution[]> {
   const results: RpmDistribution[] = [];
 
