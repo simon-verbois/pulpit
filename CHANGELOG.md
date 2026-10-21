@@ -5,6 +5,33 @@ Pulpit's own calendar scheme (`YYYY.WW.PATCH` — the ISO year/week of the relea
 counter for same-week releases), tracked in [`VERSION`](VERSION) and shown in the app's own
 footer.
 
+## 2026.43.2 — 2026-10-21
+
+### Changed
+
+- The web UI loads each page on demand instead of shipping every page in the first download (entry
+  bundle 863 kB → 283 kB). nginx now gzips the CSS/JS/JSON/SVG it serves (PatternFly's 1.4 MB
+  stylesheet drops to about 170 kB) and caches the content-hashed `/assets/` files for a year;
+  `index.html` is always revalidated.
+- pulpit-core reuses one HTTP connection pool to Pulp for its authentication checks instead of
+  opening a new connection per request. Cookies are never kept between callers.
+- Repository Versions tabs (all plugins): the current version's row is shown in bold instead of
+  carrying a "Current" pill.
+- Re-signing a repository that has content but no distribution is now skipped by the automatic
+  paths (post-sync detection, key publish, sign-all) instead of failing and being retried on every
+  sweep. The per-repository **Re-sign** action refuses it immediately (409) with a message asking
+  for a distribution first. Help and `docs/signing.md` updated.
+
+### Fixed
+
+- Selected users/groups in the multi-select fields (e.g. Grant access) no longer sit flush against
+  the top edge, misaligned with the placeholder.
+- Table rows: text, row action buttons and kebabs now share one vertical line (cells are centered
+  and the action button's overlap with the cell padding no longer pushes it ~4 px up).
+- Form inputs no longer show the browser's native orange focus outline, and tabs and row action
+  buttons no longer show a filled hover surface (the label is recolored instead).
+- Updated `vite` to 8.3.5 to clear npm audit advisories.
+
 ## 2026.41.2 — 2026-10-06
 
 ### Added
