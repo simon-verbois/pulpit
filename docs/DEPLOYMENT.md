@@ -135,6 +135,14 @@ This policy does not remove deadlines imposed by an external proxy or origin,
 or ULN's separate authentication session, and does not prevent task failures
 from authentication, storage, integrity checks, or worker termination.
 
+## Timezone
+
+Every container (`redis`, `pulp`, `pulpit`) runs with `TZ=Europe/Brussels` by default: `TZ` in
+`.env` for Compose, the `TZ` key of `pulpit-config` (`00-configmap.yaml`) for Podman and
+Kubernetes. All three images ship timezone data. `TZ` sets container-level times (process log
+timestamps, `date`). Pulp's own Django setting `TIME_ZONE` stays `UTC`: Pulp stores and returns
+API timestamps in UTC, and Pulpit's UI converts them to the browser's timezone.
+
 ## Sessions
 
 Pulp's Django session lifetime is set to 8 hours (`PULP_SESSION_COOKIE_AGE=28800`, absolute - not

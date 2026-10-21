@@ -10,6 +10,10 @@ data:
   PULPIT_CORE_PULP_BASE_URL: "http://pulp:80"
   PULPIT_CORE_PULP_SERVICE_USERNAME: "admin"
 
+  # Timezone of every container (redis, pulp, pulpit) - container log
+  # timestamps. Any IANA zone name, e.g. UTC.
+  TZ: "Europe/Brussels"
+
   # __PULPIT_PUBLIC_ORIGIN__ is substituted by ./deploy.sh at apply time from
   # the PULPIT_PUBLIC_ORIGIN env var - edit directly if applying without
   # deploy.sh. Must match wherever pulpit.yaml exposes the app publicly.

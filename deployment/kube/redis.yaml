@@ -19,6 +19,12 @@ spec:
         - name: redis
           image: docker.io/library/redis:8-alpine
           args: ["redis-server", "--save", "", "--appendonly", "no"]
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: pulpit-config
+                  key: TZ
           ports:
             - containerPort: 6379
           readinessProbe:

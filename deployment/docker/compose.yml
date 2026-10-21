@@ -7,6 +7,8 @@ services:
   redis:
     image: docker.io/library/redis:8-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
+    environment:
+      TZ: ${TZ:-Europe/Brussels}
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -17,6 +19,7 @@ services:
   pulp:
     image: docker.io/simonverbois/pulp-pulpit:${PULP_PULPIT_IMAGE_TAG:-latest}
     environment:
+      TZ: ${TZ:-Europe/Brussels}
       PULPIT_EGRESS_REQUIRED: "true"
       PULP_SECRET_KEY: ${PULP_SECRET_KEY:?PULP_SECRET_KEY is required. Copy .env.example to .env and set it (openssl rand -hex 32) - see docs/DEPLOYMENT.md.}
       PULP_ADMIN_PASSWORD: ${PULP_ADMIN_PASSWORD:-}
@@ -59,6 +62,7 @@ services:
   pulpit:
     image: docker.io/simonverbois/pulpit:${PULPIT_IMAGE_TAG:-latest}
     environment:
+      TZ: ${TZ:-Europe/Brussels}
       PULP_UPSTREAM: pulp:80
       PULPIT_CORE_PULP_BASE_URL: http://pulp:80
       PULPIT_CORE_PULP_SERVICE_USERNAME: admin

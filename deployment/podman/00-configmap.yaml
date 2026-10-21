@@ -10,6 +10,10 @@ data:
   PULPIT_CORE_PULP_BASE_URL: "http://pulp:80"
   PULPIT_CORE_PULP_SERVICE_USERNAME: "admin"
 
+  # Timezone of every container (redis, pulp, pulpit) - container log
+  # timestamps. Any IANA zone name, e.g. UTC.
+  TZ: "Europe/Brussels"
+
   # Edit this yourself before running `deploy.sh up` - NOT substituted by
   # deploy.sh (defaults to "http://localhost:8080" below only because
   # that's this repo's own out-of-the-box value). Get it wrong and logins
