@@ -4,10 +4,8 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Label,
 } from "@patternfly/react-core";
 
-import { StatusIndicator } from "../../../components/StatusIndicator";
 import { RepositorySummary } from "../../../components/RepositorySummary";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { useRpmRemoteQuery } from "./useRpmRemoteQuery";
@@ -21,10 +19,10 @@ function DefaultRemote({ href }: { href: string }) {
   const isUln = isUlnRemoteHref(href);
 
   if (remoteQuery.isPending) {
-    return <StatusIndicator color="grey">Loading…</StatusIndicator>;
+    return "Loading…";
   }
   if (!remoteQuery.isSuccess) {
-    return <StatusIndicator color="blue">Configured</StatusIndicator>;
+    return "Configured";
   }
   const remote = remoteQuery.data;
   const search = new URLSearchParams({ search: remote.name });
@@ -33,11 +31,7 @@ function DefaultRemote({ href }: { href: string }) {
   return (
     <>
       <Link to={`/rpm/remotes?${search.toString()}`}>{remote.name}</Link>
-      {isUln ? (
-        <Label isCompact style={{ marginInlineStart: "var(--pf-t--global--spacer--sm)" }}>
-          ULN
-        </Label>
-      ) : null}
+      {isUln ? " (ULN)" : null}
     </>
   );
 }
@@ -64,11 +58,7 @@ export function RepositoryOverviewTab({
       <DescriptionListGroup>
         <DescriptionListTerm>Default remote</DescriptionListTerm>
         <DescriptionListDescription>
-          {repository.remote ? (
-            <DefaultRemote href={repository.remote} />
-          ) : (
-            <StatusIndicator color="grey">None</StatusIndicator>
-          )}
+          {repository.remote ? <DefaultRemote href={repository.remote} /> : "None"}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
@@ -81,11 +71,7 @@ export function RepositoryOverviewTab({
       <DescriptionListGroup>
         <DescriptionListTerm>Package signing</DescriptionListTerm>
         <DescriptionListDescription>
-          {repository.package_signing_service ? (
-            <StatusIndicator color="green">Enabled</StatusIndicator>
-          ) : (
-            <StatusIndicator color="grey">Disabled</StatusIndicator>
-          )}
+          {repository.package_signing_service ? "Enabled" : "Disabled"}
           {/* pulp_rpm signs on upload only (docs/signing.md "Known
             limitations") - this reflects future uploads, never a claim
             about content already in the repository. */}
@@ -102,11 +88,7 @@ export function RepositoryOverviewTab({
       <DescriptionListGroup>
         <DescriptionListTerm>Metadata signing</DescriptionListTerm>
         <DescriptionListDescription>
-          {repository.metadata_signing_service ? (
-            <StatusIndicator color="green">Enabled</StatusIndicator>
-          ) : (
-            <StatusIndicator color="grey">Disabled</StatusIndicator>
-          )}
+          {repository.metadata_signing_service ? "Enabled" : "Disabled"}
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>

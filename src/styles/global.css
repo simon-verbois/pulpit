@@ -1086,3 +1086,20 @@ body {
     --pf-v6-c-table--cell--PaddingInlineEnd: 1.5rem;
   }
 }
+
+/* A text button in a row's action cell must not make that row taller than
+   rows without one (e.g. "Copy to…" on the current version only). Its own
+   block padding overlaps the cell's padding instead of adding to it; the
+   click target keeps its size. */
+.pf-v6-c-table__tbody .pf-v6-c-table__action .pf-v6-c-button {
+  margin-block: calc(-1 * var(--pf-v6-c-button--PaddingBlockStart))
+    calc(-1 * var(--pf-v6-c-button--PaddingBlockEnd));
+}
+
+/* Same for a label/status pill (e.g. advisory severity, "Current"): its
+   block padding overlaps the cell's instead of making only that row taller. */
+.pf-v6-c-table__tbody .pf-v6-c-table__td .pf-v6-c-label {
+  margin-block: calc(-1 * var(--pf-v6-c-label--PaddingBlockStart))
+    calc(-1 * var(--pf-v6-c-label--PaddingBlockEnd));
+  vertical-align: middle;
+}

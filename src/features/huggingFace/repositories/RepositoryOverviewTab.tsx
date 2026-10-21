@@ -5,7 +5,6 @@ import {
   DescriptionListTerm,
 } from "@patternfly/react-core";
 
-import { StatusIndicator } from "../../../components/StatusIndicator";
 import { RepositorySummary } from "../../../components/RepositorySummary";
 import type { HuggingFaceRepository } from "../../../api/client/hugging_face/types";
 
@@ -31,11 +30,7 @@ export function RepositoryOverviewTab({
       <DescriptionListGroup>
         <DescriptionListTerm>Default remote</DescriptionListTerm>
         <DescriptionListDescription>
-          {repository.remote ? (
-            <StatusIndicator color="blue">Configured</StatusIndicator>
-          ) : (
-            <StatusIndicator color="grey">None</StatusIndicator>
-          )}
+          {repository.remote ? "Configured" : "None"}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <RepositorySummary repository={repository} onShowVersions={onShowVersions} />

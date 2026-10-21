@@ -7,7 +7,6 @@ import {
 
 import type { User } from "../../../api/client/access/types";
 import { formatRelativeTime } from "../../../lib/relativeTime";
-import { StatusIndicator } from "../../../components/StatusIndicator";
 
 export function UserOverviewTab({ user }: { user: User }) {
   return (
@@ -29,21 +28,13 @@ export function UserOverviewTab({ user }: { user: User }) {
       <DescriptionListGroup>
         <DescriptionListTerm>Status</DescriptionListTerm>
         <DescriptionListDescription>
-          {user.is_active ? (
-            <StatusIndicator color="green">Active</StatusIndicator>
-          ) : (
-            <StatusIndicator color="grey">Inactive</StatusIndicator>
-          )}
+          {user.is_active ? "Active" : "Inactive"}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Staff</DescriptionListTerm>
         <DescriptionListDescription>
-          {user.is_staff ? (
-            <StatusIndicator color="blue">Yes</StatusIndicator>
-          ) : (
-            <StatusIndicator color="grey">No</StatusIndicator>
-          )}
+          {user.is_staff ? "Yes" : "No"}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>

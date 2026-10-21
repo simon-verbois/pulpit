@@ -5,7 +5,6 @@ import {
   DescriptionListTerm,
 } from "@patternfly/react-core";
 
-import { StatusIndicator } from "../../../components/StatusIndicator";
 import { RepositorySummary } from "../../../components/RepositorySummary";
 import type { AnsibleRepository } from "../../../api/client/ansible/types";
 import { useCollectionSignaturesQuery } from "./useCollectionSignaturesQuery";
@@ -36,11 +35,7 @@ export function RepositoryOverviewTab({
       <DescriptionListGroup>
         <DescriptionListTerm>Default remote</DescriptionListTerm>
         <DescriptionListDescription>
-          {repository.remote ? (
-            <StatusIndicator color="blue">Configured</StatusIndicator>
-          ) : (
-            <StatusIndicator color="grey">None</StatusIndicator>
-          )}
+          {repository.remote ? "Configured" : "None"}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
@@ -52,11 +47,7 @@ export function RepositoryOverviewTab({
       <DescriptionListGroup>
         <DescriptionListTerm>GPG key</DescriptionListTerm>
         <DescriptionListDescription>
-          {repository.gpgkey ? (
-            <StatusIndicator color="blue">Set</StatusIndicator>
-          ) : (
-            <StatusIndicator color="grey">None</StatusIndicator>
-          )}
+          {repository.gpgkey ? "Set" : "None"}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>

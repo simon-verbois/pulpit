@@ -51,8 +51,11 @@ function contentTypeLabel(contentType: string, count: number): string {
   return name.endsWith("s") ? name : `${name}s`;
 }
 
-function formatDate(isoTimestamp: string): string {
-  return new Date(isoTimestamp).toLocaleDateString(undefined, { dateStyle: "medium" });
+function formatDateTime(isoTimestamp: string): string {
+  return new Date(isoTimestamp).toLocaleString(undefined, {
+    dateStyle: "long",
+    timeStyle: "medium",
+  });
 }
 
 /**
@@ -135,7 +138,7 @@ export function RepositorySummary({
       <DescriptionListGroup>
         <DescriptionListTerm>Created</DescriptionListTerm>
         <DescriptionListDescription>
-          {formatDate(repository.pulp_created)}
+          {formatDateTime(repository.pulp_created)}
         </DescriptionListDescription>
       </DescriptionListGroup>
     </>
