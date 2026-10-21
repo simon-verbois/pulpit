@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Pulpit is an open-source web console for Pulp: manage repositories, remotes, distributions, tasks, users, signing keys and TLS for RPM, Debian, container, Ansible and more from one place."
+    />
+    <title>Pulpit — A web console for Pulp</title>
+    <meta property="og:title" content="Pulpit — A web console for Pulp" />
+    <meta
+      property="og:description"
+      content="Operate your Pulp content from one modern, PatternFly-based interface."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="masthead wrap">
+      <a class="brand" href="./" aria-label="Pulpit home">
+        <img src="favicon.svg" alt="" width="32" height="32" />
+        <span>Pulpit</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#get-started">Get started</a>
+        <a href="https://github.com/simon-verbois/pulpit">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <div class="wrap hero">
+        <div>
+          <p class="eyebrow">Open source · MIT licensed</p>
+          <h1>Pulp, with a console worth using.</h1>
+          <p class="lede">
+            Pulpit is a web interface for
+            <a href="https://pulpproject.org/">Pulp</a>. Manage repositories, sync
+            remotes, publish distributions, follow tasks and administer users, signing
+            keys and TLS — across ten content types, from one place. Pulp stays the engine
+            and the single source of truth; Pulpit is where you operate it from.
+          </p>
+          <div class="actions">
+            <a class="button" href="#get-started">Get started</a>
+            <a class="button secondary" href="https://github.com/simon-verbois/pulpit"
+              >View on GitHub</a
+            >
+          </div>
+        </div>
+        <a class="shot" href="screenshots/overview.png" data-preview>
+          <img
+            src="screenshots/overview.png"
+            width="1440"
+            height="900"
+            alt="Pulpit's Overview page: Pulp service health cards and a table of installed plugin modules with versions, repository counts and sizes."
+          />
+        </a>
+      </div>
+
+      <section id="features" class="wrap" aria-labelledby="features-title">
+        <h2 id="features-title">Everything Pulp offers, in one console</h2>
+        <p class="section-lede">
+          Pulpit talks to the live Pulp API. Whatever you do in the interface is a real
+          Pulp operation, tracked as a task, with the same permissions Pulp itself
+          enforces.
+        </p>
+        <ul class="plugins" aria-label="Supported content types">
+          <li>RPM</li>
+          <li>Debian</li>
+          <li>Container</li>
+          <li>Ansible</li>
+          <li>Files</li>
+          <li>Hugging Face</li>
+          <li>RubyGems</li>
+          <li>Maven</li>
+          <li>npm</li>
+          <li>Python</li>
+        </ul>
+        <div class="grid">
+          <article class="card">
+            <h3>Repositories and versions</h3>
+            <p>
+              Create, edit, sync and delete repositories. Browse content, walk the version
+              history, copy a version's content to another repository and upload packages,
+              advisories or collections.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Remotes and distributions</h3>
+            <p>
+              Configure remotes (including proxy and TLS settings and ULN for RPM),
+              publish distributions and copy ready-made <code>dnf</code>,
+              <code>podman</code> or <code>docker</code> configuration.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Tasks you can follow</h3>
+            <p>
+              Every long-running action is tracked in a task drawer and a searchable task
+              history, with failures explained in plain language and a retry where it
+              makes sense.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Access control</h3>
+            <p>
+              Manage users, groups and roles, grant roles on a single repository, and
+              connect an LDAP directory — all from Administration.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Repository signing</h3>
+            <p>
+              Generate and rotate GPG signing keys, publish the public key, sign packages
+              and metadata, and re-sign existing repositories. Key custody lives in a
+              small dedicated backend, not in the browser.
+            </p>
+          </article>
+          <article class="card">
+            <h3>TLS, proxy and guards</h3>
+            <p>
+              Terminate TLS with an automatic self-signed certificate or your own, set one
+              global outbound proxy policy, and manage content guards and Pulp signing
+              services.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="screenshots" class="wrap" aria-labelledby="screenshots-title">
+        <h2 id="screenshots-title">A look around</h2>
+        <p class="section-lede">
+          Built on the open PatternFly design system, with light and dark themes. Click an
+          image to enlarge it.
+        </p>
+        <ul class="gallery">
+          <li>
+            <figure>
+              <a class="shot" href="screenshots/rpm-repositories.png" data-preview>
+                <img
+                  src="screenshots/rpm-repositories.png"
+                  width="1440"
+                  height="900"
+                  loading="lazy"
+                  alt="The RPM repositories list, filtered by name, with Sync and a row menu."
+                />
+              </a>
+              <figcaption>
+                <strong>Repositories</strong>
+                Search, sync and manage every repository of a content type.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <a class="shot" href="screenshots/rpm-versions.png" data-preview>
+                <img
+                  src="screenshots/rpm-versions.png"
+                  width="1440"
+                  height="900"
+                  loading="lazy"
+                  alt="A repository's Versions tab, with the current version in bold and a Copy to action."
+                />
+              </a>
+              <figcaption>
+                <strong>Version history</strong>
+                See what each version contains and copy the current one elsewhere.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <a class="shot" href="screenshots/rpm-distributions.png" data-preview>
+                <img
+                  src="screenshots/rpm-distributions.png"
+                  width="1440"
+                  height="900"
+                  loading="lazy"
+                  alt="A repository's Distributions tab listing each distribution with its ready-to-copy dnf repo configuration."
+                />
+              </a>
+              <figcaption>
+                <strong>Distributions</strong>
+                Publish a repository and copy its client configuration in one click.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <a class="shot" href="screenshots/containers.png" data-preview>
+                <img
+                  src="screenshots/containers.png"
+                  width="1440"
+                  height="900"
+                  loading="lazy"
+                  alt="A container repository's Overview tab with its tag, blob and manifest counts and size."
+                />
+              </a>
+              <figcaption>
+                <strong>Every content type</strong>
+                The same experience for containers, Ansible, Debian and the rest.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <a class="shot" href="screenshots/admin-signing.png" data-preview>
+                <img
+                  src="screenshots/admin-signing.png"
+                  width="1440"
+                  height="900"
+                  loading="lazy"
+                  alt="Administration, Repository Signing: signing switches, public key filename, and the table of signing keys."
+                />
+              </a>
+              <figcaption>
+                <strong>Repository signing</strong>
+                Keys, rotation and the public key, managed from Administration.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <a class="shot" href="screenshots/versions-dark.png" data-preview>
+                <img
+                  src="screenshots/versions-dark.png"
+                  width="1440"
+                  height="900"
+                  loading="lazy"
+                  alt="The Versions tab in the dark theme."
+                />
+              </a>
+              <figcaption>
+                <strong>Light and dark</strong>
+                Follows your preference, or switch it from the masthead.
+              </figcaption>
+            </figure>
+          </li>
+        </ul>
+        <p class="section-lede">
+          Screenshots show a development build of Pulpit against a local Pulp with sample
+          repositories.
+        </p>
+      </section>
+
+      <section id="how-it-works" class="wrap" aria-labelledby="how-title">
+        <h2 id="how-title">How it fits together</h2>
+        <p class="section-lede">
+          The interface is a single-page application with no database or login system of
+          its own: Pulp is the only source of truth and the only identity provider. A
+          small companion backend, <code>pulpit-core</code>, handles the few things a
+          browser or Pulp's API cannot — signing key custody first. Everything ships as
+          one container image, served together with Pulp from one origin behind nginx.
+        </p>
+        <pre class="diagram" aria-label="Architecture diagram">
+Browser → Pulpit SPA (React + TypeScript + PatternFly) → Pulp REST API → PostgreSQL (owned by Pulp)
+                                                       → pulpit-core API → pulpit-worker → GPG</pre>
+      </section>
+
+      <section id="get-started" class="wrap" aria-labelledby="start-title">
+        <h2 id="start-title">Get started</h2>
+        <p class="section-lede">
+          The bundled Docker Compose stack runs Pulp and Pulpit together and is the most
+          tested way to try it. Podman (Quadlet) and plain Kubernetes manifests are
+          provided too.
+        </p>
+        <pre><code>git clone https://github.com/simon-verbois/pulpit.git
+cd pulpit
+./deployment/docker/generate-env.sh   # writes .env with fresh secrets, prints the admin password once
+docker compose -f deployment/docker/compose.yml --env-file .env up -d --build</code></pre>
+        <p>
+          Open <code>http://localhost:8080/</code> and sign in as <code>admin</code> with
+          the printed password. See the
+          <a href="https://github.com/simon-verbois/pulpit#deploying-pulpit"
+            >deployment guide</a
+          >
+          for Podman, Kubernetes, sizing and memory limits.
+        </p>
+        <div class="note">
+          <p>
+            <strong>Early-stage project.</strong> The bundled stack is a reference
+            topology, not a hardened production deployment. Before exposing Pulpit beyond
+            a trusted network, read the
+            <a href="https://github.com/simon-verbois/pulpit/blob/main/docs/SECURITY.md"
+              >security notes</a
+            >
+            and the
+            <a href="https://github.com/simon-verbois/pulpit/blob/main/docs/ROADMAP.md"
+              >roadmap</a
+            >
+            for what is built and what is still open.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <p>
+          Pulpit is MIT licensed. Pulp and the other product names belong to their owners.
+        </p>
+        <nav aria-label="Project links">
+          <a href="https://github.com/simon-verbois/pulpit">Source</a>
+          <a href="https://github.com/simon-verbois/pulpit/blob/main/CHANGELOG.md"
+            >Changelog</a
+          >
+          <a href="https://github.com/simon-verbois/pulpit/tree/main/docs"
+            >Documentation</a
+          >
+          <a href="https://github.com/simon-verbois/pulpit/blob/main/LICENSE">License</a>
+        </nav>
+      </div>
+    </footer>
+
+    <dialog id="preview" aria-labelledby="preview-caption">
+      <button type="button">Close</button>
+      <img id="preview-image" alt="" />
+      <p id="preview-caption"></p>
+    </dialog>
+  </body>
+</html>

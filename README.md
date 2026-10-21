@@ -3,13 +3,32 @@
 A modern web interface for managing Pulp repositories, artifacts, users, and permissions through
 the Pulp API.
 
+**Website:** <https://simon-verbois.github.io/pulpit/>
+
+[![Pulpit's Overview page](docs/screenshots/overview.png)](docs/screenshots/overview.png)
+
+<table>
+  <tr>
+    <td><a href="docs/screenshots/rpm-repositories.png"><img src="docs/screenshots/rpm-repositories.png" alt="RPM repositories list"></a></td>
+    <td><a href="docs/screenshots/rpm-versions.png"><img src="docs/screenshots/rpm-versions.png" alt="Repository version history"></a></td>
+  </tr>
+  <tr>
+    <td><a href="docs/screenshots/rpm-distributions.png"><img src="docs/screenshots/rpm-distributions.png" alt="Repository distributions with ready-to-copy client configuration"></a></td>
+    <td><a href="docs/screenshots/admin-signing.png"><img src="docs/screenshots/admin-signing.png" alt="Administration: repository signing keys"></a></td>
+  </tr>
+</table>
+
+_Screenshots show a development build against a local Pulp with sample repositories (light and dark
+themes are both supported). Regenerate them with `node scripts/capture-screenshots.mjs`._
+
 ## What Pulpit is
 
 Pulp is a powerful content/repository management engine, but its default tooling isn't always the
 easiest way to operate it day to day. Pulpit is a dedicated management UI for Pulp — the name is a
 wordplay: Pulp is the engine, Pulpit is where you administer it from. Pulpit does not replace Pulp;
 Pulp remains the entire backend and the sole source of truth. Pulpit aims to make Pulp
-(pulpcore + pulp_rpm + pulp_container + pulp_ansible) significantly easier and more pleasant to
+(pulpcore plus the RPM, Debian, container, Ansible, file, Hugging Face, RubyGems, Maven, npm and
+Python plugins) significantly easier and more pleasant to
 use, with a UX in the spirit of enterprise consoles like Ansible Automation Platform, Private
 Automation Hub, Satellite, or the Hybrid Cloud Console — built on the open PatternFly design
 system, with its own product identity (no proprietary assets, no Pulp trademarks used
@@ -17,11 +36,21 @@ misleadingly).
 
 ## Status
 
-RPM, Containers, Ansible, Access, and Administration (signing services, content guards, repository
-signing, tasks/auditability) are real, fully wired feature sets backed by the live Pulp API
-(repositories, sync, content browsing, distributions, users/groups/roles/permissions, and more per
-area). The only work still open is production deployment hardening docs (TLS, secrets management,
-security headers). See [`docs/ROADMAP.md`](docs/ROADMAP.md) for exactly what's built vs. planned.
+Pulpit is an early-stage project, but its feature sets are real and fully wired to the live Pulp
+API, not mock-ups:
+
+- **Content plugins** — RPM, Debian, Container, Ansible, Files, Hugging Face, RubyGems, Maven, npm
+  and Python: repositories, sync, remotes, content browsing, version history, distributions and
+  per-repository access, with each plugin's specifics (RPM advisories and alternate content
+  sources, ULN remotes, container tags and manifests, Ansible collections/roles/namespaces, ...).
+- **Tasks** — a masthead task drawer and a searchable task history, with plain-language failure
+  explanations and retry where it makes sense.
+- **Administration** — users, groups, roles and object-level grants, LDAP, repository/package
+  signing key management (via `pulpit-core`), Pulp signing services, content guards, TLS
+  termination, a global outbound proxy policy and default settings.
+
+The main work still open is production deployment hardening docs (secrets management, security
+headers). See [`docs/ROADMAP.md`](docs/ROADMAP.md) for exactly what's built vs. planned.
 
 ## Architecture
 
@@ -252,14 +281,20 @@ For fast frontend-only iteration and the full contributor workflow (lint/typeche
 
 ## Primary capabilities
 
-- RPM/YUM: repositories, packages, remotes, sync, publications/distributions, repository
-  versions, package upload.
+- RPM/YUM: repositories, packages, advisories, remotes (including ULN), alternate content sources,
+  sync, publications/distributions, repository versions, package upload.
 - Container/OCI: repositories, manifests/tags, remotes, sync, distributions, copyable
   `podman`/`docker` commands.
-- Ansible/Galaxy: namespaces, collections, collection versions, repositories, remotes, import/sync.
-- Pulpcore: tasks, workers, system status, users/groups/roles, signing services, content guards.
+- Ansible/Galaxy: namespaces, collections, collection versions, roles, repositories, remotes,
+  import/sync.
+- Debian, Files, Hugging Face, RubyGems, Maven, npm and Python: repositories, content, remotes,
+  sync, versions and distributions.
+- Pulpcore: tasks, system status and installed modules, users/groups/roles/permissions, LDAP,
+  signing services, content guards.
 - Repository/package signing key management (GPG key generation, rotation, public key
-  distribution) via `pulpit-core` — see [`docs/signing.md`](docs/signing.md).
+  distribution, re-signing) via `pulpit-core` — see [`docs/signing.md`](docs/signing.md).
+- TLS (automatic self-signed or imported certificates) and a global outbound proxy policy — see
+  [`docs/tls.md`](docs/tls.md).
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for current implementation status per area.
 
@@ -274,13 +309,15 @@ for exact pinned versions.
 
 ```
 pulpit/
-├── docs/                  # architecture, API, auth, RBAC, UX, testing, security, roadmap, ADRs
+├── docs/                  # architecture, API, auth, RBAC, UX, testing, security, roadmap, ADRs,
+│                          #   plus the GitHub Pages website (index.html, styles.css, screenshots/)
 ├── deployment/            # one subdirectory per deployment technology, one README each
 │   ├── docker/            # Dockerfile, compose.yml, compose-dev.yml, nginx/, pulpit/, pulp/
 │   ├── podman/            # Quadlet (systemd --user) units over `podman kube play` (not Compose, not real Kubernetes)
 │   └── kube/              # plain Kubernetes manifests (no Helm)
 ├── e2e/                   # Playwright specs
 ├── scripts/api/           # OpenAPI schema fetch + type generation
+├── scripts/capture-screenshots.mjs  # regenerates docs/screenshots/ (README + website)
 ├── pulpit-core/           # Pulpit's own backend (ADR 0006) - see docs/signing.md
 │   ├── app/               # FastAPI app: core/ (jobs, events, db), adapters/pulp/, modules/signing/
 │   ├── worker/            # pulpit-worker's own process entrypoint (the only one with GPG key access)
@@ -297,6 +334,8 @@ pulpit/
 
 ## Documentation
 
+- [Project website](https://simon-verbois.github.io/pulpit/) — overview and screenshots; its
+  source lives in `docs/` (see [`docs/PAGES.md`](docs/PAGES.md))
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system design
 - [`docs/PULP_API.md`](docs/PULP_API.md) — Pulp API integration strategy
 - [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md) / [`docs/RBAC.md`](docs/RBAC.md) — auth/permissions model
