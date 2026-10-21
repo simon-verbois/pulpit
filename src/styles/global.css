@@ -1115,13 +1115,23 @@ textarea.pf-v6-c-form-control:focus-visible {
   }
 }
 
+/* PatternFly top-aligns table cells, which is fine until a row holds a taller
+   control (kebab, text button, label): the text then hugs the row's top edge
+   while the control sits mid-row. Center every body cell instead so text,
+   buttons and kebabs share one line. */
+.pf-v6-c-table__tbody > .pf-v6-c-table__tr > :is(.pf-v6-c-table__td, .pf-v6-c-table__th) {
+  vertical-align: middle;
+}
+
 /* A text button in a row's action cell must not make that row taller than
-   rows without one (e.g. "Copy to…" on the current version only). Its own
-   block padding overlaps the cell's padding instead of adding to it; the
-   click target keeps its size. */
+   rows without one (e.g. "Copy to…" on the current version only). The button
+   overlaps the cell's own block padding instead of adding to it (the click
+   target keeps its size). Cancelling exactly the cell's padding - not the
+   button's, which is larger than the action cell's - keeps the button's
+   label on the same line as the text of the row's other cells. */
 .pf-v6-c-table__tbody .pf-v6-c-table__action .pf-v6-c-button {
-  margin-block: calc(-1 * var(--pf-v6-c-button--PaddingBlockStart))
-    calc(-1 * var(--pf-v6-c-button--PaddingBlockEnd));
+  margin-block: calc(-1 * var(--pf-v6-c-table--cell--PaddingBlockStart))
+    calc(-1 * var(--pf-v6-c-table--cell--PaddingBlockEnd));
 }
 
 /* Same for a label/status pill (e.g. advisory severity, "Current"): its
