@@ -340,7 +340,17 @@ body {
    entirely rather than try to recolor it, since the surrounding border
    already shows focus/hover state on its own. */
 .pf-v6-c-text-input-group__text-input:focus,
-.pf-v6-c-text-input-group__text-input:focus-visible {
+.pf-v6-c-text-input-group__text-input:focus-visible,
+.pf-v6-c-form-control input:focus,
+.pf-v6-c-form-control input:focus-visible,
+.pf-v6-c-form-control textarea:focus,
+.pf-v6-c-form-control textarea:focus-visible,
+.pf-v6-c-form-control select:focus,
+.pf-v6-c-form-control select:focus-visible,
+input.pf-v6-c-form-control:focus,
+input.pf-v6-c-form-control:focus-visible,
+textarea.pf-v6-c-form-control:focus,
+textarea.pf-v6-c-form-control:focus-visible {
   outline: none;
 }
 
