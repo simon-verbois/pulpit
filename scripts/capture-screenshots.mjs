@@ -11,6 +11,9 @@ import { chromium } from "@playwright/test";
 const BASE_URL =
   process.argv[2] ?? process.env.PULPIT_BASE_URL ?? "http://localhost:8080";
 const OUT_DIR = "docs/screenshots";
+// Wide enough for the Overview status cards to sit on one row, like on a
+// typical desktop browser window. Each shot sets its own height.
+const WIDTH = 1760;
 const THEME_KEY = "pulpit:theme";
 
 function adminPassword() {
@@ -24,25 +27,37 @@ function adminPassword() {
 
 // Each shot: output file, route, and an optional step run before capturing.
 const SHOTS = [
-  { file: "overview", path: "/" },
+  { file: "overview", height: 700, path: "/" },
   {
     file: "rpm-repositories",
+    height: 700,
     path: "/rpm/repositories",
     prepare: (page) => search(page, "pulpit-sample"),
   },
-  { file: "rpm-versions", path: "/rpm/repositories/pulpit-sample-rpm?tab=versions" },
+  {
+    file: "rpm-versions",
+    height: 700,
+    path: "/rpm/repositories/pulpit-sample-rpm?tab=versions",
+  },
   {
     file: "rpm-distributions",
+    height: 700,
     path: "/rpm/repositories/pulpit-sample-rpm?tab=distributions",
   },
-  { file: "containers", path: "/containers/repositories/pulpit-sample-container" },
+  {
+    file: "containers",
+    height: 700,
+    path: "/containers/repositories/pulpit-sample-container",
+  },
   {
     file: "versions-dark",
+    height: 700,
     path: "/rpm/repositories/pulpit-sample-rpm?tab=versions",
     theme: "dark",
   },
   {
     file: "admin-signing",
+    height: 700,
     path: "/admin",
     prepare: (page) => openTab(page, "Repository Signing"),
   },
@@ -63,7 +78,7 @@ async function openTab(page, name) {
 mkdirSync(OUT_DIR, { recursive: true });
 const browser = await chromium.launch();
 const context = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
+  viewport: { width: WIDTH, height: 900 },
   deviceScaleFactor: 1,
   colorScheme: "light",
 });
@@ -79,6 +94,7 @@ for (const shot of SHOTS) {
     ([key, value]) => localStorage.setItem(key, value),
     [THEME_KEY, shot.theme ?? "light"],
   );
+  await page.setViewportSize({ width: WIDTH, height: shot.height });
   await page.goto(`${BASE_URL}${shot.path}`);
   await page.waitForLoadState("networkidle");
   // The dev banner only exists in locally-built images.

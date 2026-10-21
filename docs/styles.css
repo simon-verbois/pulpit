@@ -242,7 +242,7 @@ h1 {
 
 .hero .shot {
   margin-inline: auto;
-  max-width: 62rem;
+  max-width: 100%;
 }
 
 /* Sections */
