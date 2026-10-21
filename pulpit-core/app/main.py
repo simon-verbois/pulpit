@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.router import api_router, public_router
+from app.core.auth import close_auth_client
 from app.core.config import get_settings
 from app.modules.registry import register_all
 
@@ -15,6 +16,7 @@ logging.basicConfig(level=get_settings().log_level)
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     register_all()
     yield
+    await close_auth_client()
 
 
 app = FastAPI(

@@ -19,7 +19,9 @@ origin's, so requiring the `X-CSRFToken` header to match it (the standard
 inventing a second token scheme.
 """
 
+import asyncio
 from dataclasses import dataclass
+from http.cookiejar import DefaultCookiePolicy
 
 import httpx
 from fastapi import Depends, HTTPException, Request
@@ -27,6 +29,35 @@ from fastapi import Depends, HTTPException, Request
 from app.core.config import Settings, get_settings
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+_client: httpx.AsyncClient | None = None
+_client_loop: asyncio.AbstractEventLoop | None = None
+
+
+def get_auth_client() -> httpx.AsyncClient:
+    """One long-lived client for every auth check, so Pulp's connection (TCP,
+    and TLS when Pulp is https) is reused instead of re-opened per request.
+
+    The cookie jar is disabled outright: each request forwards the *caller's*
+    own credentials explicitly (`_forward_headers`), so a Set-Cookie answered
+    to one user must never be stored and replayed to another. A client is
+    bound to the event loop it was first used on, so a different running loop
+    (tests, mostly) gets a fresh one."""
+    global _client, _client_loop
+    loop = asyncio.get_running_loop()
+    if _client is None or _client_loop is not loop:
+        _client = httpx.AsyncClient(timeout=get_settings().pulp_request_timeout_seconds)
+        _client.cookies.jar.set_policy(DefaultCookiePolicy(allowed_domains=[]))
+        _client_loop = loop
+    return _client
+
+
+async def close_auth_client() -> None:
+    global _client, _client_loop
+    if _client is not None:
+        await _client.aclose()
+    _client = None
+    _client_loop = None
 
 
 @dataclass
@@ -80,11 +111,10 @@ async def require_authenticated_user(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     url = f"{settings.pulp_base_url}{settings.pulp_api_base_path}/login/"
-    async with httpx.AsyncClient(timeout=settings.pulp_request_timeout_seconds) as client:
-        try:
-            response = await client.get(url, headers=forward_headers)
-        except httpx.HTTPError as exc:
-            raise HTTPException(status_code=502, detail="Pulp is currently unavailable") from exc
+    try:
+        response = await get_auth_client().get(url, headers=forward_headers)
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail="Pulp is currently unavailable") from exc
 
     if response.status_code != 200:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -106,11 +136,10 @@ async def get_full_user(
     settings: Settings = Depends(get_settings),
 ) -> FullUser:
     url = f"{settings.pulp_base_url}{current_user.pulp_href}"
-    async with httpx.AsyncClient(timeout=settings.pulp_request_timeout_seconds) as client:
-        try:
-            response = await client.get(url, headers=_forward_headers(request))
-        except httpx.HTTPError as exc:
-            raise HTTPException(status_code=502, detail="Pulp is currently unavailable") from exc
+    try:
+        response = await get_auth_client().get(url, headers=_forward_headers(request))
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail="Pulp is currently unavailable") from exc
 
     if response.status_code == 403:
         # A minimal Pulp user can authenticate yet lack permission to read
