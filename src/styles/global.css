@@ -1167,3 +1167,9 @@ textarea.pf-v6-c-form-control:focus-visible {
 .pf-v6-c-tabs__item:not(.pf-m-current) .pf-v6-c-tabs__link:is(:hover, :focus-visible) {
   color: var(--pulpit-primary);
 }
+
+/* The repository's current version in a Versions table: bold the row's data
+   cells (not the trailing action cell, whose link button stays as is). */
+.pulpit-row-current > td:not(.pf-v6-c-table__action) {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}

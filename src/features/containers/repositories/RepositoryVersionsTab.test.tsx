@@ -18,7 +18,7 @@ describe("Container RepositoryVersionsTab", () => {
     renderApp(<RepositoryVersionsTab repository={CONTAINER_REPO_FIXTURE} />);
 
     expect(await screen.findByText(/Version 1/)).toBeInTheDocument();
-    expect(screen.getByText("Current")).toBeInTheDocument();
+    expect(screen.getByText(/Version 1/).closest("tr")).toHaveClass("pulpit-row-current");
     expect(screen.getByText(/1 tags, 1 manifests/)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Copy to…" })).toHaveLength(1);
   });

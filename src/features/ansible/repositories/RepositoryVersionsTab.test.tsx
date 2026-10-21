@@ -18,7 +18,7 @@ describe("Ansible RepositoryVersionsTab", () => {
     renderApp(<RepositoryVersionsTab repository={ANSIBLE_REPO_FIXTURE} />);
 
     expect(await screen.findByText(/Version 1/)).toBeInTheDocument();
-    expect(screen.getByText("Current")).toBeInTheDocument();
+    expect(screen.getByText(/Version 1/).closest("tr")).toHaveClass("pulpit-row-current");
     expect(screen.getByText(/1 collections, 1 roles/)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Copy to…" })).toHaveLength(1);
   });

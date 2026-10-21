@@ -83,7 +83,11 @@ describe("RepositoryDetailPage", () => {
 
     const panel = await screen.findByRole("tabpanel");
     expect(await within(panel).findByText(/Version 1/)).toBeInTheDocument();
-    expect(within(panel).getByText("Current")).toBeInTheDocument();
+    expect(
+      within(panel)
+        .getByText(/Version 1/)
+        .closest("tr"),
+    ).toHaveClass("pulpit-row-current");
     expect(within(panel).getByText(/Version 0/)).toBeInTheDocument();
   });
 

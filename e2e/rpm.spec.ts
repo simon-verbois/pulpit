@@ -77,7 +77,9 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     await page.getByRole("tab", { name: "Versions" }).click();
     const versionsPanel = page.getByRole("tabpanel");
     await expect(versionsPanel.getByText(/Version 1/)).toBeVisible();
-    await expect(versionsPanel.getByText("Current")).toBeVisible();
+    await expect(versionsPanel.getByRole("row", { name: /Version 1/ })).toHaveClass(
+      /pulpit-row-current/,
+    );
     await expect(versionsPanel.getByText("35 packages")).toBeVisible();
 
     // --- Upload an additional package directly ----------------------------

@@ -7,7 +7,6 @@ import type { NpmRepository } from "../../../api/client/npm/types";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
-import { StatusIndicator } from "../../../components/StatusIndicator";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { formatRelativeTime } from "../../../lib/relativeTime";
 import { npmRepositoryVersionsKey } from "./queryKeys";
@@ -84,18 +83,11 @@ export function RepositoryVersionsTab({ repository }: { repository: NpmRepositor
                 const packageCount =
                   version.content_summary?.present?.["npm.package"]?.count;
                 return (
-                  <Tr key={version.pulp_href}>
-                    <Td dataLabel="Version">
-                      Version {version.number}
-                      {isCurrent ? (
-                        <>
-                          {" "}
-                          <StatusIndicator color="blue" isCompact>
-                            Current
-                          </StatusIndicator>
-                        </>
-                      ) : null}
-                    </Td>
+                  <Tr
+                    key={version.pulp_href}
+                    className={isCurrent ? "pulpit-row-current" : undefined}
+                  >
+                    <Td dataLabel="Version">Version {version.number}</Td>
                     <Td dataLabel="Created">
                       {formatRelativeTime(version.pulp_created)}
                     </Td>
