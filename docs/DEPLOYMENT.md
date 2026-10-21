@@ -94,7 +94,13 @@ named volumes sidestep that. Nothing under these volumes is committed to version
 
 ## CPU and memory allocation
 
-The shipped Docker Compose, Kubernetes and Podman deployments set no CPU or
+The Podman deployment sets RAM limits (`pulp` 8 GiB, `pulpit` 1 GiB, `redis`
+256 MiB) and no CPU limits. A sync that outgrows the `pulp` limit is killed inside
+that container ("Killed by signal 9.") instead of the host OOM killer choosing a
+victim. See the README's [memory limits guide](../README.md#memory-limits-user-guide)
+for per-host-size values, including OpenShift/Kubernetes requests and limits.
+
+The shipped Docker Compose and Kubernetes deployments set no CPU or
 memory limits, reservations or requests for their containers. This includes the
 optional Docker Squid proxy and ULN test fixture. Processes can use the available
 host resources; size the host and sync concurrency using the

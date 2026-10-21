@@ -9,7 +9,8 @@ capabilities - see "Why this is a separate directory from `deployment/kube/`" be
 Requires a Podman new enough to ship the Quadlet generator (`/usr/libexec/podman/quadlet`,
 Podman >= 4.4).
 
-The shipped manifests impose no container CPU/RAM limits or reservations.
+The shipped manifests set RAM limits (no CPU limits): `pulp` 8 GiB, `pulpit` 1 GiB, `redis`
+256 MiB. Size them for your host with the README's [memory limits guide](../../README.md#memory-limits-user-guide).
 Storage volume capacities remain explicit; see [deployment resource allocation](../../docs/DEPLOYMENT.md#cpu-and-memory-allocation).
 
 ## Deploying

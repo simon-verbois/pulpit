@@ -118,6 +118,73 @@ adjust these estimates. For sustained larger workloads, scale API, content and
 workers independently with an external PostgreSQL and shared/object storage;
 Pulp documents this [component scaling model](https://pulpproject.org/pulp-operator/docs/admin/guides/install/ha/).
 
+### Memory limits (user guide)
+
+Pulp runs as one all-in-one container: API, content serving, task workers and its
+embedded PostgreSQL share a single memory limit. Large RPM syncs are the biggest
+consumer. Parsing the metadata of a catalog like Oracle Linux 9 BaseOS (~20,000
+packages) can take several GiB in one task. When the container exceeds its limit,
+the kernel kills the sync process and the task fails with `"Killed by signal 9."`.
+Pulpit then shows "Pulp worker was forcibly stopped". After you raise the limit or
+lower `PULP_WORKERS`, open the failed task and choose **Retry sync**. Files that were
+already downloaded are reused, not downloaded again.
+
+**Podman** (`deployment/podman/`) ships these limits: `pulp` **8 GiB**, `pulpit`
+1 GiB, `redis` 256 MiB. To change them, edit `resources.limits.memory` in
+`pulp.yaml`, `pulpit.yaml` or `redis.yaml`. Set the number of concurrent syncs
+with `PULP_WORKERS` in `00-configmap.yaml` (the image default is 2). Then run
+`./deployment/podman/deploy.sh down` followed by `up`. Rootless Podman can only
+enforce a limit when the user's systemd slice delegates the cgroup v2 `memory`
+controller. Fedora and RHEL do this by default. To check, run
+`cat /sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers`, which must list `memory`.
+
+| Host RAM   | `pulp` limit                | `PULP_WORKERS` (concurrent syncs) | `pulpit` | `redis` |
+| ---------- | --------------------------- | --------------------------------- | -------- | ------- |
+| 8 GiB      | 5 GiB                       | 1                                 | 512 MiB  | 256 MiB |
+| 16 GiB     | **8 GiB** (shipped default) | 1–2 (1 for large RPM repos)       | 1 GiB    | 256 MiB |
+| 32 GiB     | 24 GiB                      | 2                                 | 1 GiB    | 512 MiB |
+| 64 GiB     | 52 GiB                      | 4                                 | 1 GiB    | 512 MiB |
+| 96–128 GiB | 80–110 GiB                  | 4–8                               | 1 GiB    | 1 GiB   |
+
+Rules of thumb behind the table, which are estimates rather than benchmarks:
+
+- Leave 3–4 GiB (or about 15% of the host's RAM) outside the `pulp` limit for the OS,
+  its page cache and Podman.
+- Inside the `pulp` limit, budget about 3 GiB for PostgreSQL, the API and content
+  processes. Then budget **4–6 GiB per concurrent large RPM sync**.
+- With an 8 GiB limit, run one large RPM sync at a time. Stagger their schedules,
+  or set `PULP_WORKERS: "1"`.
+- If a sync is still killed, raise the `pulp` limit before you raise anything
+  else. Reducing download concurrency does not reduce metadata-parsing memory.
+
+**OpenShift / Kubernetes** (`deployment/kube/`) ships no limits. Projects often
+inject default limits through a `LimitRange`, which can be far too small for Pulp.
+Check with `oc describe limitrange` and `oc describe quota`. Set the same value
+for the memory `request` and `limit` on `pulp`. The scheduler then reserves that
+memory, and the pod is not the first one evicted under node pressure. Start
+from the table above, using the node's allocatable RAM as "Host RAM":
+
+```yaml
+# deployment/kube/pulp.yaml, Deployment "pulp", container "pulp"
+resources:
+  requests:
+    memory: 8Gi
+    cpu: "2"
+  limits:
+    memory: 8Gi
+```
+
+Or, on a running cluster:
+
+```sh
+oc set resources deployment/pulp   --requests=memory=8Gi,cpu=2 --limits=memory=8Gi
+oc set resources deployment/pulpit --requests=memory=256Mi   --limits=memory=1Gi
+oc set resources deployment/redis  --requests=memory=64Mi    --limits=memory=256Mi
+```
+
+Set `PULP_WORKERS` in the `pulpit-config` ConfigMap, using the table above. The
+project's `ResourceQuota` must allow the sum of all requests.
+
 ### Pulp performance tuning
 
 The detailed [performance guide](docs/PERFORMANCE.md) distinguishes settings

@@ -11,6 +11,9 @@ spec:
     - name: redis
       image: docker.io/library/redis:8-alpine
       args: ["redis-server", "--save", "", "--appendonly", "no"]
+      resources:
+        limits:
+          memory: 256Mi
       readinessProbe:
         exec:
           command: ["redis-cli", "ping"]

@@ -109,6 +109,14 @@ spec:
   containers:
     - name: pulp
       image: docker.io/simonverbois/pulp-pulpit:latest
+      # RAM cap for the whole all-in-one Pulp container (API, content,
+      # task workers and its embedded PostgreSQL). A sync that exceeds it is
+      # killed inside this container ("Killed by signal 9.") instead of the
+      # host OOM killer picking a process. Size it per the README's
+      # "Memory limits" guide.
+      resources:
+        limits:
+          memory: 8Gi
       envFrom:
         - configMapRef:
             name: pulpit-config

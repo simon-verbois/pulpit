@@ -58,6 +58,9 @@ spec:
   containers:
     - name: pulpit
       image: docker.io/simonverbois/pulpit:latest
+      resources:
+        limits:
+          memory: 1Gi
       envFrom:
         - configMapRef:
             name: pulpit-config

@@ -8,8 +8,9 @@ measured bottleneck while preserving responsiveness and successful syncs.
 ## What is verified here
 
 **VERIFIED local:** pulpcore 3.116.1 / pulp_rpm 3.38.5; the local Pulp container
-runs 2 task workers, 2 API workers and 2 content workers. Shipped Docker,
-Kubernetes and Podman manifests have no container CPU/RAM caps or reservations.
+runs 2 task workers, 2 API workers and 2 content workers. Shipped Docker
+and Kubernetes manifests have no container CPU/RAM caps or reservations; Podman
+caps RAM only (`pulp` 8 GiB, see the README's memory limits guide).
 The running local Pulp container retains its previous 2-CPU / 8-GiB cap until
 it is recreated after the active ULN sync. PostgreSQL and Pulp processes share
 the container's available resources.
