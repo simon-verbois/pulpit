@@ -632,10 +632,15 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
 
     distributions = pulp.list_distributions_for_repository(repository_href)
     if not distributions:
-        raise ValueError(
-            "Cannot resign packages: this repository has no distribution to fetch existing "
-            "packages from (see docs/signing.md 'Known limitations')."
-        )
+        # Skipped, not failed: a failed job would leave the sync-state
+        # watermark where it is, so every detection/apply-to-all sweep would
+        # retry this repository and queue another failing job. The manual
+        # "Re-sign" route rejects this case up front (409) instead.
+        logger.info("Skipping resign of %s: it has no distribution to fetch packages from", repository_href)
+        return {
+            "evaluated": 0, "candidates": 0, "cache_hits": 0, "resigned": 0, "signed": 0,
+            "skipped": 0, "failed": 0, "skipped_reason": "no_distribution",
+        }
     base_url = distributions[0]["base_url"]
 
     # Publish first and wait for it, so the metadata read below reflects

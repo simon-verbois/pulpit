@@ -521,7 +521,7 @@ def test_resign_repository_packages_skips_gracefully_for_a_never_synced_reposito
 
 
 @respx.mock
-def test_resign_repository_packages_requires_a_distribution():
+def test_resign_repository_packages_skips_a_repository_without_a_distribution():
     respx.get(f"http://pulp:80{REPO_HREF}").mock(
         return_value=httpx.Response(
             200, json={"pulp_href": REPO_HREF, "latest_version_href": f"{REPO_HREF}versions/1/"}
@@ -531,11 +531,12 @@ def test_resign_repository_packages_requires_a_distribution():
         return_value=httpx.Response(200, json={"results": []})
     )
 
-    try:
-        signing_jobs.resign_repository_packages_job(None, {"repository_href": REPO_HREF, "fingerprint": FINGERPRINT})
-        raise AssertionError("expected ValueError")
-    except ValueError as exc:
-        assert "no distribution" in str(exc)
+    result = signing_jobs.resign_repository_packages_job(
+        None, {"repository_href": REPO_HREF, "fingerprint": FINGERPRINT}
+    )
+
+    assert result["skipped_reason"] == "no_distribution"
+    assert result["failed"] == 0
 
 
 @respx.mock

@@ -191,8 +191,11 @@ This necessarily gives every newly-resigned package a new checksum and creates a
 version - not a lightweight operation, though a run with only cache hits (or no candidates at all)
 skips the upload/modify/publish steps entirely. A repository requires at least one **distribution**
 for this to work at all (steps 5/6 need somewhere to fetch published content from); a repository
-with content but no distribution fails this job with a clear, actionable error rather than silently
-doing nothing.
+with content but no distribution is **skipped** by this job (result `skipped_reason: "no_distribution"`,
+logged) rather than failed - a failure would keep the sync-state watermark in place and make every
+detection/apply-to-all sweep re-queue a failing job for it. The per-repository "Re-sign" action
+instead rejects it up front with a `409` (before the signing PATCH and before queueing), so the
+administrator gets immediate, actionable feedback: create a distribution first.
 
 **VERIFIED end-to-end** against a live instance: a real repository's 35 packages were downloaded,
 signed with a real key, and re-uploaded successfully; a downloaded resigned package showed a real,

@@ -186,6 +186,22 @@ def resign_repository(
 
     href = request.repository_href
     pulp = _caller_pulp_client(http_request)
+    if policy.package_signing_enabled and policy.package_signing_fingerprint:
+        # Resigning fetches existing packages through a distribution, so
+        # refuse now - before the PATCH and before queueing - rather than let
+        # the job fail later. A never-populated repository (version 0) has
+        # nothing to fetch and is fine without one.
+        try:
+            latest = pulp.get_rpm_repository(href).get("latest_version_href") or ""
+            has_distribution = bool(pulp.list_distributions_for_repository(href))
+        except PulpAdapterError as exc:
+            raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
+        if not has_distribution and not latest.rstrip("/").endswith("/versions/0"):
+            raise HTTPException(
+                status_code=409,
+                detail="Cannot resign packages: this repository has no distribution to fetch "
+                "existing packages from. Create a distribution for it first.",
+            )
     try:
         configured = apply_repository_signing(
             db,

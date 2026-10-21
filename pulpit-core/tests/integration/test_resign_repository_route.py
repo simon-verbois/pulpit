@@ -64,8 +64,11 @@ def _enable(db, *, packages: bool, metadata: bool):
     db.commit()
 
 
-def _mock_repo(href, patch_status=202):
-    respx.get(f"http://pulp:80{href}").respond(200, json={"pulp_href": href})
+def _mock_repo(href, patch_status=202, *, latest="versions/1/", distributions=True):
+    respx.get(f"http://pulp:80{href}").respond(200, json={"pulp_href": href, "latest_version_href": f"{href}{latest}"})
+    respx.get("http://pulp:80/pulp/api/v3/distributions/rpm/rpm/", params={"repository": href}).respond(
+        200, json={"results": [{"base_url": "http://x/"}] if distributions else []}
+    )
     body = {"task": "/pulp/api/v3/tasks/cfg/"} if patch_status == 202 else {"detail": "nope"}
     return respx.patch(f"http://pulp:80{href}").respond(patch_status, json=body)
 
@@ -143,3 +146,26 @@ def test_metadata_only_policy_queues_a_republish(client, db, repo_href):
     job = db.get(Job, uuid.UUID(response.json()["id"]))
     assert job.job_type == "signing.publish_repository_metadata"
     assert job.payload == {"repository_href": repo_href, "configure_task": "/pulp/api/v3/tasks/cfg/"}
+
+
+@respx.mock
+def test_a_populated_repository_without_a_distribution_is_refused_before_the_patch(client, db, repo_href):
+    _enable(db, packages=True, metadata=True)
+    patch = _mock_repo(repo_href, distributions=False)
+
+    response = client.post("/api/v1/signing/repositories/resign", json={"repository_href": repo_href}, headers=AUTH)
+
+    assert response.status_code == 409
+    assert "no distribution" in response.json()["detail"]
+    assert not patch.called
+    assert db.query(Job).count() == 0
+
+
+@respx.mock
+def test_an_empty_repository_needs_no_distribution(client, db, repo_href):
+    _enable(db, packages=True, metadata=True)
+    _mock_repo(repo_href, latest="versions/0/", distributions=False)
+
+    response = client.post("/api/v1/signing/repositories/resign", json={"repository_href": repo_href}, headers=AUTH)
+
+    assert response.status_code == 202
