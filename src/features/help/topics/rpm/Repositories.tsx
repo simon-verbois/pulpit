@@ -125,7 +125,7 @@ export function RpmRepositoriesTopic() {
       <Content component="h3">The Versions tab</Content>
       <Content component="p">
         Every version ever created for this repository, newest first, with the current one
-        labeled. Use <strong>Copy to…</strong> on the current version to copy its entire
+        in bold. Use <strong>Copy to…</strong> on the current version to copy its entire
         content into a different repository in one step (there's no way to copy only part
         of a version).
       </Content>

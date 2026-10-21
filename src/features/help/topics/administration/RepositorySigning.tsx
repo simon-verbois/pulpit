@@ -177,6 +177,14 @@ export function AdministrationRepositorySigningTopic() {
         packages); repositories missing metadata signing are just republished. A
         repository already correctly signed is left untouched. This cannot be undone.
       </Content>
+      <Content component="p">
+        Re-signing needs somewhere to download the existing packages from, so a repository
+        with content but <strong>no distribution</strong> is skipped by this sweep (and by
+        the automatic re-sign after a sync). The per-repository <strong>Re-sign</strong>{" "}
+        action in a repository's <strong>Actions</strong> menu refuses it right away with
+        an explanatory error — create a distribution on its <strong>Distributions</strong>{" "}
+        tab first. A repository that has never had content needs no distribution.
+      </Content>
     </Content>
   );
 }

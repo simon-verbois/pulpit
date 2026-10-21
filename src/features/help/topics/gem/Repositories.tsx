@@ -47,8 +47,8 @@ export function GemRepositoriesTopic() {
 
       <Content component="h3">The Versions and Access tabs</Content>
       <Content component="p">
-        Versions lists every version ever created, newest first, with the current one
-        labeled. Access grants roles scoped to this one repository - see the{" "}
+        Versions lists every version ever created, newest first, with the current one in
+        bold. Access grants roles scoped to this one repository - see the{" "}
         <strong>Access</strong> help topic for how roles and grants work in general.
       </Content>
     </Content>

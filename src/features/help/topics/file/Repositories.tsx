@@ -86,7 +86,7 @@ export function FileRepositoriesTopic() {
       <Content component="h3">The Versions tab</Content>
       <Content component="p">
         Every version ever created for this repository, newest first, with the current one
-        labeled.
+        in bold.
       </Content>
 
       <Content component="h3">The Access tab</Content>
