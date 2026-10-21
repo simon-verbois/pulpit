@@ -1129,3 +1129,23 @@ textarea.pf-v6-c-form-control:focus-visible {
 .pf-v6-c-table__tbody .pf-v6-c-table__action .pf-v6-c-button.pf-m-link:hover {
   text-decoration: underline;
 }
+
+/* Tabs: no filled surface in any state, anywhere. Hover/focus is shown by
+   recoloring the label to the brand color; the selected tab keeps
+   PatternFly's brand underline. */
+.pf-v6-c-tabs__link,
+.pf-v6-c-tabs__link:hover,
+.pf-v6-c-tabs__link:focus,
+.pf-v6-c-tabs__link:focus-visible,
+.pf-v6-c-tabs__link:active,
+.pf-v6-c-tabs__item.pf-m-current .pf-v6-c-tabs__link {
+  --pf-v6-c-tabs__link--BackgroundColor: transparent;
+  --pf-v6-c-tabs__link--hover--BackgroundColor: transparent;
+  --pf-v6-c-tabs__link--focus--BackgroundColor: transparent;
+  --pf-v6-c-tabs__link--active--BackgroundColor: transparent;
+  background-color: transparent;
+}
+
+.pf-v6-c-tabs__item:not(.pf-m-current) .pf-v6-c-tabs__link:is(:hover, :focus-visible) {
+  color: var(--pulpit-primary);
+}
