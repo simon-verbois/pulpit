@@ -7,11 +7,16 @@ deployment/docker/compose-dev.yml --env-file .env ...` (see `docs/DEVELOPMENT.md
 - **Rebuild the local Compose stack after finishing a change.** Once code changes are done (tests
   passing), rebuild and restart the affected service(s) so the running dev stack actually reflects
   the change - don't leave it running stale code:
+
   ```
   docker compose -f deployment/docker/compose-dev.yml --env-file .env build pulpit
   docker compose -f deployment/docker/compose-dev.yml --env-file .env up -d pulpit
   ```
+
   (swap `pulpit` for `pulp` if the change touched `deployment/docker/pulp/`.)
+
+- **Work on `main` only.** Commit directly on `main` - never create a feature/fix branch or a
+  worktree for this repository (see `AGENTS.md` "Git: work on `main` only").
 
 ## UI design guidelines
 
