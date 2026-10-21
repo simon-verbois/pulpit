@@ -945,10 +945,6 @@ textarea.pf-v6-c-form-control:focus-visible {
   background: #87969b;
 }
 
-.pulpit-metric-card--storage .pulpit-metric-card__value {
-  white-space: nowrap;
-}
-
 .pulpit-metric-card__progress {
   margin-block-start: 0.65rem;
   --pf-v6-c-progress__bar--Height: 0.45rem;
