@@ -1,34 +1,55 @@
 :root {
-  --bg: #f4f7fa;
+  /* Same palette as the application (src/styles/global.css). */
+  --bg: #edf3f4;
   --surface: #ffffff;
-  --text: #16232b;
-  --muted: #4d5f6b;
-  --border: #d5dee5;
+  --text: #151515;
+  --muted: #4d5a5f;
+  --border: #d3dcdf;
+  --chrome-border: #cbd5d8;
   --accent: #2563eb;
   --accent-strong: #1d4ed8;
-  --accent-soft: #e3ecfd;
+  --accent-soft: #dbeafe;
   --on-accent: #ffffff;
   --code-bg: #0f1b24;
   --code-text: #dbe7ef;
-  --shadow: 0 1px 2px rgb(22 35 43 / 8%), 0 8px 24px rgb(22 35 43 / 8%);
+  --shadow: 0 2px 5px color-mix(in srgb, #23343b 16%, transparent);
   --radius: 0.75rem;
+  --font-text: "Red Hat Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading:
+    "Red Hat Display", "Red Hat Text", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e151b;
-    --surface: #16212a;
-    --text: #e6eef3;
-    --muted: #9fb2bf;
-    --border: #2a3a46;
-    --accent: #6ea0ff;
-    --accent-strong: #93b8ff;
-    --accent-soft: #1b2c4a;
+    --bg: #17191c;
+    --surface: #1f2225;
+    --text: #f0f0f0;
+    --muted: #b4bec3;
+    --border: #525b62;
+    --chrome-border: #3f474d;
+    --accent: #60a5fa;
+    --accent-strong: #93c5fd;
+    --accent-soft: #1e3a5f;
     --on-accent: #0b1220;
-    --code-bg: #0a1117;
-    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%);
+    --code-bg: #0e1114;
+    --shadow: 0 2px 5px rgb(0 0 0 / 28%);
   }
+}
+
+@font-face {
+  font-family: "Red Hat Text";
+  src: url("fonts/RedHatTextVF.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Red Hat Display";
+  src: url("fonts/RedHatDisplayVF.woff2") format("woff2");
+  font-weight: 300 900;
+  font-display: swap;
 }
 
 * {
@@ -49,13 +70,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font:
-    1rem/1.6 system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    sans-serif;
+  font: 1rem/1.6 var(--font-text);
 }
 
 a {
@@ -91,7 +106,13 @@ img {
   outline-offset: 2px;
 }
 
-/* Masthead */
+/* Masthead: a full-width white bar with a hairline border, like the app's. */
+.masthead-bar {
+  border-block-end: 1px solid var(--chrome-border);
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, #23343b 6%, transparent);
+}
+
 .masthead {
   display: flex;
   flex-wrap: wrap;
@@ -107,7 +128,8 @@ img {
   gap: 0.6rem;
   color: var(--text);
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.015em;
   text-decoration: none;
 }
 
@@ -148,6 +170,13 @@ img {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+.brand {
+  font-family: var(--font-heading);
 }
 
 h1 {
@@ -244,6 +273,7 @@ h2 {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .card h3 {
