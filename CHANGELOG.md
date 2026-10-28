@@ -6,6 +6,8 @@ Add every change under **Unreleased**; `scripts/release.sh` assigns the version 
 
 ## Unreleased
 
+## 2026.44.6 — 2026-10-28
+
 ### Added
 
 - Read release notes inside the app, with a version selector and an automatic popup after signing
