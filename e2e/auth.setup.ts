@@ -29,6 +29,10 @@ setup("authenticate as the Pulp admin account", async ({ page }) => {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
 
+  const releaseNotes = page.getByRole("dialog", { name: "What's new in PulpIT" });
+  await expect(releaseNotes).toBeVisible();
+  await releaseNotes.getByRole("button", { name: "Close", exact: true }).last().click();
+  await expect(releaseNotes).toBeHidden();
   await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
   await page.context().storageState({ path: AUTH_STATE_PATH });
 });

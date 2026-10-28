@@ -29,6 +29,13 @@ function fillAndSubmit(username: string, password: string) {
 }
 
 describe("LoginPage", () => {
+  it("does not show version, license or changelog information before login", () => {
+    renderLoginPage();
+    expect(screen.queryByText(__APP_VERSION__)).not.toBeInTheDocument();
+    expect(screen.queryByText(/MIT License|Changelog/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("logs in with valid credentials and navigates to the app", async () => {
     renderLoginPage();
 

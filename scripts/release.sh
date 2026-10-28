@@ -82,7 +82,8 @@ fi
 
 echo "Creating release ${tag} from branch ${branch}."
 
-printf '%s\n' "$tag" > VERSION
+# Refuse an undocumented release before changing VERSION or creating a commit.
+node scripts/changelog.mjs release "$tag" "$(date +%F)"
 
 git add -A
 git commit -m "Release ${tag}"

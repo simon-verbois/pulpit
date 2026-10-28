@@ -24,6 +24,7 @@ pulpit-core/.pytest_cache
 docs
 e2e
 *.md
+!CHANGELOG.md
 *.log
 .vscode
 .idea

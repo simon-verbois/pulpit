@@ -431,10 +431,23 @@ the PatternFly dark-theme handbook), so Pulpit provides its own:
 - The login page uses the same neutral canvas, opaque panel surface, border, radius, and
   restrained shadow as the dashboard. PatternFly's composable Login components keep the
   product mark and name inside the card, above the centered, single-column form at every
-  viewport width. Shared release/changelog/license links sit in a separated band inside the
-  bottom of the card, in normal document flow so they remain reachable on short screens and
-  at increased zoom. Both themes use the existing
+  viewport width. The login page contains no version, changelog or license information.
+  Both themes use the existing
   semantic and dashboard surface tokens; the former decorative login glow is removed.
 - Don't introduce other custom dark-mode CSS overrides — PatternFly's design tokens
   (`--pf-t--...`) already repaint correctly when the class is toggled (ADR 0002: don't reimplement
   what PatternFly already does).
+
+### Release notes
+
+- Only the authenticated app shows its version, the **Changelog** button and plain **MIT License**
+  text. None links to an external release, changelog or license page.
+- Changelog opens a PatternFly modal with one release at a time and a version selector. Notes
+  are bundled from `CHANGELOG.md` during the build, including container builds; no runtime
+  request or external website is needed. Unreleased notes are excluded.
+- On the first authenticated visit to a new version, open the current notes automatically.
+  Closing the modal acknowledges the running version, independently of the version being browsed.
+  Remember this UI preference in localStorage per Pulp account and browser. It contains only a
+  release version, never credentials. Reloads and later logins to the same version do not reopen
+  it; a newer version does. First-time visitors see the current notes too.
+- The modal supports Escape, focus restoration and scrolling by keyboard on small screens.

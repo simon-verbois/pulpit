@@ -4,6 +4,7 @@
 set -eu
 
 npm ci
+node scripts/changelog.mjs
 npm run format:check
 npm run lint
 npm run typecheck

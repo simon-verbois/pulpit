@@ -310,25 +310,12 @@ body {
   margin-block-end: var(--pf-t--global--spacer--sm);
 }
 
-.pulpit-login-page .pulpit-login-footer {
-  padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md);
-  border-block-start: 1px solid var(--pulpit-panel-border);
-}
-
 .pulpit-login-page .pf-v6-c-login__main {
   inline-size: 100%;
 }
 
 .pulpit-login-page .pf-v6-c-login__main-header-desc {
   color: var(--pf-t--global--text--color--subtle);
-}
-
-/* Keep the release links in flow so they cannot overlap a tall form or
-   its validation message on short screens or at increased browser zoom. */
-.pulpit-login-page .pulpit-footer {
-  position: static;
-  height: auto;
-  text-align: center;
 }
 
 /* PatternFly's SearchInput (text-input-group.css) only sets outline-offset

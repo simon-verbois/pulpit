@@ -373,7 +373,14 @@ pulpit/
 
 Pulpit uses calendar-based release versions, tracked in the [`VERSION`](VERSION) file at the
 repository root and shown at the bottom of the app. Each container image is built from a tagged
-release matching that file. See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each release.
+release matching that file. After signing in, **Changelog** opens the bundled notes with a
+version selector. New-version notes open automatically once per account in the same browser.
+The login page has no version, changelog or license footer.
+
+Document every modification under `## Unreleased` in [`CHANGELOG.md`](CHANGELOG.md).
+`bash scripts/release.sh` requires those notes, assigns the release version/date, updates
+`VERSION`, and pushes the release commit and tag. Builds and CI reject a VERSION without notes;
+the container includes the same changelog as the source build.
 
 ## Contributing
 
@@ -382,7 +389,7 @@ No formal contribution process yet — this is an early-stage project. See
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 Simon Verbois.
+MIT License — Copyright (c) 2026 Simon Verbois.
 
 ## Credits
 

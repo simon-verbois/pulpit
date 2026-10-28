@@ -4,12 +4,10 @@ import {
   Login,
   LoginForm,
   LoginMainBody,
-  LoginMainFooter,
   LoginMainHeader,
   Title,
 } from "@patternfly/react-core";
 
-import { AppFooter } from "../../app/layout/AppFooter";
 import { PulpApiError } from "../../api/errors/PulpApiError";
 import { useCurrentUserQuery } from "../../hooks/useCurrentUserQuery";
 import { UiIcon } from "../../components/icons/UiIcon";
@@ -82,9 +80,6 @@ export function LoginPage() {
           onLoginButtonClick={handleSubmit}
         />
       </LoginMainBody>
-      <LoginMainFooter className="pulpit-login-footer">
-        <AppFooter />
-      </LoginMainFooter>
     </Login>
   );
 }

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import type { Plugin as PostCssPlugin } from "postcss";
 import react from "@vitejs/plugin-react";
+import { loadReleaseNotes } from "./scripts/changelog.mjs";
 
 // Local dev convenience only (Mode A - see docs/DEVELOPMENT.md).
 // The full-stack workflow (Mode B) never uses this proxy: nginx plays
@@ -11,9 +12,13 @@ const PULP_DEV_TARGET = `http://localhost:${process.env.PULP_HTTP_PORT ?? "8180"
 
 // VERSION is a plain text file at the repo root, updated by the release
 // process (not by this build) - baked in at build time so the running app
-// can display it (AppFooter) without any runtime fetch. Defaults to
-// "0.0.0-dev" for local/dev builds where no release has produced it yet.
+// can display it (AppFooter) without any runtime fetch.
+// The build fails if VERSION or its release notes are missing.
 const APP_VERSION = readFileSync(new URL("./VERSION", import.meta.url), "utf-8").trim();
+const RELEASE_NOTES = loadReleaseNotes(
+  readFileSync(new URL("./CHANGELOG.md", import.meta.url), "utf-8"),
+  APP_VERSION,
+);
 
 // When this build actually ran, baked in the same way as APP_VERSION above -
 // only ever shown by the dev banner (src/app/layout/DevBanner.tsx,
@@ -72,6 +77,7 @@ export default defineConfig({
   },
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
+    __RELEASE_NOTES__: JSON.stringify(RELEASE_NOTES),
     __BUILD_DATE__: JSON.stringify(BUILD_DATE),
   },
   server: {

@@ -12,6 +12,7 @@ import {
 
 import { TasksProvider, useTasksContext } from "../../api/tasks/TasksContext";
 import { TaskTrackers } from "../../features/tasks/TaskTrackers";
+import { useCurrentUserQuery } from "../../hooks/useCurrentUserQuery";
 import { AppFooter } from "./AppFooter";
 import { AppNav } from "./AppNav";
 import { DevBanner } from "./DevBanner";
@@ -27,6 +28,7 @@ const MAIN_CONTAINER_ID = "pulpit-main-content";
 // Split out so it can consume useTasksContext() as a descendant of the
 // TasksProvider that AppLayout itself renders below.
 function AppShell() {
+  const { data: user } = useCurrentUserQuery();
   const { isDrawerOpen, setIsDrawerOpen } = useTasksContext();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const isPanelOpen = isDrawerOpen || isHelpOpen;
@@ -176,7 +178,7 @@ function AppShell() {
       >
         <Outlet />
         <TaskTrackers />
-        <AppFooter />
+        {user ? <AppFooter key={user.pulp_href} userId={user.pulp_href} /> : null}
       </Page>
     </>
   );

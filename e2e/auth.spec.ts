@@ -51,6 +51,10 @@ test("logging in as admin reaches the app, and logging out returns to /login", a
   await page.getByLabel("Password").fill(adminPassword());
   await page.getByRole("button", { name: "Log in" }).click();
 
+  const notes = page.getByRole("dialog", { name: "What's new in PulpIT" });
+  await expect(notes).toBeVisible();
+  await notes.getByRole("button", { name: "Close", exact: true }).last().click();
+  await expect(notes).toBeHidden();
   await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
 
   await page.getByRole("button", { name: "admin", exact: true }).click();
@@ -60,4 +64,12 @@ test("logging in as admin reaches the app, and logging out returns to /login", a
   // The session is really gone, not just a client-side redirect.
   await page.goto("/admin?tab=repository-signing");
   await expect(page).toHaveURL(/\/login\?next=/);
+});
+
+test("login shows no version, release notes or license footer", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByLabel("Username")).toBeVisible();
+  await expect(page.locator(".pulpit-footer")).toHaveCount(0);
+  await expect(page.getByText(/MIT License|Changelog/)).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });

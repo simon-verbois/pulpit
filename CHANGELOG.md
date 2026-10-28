@@ -1,9 +1,87 @@
 # Changelog
 
-All notable changes to Pulpit are documented here, one section per release. Versions follow
-Pulpit's own calendar scheme (`YYYY.WW.PATCH` — the ISO year/week of the release, then a patch
-counter for same-week releases), tracked in [`VERSION`](VERSION) and shown in the app's own
-footer.
+Release notes are bundled into Pulpit and available from **Changelog** after signing in.
+Versions follow `YYYY.WW.PATCH` (ISO year, week and release counter), tracked in `VERSION`.
+Add every change under **Unreleased**; `scripts/release.sh` assigns the version and date.
+
+## Unreleased
+
+### Added
+
+- Read release notes inside the app, with a version selector and an automatic popup after signing
+  in to a new version. Dismissed notes stay dismissed for that account in the same browser.
+- Builds and CI verify that the current version has release notes. The release script now requires
+  Unreleased notes and includes them in the version it creates.
+
+### Changed
+
+- Version information, changelog and the plain MIT License label appear only after signing in.
+  The login page no longer contains a footer or links to release and license pages.
+- Contributor and AI instructions require a changelog update with every change. Missing release
+  entries have been reconstructed from Git history, and release dates checked against the tags.
+
+## 2026.44.5 — 2026-10-28
+
+### Fixed
+
+- Automatic signing checks no longer generate repository metadata when there is nothing to sign.
+  Cached signatures require only the final publication; checks that find content already signed
+  create no publication.
+
+### Changed
+
+- Auto-publish is off by default when creating RPM, Debian, Python and File repositories.
+- All 57 integrated Help topics are shorter, with practical steps and essential warnings.
+
+## 2026.44.4 — 2026-10-28
+
+### Added
+
+- Configure automatic task-history retention in Administration, or purge old completed history
+  manually. Purge progress and failures appear in Tasks; active tasks are preserved.
+- Repository pages show the latest sync failure, a readable explanation and a link to task details.
+
+### Changed
+
+- Administration and sidebar visibility settings are easier to navigate.
+- Failed sync details explain missing workers and source download refusals.
+
+## 2026.44.3 — 2026-10-28
+
+### Fixed
+
+- Updated undici and zod dependencies to address reported security advisories.
+
+## 2026.44.2 — 2026-10-28
+
+### Fixed
+
+- Removed an incomplete RPM sync-failure alert until its full implementation in 2026.44.4.
+- Updated browser tests to enter the required RPM distribution base path.
+
+## 2026.44.1 — 2026-10-28
+
+### Changed
+
+- Creating an RPM repository no longer creates a distribution automatically. Create one explicitly
+  when the content is ready to serve.
+- RPM distributions accept a full base path and an independent name.
+
+## 2026.43.4 — 2026-10-21
+
+### Fixed
+
+- Updated Vitest to 5.0.5 to address reported security advisories.
+
+## 2026.43.3 — 2026-10-21
+
+### Added
+
+- Published a project website with full-size application screenshots and refreshed the README.
+
+### Fixed
+
+- Long storage values wrap in the Overview storage card instead of being clipped.
 
 ## 2026.43.2 — 2026-10-21
 
@@ -31,6 +109,19 @@ footer.
 - Form inputs no longer show the browser's native orange focus outline, and tabs and row action
   buttons no longer show a filled hover surface (the label is recolored instead).
 - Updated `vite` to 8.3.5 to clear npm audit advisories.
+
+## 2026.43.1 — 2026-10-21
+
+### Added
+
+- Retry a failed sync from its task details.
+
+### Changed
+
+- RPM distributions can be named independently of repositories. Publishing no longer waits for
+  distributions pinned to an older publication.
+- Deployment defaults use Europe/Brussels. Podman containers have memory limits and sizing guidance.
+- Table rows have consistent heights and Overview values use plain text.
 
 ## 2026.41.2 — 2026-10-06
 
@@ -381,7 +472,25 @@ footer.
   managed certificates during migration. TLS now has two paths: the two-year, automatically renewed
   self-signed fallback and manual certificate import.
 
-## 2026.37.4 — 2026-09-07
+## 2026.37.6 — 2026-09-09
+
+### Fixed
+
+- Updated js-yaml to 4.3.2 to address a high-severity CPU denial-of-service advisory.
+
+## 2026.37.5 — 2026-09-09
+
+### Changed
+
+- Distribution base paths are namespaced, content sizes are calculated in the browser, and
+  signing and worker processing are more robust.
+- Access dialogs use searchable selectors for granting access, adding members and assigning roles.
+
+### Removed
+
+- FreeIPA certificate integration from TLS settings.
+
+## 2026.37.4 — 2026-09-08
 
 ### Added
 
@@ -434,6 +543,12 @@ footer.
 
 - A PatternFly v6 layout gap where a page shorter than the browser viewport left the outer page
   background visible below the content card, all the way down to the footer.
+
+## 2026.37.3 — 2026-09-07
+
+### Changed
+
+- Release packaging update; application behavior is unchanged from 2026.37.2.
 
 ## 2026.37.2 — 2026-09-07
 
@@ -504,6 +619,20 @@ footer.
 - Hardened the RPM signing macro against a latent shell-metacharacter injection path.
 - Several `e2e` specs still referenced Administration sub-routes removed by the merged
   Administration page (ADR 0010).
+
+## 2026.37.1 — 2026-09-07
+
+### Added
+
+- Debian, File, Gem, Hugging Face, Maven, NPM and Python content management.
+- Recent tasks on Overview, configurable sidebar visibility, sample content on first startup,
+  a development-build banner and password-strength rules for user management.
+
+### Changed
+
+- Access and administration settings share a tabbed Administration page.
+- The Pulp signing-service reconciler runs alongside Pulp in the derived Pulp image.
+- Improved API error messages, dark-theme contrast and repository-detail empty states.
 
 ## 2026.36.4 — 2026-09-04
 

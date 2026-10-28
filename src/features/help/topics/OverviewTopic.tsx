@@ -22,6 +22,10 @@ export function OverviewTopic() {
         <strong>Tasks</strong> to follow operations. A dash in a total means the
         information is not available yet.
       </Content>
+      <Content component="p">
+        Open <strong>Changelog</strong> at the bottom of the app to read release notes by
+        version. New-version notes appear automatically after signing in.
+      </Content>
     </Content>
   );
 }
