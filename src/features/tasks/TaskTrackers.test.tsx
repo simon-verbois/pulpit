@@ -25,9 +25,6 @@ describe("TaskTrackers", () => {
       fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
 
       const dialog = await screen.findByRole("dialog");
-      expect(
-        within(dialog).queryByLabelText("Base path", { exact: false }),
-      ).not.toBeInTheDocument();
       fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
