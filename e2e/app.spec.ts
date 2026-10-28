@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-test("task help explains streaming download inactivity limits", async ({ page }) => {
+test("task help explains how to follow progress and retry failures", async ({ page }) => {
   await page.goto("/tasks");
   await page.getByRole("button", { name: "Helper" }).click();
   await expect(page.getByText(/Large syncs can run for hours/)).toBeVisible();
-  await expect(page.getByText(/Other downloads progressing do not reset/)).toBeVisible();
+  await expect(page.getByText(/fix the reported problem and retry/)).toBeVisible();
+  await expect(page.getByText(/Purged history cannot be recovered/)).toBeVisible();
 });
 
 test("task type and state filters combine and survive a reload", async ({ page }) => {

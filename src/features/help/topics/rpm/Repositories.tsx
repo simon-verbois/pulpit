@@ -5,148 +5,34 @@ import { DistributionBasePathConvention } from "../DistributionBasePathConventio
 export function RpmRepositoriesTopic() {
   return (
     <Content>
-      <Content component="p">
-        An RPM repository holds package/advisory content and tracks it as a sequence of{" "}
-        <strong>versions</strong> - every sync, upload, or prune creates a new one. This
-        page is the list of every RPM repository; open one to manage its content and
-        configuration.
-      </Content>
-
-      <Content component="h3">Creating a repository</Content>
       <Content component="ol">
         <Content component="li">
-          Click <strong>Create repository</strong> and give it a <strong>Name</strong>{" "}
-          (required) and optional <strong>Description</strong>.
+          Choose <strong>Create repository</strong>, enter a name and select a default
+          remote.
         </Content>
         <Content component="li">
-          Pick a <strong>Default remote</strong> if you want <strong>Sync</strong> to work
-          without asking each time - create one first on the <strong>Remotes</strong> page
-          if none exist yet.
+          Open the repository and choose <strong>Sync now</strong>. Follow progress in{" "}
+          <strong>Tasks</strong>.
         </Content>
         <Content component="li">
-          Leave <strong>Automatically publish</strong> checked (on by default) so a
-          distribution always serves this repository's latest content without a manual
-          publish step.
+          Choose <strong>Publish now</strong>. <strong>Automatically publish</strong> is
+          off by default.
         </Content>
         <Content component="li">
-          Nothing to set up for signing here - it's fully automatic, not a per-repository
-          choice. If an administrator has enabled it (Administration → Repository
-          Signing), this repository is signed with the current key from the moment it's
-          created; if not, it's created unsigned. A repository created before signing was
-          turned on can be brought into line later with{" "}
-          <strong>Sign all repositories…</strong> on that same Administration page.
+          Open <strong>Distributions → Create distribution</strong>, then copy the client
+          configuration. Follow the latest publication or pin a version.
         </Content>
       </Content>
       <Content component="p">
-        <strong>Edit</strong> (on a repository's own page) changes the same fields,
-        including renaming it. <strong>Delete repository</strong> removes it entirely,
-        asynchronously (watch the Tasks panel).
-      </Content>
-
-      <Content component="h3">Syncing content</Content>
-      <Content component="p">
-        <strong>Sync</strong> (on the list, or <strong>Sync now</strong> on the
-        repository's <strong>Overview</strong> tab) pulls content from the default remote
-        in the background - it's disabled until one is set. Every sync creates a new
-        repository version, visible on the <strong>Versions</strong> tab.
-      </Content>
-
-      <Content component="h3">Making content downloadable</Content>
-      <Content component="p">
-        Syncing does not make content downloadable by itself - you also need a{" "}
-        <strong>distribution</strong>, which publishes the repository at a URL.
-      </Content>
-      <Content component="ul">
-        <Content component="li">
-          With <strong>Automatically publish</strong> on, this happens for you after every
-          sync or content change.
-        </Content>
-        <Content component="li">
-          Otherwise, use <strong>Publish now</strong> on the <strong>Overview</strong> tab
-          after syncing.
-        </Content>
-        <Content component="li">
-          Then go to the <strong>Distributions</strong> tab and click{" "}
-          <strong>Create distribution</strong> to get a real, selectable URL you can point{" "}
-          <code>dnf</code>/<code>yum</code> at. Keep{" "}
-          <strong>Follow the latest published version</strong> selected for an URL that
-          advances with future publications, or choose{" "}
-          <strong>Pin a repository version</strong> for an URL that remains on one
-          retained snapshot. Pulpit publishes the selected snapshot, then creates the
-          pinned distribution in the background: the dialog closes right away and both
-          steps appear in the Tasks drawer. The <strong>Name</strong> defaults to the
-          repository name, with the selected version suffix for pinned distributions (for
-          example, <code> -v2</code>); change it to choose your own name. The{" "}
-          <strong>Base path</strong> defaults to <code>rpm/&lt;name&gt;</code> (spaces
-          replaced by <code>-</code>) but is the full path after{" "}
-          <code>/pulp/content/</code> and can be set to anything, for example{" "}
-          <code>OracleLinux/OL8/baseos/latest/x86_64</code> to mirror an upstream layout.
-          Pulpit never creates a distribution on its own when a repository is created: add
-          one here, or through the Pulp API. The tab lists both kinds together, including
-          every pinned distribution created for an older version. <strong>Delete</strong>{" "}
-          removes a distribution. Its generated repository configuration is shown as a
-          compact preview; use <strong>Copy</strong> to copy the complete configuration or
-          <strong>Show full configuration</strong> to inspect it in place.
-        </Content>
+        Use <strong>Packages</strong> to upload RPMs and <strong>Advisories</strong> to
+        upload advisory JSON. <strong>Versions</strong> shows snapshots;{" "}
+        <strong>Access</strong> controls permissions.
       </Content>
       <Content component="p">
-        If a distribution's URL 404s, the repository almost certainly hasn't been
-        published yet - publish it and try again.
+        For cleanup, start <strong>Prune packages…</strong> with <strong>Dry run</strong>{" "}
+        enabled to preview removals.
       </Content>
       <DistributionBasePathConvention prefix="rpm" />
-
-      <Content component="h3">The Overview tab</Content>
-      <Content component="p">
-        Shows the repository's name, description, whether a default remote is configured,
-        autopublish status, and the <strong>Publish now</strong>/<strong>Sync now</strong>{" "}
-        buttons described above. If signing is configured, it also shows{" "}
-        <strong>Package signing</strong>/<strong>Metadata signing</strong> status
-        (Enabled/ Disabled) and, when package signing is on, the exact{" "}
-        <strong>signing fingerprint</strong> in use.
-      </Content>
-
-      <Content component="h3">The Packages and Advisories tabs</Content>
-      <Content component="p">
-        List this repository's packages/advisories (the same tables as the global{" "}
-        <strong>RPM → Packages</strong>/<strong>Advisories</strong> pages, scoped to this
-        repository). <strong>Upload package</strong> adds a real <code>.rpm</code> file
-        directly as a new version, no sync required. <strong>Upload advisory</strong>{" "}
-        needs a <strong>JSON document</strong> describing the advisory (id, title, type,
-        severity, description, affected packages...) - a real-world{" "}
-        <code>updateinfo.xml</code> file is rejected; most advisories arrive automatically
-        via sync instead.
-      </Content>
-
-      <Content component="h3">The Content tab</Content>
-      <Content component="p">
-        Lists everything comps.xml-derived and module-related that a sync brought in:
-        package groups, categories, environments, langpacks, modulemd/modulemd
-        defaults/obsoletes, distribution trees, and repo metadata files - each its own
-        collapsible, read-only section. <strong>Upload comps.xml</strong> bulk-creates
-        package groups, categories, environments, and langpacks from one file.
-      </Content>
-
-      <Content component="h3">The Versions tab</Content>
-      <Content component="p">
-        Every version ever created for this repository, newest first, with the current one
-        in bold. Use <strong>Copy to…</strong> on the current version to copy its entire
-        content into a different repository in one step (there's no way to copy only part
-        of a version).
-      </Content>
-
-      <Content component="h3">The Access tab</Content>
-      <Content component="p">
-        Grants roles scoped to this one repository - see the <strong>Access</strong> help
-        topic for how roles and grants work in general.
-      </Content>
-
-      <Content component="h3">Cleaning up old package versions</Content>
-      <Content component="p">
-        Use <strong>Prune packages…</strong> on the repositories list to remove superseded
-        package versions across one or more repositories you check, older than a number of
-        days you choose. <strong>Dry run</strong> is on by default - run it once to see
-        what would be removed before turning it off to actually delete anything.
-      </Content>
     </Content>
   );
 }

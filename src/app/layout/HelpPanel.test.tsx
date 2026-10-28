@@ -55,16 +55,16 @@ describe("HelpButton + HelpPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Helper" }));
     expect(
-      screen.getByText(/PulpIT is where you manage the content/, { exact: false }),
+      screen.getByText(/Manage your software content/, { exact: false }),
     ).toBeInTheDocument();
 
     const helpTopicsNav = screen.getByRole("navigation", { name: "Help topics" });
     fireEvent.click(within(helpTopicsNav).getByText("RPM"));
     expect(
-      screen.getByText(/Use this area to manage RPM content/, { exact: false }),
+      screen.getByText(/Manage RPM packages and advisories/, { exact: false }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(/PulpIT is where you manage the content/, { exact: false }),
+      screen.queryByText(/Manage your software content/, { exact: false }),
     ).not.toBeInTheDocument();
   });
 
@@ -75,9 +75,7 @@ describe("HelpButton + HelpPanel", () => {
     // Deep-links to the Repositories page itself (not just the RPM
     // category's overview) - getHelpLocationForPath matches the most
     // specific page path available.
-    expect(
-      screen.getByText(/This page is the list of every RPM repository/, { exact: false }),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/is off by default/, { exact: false })).toBeInTheDocument();
   });
 
   it("expands a category's sub-pages and lets you pick one, without losing the others", () => {
@@ -88,14 +86,14 @@ describe("HelpButton + HelpPanel", () => {
 
     fireEvent.click(within(helpTopicsNav).getByText("RPM"));
     expect(
-      screen.getByText(/Use this area to manage RPM content/, { exact: false }),
+      screen.getByText(/Manage RPM packages and advisories/, { exact: false }),
     ).toBeInTheDocument();
     expect(within(helpTopicsNav).getByText("Packages")).toBeInTheDocument();
     expect(within(helpTopicsNav).getByText("Alternate sources")).toBeInTheDocument();
 
     fireEvent.click(within(helpTopicsNav).getByText("Packages"));
     expect(
-      screen.queryByText(/Use this area to manage RPM content/, { exact: false }),
+      screen.queryByText(/Manage RPM packages and advisories/, { exact: false }),
     ).not.toBeInTheDocument();
     // Switching pages within RPM keeps the RPM group expanded - Packages is
     // still visible to click again, not collapsed away.
@@ -110,7 +108,7 @@ describe("HelpButton + HelpPanel", () => {
 
     fireEvent.click(within(helpTopicsNav).getByText("Tasks"));
     expect(
-      screen.getByText(/Pulp runs them in the background/, { exact: false }),
+      screen.getByText(/run in the background/, { exact: false }),
     ).toBeInTheDocument();
   });
 
@@ -121,18 +119,18 @@ describe("HelpButton + HelpPanel", () => {
 
     fireEvent.click(helpButton);
     expect(
-      screen.getByText(/PulpIT is where you manage the content/, { exact: false }),
+      screen.getByText(/Manage your software content/, { exact: false }),
     ).toBeInTheDocument();
 
     fireEvent.click(tasksButton);
     expect(screen.getByText("No tasks tracked yet")).toBeInTheDocument();
     expect(
-      screen.queryByText(/PulpIT is where you manage the content/, { exact: false }),
+      screen.queryByText(/Manage your software content/, { exact: false }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(helpButton);
     expect(
-      screen.getByText(/PulpIT is where you manage the content/, { exact: false }),
+      screen.getByText(/Manage your software content/, { exact: false }),
     ).toBeInTheDocument();
     expect(screen.queryByText("No tasks tracked yet")).not.toBeInTheDocument();
   });

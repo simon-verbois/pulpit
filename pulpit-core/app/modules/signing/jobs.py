@@ -643,13 +643,6 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
         }
     base_url = distributions[0]["base_url"]
 
-    # Publish first and wait for it, so the metadata read below reflects
-    # exactly the packages up to and including the CURRENT latest version -
-    # not a stale publication from before whatever change triggered this job.
-    publish_task = pulp.wait_for_task(pulp.create_publication(repository_href)["task"])
-    if publish_task["state"] != "completed":
-        raise PulpAdapterError(f"Publish before resigning failed: {publish_task.get('error')}")
-
     # `evaluated` (every package looked at, already-signed ones included) is
     # what lets the per-repository "Re-sign" action report "N packages
     # checked, all signed" rather than only the ones that needed work.
@@ -676,9 +669,6 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
             "elapsed_seconds": round(time.monotonic() - started, 2),
         }
 
-    from app.modules.signing.repo_metadata import build_checksum_to_location_map
-
-    checksum_to_location = build_checksum_to_location_map(pulp, base_url)
     cache_rows = rpm_signing_cache.bulk_lookup(db, fingerprint, [package["sha256"] for package in candidates])
 
     add_units: list[str] = []
@@ -689,13 +679,6 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
     metadata_missing = 0
 
     for package in candidates:
-        if package["sha256"] not in checksum_to_location:
-            metadata_missing += 1
-            logger.warning(
-                "Skipping package %s: not found in published metadata (%s)",
-                package["pulp_href"], repository_href,
-            )
-            continue
         row = cache_rows.get(package["sha256"])
         if row is not None and row.status == RpmSigningCacheStatus.SUCCESS and row.signed_content_href:
             cache_hits += 1
@@ -712,6 +695,29 @@ def resign_repository_packages_job(db: Session, payload: dict) -> dict:
             running_elsewhere += 1
             continue
         to_sign.append(package)
+
+    checksum_to_location: dict[str, str] = {}
+    if to_sign:
+        # Only downloads need fresh metadata. A no-op or a cache-only swap
+        # must not regenerate it just to discover there is nothing to sign.
+        publish_task = pulp.wait_for_task(pulp.create_publication(repository_href)["task"])
+        if publish_task["state"] != "completed":
+            raise PulpAdapterError(f"Publish before resigning failed: {publish_task.get('error')}")
+
+        from app.modules.signing.repo_metadata import build_checksum_to_location_map
+
+        checksum_to_location = build_checksum_to_location_map(pulp, base_url)
+        signable = []
+        for package in to_sign:
+            if package["sha256"] in checksum_to_location:
+                signable.append(package)
+            else:
+                metadata_missing += 1
+                logger.warning(
+                    "Skipping package %s: not found in published metadata (%s)",
+                    package["pulp_href"], repository_href,
+                )
+        to_sign = signable
 
     for package in to_sign:
         rpm_signing_cache.mark_running(

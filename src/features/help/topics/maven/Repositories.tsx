@@ -5,46 +5,24 @@ import { DistributionBasePathConvention } from "../DistributionBasePathConventio
 export function MavenRepositoriesTopic() {
   return (
     <Content>
-      <Content component="p">
-        A Maven repository holds artifacts uploaded to it, and tracks them as a sequence
-        of <strong>versions</strong>. This page is the list of every Maven repository;
-        open one to manage its content and configuration.
-      </Content>
-
-      <Content component="h3">Creating a repository</Content>
-      <Content component="p">
-        Click <strong>Create repository</strong> and give it a <strong>Name</strong>{" "}
-        (required) and an optional <strong>Description</strong>. Unlike every other plugin
-        here, there's no default remote to set - this plugin has no sync action at all.
-      </Content>
-      <Content component="p">
-        <strong>Edit</strong> (on a repository's own page) changes the same fields,
-        including renaming it. <strong>Delete repository</strong> removes it entirely,
-        asynchronously (watch the Tasks panel).
-      </Content>
-
-      <Content component="h3">Getting content in - and out</Content>
-      <Content component="p">
-        Go to the <strong>Content</strong> tab and click <strong>Upload artifact</strong>{" "}
-        - it needs a file and a <strong>Relative path</strong> (its Maven coordinates,
-        e.g. <code>com/example/my-lib/1.0/my-lib-1.0.jar</code>). This is tracked as a
-        background task, same as everywhere else.
+      <Content component="ol">
+        <Content component="li">
+          Choose <strong>Create repository</strong> and enter a name.
+        </Content>
+        <Content component="li">
+          Under <strong>Content → Upload artifact</strong>, choose a file and its Maven
+          path, such as <code>com/example/app/1.0/app-1.0.jar</code>.
+        </Content>
+        <Content component="li">
+          Create a distribution under <strong>Distributions</strong>. It serves uploaded
+          artifacts immediately and can also cache a remote.
+        </Content>
       </Content>
       <Content component="p">
-        Then go to the <strong>Distributions</strong> tab and click{" "}
-        <strong>Create distribution</strong> to get a real, selectable URL - it serves
-        this repository's latest version immediately, with no publish step. It can
-        optionally also proxy a <strong>remote</strong> directly for pull-through caching.{" "}
-        <strong>Delete</strong> removes a distribution.
+        No sync or publish step is needed. Use <strong>Versions</strong> for snapshots and{" "}
+        <strong>Access</strong> for permissions.
       </Content>
       <DistributionBasePathConvention prefix="maven" />
-
-      <Content component="h3">The Versions and Access tabs</Content>
-      <Content component="p">
-        Versions lists every version ever created, newest first, with the current one in
-        bold. Access grants roles scoped to this one repository - see the{" "}
-        <strong>Access</strong> help topic for how roles and grants work in general.
-      </Content>
     </Content>
   );
 }

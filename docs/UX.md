@@ -295,17 +295,16 @@ category's own title both expands it and jumps straight to its Overview page (`o
 `NavExpandable`) — one click to "what is this section for," matching the old flat list's behavior
 for that specific case.
 
-**Write page content as user-facing task documentation, not implementation notes.** Category
-Overview entries stay short (a paragraph or two, orientation only); each sub-page's own entry does
-the real work — explain how to accomplish something on that one page (concrete steps: "click Create
-repository, enter a name, pick a remote...") and every real feature/action/field on it, including
-the real gotchas a user would hit (e.g. advisory upload wanting JSON not `updateinfo.xml`, or a
-distribution needing a publication before its URL works) — not commentary about Pulpit's own
-development state or how complete an area is relative to others. That framing belongs in
-`docs/ROADMAP.md` for the project's own contributors, not in help content aimed at someone trying
-to get their RPM content synced. An unbuilt feature's page should say plainly that it isn't
-available yet, without editorializing about project priorities, and should never omit a real,
-shipped feature just because the doc predates it.
+**Keep Helper short and practical.** An Overview needs one or two sentences. Most page topics
+should fit in 40–100 words; a complex topic such as signing may need about 150. Start with what
+the user can do, give a few concrete steps using the visible button names, and keep only the
+prerequisites or pitfalls that affect the task. Preserve consequential warnings, such as a
+container distribution deleting its repository or a history purge being irreversible.
+
+Use familiar words and short sentences. Do not inventory every field, explain API contracts,
+describe backend internals, or repeat the same instructions under several headings. Technical
+detail belongs in `docs/`, and development status belongs in `docs/ROADMAP.md`. Keep the brief
+instructions accurate when a feature changes, including defaults and required publish steps.
 
 **This is a required, ongoing system, not a one-off page**: a change that adds or materially
 changes a user-facing feature must update the corresponding Help topic in the same change, the

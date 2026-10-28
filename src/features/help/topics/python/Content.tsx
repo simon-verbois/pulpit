@@ -4,17 +4,12 @@ export function PythonContentTopic() {
   return (
     <Content>
       <Content component="p">
-        A read-only view of every Python package Pulp knows about, across{" "}
-        <strong>every</strong> repository - not scoped to one. Each row shows the
-        package's name, version, type (wheel/sdist), filename, and the repositories whose
-        current version contains it. Repository names open their detail pages. Search by
-        name to narrow the list; there's no per-repository filter here (use a repository's
-        own <strong>Content</strong> tab for that).
+        Search Python packages across all repositories. Click a repository name to open
+        it.
       </Content>
       <Content component="p">
-        Packages appear here once a repository has synced content that includes them, or a
-        package has been uploaded directly to a repository. There's no upload action on
-        this global page - it's for browsing/finding a package, not adding one.
+        To upload a wheel or source package, open that repository's{" "}
+        <strong>Content</strong> tab.
       </Content>
     </Content>
   );

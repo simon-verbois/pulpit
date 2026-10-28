@@ -153,44 +153,45 @@ down from "the whole repository"):
 
 1. Confirms the repository actually has content (a repository at version 0 - never synced/uploaded
    - is skipped immediately, not treated as an error).
-2. Publishes the repository and waits for it, so the metadata read next reflects exactly the
-   packages up to and including the current version.
-3. Lists candidate packages - either every package in the current latest version (a first-time pass
+2. Lists candidate packages - either every package in the current latest version (a first-time pass
    or a key rotation), or only what pulpcore's `repository_version_added` filter reports as added in
    each version between the job's `since_version` and `target_version` (a normal post-sync delta,
    see below) - and drops any whose own `signing_keys` field already lists the active fingerprint
    (Pulp itself already signed them correctly, nothing to do).
-4. Looks up every remaining candidate's `(source_sha256, fingerprint)` in `rpm_signing_cache` in
+3. Looks up every remaining candidate's `(source_sha256, fingerprint)` in `rpm_signing_cache` in
    **one** batched query. A `success` row with a `signed_content_href` is reused directly - no
    download, no `rpmsign`, no re-upload, just a swap of that already-known content unit into the
    repository. A `running` row younger than 15 minutes means another job/worker is already on this
    exact source package (the cache is keyed by content, not by repository) and is left alone this
    run. Anything else (a genuine miss, a `failed` row, or a stale `running` row from a crashed
    worker) becomes a real candidate to sign.
-5. Reads the distribution's own published `repodata/repomd.xml` → `primary.xml.gz` to build a
+4. Only if packages need downloading, publishes the repository and waits for completion, then
+   reads the distribution's `repodata/repomd.xml` → `primary.xml.gz` to build a
    checksum → real file path map for whatever still needs signing. **VERIFIED live**: a package's
    own `location_href` field is **not** reliable for this - the default repository layout actually
    serves packages at `Packages/<first-letter>/<filename>`, which only exists in the generated
    metadata. This mirrors exactly what a real `dnf`/`createrepo`-compatible client does to resolve a
    package's URL.
-6. Downloads, re-signs, and re-uploads each remaining candidate **in parallel** across
+5. Downloads, re-signs, and re-uploads each remaining candidate **in parallel** across
    `settings.rpm_signing_workers` threads (default 8, see "Parallel resigning" below) - each result
    is written to `rpm_signing_cache` and committed as soon as it completes, not batched, so a crash
    partway through loses at most the in-flight work.
-7. Swaps every old unit for its resigned (or cache-reused) replacement in **one** `modify()` call
+6. Swaps every old unit for its resigned (or cache-reused) replacement in **one** `modify()` call
    (one new repository version for the whole batch, not one per package), then republishes so the
    distribution actually serves the resigned content. The repository served to clients therefore
    only ever flips from "fully previous" to "fully current" - never a partially-resigned in-between
    state.
-8. If every candidate this run covered succeeded, advances `signing_repository_sync_state`'s
+7. If every candidate this run covered succeeded, advances `signing_repository_sync_state`'s
    watermark to `target_version` - a repository is never silently considered "fully signed" while
    any of its candidates failed; the same version range is retried on the next detection/apply-to-all
    pass instead.
 
 This necessarily gives every newly-resigned package a new checksum and creates a new repository
-version - not a lightweight operation, though a run with only cache hits (or no candidates at all)
-skips the upload/modify/publish steps entirely. A repository requires at least one **distribution**
-for this to work at all (steps 5/6 need somewhere to fetch published content from); a repository
+version - not a lightweight operation. A run with no candidates, with cached signed units already
+present, or with all candidates being signed elsewhere creates no publication. A cache-only swap
+skips the preparatory publication and publishes once after modifying the repository; an uncached
+signing run still publishes before downloading and after swapping the resigned content. A repository
+requires at least one **distribution** for this to work (steps 4/5 need somewhere to fetch content); a repository
 with content but no distribution is **skipped** by this job (result `skipped_reason: "no_distribution"`,
 logged) rather than failed - a failure would keep the sync-state watermark in place and make every
 detection/apply-to-all sweep re-queue a failing job for it. The per-repository "Re-sign" action

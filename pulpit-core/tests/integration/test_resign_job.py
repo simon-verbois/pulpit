@@ -63,7 +63,7 @@ def _mock_common(*, version: int = 1, primary_packages: list[tuple[str, str]] | 
     respx.get("http://pulp:80/pulp/api/v3/distributions/rpm/rpm/", params={"repository": REPO_HREF}).mock(
         return_value=httpx.Response(200, json={"results": [{"base_url": DIST_BASE}]})
     )
-    respx.post("http://pulp:80/pulp/api/v3/publications/rpm/rpm/").mock(
+    publication_route = respx.post("http://pulp:80/pulp/api/v3/publications/rpm/rpm/").mock(
         return_value=httpx.Response(200, json={"task": "/pulp/api/v3/tasks/pub1/"})
     )
     respx.get("http://pulp:80/pulp/api/v3/tasks/pub1/").mock(
@@ -75,6 +75,7 @@ def _mock_common(*, version: int = 1, primary_packages: list[tuple[str, str]] | 
     respx.get(f"http://pulp:80{DIST_BASE}repodata/abc-primary.xml.gz").mock(
         return_value=httpx.Response(200, content=gzip.compress(_primary_xml(primary_packages or [])))
     )
+    return publication_route
 
 
 @pytest.fixture(autouse=True)
@@ -87,7 +88,7 @@ def fake_resign(monkeypatch):
 
 @respx.mock
 def test_resign_repository_packages_downloads_signs_reuploads_and_swaps(db):
-    _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
+    publication_route = _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
     respx.get(f"http://pulp:80{DIST_BASE}Packages/z/zebra-0.1-2.noarch.rpm").mock(
         return_value=httpx.Response(200, content=b"fake-rpm-bytes")
     )
@@ -124,6 +125,7 @@ def test_resign_repository_packages_downloads_signs_reuploads_and_swaps(db):
     assert result["cache_hits"] == 0
     assert result["failed"] == 0
     assert upload_route.called
+    assert publication_route.call_count == 2
     modify_body = modify_route.calls.last.request.content
     assert b"/pulp/api/v3/content/rpm/packages/new/" in modify_body
     assert b"/pulp/api/v3/content/rpm/packages/old/" in modify_body
@@ -157,7 +159,7 @@ def test_a_cache_hit_skips_download_sign_and_upload_entirely(db):
     )
     db.flush()
 
-    _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
+    publication_route = _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
     respx.get(
         "http://pulp:80/pulp/api/v3/content/rpm/packages/",
         params={"repository_version": f"{REPO_HREF}versions/1/", "limit": 1000, "offset": 0},
@@ -189,6 +191,7 @@ def test_a_cache_hit_skips_download_sign_and_upload_entirely(db):
     assert result["signed"] == 0
     assert not download_route.called
     assert not upload_route.called
+    assert publication_route.call_count == 1
     modify_body = modify_route.calls.last.request.content
     assert b"/pulp/api/v3/content/rpm/packages/already-signed/" in modify_body
 
@@ -198,7 +201,7 @@ def test_a_package_already_signed_with_the_target_fingerprint_is_never_a_candida
     """Pulp's own `signing_keys` field on the package is checked before ever
     touching the cache - a package the on-upload signing pipeline already
     signed correctly needs no cache lookup, download, or swap at all."""
-    _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
+    publication_route = _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
     respx.get(
         "http://pulp:80/pulp/api/v3/content/rpm/packages/",
         params={"repository_version": f"{REPO_HREF}versions/1/", "limit": 1000, "offset": 0},
@@ -226,8 +229,54 @@ def test_a_package_already_signed_with_the_target_fingerprint_is_never_a_candida
     assert result["candidates"] == 0
     assert result["signed"] == 0
     assert result["failed"] == 0
+    assert not publication_route.called
     state = db.query(RepositorySigningSyncState).filter_by(repository_href=REPO_HREF).one()
     assert state.last_processed_version == 1
+
+
+@respx.mock
+def test_an_empty_incremental_delta_does_not_publish(db):
+    publication_route = _mock_common(version=3)
+    for version in (2, 3):
+        respx.get(
+            "http://pulp:80/pulp/api/v3/content/rpm/packages/",
+            params={"repository_version_added": f"{REPO_HREF}versions/{version}/", "limit": 1000, "offset": 0},
+        ).mock(return_value=httpx.Response(200, json={"results": [], "next": None}))
+
+    result = signing_jobs.resign_repository_packages_job(db, {
+        "repository_href": REPO_HREF,
+        "fingerprint": FINGERPRINT,
+        "since_version": f"{REPO_HREF}versions/1/",
+        "target_version": f"{REPO_HREF}versions/3/",
+    })
+
+    assert result["evaluated"] == 0
+    assert not publication_route.called
+    assert db.query(RepositorySigningSyncState).filter_by(repository_href=REPO_HREF).one().last_processed_version == 3
+
+
+@respx.mock
+def test_a_cached_signed_unit_already_in_the_repository_does_not_publish(db):
+    href = "/pulp/api/v3/content/rpm/packages/already-signed/"
+    db.add(RpmSigningCache(
+        source_sha256="sum1", fingerprint=FINGERPRINT,
+        status=RpmSigningCacheStatus.SUCCESS, signed_content_href=href,
+    ))
+    db.flush()
+    publication_route = _mock_common()
+    respx.get("http://pulp:80/pulp/api/v3/content/rpm/packages/").mock(
+        return_value=httpx.Response(200, json={
+            "results": [{"pulp_href": href, "sha256": "sum1", "signing_keys": None}], "next": None,
+        })
+    )
+
+    result = signing_jobs.resign_repository_packages_job(
+        db, {"repository_href": REPO_HREF, "fingerprint": FINGERPRINT}
+    )
+
+    assert result["cache_hits"] == 1
+    assert result["signed"] == 0
+    assert not publication_route.called
 
 
 @respx.mock
@@ -293,7 +342,7 @@ def test_a_fresh_running_row_is_left_alone_not_double_signed(db):
     )
     db.flush()
 
-    _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
+    publication_route = _mock_common(primary_packages=[("zebra-0.1-2.noarch", "sum1")])
     respx.get(
         "http://pulp:80/pulp/api/v3/content/rpm/packages/",
         params={"repository_version": f"{REPO_HREF}versions/1/", "limit": 1000, "offset": 0},
@@ -317,6 +366,7 @@ def test_a_fresh_running_row_is_left_alone_not_double_signed(db):
     assert result["signed"] == 0
     assert result["running_elsewhere"] == 1
     assert not download_route.called
+    assert not publication_route.called
 
 
 @respx.mock

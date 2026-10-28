@@ -27,11 +27,8 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [remote, setRemote] = useState("");
-  // Defaults on: without a publication, a distribution serves nothing (a
-  // real 404, VERIFIED live) - autopublish keeps content servable without a
-  // separate manual "Publish" step after every sync. See
-  // src/api/client/file/publications.ts and the Overview tab's "Publish now".
-  const [autopublish, setAutopublish] = useState(true);
+  // Publishing stays an explicit choice when creating a repository.
+  const [autopublish, setAutopublish] = useState(false);
   const [manifest, setManifest] = useState("");
   const createMutation = useCreateFileRepositoryMutation();
   const navigate = useNavigate();

@@ -227,41 +227,45 @@ describe("RepositoriesPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("defaults autopublish on and sends it as part of the create request", async () => {
-    let requestBody: unknown;
-    server.use(
-      http.post("/pulp/api/v3/repositories/rpm/rpm/", async ({ request }) => {
-        requestBody = await request.json();
-        return HttpResponse.json(
-          {
-            ...RPM_REPO_FIXTURE,
-            pulp_href: "/pulp/api/v3/repositories/rpm/rpm/new/",
-            name: "new-repo",
-          },
-          { status: 201 },
-        );
-      }),
-    );
-    renderApp(<RepositoriesPage />, {
-      route: "/rpm/repositories",
-      path: "/rpm/repositories",
-    });
+  it.each([false, true])(
+    "creates a repository with autopublish=%s (off by default)",
+    async (autopublish) => {
+      let requestBody: unknown;
+      server.use(
+        http.post("/pulp/api/v3/repositories/rpm/rpm/", async ({ request }) => {
+          requestBody = await request.json();
+          return HttpResponse.json(
+            {
+              ...RPM_REPO_FIXTURE,
+              pulp_href: "/pulp/api/v3/repositories/rpm/rpm/new/",
+              name: "new-repo",
+            },
+            { status: 201 },
+          );
+        }),
+      );
+      renderApp(<RepositoriesPage />, {
+        route: "/rpm/repositories",
+        path: "/rpm/repositories",
+      });
 
-    await screen.findByText(RPM_REPO_FIXTURE.name);
-    fireEvent.click(screen.getAllByRole("button", { name: "Create repository" })[0]);
+      await screen.findByText(RPM_REPO_FIXTURE.name);
+      fireEvent.click(screen.getAllByRole("button", { name: "Create repository" })[0]);
 
-    const dialog = await screen.findByRole("dialog");
-    const autopublishCheckbox = within(dialog).getByLabelText(/Automatically publish/i);
-    expect(autopublishCheckbox).toBeChecked();
+      const dialog = await screen.findByRole("dialog");
+      const autopublishCheckbox = within(dialog).getByLabelText(/Automatically publish/i);
+      expect(autopublishCheckbox).not.toBeChecked();
+      if (autopublish) fireEvent.click(autopublishCheckbox);
 
-    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
-      target: { value: "new-repo" },
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
+      fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
+        target: { value: "new-repo" },
+      });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(requestBody).toMatchObject({ autopublish: true });
-  });
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(requestBody).toMatchObject({ autopublish });
+    },
+  );
 
   it("computes repo_config from the signing policy", async () => {
     let repositoryRequestBody: unknown;
