@@ -19,17 +19,12 @@ import {
   TextInput,
 } from "@patternfly/react-core";
 
-import {
-  buildDistributionBasePath,
-  distributionPathSegment,
-} from "../../../api/distributions/basePath";
 import { listAllRpmRemoteOptions } from "../../../api/client/rpm/remotes";
 import { computeRpmRepoConfig } from "../../../api/client/rpm/repoConfig";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { rpmRemoteOptionsQueryKey } from "../remotes/queryKeys";
 import { RemoteOptionGroups } from "./RemoteOptionGroups";
 import { useContentOrigin } from "../../../hooks/useContentOrigin";
-import { useCreateRpmDistributionMutation } from "../distributions/useCreateRpmDistributionMutation";
 import { useCreateRpmRepositoryMutation } from "./useCreateRpmRepositoryMutation";
 import { useRepositorySigningPolicyQuery } from "./useRepositorySigningPolicyQuery";
 
@@ -42,15 +37,7 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
   // separate manual "Publish" step after every sync. See
   // src/api/client/rpm/publications.ts and the Overview tab's "Publish now".
   const [autopublish, setAutopublish] = useState(true);
-  // Defaults on too - the common case is "sync this repo and serve it",
-  // and a repository with no distribution at all is otherwise unreachable
-  // by any client. Reuses the repository's own name as both the
-  // distribution's name and base_path suffix (same convention as
-  // CreateDistributionModal), so it's immediately reachable at a
-  // predictable URL without a second manual step.
-  const [createDistribution, setCreateDistribution] = useState(true);
   const createMutation = useCreateRpmRepositoryMutation();
-  const createDistributionMutation = useCreateRpmDistributionMutation();
   const navigate = useNavigate();
   const signingPolicyQuery = useRepositorySigningPolicyQuery();
   const contentOrigin = useContentOrigin();
@@ -96,17 +83,6 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
       },
       {
         onSuccess: (repository) => {
-          if (createDistribution) {
-            createDistributionMutation.mutate({
-              name: repository.name,
-              base_path: buildDistributionBasePath(
-                "rpm",
-                distributionPathSegment(repository.name),
-              ),
-              repository: repository.pulp_href,
-              generate_repo_config: true,
-            });
-          }
           onClose();
           navigate(`/rpm/repositories/${encodeURIComponent(repository.name)}`);
         },
@@ -168,19 +144,6 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
               description="Without this, a distribution pointing at this repository won't serve any content until it's published manually."
               isChecked={autopublish}
               onChange={(_event, checked) => setAutopublish(checked)}
-            />
-          </FormGroup>
-          <FormGroup fieldId="repository-create-distribution">
-            <Checkbox
-              id="repository-create-distribution"
-              label="Create a distribution for this repository"
-              description={
-                name
-                  ? `Will be reachable at ${contentOrigin}/pulp/content/${buildDistributionBasePath("rpm", distributionPathSegment(name))}/`
-                  : "Named after this repository - reachable at .../pulp/content/rpm/<name>/"
-              }
-              isChecked={createDistribution}
-              onChange={(_event, checked) => setCreateDistribution(checked)}
             />
           </FormGroup>
         </Form>

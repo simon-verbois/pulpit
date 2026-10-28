@@ -76,10 +76,14 @@ export function RpmRepositoriesTopic() {
           pinned distribution in the background: the dialog closes right away and both
           steps appear in the Tasks drawer. The <strong>Name</strong> defaults to the
           repository name, with the selected version suffix for pinned distributions (for
-          example, <code> -v2</code>); change it to choose your own name. The name is also
-          the URL path (<code>/pulp/content/rpm/&lt;name&gt;/</code>), with spaces
-          replaced by <code>-</code>. The tab lists both kinds together, including every
-          pinned distribution created for an older version. <strong>Delete</strong>{" "}
+          example, <code> -v2</code>); change it to choose your own name. The{" "}
+          <strong>Base path</strong> defaults to <code>rpm/&lt;name&gt;</code> (spaces
+          replaced by <code>-</code>) but is the full path after{" "}
+          <code>/pulp/content/</code> and can be set to anything, for example{" "}
+          <code>OracleLinux/OL8/baseos/latest/x86_64</code> to mirror an upstream layout.
+          Pulpit never creates a distribution on its own when a repository is created: add
+          one here, or through the Pulp API. The tab lists both kinds together, including
+          every pinned distribution created for an older version. <strong>Delete</strong>{" "}
           removes a distribution. Its generated repository configuration is shown as a
           compact preview; use <strong>Copy</strong> to copy the complete configuration or
           <strong>Show full configuration</strong> to inspect it in place.

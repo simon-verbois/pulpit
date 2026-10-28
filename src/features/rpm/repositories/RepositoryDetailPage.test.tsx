@@ -47,6 +47,40 @@ describe("RepositoryDetailPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("surfaces a failed last sync with a plain-language explanation", async () => {
+    server.use(
+      http.get("/pulp/api/v3/tasks/", () =>
+        HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              pulp_href: "/pulp/api/v3/tasks/0190aaaa-0000-7000-8000-000000000001/",
+              name: "pulp_rpm.app.tasks.synchronizing.synchronize",
+              state: "failed",
+              finished_at: "2026-01-02T10:00:00Z",
+              error: {
+                description:
+                  "403, message='Forbidden', url='https://linux-update.oracle.com/XMLRPC/GET-REQ/ol9/getPackageSource/libarchive-3.5.3-1.el9.src.rpm'",
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    renderDetail();
+
+    expect(
+      await screen.findByText(/Last sync failed: Source package download was refused/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("libarchive-3.5.3-1.el9.src.rpm")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View task details" })).toHaveAttribute(
+      "href",
+      "/tasks?task=0190aaaa-0000-7000-8000-000000000001",
+    );
+  });
+
   it("summarizes the latest version and links it to the Versions tab", async () => {
     server.use(
       http.get(RPM_REPO_FIXTURE.latest_version_href, () =>

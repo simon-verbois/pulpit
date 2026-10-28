@@ -99,9 +99,9 @@ describe("RepositoryDistributionsTab", () => {
     expect(within(dialog).getByLabelText("Name", { exact: false })).toHaveValue(
       RPM_REPO_FIXTURE.name,
     );
-    expect(
-      within(dialog).queryByLabelText("Base path", { exact: false }),
-    ).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Base path", { exact: false })).toHaveValue(
+      `rpm/${RPM_REPO_FIXTURE.name}`,
+    );
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -125,9 +125,9 @@ describe("RepositoryDistributionsTab", () => {
     fireEvent.change(versionSelect, {
       target: { value: `${RPM_REPO_FIXTURE.versions_href}0/` },
     });
-    expect(
-      within(dialog).queryByLabelText("Base path", { exact: false }),
-    ).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Base path", { exact: false })).toHaveValue(
+      `rpm/${RPM_REPO_FIXTURE.name}-v0`,
+    );
     fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -186,6 +186,25 @@ describe("RepositoryDistributionsTab", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(
       await screen.findByRole("cell", { name: "Oracle Linux 9 BaseOS Latest" }),
+    ).toBeInTheDocument();
+  });
+
+  it("serves the distribution under a full custom base path", async () => {
+    renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />, {
+      withTasksDrawer: true,
+    });
+
+    await screen.findByText(RPM_DISTRIBUTION_FIXTURE.name);
+    fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
+      target: { value: "OracleLinux/OL8/baseos/latest/x86_64" },
+    });
+    expect(
+      within(dialog).getByText(
+        /\/pulp\/content\/OracleLinux\/OL8\/baseos\/latest\/x86_64\/$/,
+      ),
     ).toBeInTheDocument();
   });
 

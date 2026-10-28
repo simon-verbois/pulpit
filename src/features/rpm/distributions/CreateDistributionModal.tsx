@@ -21,6 +21,7 @@ import {
   TextInput,
 } from "@patternfly/react-core";
 
+import { BasePathField } from "../../../components/BasePathField";
 import { ErrorState } from "../../../components/ErrorState";
 import { LoadingState } from "../../../components/LoadingState";
 import {
@@ -55,7 +56,8 @@ interface CreateDistributionModalProps {
  * resulting publication.
  *
  * The name defaults to "<repository>" or "<repository>-v<N>" and can be
- * overridden; it is also the base path suffix, with spaces turned into "-". */
+ * overridden; the base path defaults to "rpm/<name>" (spaces turned into "-") and can be
+ * set to any full path. */
 export function CreateDistributionModal({
   repository,
   onClose,
@@ -83,10 +85,15 @@ export function CreateDistributionModal({
     target === "version" ? effectiveVersion?.number : undefined,
   );
   const distributionName = (customName ?? defaultName).trim();
-  const basePath = buildDistributionBasePath(
+  const defaultBasePath = buildDistributionBasePath(
     "rpm",
     distributionPathSegment(distributionName),
   );
+  // undefined until edited, so the default keeps following the name. The
+  // field holds the full path (e.g. "OracleLinux/OL8/baseos/latest/x86_64"),
+  // so a mirror can reproduce the layout of the upstream it replaces.
+  const [customBasePath, setCustomBasePath] = useState<string>();
+  const basePath = (customBasePath ?? defaultBasePath).trim().replace(/^\/+|\/+$/g, "");
   const isSubmitting =
     updateRepositoryMutation.isPending ||
     publishMutation.isPending ||
@@ -231,12 +238,21 @@ export function CreateDistributionModal({
               validated={distributionName ? "default" : "error"}
               onChange={(_event, value) => setCustomName(value)}
             />
+          </FormGroup>
+          <FormGroup label="Base path" isRequired fieldId="distribution-base-path">
+            <BasePathField
+              id="distribution-base-path"
+              isRequired
+              prefix={`${contentOrigin}/pulp/content/`}
+              value={customBasePath ?? defaultBasePath}
+              onChange={setCustomBasePath}
+            />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem variant={distributionName ? "default" : "error"}>
-                  {distributionName
+                <HelperTextItem variant={basePath ? "default" : "error"}>
+                  {basePath
                     ? `Will be reachable at ${contentOrigin}/pulp/content/${basePath}/`
-                    : "Enter a name. It is also used in the distribution's URL."}
+                    : "Enter the full path this distribution is served under."}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -259,6 +275,7 @@ export function CreateDistributionModal({
               isDisabled={
                 isSubmitting ||
                 !distributionName ||
+                !basePath ||
                 (target === "version" && !effectiveVersionHref)
               }
               isLoading={isSubmitting}

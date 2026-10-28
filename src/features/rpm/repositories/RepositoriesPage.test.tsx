@@ -263,59 +263,6 @@ describe("RepositoriesPage", () => {
     expect(requestBody).toMatchObject({ autopublish: true });
   });
 
-  it("defaults to creating a distribution named after the new repository", async () => {
-    let distributionRequestBody: unknown;
-    server.use(
-      http.post("/pulp/api/v3/repositories/rpm/rpm/", async ({ request }) => {
-        const body = (await request.json()) as { name: string };
-        return HttpResponse.json(
-          {
-            ...RPM_REPO_FIXTURE,
-            pulp_href: "/pulp/api/v3/repositories/rpm/rpm/new-repo/",
-            name: body.name,
-          },
-          { status: 201 },
-        );
-      }),
-      http.post("/pulp/api/v3/distributions/rpm/rpm/", async ({ request }) => {
-        distributionRequestBody = await request.json();
-        return HttpResponse.json(
-          { task: "/pulp/api/v3/tasks/create-dist-task/" },
-          { status: 202 },
-        );
-      }),
-    );
-
-    renderApp(<RepositoriesPage />, {
-      route: "/rpm/repositories",
-      path: "/rpm/repositories",
-    });
-
-    await screen.findByText(RPM_REPO_FIXTURE.name);
-    fireEvent.click(screen.getAllByRole("button", { name: "Create repository" })[0]);
-
-    const dialog = await screen.findByRole("dialog");
-    const createDistCheckbox = within(dialog).getByLabelText(
-      /Create a distribution for this repository/i,
-    );
-    expect(createDistCheckbox).toBeChecked();
-
-    fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
-      target: { value: "epel-9" },
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
-
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    await waitFor(() =>
-      expect(distributionRequestBody).toMatchObject({
-        name: "epel-9",
-        base_path: "rpm/epel-9",
-        repository: "/pulp/api/v3/repositories/rpm/rpm/new-repo/",
-        generate_repo_config: true,
-      }),
-    );
-  });
-
   it("computes repo_config from the signing policy", async () => {
     let repositoryRequestBody: unknown;
     server.use(
@@ -369,7 +316,7 @@ describe("RepositoriesPage", () => {
     );
   });
 
-  it("skips creating a distribution when unchecked", async () => {
+  it("never creates a distribution automatically", async () => {
     let distributionCreateCalled = false;
     server.use(
       http.post("/pulp/api/v3/repositories/rpm/rpm/", async ({ request }) => {
@@ -401,9 +348,9 @@ describe("RepositoriesPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Create repository" })[0]);
 
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(
-      within(dialog).getByLabelText(/Create a distribution for this repository/i),
-    );
+    expect(
+      within(dialog).queryByLabelText(/Create a distribution/i),
+    ).not.toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
       target: { value: "no-dist-repo" },
     });
