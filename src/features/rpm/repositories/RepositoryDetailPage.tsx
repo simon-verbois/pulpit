@@ -17,7 +17,6 @@ import { RepositoryPackagesTab } from "./RepositoryPackagesTab";
 import { RepositoryAdvisoriesTab } from "./RepositoryAdvisoriesTab";
 import { RepositoryContentTab } from "./RepositoryContentTab";
 import { RepositoryDistributionsTab } from "./RepositoryDistributionsTab";
-import { LatestSyncFailureAlert } from "../../tasks/LatestSyncFailureAlert";
 import { ObjectAccessTab } from "../../access/ObjectAccessTab";
 import { EditRepositoryModal } from "./EditRepositoryModal";
 import { ResignRepositoryModal } from "./ResignRepositoryModal";
@@ -149,7 +148,6 @@ export function RepositoryDetailPage() {
         <Tabs activeKey={activeTab} onSelect={(_event, key) => setActiveTab(key)}>
           <Tab eventKey="overview" title={<TabTitleText>Overview</TabTitleText>}>
             <PageSection hasBodyWrapper={false}>
-              <LatestSyncFailureAlert repositoryHref={repository.pulp_href} />
               <RepositoryOverviewTab
                 repository={repository}
                 onShowVersions={() => setActiveTab("versions")}
