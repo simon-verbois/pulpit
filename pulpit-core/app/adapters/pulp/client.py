@@ -10,6 +10,7 @@ AGENTS.md #3) - see docs/signing.md for the specific fields this adapter
 relies on and how they were confirmed.
 """
 
+from datetime import datetime
 from functools import lru_cache
 from typing import Any
 from urllib.parse import urlsplit
@@ -148,7 +149,7 @@ class PulpClient:
         deadline = time.monotonic() + timeout
         while True:
             task = self.get_task(task_href)
-            if task["state"] in ("completed", "failed", "canceled"):
+            if task["state"] in ("completed", "failed", "canceled", "skipped"):
                 return task
             if time.monotonic() > deadline:
                 raise PulpAdapterError(f"Timed out waiting for task {task_href}")
@@ -361,6 +362,11 @@ class PulpClient:
         return self._request(
             "POST", f"{repository_href}sync/", json={"remote": remote_href}
         ).json()
+
+    def purge_tasks(self, *, finished_before: datetime, states: list[str]) -> dict:
+        """Dispatches Pulp's own purge task (returns `{"task": href}`)."""
+        body = {"finished_before": finished_before.isoformat(), "states": states}
+        return self._request("POST", f"{self._api_base}/tasks/purge/", json=body).json()
 
     def create_distribution(self, type_path: str, body: dict) -> dict:
         return self._request(

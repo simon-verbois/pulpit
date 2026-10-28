@@ -91,3 +91,12 @@ def test_network_failure_raises_adapter_error(client):
     )
     with pytest.raises(PulpAdapterError):
         client.list_signing_services()
+
+
+@pytest.mark.parametrize("state", ["completed", "failed", "canceled", "skipped"])
+@respx.mock
+def test_wait_for_task_returns_each_final_state(client, state):
+    respx.get("http://pulp-test/pulp/api/v3/tasks/final/").mock(
+        return_value=httpx.Response(200, json={"state": state})
+    )
+    assert client.wait_for_task("/pulp/api/v3/tasks/final/", timeout=0)["state"] == state

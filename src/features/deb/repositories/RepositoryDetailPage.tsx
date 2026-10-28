@@ -8,6 +8,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { RepositoryHeaderActions } from "../../../components/RepositoryHeaderActions";
+import { LatestSyncFailureAlert } from "../../tasks/LatestSyncFailureAlert";
 import { useUrlTab } from "../../../hooks/useUrlTab";
 import { useDebRepositoryByNameQuery } from "./useDebRepositoryByNameQuery";
 import { useDeleteDebRepositoryMutation } from "./useDeleteDebRepositoryMutation";
@@ -122,6 +123,7 @@ export function RepositoryDetailPage() {
           />
         }
       />
+      <LatestSyncFailureAlert repositoryHref={repository.pulp_href} />
       <PageSection hasBodyWrapper={false} type="tabs">
         <Tabs activeKey={activeTab} onSelect={(_event, key) => setActiveTab(key)}>
           <Tab eventKey="overview" title={<TabTitleText>Overview</TabTitleText>}>

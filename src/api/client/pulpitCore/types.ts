@@ -204,6 +204,17 @@ export interface DefaultSettingsUpdate {
 // everything, staff included, until an administrator explicitly grants a
 // specific non-empty subset in Administration's General tab, which then
 // restricts every user equally (no staff bypass).
+export interface TaskRetentionSettings {
+  enabled: boolean;
+  retention_days: number;
+  last_run_at: string | null;
+  last_run_error: string | null;
+}
+
+export type TaskRetentionSettingsUpdate = Partial<
+  Pick<TaskRetentionSettings, "enabled" | "retention_days">
+>;
+
 export interface NavVisibilitySettings {
   visible_module_ids: string[];
 }

@@ -20,7 +20,6 @@ import type {
 import { formatBytes } from "../lib/formatBytes";
 import { VERIFIED_VERSIONS } from "../lib/pulpCompatibility";
 import { NAV_TREE } from "../app/layout/navTree";
-import { StatusIndicator } from "./StatusIndicator";
 import { MetricCard } from "../features/overview/MetricCard";
 import { SERVICE_METADATA } from "../features/overview/serviceMetadata";
 import { BrandIcon } from "./icons/BrandIcon";
@@ -252,7 +251,6 @@ export function PulpStatusSummary({
                     <Th>Service type</Th>
                     <Th>Component</Th>
                     <Th>Version</Th>
-                    <Th>Version status</Th>
                     {repositoryCountsQuery ? <Th>Repositories</Th> : null}
                     {componentSizesQuery ? <Th>Size</Th> : null}
                   </Tr>
@@ -272,20 +270,6 @@ export function PulpStatusSummary({
                       </Td>
                       <Td dataLabel="Component">{v.component}</Td>
                       <Td dataLabel="Version">{v.version}</Td>
-                      <Td dataLabel="Version status">
-                        <StatusIndicator
-                          color={
-                            v.version === VERIFIED_VERSIONS[v.component]
-                              ? "green"
-                              : "yellow"
-                          }
-                          isCompact
-                        >
-                          {v.version === VERIFIED_VERSIONS[v.component]
-                            ? "Verified"
-                            : "Review compatibility"}
-                        </StatusIndicator>
-                      </Td>
                       {repositoryCountsQuery ? (
                         <Td dataLabel="Repositories">
                           <RepositoryCountCell

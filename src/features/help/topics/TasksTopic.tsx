@@ -23,7 +23,9 @@ export function TasksTopic() {
       <Content component="h3">Full task history</Content>
       <Content component="p">
         The <strong>Tasks</strong> page in the sidebar is different — it's Pulp's own
-        permanent record of every task, from any client. Filter by type (for example,
+        history of tasks from any client, subject to the retention period saved in
+        <strong>Administration → General → Task history</strong>. Purged tasks cannot be
+        recovered. Filter by type (for example,
         <strong>Sync</strong> or <strong>Publish</strong>), state, and task name together.
         To find an active repository sync among recent publications, select
         <strong>Sync</strong> and <strong>Running</strong>. Changing a filter returns to
@@ -38,6 +40,11 @@ export function TasksTopic() {
         <strong>Technical error details</strong> for Pulp's original error, including a
         traceback when available. Give your administrator the task href and correlation ID
         to help locate its logs.
+      </Content>
+      <Content component="p">
+        Repository detail pages show an alert when the most recent sync failed. Follow
+        <strong>View task details</strong> to inspect it. The alert disappears when a
+        newer sync is no longer failed.
       </Content>
       <Content component="p">
         A failed sync does not create a completed repository version. Downloaded files may

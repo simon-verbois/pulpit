@@ -1,5 +1,12 @@
 import { useSearchParams } from "react-router-dom";
-import { PageSection, Tab, TabTitleText, Tabs } from "@patternfly/react-core";
+import {
+  Grid,
+  GridItem,
+  PageSection,
+  Tab,
+  TabTitleText,
+  Tabs,
+} from "@patternfly/react-core";
 
 import { PageHeader } from "../../components/PageHeader";
 import {
@@ -7,6 +14,7 @@ import {
   useAdministrationHeaderActionFor,
 } from "./AdministrationHeaderActionContext";
 import { NavVisibilitySettingsSection } from "./general/NavVisibilitySettingsSection";
+import { TaskRetentionSection } from "./general/TaskRetentionSection";
 import { UsersPage } from "../access/users/UsersPage";
 import { GroupsPage } from "../access/groups/GroupsPage";
 import { RolesPage } from "../access/roles/RolesPage";
@@ -143,7 +151,14 @@ function AdministrationPageContent({
         >
           <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
             <PageSection hasBodyWrapper={false}>
-              <NavVisibilitySettingsSection />
+              <Grid hasGutter>
+                <GridItem span={12} xl={7}>
+                  <NavVisibilitySettingsSection />
+                </GridItem>
+                <GridItem span={12} xl={5}>
+                  <TaskRetentionSection />
+                </GridItem>
+              </Grid>
             </PageSection>
           </Tab>
           <Tab eventKey="access" title={<TabTitleText>Access</TabTitleText>}>

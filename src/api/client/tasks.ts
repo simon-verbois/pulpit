@@ -101,6 +101,8 @@ export interface ListTasksParams {
   name__contains?: string;
   /** Comma-separated exact task names; VERIFIED live against pulpcore 3.116.1. */
   name__in?: string;
+  /** Tasks that reserved this resource href (e.g. a repository being synced). */
+  reserved_resources?: string;
   ordering?: string;
 }
 

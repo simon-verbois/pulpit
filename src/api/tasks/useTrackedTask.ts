@@ -42,7 +42,7 @@ export function useTrackedTask(task: TrackedTask) {
 }
 
 /** useTrackedTask for a pulpit-core job (`kind: "job"`, `href` = job id):
- * same invalidate-once-on-success rule. */
+ * invalidate once on success, or also on failure when diagnostics need refreshing. */
 export function useTrackedJob(task: TrackedTask) {
   const query = useJob(task.href);
   const queryClient = useQueryClient();
@@ -56,13 +56,17 @@ export function useTrackedJob(task: TrackedTask) {
   }, [query.data?.status, setTaskActive, task.href]);
 
   useEffect(() => {
-    if (query.data?.status === "success" && !invalidatedRef.current) {
+    if (
+      (query.data?.status === "success" ||
+        (query.data?.status === "failed" && task.invalidateOnFailure)) &&
+      !invalidatedRef.current
+    ) {
       invalidatedRef.current = true;
       for (const queryKey of task.invalidateKeys ?? []) {
         queryClient.invalidateQueries({ queryKey });
       }
     }
-  }, [query.data?.status, queryClient, task.invalidateKeys]);
+  }, [query.data?.status, queryClient, task.invalidateKeys, task.invalidateOnFailure]);
 
   return query;
 }

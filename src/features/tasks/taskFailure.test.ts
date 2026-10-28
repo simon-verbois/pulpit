@@ -52,4 +52,39 @@ describe("explainTaskFailure", () => {
   ])("explains known upstream failures", (error, title) => {
     expect(explainTaskFailure(error).title).toBe(title);
   });
+
+  it("explains a refused ULN source package without leaking the URL", () => {
+    const failure = explainTaskFailure({
+      description:
+        "403, message='Forbidden', url='https://linux-update.oracle.com/XMLRPC/GET-REQ/ol9_x86_64_baseos_latest/getPackageSource/libarchive-3.5.3-1.el9.src.rpm'",
+    });
+    expect(failure.title).toBe("Source package download was refused");
+    expect(failure.file).toBe("libarchive-3.5.3-1.el9.src.rpm");
+    expect(failure.nextStep).toContain("exclude them");
+  });
+
+  it("distinguishes a generic ULN refusal from other 403s", () => {
+    expect(
+      explainTaskFailure({
+        description:
+          "403, message='Forbidden', url='https://linux-update.oracle.com/XMLRPC/GET-REQ/ol9/getPackage/a-1.rpm'",
+      }).title,
+    ).toBe("Oracle ULN refused access");
+  });
+
+  it.each([
+    [
+      { description: "404, message='Not Found', url='https://x.test/a-1.rpm'" },
+      "Remote resource not found",
+    ],
+    [{ description: "502, message='Bad Gateway'" }, "Remote server error"],
+    [
+      { description: "Cannot connect to host mirror.test:443" },
+      "Remote server unreachable",
+    ],
+    [{ description: "[Errno 28] No space left on device" }, "Storage is full"],
+    [{ description: "Checksum mismatch for /a-1.rpm" }, "Downloaded file is corrupt"],
+  ])("explains common transport and storage failures", (error, title) => {
+    expect(explainTaskFailure(error).title).toBe(title);
+  });
 });

@@ -1,16 +1,18 @@
 import { useState } from "react";
 import {
   Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardTitle,
   Checkbox,
   Content,
-  Grid,
-  GridItem,
-  Stack,
-  StackItem,
+  Gallery,
 } from "@patternfly/react-core";
 
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
+import { groupIcon } from "../../../app/layout/groupIcon";
 import { NAV_VISIBILITY_MODULES } from "../../../app/layout/navTree";
 import type { NavVisibilitySettings } from "../../../api/client/pulpitCore/types";
 import { useNavVisibilitySettingsQuery } from "./useNavVisibilitySettingsQuery";
@@ -98,32 +100,45 @@ function NavVisibilityForm({ settings }: { settings: NavVisibilitySettings }) {
     });
   };
 
+  const allChecked = allowed.size === NAV_VISIBILITY_MODULES.length;
+
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <Content component="h2">Module visibility</Content>
+    <Card isFullHeight>
+      <CardTitle>Sidebar modules</CardTitle>
+      <CardBody>
         <Content component="p">
-          Every section is shown to every user by default, including staff - uncheck one
-          to hide it for everyone instead. Pulp's own permissions still decide what a user
-          can actually do if they navigate to a section directly - this only controls
-          what's offered in the sidebar.
+          Choose which sections appear in the sidebar, for every user including staff.
+          Pulp's own permissions still decide what a user can do if they open a section
+          directly.
         </Content>
-      </StackItem>
-      <StackItem>
-        <Grid hasGutter className="pulpit-settings-options">
+        <Gallery
+          hasGutter
+          minWidths={{ default: "9rem" }}
+          className="pulpit-module-tiles"
+        >
           {NAV_VISIBILITY_MODULES.map((mod) => (
-            <GridItem key={mod.id} span={12} md={6} xl={4}>
+            <div
+              key={mod.id}
+              className="pulpit-module-tile"
+              data-checked={allowed.has(mod.id)}
+            >
               <Checkbox
                 id={`nav-visibility-${mod.id}`}
-                label={`Show "${mod.label}"`}
+                label={
+                  <span className="pulpit-module-tile-label">
+                    {groupIcon(mod.id)}
+                    {mod.label}
+                  </span>
+                }
+                aria-label={`Show ${mod.label}`}
                 isChecked={allowed.has(mod.id)}
                 onChange={(_event, checked) => toggle(mod.id, checked)}
               />
-            </GridItem>
+            </div>
           ))}
-        </Grid>
-      </StackItem>
-      <StackItem>
+        </Gallery>
+      </CardBody>
+      <CardFooter>
         <Button
           variant="primary"
           isDisabled={!isDirty || updateMutation.isPending}
@@ -131,8 +146,15 @@ function NavVisibilityForm({ settings }: { settings: NavVisibilitySettings }) {
           onClick={handleSave}
         >
           Save
+        </Button>{" "}
+        <Button
+          variant="link"
+          isDisabled={allChecked}
+          onClick={() => setAllowed(new Set(NAV_VISIBILITY_MODULES.map((mod) => mod.id)))}
+        >
+          Select all
         </Button>
-      </StackItem>
-    </Stack>
+      </CardFooter>
+    </Card>
   );
 }

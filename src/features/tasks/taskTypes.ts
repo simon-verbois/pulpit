@@ -74,3 +74,7 @@ export const TASK_TYPES = [
     ],
   },
 ] as const;
+
+export const SYNC_TASK_NAMES: ReadonlySet<string> = new Set(
+  TASK_TYPES.find((type) => type.value === "sync")?.names,
+);

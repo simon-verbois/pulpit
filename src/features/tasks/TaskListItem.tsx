@@ -19,6 +19,7 @@ import type { TrackedTask } from "../../api/tasks/TasksContext";
 import { formatRelativeTime } from "../../lib/relativeTime";
 import { humanizeTaskName } from "./humanizeTaskName";
 import { TaskProgress } from "./TaskProgress";
+import { explainTaskFailure } from "./taskFailure";
 
 type Variant = "info" | "success" | "danger" | "warning";
 
@@ -107,9 +108,7 @@ function PulpTaskItem({ task }: { task: TrackedTask }) {
         timestamp={timestamp ? formatRelativeTime(timestamp) : undefined}
       >
         {state ?? "Loading…"}
-        {state === "failed" && data?.error?.description ? (
-          <div>{data.error.description}</div>
-        ) : null}
+        {state === "failed" ? <div>{explainTaskFailure(data?.error).title}</div> : null}
         {state === "running" ? (
           <div style={{ marginTop: "var(--pf-t--global--spacer--sm)" }}>
             <TaskProgress reports={data?.progress_reports} runningOnly />

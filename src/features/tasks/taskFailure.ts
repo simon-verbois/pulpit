@@ -80,13 +80,84 @@ export function explainTaskFailure(error: unknown): TaskFailure {
         "Check the remote hostname, certificate chain and trusted CA configuration, including any HTTPS inspection by the proxy.",
     };
   }
-  if (/\b401\b|\b403\b|permission denied|forbidden/i.test(evidence)) {
+  if (/\b(401|403)\b|permission denied|forbidden/i.test(evidence)) {
+    const file = description.match(/\/([^/\s"'<>]+\.(?:src\.)?rpm)(?:[.\s,'"]|$)/)?.[1];
+    if (/\.src\.rpm$/i.test(file ?? "") || /getPackageSource/i.test(evidence)) {
+      return {
+        title: "Source package download was refused",
+        explanation:
+          "The remote refused to serve a source package (.src.rpm). With Oracle ULN this usually means the subscription (CSI) is not entitled to download sources, even though the channel lists them.",
+        nextStep:
+          "If you do not need source packages, exclude them from the remote's content. Otherwise check that the ULN channel is attached to your CSI and that its support level includes sources, then retry.",
+        file,
+      };
+    }
+    if (/linux-update\.oracle\.com|\buln\b/i.test(evidence)) {
+      return {
+        title: "Oracle ULN refused access",
+        explanation:
+          "ULN rejected a request for a channel or package. The channel is probably not attached to the CSI used by this remote, or the subscription has expired.",
+        nextStep:
+          "Check in the ULN portal that this channel is linked to your CSI, then run the remote connection test and retry.",
+        file,
+      };
+    }
     return {
       title: "Access was refused",
       explanation:
         "Pulp or the remote server refused access to a resource needed by this task.",
       nextStep:
         "Check the account's permissions, remote credentials and proxy allowlist, then retry.",
+    };
+  }
+  if (/\b404\b|not found/i.test(evidence) && /https?:|uln:/i.test(evidence)) {
+    const file = description.match(/\/([^/\s"'<>]+\.rpm)(?:[.\s,'"]|$)/)?.[1];
+    return {
+      title: "Remote resource not found",
+      explanation:
+        "The remote server answered 404: the repository metadata or a package no longer exists at that URL.",
+      nextStep:
+        "Check the remote URL. If the upstream repository was updated while syncing, retry; otherwise the package was removed upstream.",
+      file,
+    };
+  }
+  if (/\b50[0-4]\b|bad gateway|service unavailable|gateway time-?out/i.test(evidence)) {
+    return {
+      title: "Remote server error",
+      explanation:
+        "The upstream server or the proxy in between returned a server error (5xx). This is usually temporary.",
+      nextStep: "Retry later. If it keeps happening, check the upstream service status.",
+    };
+  }
+  if (
+    /name or service not known|nodename nor servname|temporary failure in name resolution|getaddrinfo|cannot connect to host|connection refused|connection reset|network is unreachable/i.test(
+      evidence,
+    )
+  ) {
+    return {
+      title: "Remote server unreachable",
+      explanation:
+        "Pulp could not connect to the remote server: DNS lookup failed, the connection was refused or it was reset.",
+      nextStep:
+        "Check the remote hostname, the network path and the proxy settings from the Pulp host, then retry.",
+    };
+  }
+  if (/no space left on device|ENOSPC|disk quota/i.test(evidence)) {
+    return {
+      title: "Storage is full",
+      explanation: "Pulp could not write to its storage because there is no space left.",
+      nextStep: "Free up or extend the storage used by Pulp, then retry.",
+    };
+  }
+  if (/digest|checksum|size does not match|invalidchecksum/i.test(evidence)) {
+    const file = description.match(/\/([^/\s"'<>]+\.rpm)(?:[.\s,'"]|$)/)?.[1];
+    return {
+      title: "Downloaded file is corrupt",
+      explanation:
+        "A downloaded file does not match the checksum or size announced by the repository metadata.",
+      nextStep:
+        "Retry: this is often a mirror caught mid-update. If it persists, the upstream metadata is inconsistent.",
+      file,
     };
   }
   return {

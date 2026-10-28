@@ -4,6 +4,7 @@ import type { JobStatus } from "../../api/client/pulpitCore/types";
  * the action a person would recognize. Unknown types fall back to the raw
  * name rather than a guess. */
 const JOB_LABELS: Record<string, string> = {
+  "task_retention.purge": "Purge task history",
   "signing.generate_key": "Generate signing key",
   "signing.publish_key": "Publish signing key",
   "signing.retire_key": "Retire signing key",

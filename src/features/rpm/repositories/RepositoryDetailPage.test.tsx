@@ -26,6 +26,47 @@ function renderDetail(name = RPM_REPO_FIXTURE.name) {
 }
 
 describe("RepositoryDetailPage", () => {
+  it("shows the repository's latest failed sync and clears it after a successful retry", async () => {
+    let state = "failed";
+    let filter: URLSearchParams | undefined;
+    server.use(
+      http.get("/pulp/api/v3/tasks/", ({ request }) => {
+        filter = new URL(request.url).searchParams;
+        return HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              pulp_href: "/pulp/api/v3/tasks/latest-sync/",
+              state,
+              name: "pulp_rpm.app.tasks.synchronizing.synchronize",
+              error: { description: "[Errno 28] No space left on device" },
+            },
+          ],
+        });
+      }),
+    );
+    const { client } = renderDetail();
+    expect(
+      await screen.findByText("Last sync failed: Storage is full"),
+    ).toBeInTheDocument();
+    expect(filter?.get("reserved_resources")).toBe(RPM_REPO_FIXTURE.pulp_href);
+    expect(filter?.get("limit")).toBe("1");
+    expect(filter?.get("name__in")).toContain(
+      "pulp_rpm.app.tasks.synchronizing.synchronize",
+    );
+    expect(screen.getByRole("link", { name: "View task details" })).toHaveAttribute(
+      "href",
+      "/tasks?task=latest-sync",
+    );
+
+    state = "completed";
+    await client.invalidateQueries({ queryKey: ["pulp", "tasks", "latest-sync"] });
+    await waitFor(() =>
+      expect(screen.queryByText(/Last sync failed:/)).not.toBeInTheDocument(),
+    );
+  });
   it("shows the overview tab by default with the repository's details", async () => {
     renderDetail();
 

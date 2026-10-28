@@ -20,6 +20,8 @@ export interface TrackedTask {
   label?: string;
   /** Query keys to invalidate once this task reaches "completed" - see useTrackedTask. */
   invalidateKeys?: QueryKey[];
+  /** Refresh diagnostics even when a background job fails. */
+  invalidateOnFailure?: boolean;
   /** Existing Pulp resources locked by this operation. Keeping this on the
    * tracked task lets every route disable duplicate/conflicting actions while
    * the backend task is still active. */

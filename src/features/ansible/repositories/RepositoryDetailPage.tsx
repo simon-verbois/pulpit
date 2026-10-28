@@ -8,6 +8,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
 import { ConfirmDeleteModal } from "../../../components/ConfirmDeleteModal";
 import { RepositoryHeaderActions } from "../../../components/RepositoryHeaderActions";
+import { LatestSyncFailureAlert } from "../../tasks/LatestSyncFailureAlert";
 import { useUrlTab } from "../../../hooks/useUrlTab";
 import { useAnsibleRepositoryByNameQuery } from "./useAnsibleRepositoryByNameQuery";
 import { useDeleteAnsibleRepositoryMutation } from "./useDeleteAnsibleRepositoryMutation";
@@ -119,6 +120,7 @@ export function RepositoryDetailPage() {
           />
         }
       />
+      <LatestSyncFailureAlert repositoryHref={repository.pulp_href} />
       <PageSection hasBodyWrapper={false} type="tabs">
         <Tabs activeKey={activeTab} onSelect={(_event, key) => setActiveTab(key)}>
           <Tab eventKey="overview" title={<TabTitleText>Overview</TabTitleText>}>

@@ -72,7 +72,7 @@ describe("AdministrationPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Administration" }),
     ).toBeInTheDocument();
-    expect(await screen.findByLabelText('Show "RPM"')).toBeChecked();
+    expect(await screen.findByLabelText("Show RPM")).toBeChecked();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 
@@ -80,7 +80,7 @@ describe("AdministrationPage", () => {
     mockRepositorySigning();
     renderApp(<AdministrationPage />);
 
-    const rpmCheckbox = await screen.findByLabelText('Show "RPM"');
+    const rpmCheckbox = await screen.findByLabelText("Show RPM");
     expect(rpmCheckbox).toBeChecked();
 
     fireEvent.click(rpmCheckbox);
@@ -97,7 +97,7 @@ describe("AdministrationPage", () => {
     mockLdapSettings();
     renderApp(<AdministrationPage />);
 
-    await screen.findByLabelText('Show "RPM"');
+    await screen.findByLabelText("Show RPM");
 
     fireEvent.click(screen.getByRole("tab", { name: "Access" }));
     expect(
@@ -147,7 +147,7 @@ describe("AdministrationPage", () => {
     });
 
     expect(await screen.findByLabelText("Signing enabled")).toBeInTheDocument();
-    expect(screen.queryByLabelText('Show "RPM"')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Show RPM")).not.toBeInTheDocument();
   });
 
   it("opens directly on the Pulp Signing Services sub-tab from the URL", async () => {
@@ -172,7 +172,7 @@ describe("AdministrationPage", () => {
     expect(
       await screen.findByLabelText("Enable LDAP authentication"),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Show "RPM"')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Show RPM")).not.toBeInTheDocument();
   });
 
   it("opens directly on an Access sub-tab from the URL", async () => {
@@ -185,7 +185,7 @@ describe("AdministrationPage", () => {
     expect(
       await screen.findByRole("button", { name: "Create group" }),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Show "RPM"')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Show RPM")).not.toBeInTheDocument();
   });
 
   it("defaults to the Users sub-tab when landing on Access with no subtab in the URL", async () => {

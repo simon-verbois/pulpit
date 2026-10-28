@@ -3,6 +3,19 @@
 Pulp's REST API is the authoritative contract. This document covers discovery, generated types,
 async tasks, pagination, and the error model. See also ADR 0004 and the `pulp-api` skill.
 
+## Task history retention
+
+**VERIFIED live (2026-10-28, pulpcore 3.116.1):** `POST /pulp/api/v3/tasks/purge/`
+accepts `finished_before` (an ISO timestamp) and `states` (final states only), and returns
+`202` with a task href. Acceptance is not completion: the retention worker waits for
+that task and records a failure if it ends failed, canceled or skipped. Its settings
+and attempt diagnostics belong to Pulpit; task history stays in Pulp.
+
+**VERIFIED live (same instance):** `GET /pulp/api/v3/tasks/` supports
+`reserved_resources=<repository href>` together with `name__in`, `ordering=-pulp_created`
+and `limit=1` to find a repository's latest sync, rather than its latest failed sync.
+An alert based only on failed tasks would incorrectly survive a subsequent success.
+
 ## Status / version / capability discovery
 
 `GET /pulp/api/v3/status/` (same-origin, no trailing slash changes) reports installed

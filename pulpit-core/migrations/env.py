@@ -27,6 +27,7 @@ from app.modules.signing.models import (  # noqa: F401
     SigningRotation,
     SigningSettings,
 )
+from app.modules.task_retention.models import TaskRetentionSettings  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

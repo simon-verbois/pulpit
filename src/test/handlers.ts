@@ -5020,6 +5020,26 @@ const pulpitCoreHandlers = [
     return HttpResponse.json({ visible_module_ids: body.visible_module_ids });
   }),
 
+  // The pulpit-core defaults (enabled, 90 days) - the Administration
+  // "General" tab calls this unconditionally on mount.
+  http.get("/pulpit-core/api/v1/task_retention/settings", () =>
+    HttpResponse.json({
+      enabled: true,
+      retention_days: 90,
+      last_run_at: null,
+      last_run_error: null,
+    }),
+  ),
+  http.patch("/pulpit-core/api/v1/task_retention/settings", async ({ request }) =>
+    HttpResponse.json({
+      enabled: true,
+      retention_days: 90,
+      last_run_at: null,
+      last_run_error: null,
+      ...((await request.json()) as object),
+    }),
+  ),
+
   // A healthy, far-from-expiring self-signed certificate by default - the
   // Overview page calls this unconditionally (useTlsCertWarning). Tests
   // exercising the expiry warning itself override this with server.use(...).

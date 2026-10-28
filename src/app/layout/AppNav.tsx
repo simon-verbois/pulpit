@@ -5,8 +5,8 @@ import { Nav, NavExpandable, NavItem, NavList, Skeleton } from "@patternfly/reac
 import { deriveCapabilities } from "../../api/capabilities";
 import { useStatusQuery } from "../../hooks/useStatusQuery";
 import { useNavVisibilityQuery } from "../../hooks/useNavVisibilityQuery";
-import { BrandIcon, type BrandIconName } from "../../components/icons/BrandIcon";
 import { UiIcon } from "../../components/icons/UiIcon";
+import { groupIcon } from "./groupIcon";
 import { NAV_TREE, type NavGroup, type NavLeaf } from "./navTree";
 
 function renderNavItem(leaf: NavLeaf, pathname: string) {
@@ -27,22 +27,6 @@ function topLevelIcon(path: string) {
   if (path === "/tasks") return <UiIcon name="tasks" />;
   if (path === "/admin") return <UiIcon name="settings" />;
   return undefined;
-}
-
-function groupIcon(id: string) {
-  const icons: Record<string, BrandIconName> = {
-    rpm: "rpm",
-    deb: "deb",
-    container: "container",
-    ansible: "ansible",
-    file: "file",
-    hugging_face: "hugging_face",
-    gem: "gem",
-    maven: "maven",
-    npm: "npm",
-    python: "python",
-  };
-  return icons[id] ? <BrandIcon name={icons[id]} branded /> : undefined;
 }
 
 /** id of whichever top-level group's own children contain this path, if

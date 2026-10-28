@@ -822,16 +822,41 @@ textarea.pf-v6-c-form-control:focus-visible {
   background: color-mix(in srgb, var(--pulpit-table-head) 42%, transparent);
 }
 
-/* Dense settings choices remain one coherent form, but each option gets a
-   subtle hit area and enough separation to scan across wide screens. */
-.pulpit-settings-options > .pf-v6-l-grid__item {
+/* Module-visibility tiles: a compact, scannable grid of icon + name, with the
+   whole tile as the hit area and a tint on the checked ones. */
+.pulpit-module-tiles {
+  margin-block-start: 1rem;
+}
+
+.pulpit-module-tile {
   display: flex;
   align-items: center;
   min-block-size: 2.75rem;
-  padding: 0.65rem 0.8rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--pulpit-table-rule);
   border-radius: 0.5rem;
-  background: color-mix(in srgb, var(--pulpit-table-head) 34%, transparent);
+  background: transparent;
+}
+
+.pulpit-module-tile[data-checked="true"] {
+  border-color: var(--pf-t--global--border--color--clicked);
+  background: color-mix(
+    in srgb,
+    var(--pf-t--global--color--brand--default) 8%,
+    transparent
+  );
+}
+
+.pulpit-module-tile .pf-v6-c-check,
+.pulpit-module-tile .pf-v6-c-check__label {
+  inline-size: 100%;
+  cursor: pointer;
+}
+
+.pulpit-module-tile-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .pf-v6-c-page__main-section.pulpit-overview-content {

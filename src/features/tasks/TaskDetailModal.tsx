@@ -34,13 +34,9 @@ import { TaskProgress } from "./TaskProgress";
 import { TaskResourceCell } from "./TaskResourceCell";
 import { TASK_STATE_COLOR } from "./taskStateColor";
 import { explainTaskFailure } from "./taskFailure";
-import { TASK_TYPES } from "./taskTypes";
+import { SYNC_TASK_NAMES } from "./taskTypes";
 import { useRetrySyncMutation } from "./useRetrySyncMutation";
 import { useTaskResources } from "./useTaskResources";
-
-const SYNC_TASK_NAMES: ReadonlySet<string> = new Set(
-  TASK_TYPES.find((type) => type.value === "sync")?.names,
-);
 
 function Timestamp({ value }: { value?: string | null }) {
   return <>{value ? new Date(value).toLocaleString() : "—"}</>;

@@ -17,6 +17,7 @@ from app.modules.fixture_seed import module as fixture_seed_module
 from app.modules.ldap import module as ldap_module
 from app.modules.nav_visibility import module as nav_visibility_module
 from app.modules.signing import module as signing_module
+from app.modules.task_retention import module as task_retention_module
 from app.modules.tls import module as tls_module
 
 _MODULES = [
@@ -28,6 +29,7 @@ _MODULES = [
     ldap_module,
     tls_module,
     api_compatibility_module,
+    task_retention_module,
 ]
 
 
