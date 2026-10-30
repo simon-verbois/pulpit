@@ -137,3 +137,33 @@ CI runs `npm audit` and `pip-audit` against the full installed dependency list
 from `pip freeze --exclude-editable` (the local application is not a PyPI package).
 Python security floors include FastAPI, Starlette and cryptography. pip-audit is a
 development-only dependency.
+
+## Audit corrections (2026-10-29)
+
+- Pulp and pulpit-core share one JSON transport. It validates the request origin before attaching
+  credentials or CSRF headers, rejects redirects, and handles all `HeadersInit` forms and multipart
+  uploads consistently. API URLs must name their canonical same-origin endpoint.
+- Login return destinations are rooted local app routes, with protocol-relative URLs, backslashes,
+  control characters and login loops rejected. Browser storage failures cannot prevent startup.
+- Job detail reads require the requester or staff. A shared repository job returned by a signing
+  action can also be polled after Pulp confirms that caller can read the repository; this check
+  forwards the caller's credentials and never uses the service account. Unrelated job UUIDs yield
+  404 to other users. Job payloads remain excluded from responses.
+- TLS material and LDAP/signing manifests use unique temporary files with permissions applied
+  before content is written, then atomic replacement and cleanup on failure. The obsolete custom
+  RPM metadata parser is removed; Pulp owns package discovery and preparation.
+- certifi has a runtime security floor; filelock and msgpack have development floors for the audit
+  tooling's cache dependencies. The release acknowledgement cookie is a non-secret UI preference,
+  separate from Pulp's authentication and CSRF cookies.
+
+## Signed RPM publication boundary
+
+The derived Pulp image enforces configured RPM signing before repository-version completion,
+publication completion and delivery, including the Redis response-cache path. Failed preparation
+preserves the previous safe publication; existing unsafe pinned publications are unavailable until
+explicitly repointed. RemoteArtifact downloads use Pulp's native auth/network policy and validate
+size and checksum. Pulpit's worker never publishes unsigned content to fetch package bytes.
+
+Re-sign requests finish external I/O before taking the short queue-submission lock. The detector
+also completes pagination before flushing queued jobs. Native task polling holds no core SQLite
+writer. Both Pulp and Pulpit images must be upgraded for this boundary to be present.

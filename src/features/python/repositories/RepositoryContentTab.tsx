@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { ToolbarItem } from "@patternfly/react-core";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { PythonRepository } from "../../../api/client/python/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
@@ -21,30 +22,17 @@ export function RepositoryContentTab({ repository }: { repository: PythonReposit
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <TaskActionButton
-              resourceHref={repository.pulp_href}
-              taskAction="upload"
-              onClick={() => setIsUploadOpen(true)}
-            >
-              Upload package
-            </TaskActionButton>
-          </ToolbarItem>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={contentQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              perPageOptions={pagination.perPageOptions}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
+      <ListToolbar pagination={pagination} itemCount={contentQuery.data?.count ?? 0}>
+        <ToolbarItem>
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="upload"
+            onClick={() => setIsUploadOpen(true)}
+          >
+            Upload package
+          </TaskActionButton>
+        </ToolbarItem>
+      </ListToolbar>
 
       <ContentTable
         isPending={contentQuery.isPending}

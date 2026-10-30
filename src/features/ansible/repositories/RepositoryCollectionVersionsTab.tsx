@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { ToolbarItem } from "@patternfly/react-core";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { AnsibleRepository } from "../../../api/client/ansible/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
@@ -27,31 +28,21 @@ export function RepositoryCollectionVersionsTab({
   return (
     <>
       {collectionVersionsQuery.isSuccess &&
-      collectionVersionsQuery.data.results.length > 0 ? (
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem>
-              <TaskActionButton
-                resourceHref={repository.pulp_href}
-                taskAction="upload"
-                onClick={() => setIsUploadOpen(true)}
-              >
-                Upload collection
-              </TaskActionButton>
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={collectionVersionsQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                perPageOptions={pagination.perPageOptions}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+      (collectionVersionsQuery.data.results.length > 0 || pagination.page > 1) ? (
+        <ListToolbar
+          pagination={pagination}
+          itemCount={collectionVersionsQuery.data?.count ?? 0}
+        >
+          <ToolbarItem>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="upload"
+              onClick={() => setIsUploadOpen(true)}
+            >
+              Upload collection
+            </TaskActionButton>
+          </ToolbarItem>
+        </ListToolbar>
       ) : null}
 
       <CollectionVersionsTable

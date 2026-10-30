@@ -496,3 +496,23 @@ Expected differences from the dev Compose setup, to be designed when this milest
 - `deployment/kube/`'s manifests are a working baseline, not a production-hardened one: no NetworkPolicies,
   PodDisruptionBudgets, resource requests/limits, autoscaling, or TLS on the Ingress yet (see
   `deployment/kube/README.md` "Known gaps").
+
+## RPM signing policy image requirement
+
+Signed RPM repositories require the derived Pulp image containing `pulp-rpm-signing-policy` as
+well as the matching Pulpit image. Upgrade both when adopting this signing boundary; restarting
+only Pulpit cannot enforce Pulp's publication or content-cache paths. No database/cache table is
+deleted by this change. Back up the usual volumes before upgrading as described above.
+
+After upgrade, run **Re-sign now** on existing configured repositories, or **Sign all repositories…**
+to apply the global policy. Old unsigned URLs return 503 until repaired; old pinned versions must
+be repointed to a signed publication explicitly. On-demand content requiring signatures is downloaded
+before publication. Use Pulp's `PULP_MAX_PACKAGE_SIGNING_WORKERS` to configure concurrency; the old
+`PULPIT_CORE_RPM_SIGNING_WORKERS` no longer controls preparation. See ADR 0013 and `docs/signing.md`.
+
+### Distribution GUI compatibility
+
+Distribution editing and registry redirect-guard preservation require the current derived Pulp
+image (`pulpit-api-compat` 1.0.0) alongside Pulpit. This compatibility fix corrects the
+obsolete registry guard route in pulp_container 2.29.0 without broadening accepted guard models.
+Upgrade both images; validate with `make test-distribution-policy` after upstream plugin changes.

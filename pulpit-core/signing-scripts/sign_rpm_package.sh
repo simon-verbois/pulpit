@@ -27,17 +27,19 @@ FINGERPRINT="${PULP_SIGNING_KEY_FINGERPRINT:?PULP_SIGNING_KEY_FINGERPRINT not se
 GNUPGHOME="${PULPIT_SIGNING_GNUPGHOME:-/var/lib/pulpit-signing/gnupg}"
 
 ## VERIFIED against a live pulpcore/pulp_rpm instance (docs/signing.md):
-## `rpmsign`/`rpm --addsign` prints its own "<file>:" progress line to
+## `rpmsign` prints its own "<file>:" progress line to
 ## stdout - pulpcore's SigningService.sign() treats the ENTIRE stdout as
 ## the JSON payload (json.loads(completed_process.stdout)), so that extra
 ## line must never reach stdout or every signing call fails with "The
 ## signing service script did not return valid JSON!". Redirect it away;
 ## keep stderr visible (pulpcore surfaces it verbatim on real failures).
+# RPM 6 refuses --addsign on existing legacy signatures. Re-signing is
+# deliberately replacement: clients trust this repository's current key.
 rpmsign \
     --define "_gpg_path ${GNUPGHOME}" \
     --define "_gpg_name ${FINGERPRINT}" \
     --define "_gpg_digest_algo sha256" \
     --define "__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --yes --passphrase '' --homedir ${GNUPGHOME} --no-armor --digest-algo sha256 -u %{_gpg_name} -sbo %{__signature_filename} --digest-algo sha256 %{__plaintext_filename}" \
-    --addsign "${FILE_PATH}" > /dev/null
+    --resign "${FILE_PATH}" > /dev/null
 
 printf '{"file": "%s", "rpm_package": "%s"}\n' "${FILE_PATH}" "${FILE_PATH}"

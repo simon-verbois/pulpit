@@ -48,15 +48,15 @@ describe("rpm alternate content sources adapter", () => {
   });
 
   it(
-    "refreshes by resolving the returned task_group to its first task " +
+    "refreshes with the full task group " +
       "(VERIFIED live: refresh returns {task_group}, not {task}, a distinct shape)",
     async () => {
       const result = await refreshAlternateContentSource(RPM_ACS_FIXTURE.pulp_href);
-      expect(result.task).toMatch(/^\/pulp\/api\/v3\/tasks\//);
+      expect(result.task).toMatch(/^\/pulp\/api\/v3\/task-groups\//);
     },
   );
 
-  it("throws a clear error if the task group has no tasks to track", async () => {
+  it("keeps a group that has not dispatched any children yet", async () => {
     server.use(
       http.post(`${BASE}:id/refresh/`, () =>
         HttpResponse.json(
@@ -71,6 +71,6 @@ describe("rpm alternate content sources adapter", () => {
 
     await expect(
       refreshAlternateContentSource(RPM_ACS_FIXTURE.pulp_href),
-    ).rejects.toThrow(/no task was found to track/);
+    ).resolves.toEqual({ task: "/pulp/api/v3/task-groups/empty/" });
   });
 });

@@ -12,10 +12,10 @@ AUTHENTICATION_BACKENDS when it's turned off, not just stop being told
 about it."""
 
 import json
-import os
 from pathlib import Path
 
 from app.core.crypto import decrypt_secret
+from app.core.files import atomic_write_text
 from app.modules.ldap.models import LdapSettings
 
 
@@ -54,7 +54,4 @@ def write_manifest(manifest: dict, *, manifest_path: str) -> None:
     observes a half-written file. Same approach as signing's
     write_signing_services_manifest."""
     path = Path(manifest_path)
-    tmp_path = path.with_name(f"{path.name}.tmp")
-    tmp_path.write_text(json.dumps(manifest, indent=2))
-    os.chmod(tmp_path, 0o600)  # contains a plaintext bind password
-    os.replace(tmp_path, path)
+    atomic_write_text(path, json.dumps(manifest, indent=2))

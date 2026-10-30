@@ -25,7 +25,9 @@ def install_distribution_path_policy() -> None:
             base_path = None
         if isinstance(base_path, str):
             model = self.Meta.model
-            message = distribution_path_error(model.__module__, model.__name__, base_path)
+            message = distribution_path_error(
+                model.__module__, model.__name__, base_path
+            )
             if message:
                 raise serializers.ValidationError({"base_path": [message]})
         return original_run_validation(self, data)

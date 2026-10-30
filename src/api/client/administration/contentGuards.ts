@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type { ContentGuardKind, ContentGuardSummary, PulpPage } from "./types";
@@ -95,8 +96,7 @@ export function getContentGuardDetail<T>(href: string): Promise<T> {
 /** Fetches every guard page - used to populate the Composite guard's
  * "which guards to combine" picker. */
 export async function listAllContentGuards(): Promise<ContentGuardSummary[]> {
-  const page = await listContentGuards({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listContentGuards({ limit: 100, offset }));
 }
 
 /** Generic create/update dispatch by kind - used by CreateContentGuardModal/

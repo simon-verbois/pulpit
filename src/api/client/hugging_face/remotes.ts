@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type {
@@ -22,12 +23,9 @@ export function listHuggingFaceRemotes(
   return pulpFetch<PulpPage<HuggingFaceRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every remote page - used to populate the small "remote" select in
- * the repository create form, which isn't expected to have hundreds of
- * remotes in this bootstrap's scope. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllHuggingFaceRemotes(): Promise<HuggingFaceRemote[]> {
-  const page = await listHuggingFaceRemotes({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listHuggingFaceRemotes({ limit: 100, offset }));
 }
 
 export function createHuggingFaceRemote(

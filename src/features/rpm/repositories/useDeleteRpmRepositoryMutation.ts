@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import { deleteRpmRepository } from "../../../api/client/rpm/repositories";
 import { useTasksContext } from "../../../api/tasks/TasksContext";
+import { rpmDistributionsListRootKey } from "../distributions/queryKeys";
 import { rpmRepositoriesListRootKey } from "./queryKeys";
 
 export function useDeleteRpmRepositoryMutation() {
@@ -15,7 +16,7 @@ export function useDeleteRpmRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [rpmRepositoriesListRootKey],
+        invalidateKeys: [rpmRepositoriesListRootKey, rpmDistributionsListRootKey],
       });
     },
   });

@@ -1,13 +1,8 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -36,7 +31,9 @@ export function GroupMembersTab({ group }: { group: Group }) {
       {membersQuery.isError ? (
         <ErrorState error={membersQuery.error} onRetry={() => membersQuery.refetch()} />
       ) : null}
-      {membersQuery.isSuccess && membersQuery.data.results.length === 0 ? (
+      {membersQuery.isSuccess &&
+      membersQuery.data.results.length === 0 &&
+      pagination.page === 1 ? (
         <EmptyState
           variant="sm"
           title="No members yet"
@@ -44,26 +41,14 @@ export function GroupMembersTab({ group }: { group: Group }) {
           action={<Button onClick={() => setIsAddOpen(true)}>Add member…</Button>}
         />
       ) : null}
-      {membersQuery.isSuccess && membersQuery.data.results.length > 0 ? (
+      {membersQuery.isSuccess &&
+      (membersQuery.data.results.length > 0 || pagination.page > 1) ? (
         <>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem>
-                <Button onClick={() => setIsAddOpen(true)}>Add member…</Button>
-              </ToolbarItem>
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={membersQuery.data.count}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
-                />
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar pagination={pagination} itemCount={membersQuery.data.count}>
+            <ToolbarItem>
+              <Button onClick={() => setIsAddOpen(true)}>Add member…</Button>
+            </ToolbarItem>
+          </ListToolbar>
           <Table aria-label="Group members" variant="compact">
             <Thead>
               <Tr>

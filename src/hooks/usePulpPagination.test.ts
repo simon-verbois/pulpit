@@ -10,6 +10,17 @@ function setViewportHeight(height: number) {
 }
 
 describe("usePulpPagination", () => {
+  it("returns to the first page when the submitted search changes and keeps the chosen size", () => {
+    const { result, rerender } = renderHook(
+      ({ search }) => usePulpPagination(10, search),
+      { initialProps: { search: "" } },
+    );
+    act(() => result.current.onSetPage(undefined, 7));
+    rerender({ search: "walrus" });
+    expect(result.current.page).toBe(1);
+    expect(result.current.offset).toBe(0);
+    expect(result.current.perPage).toBe(10);
+  });
   beforeEach(() => setViewportHeight(1037));
   afterEach(() => setViewportHeight(ORIGINAL_INNER_HEIGHT));
 

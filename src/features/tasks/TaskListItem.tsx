@@ -20,6 +20,7 @@ import { formatRelativeTime } from "../../lib/relativeTime";
 import { humanizeTaskName } from "./humanizeTaskName";
 import { TaskProgress } from "./TaskProgress";
 import { explainTaskFailure } from "./taskFailure";
+import { ErrorState } from "../../components/ErrorState";
 
 type Variant = "info" | "success" | "danger" | "warning";
 
@@ -73,6 +74,9 @@ function JobItem({ task }: { task: TrackedTask }) {
         timestamp={timestamp ? formatRelativeTime(timestamp) : undefined}
       >
         {status ?? "Loading…"}
+        {query.isError ? (
+          <ErrorState error={query.error} onRetry={() => query.refetch()} />
+        ) : null}
         {status === "failed" && data?.error ? <div>{data.error}</div> : null}
       </NotificationDrawerListItemBody>
     </NotificationDrawerListItem>
@@ -96,7 +100,11 @@ function PulpTaskItem({ task }: { task: TrackedTask }) {
       isRead={isRead}
       onClick={() => {
         setIsDrawerOpen(false);
-        navigate(`/tasks?task=${taskIdFromHref(task.href)}`);
+        navigate(
+          task.kind === "group"
+            ? `/tasks?group=${encodeURIComponent(task.href)}`
+            : `/tasks?task=${taskIdFromHref(task.href)}`,
+        );
       }}
     >
       <NotificationDrawerListItemHeader
@@ -108,6 +116,9 @@ function PulpTaskItem({ task }: { task: TrackedTask }) {
         timestamp={timestamp ? formatRelativeTime(timestamp) : undefined}
       >
         {state ?? "Loading…"}
+        {query.isError ? (
+          <ErrorState error={query.error} onRetry={() => query.refetch()} />
+        ) : null}
         {state === "failed" ? <div>{explainTaskFailure(data?.error).title}</div> : null}
         {state === "running" ? (
           <div style={{ marginTop: "var(--pf-t--global--spacer--sm)" }}>

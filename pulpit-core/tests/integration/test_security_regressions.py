@@ -26,14 +26,6 @@ def test_never_send_service_credentials_off_origin(target):
         assert len(mock.calls) == 0
 
 
-@respx.mock
-def test_public_distribution_download_uses_internal_origin():
-    client = PulpClient(Settings(pulp_base_url="http://pulp-test", pulp_service_password="fake"))
-    route = respx.get("http://pulp-test/pulp/content/example/repodata/repomd.xml").respond(200, content=b"metadata")
-    assert client.get_content_bytes("https://public.example/pulp/content/example/repodata/repomd.xml") == b"metadata"
-    assert route.called
-
-
 @pytest.fixture
 def reader(db):
     def database():

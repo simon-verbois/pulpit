@@ -12,6 +12,7 @@ import {
 
 import { useActiveTaskForResource } from "../api/tasks/TasksContext";
 import { TaskActionButton } from "./TaskActionButton";
+import { SyncRepositoryModal } from "./SyncRepositoryModal";
 
 export interface RepositoryHeaderAction {
   key: string;
@@ -52,6 +53,7 @@ export function RepositoryHeaderActions({
   onDelete,
 }: RepositoryHeaderActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [syncOptionsOpen, setSyncOptionsOpen] = useState(false);
   const activeTask = useActiveTaskForResource(resourceHref);
   const isMenuTaskRunning = Boolean(
     (activeTask && activeTask.action !== "sync") || actions.some((a) => a.isLoading),
@@ -63,71 +65,90 @@ export function RepositoryHeaderActions({
   };
 
   return (
-    <Flex spaceItems={{ default: "spaceItemsSm" }} flexWrap={{ default: "nowrap" }}>
-      {sync ? (
+    <>
+      <Flex spaceItems={{ default: "spaceItemsSm" }} flexWrap={{ default: "nowrap" }}>
+        {sync ? (
+          <FlexItem>
+            <TaskActionButton
+              resourceHref={resourceHref}
+              taskAction="sync"
+              isDisabled={sync.isDisabled}
+              isLoading={sync.isLoading}
+              title={sync.description}
+              onClick={sync.onClick}
+            >
+              Sync now
+            </TaskActionButton>
+          </FlexItem>
+        ) : null}
         <FlexItem>
-          <TaskActionButton
-            resourceHref={resourceHref}
-            taskAction="sync"
-            isDisabled={sync.isDisabled}
-            isLoading={sync.isLoading}
-            title={sync.description}
-            onClick={sync.onClick}
-          >
-            Sync now
-          </TaskActionButton>
-        </FlexItem>
-      ) : null}
-      <FlexItem>
-        <Dropdown
-          isOpen={isOpen}
-          onOpenChange={setIsOpen}
-          popperProps={{ position: "right" }}
-          toggle={(toggleRef) => (
-            <MenuToggle
-              ref={toggleRef}
-              onClick={() => setIsOpen((open) => !open)}
-              isExpanded={isOpen}
-              title={isMenuTaskRunning ? activeTask?.label : undefined}
-              aria-busy={isMenuTaskRunning || undefined}
-              icon={
-                isMenuTaskRunning ? <Spinner isInline aria-hidden="true" /> : undefined
-              }
-            >
-              Actions
-            </MenuToggle>
-          )}
-        >
-          <DropdownList>
-            <DropdownItem
-              key="edit"
-              isDisabled={Boolean(activeTask)}
-              onClick={select(onEdit)}
-            >
-              Edit
-            </DropdownItem>
-            {actions.map((action) => (
-              <DropdownItem
-                key={action.key}
-                description={action.description}
-                isDisabled={Boolean(action.isDisabled || action.isLoading || activeTask)}
-                onClick={select(action.onClick)}
+          <Dropdown
+            isOpen={isOpen}
+            onOpenChange={setIsOpen}
+            popperProps={{ position: "right" }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => setIsOpen((open) => !open)}
+                isExpanded={isOpen}
+                title={isMenuTaskRunning ? activeTask?.label : undefined}
+                aria-busy={isMenuTaskRunning || undefined}
+                icon={
+                  isMenuTaskRunning ? <Spinner isInline aria-hidden="true" /> : undefined
+                }
               >
-                {action.label}
+                Actions
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              {sync ? (
+                <DropdownItem
+                  key="sync-options"
+                  isDisabled={Boolean(activeTask)}
+                  onClick={select(() => setSyncOptionsOpen(true))}
+                >
+                  Sync with options…
+                </DropdownItem>
+              ) : null}
+              <DropdownItem
+                key="edit"
+                isDisabled={Boolean(activeTask)}
+                onClick={select(onEdit)}
+              >
+                Edit
               </DropdownItem>
-            ))}
-            <Divider component="li" key="separator" />
-            <DropdownItem
-              key="delete"
-              isDanger
-              isDisabled={Boolean(activeTask)}
-              onClick={select(onDelete)}
-            >
-              Delete repository
-            </DropdownItem>
-          </DropdownList>
-        </Dropdown>
-      </FlexItem>
-    </Flex>
+              {actions.map((action) => (
+                <DropdownItem
+                  key={action.key}
+                  description={action.description}
+                  isDisabled={Boolean(
+                    action.isDisabled || action.isLoading || activeTask,
+                  )}
+                  onClick={select(action.onClick)}
+                >
+                  {action.label}
+                </DropdownItem>
+              ))}
+              <Divider component="li" key="separator" />
+              <DropdownItem
+                key="delete"
+                isDanger
+                isDisabled={Boolean(activeTask)}
+                onClick={select(onDelete)}
+              >
+                Delete repository
+              </DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        </FlexItem>
+      </Flex>
+      {syncOptionsOpen ? (
+        <SyncRepositoryModal
+          repositoryHref={resourceHref}
+          onClose={() => setSyncOptionsOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }

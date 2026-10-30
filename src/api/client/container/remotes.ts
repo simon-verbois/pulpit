@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type {
@@ -22,11 +23,9 @@ export function listContainerRemotes(
   return pulpFetch<PulpPage<ContainerRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every remote page - used to populate the "remote" select in the
- * repository create/edit forms. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllContainerRemotes(): Promise<ContainerRemote[]> {
-  const page = await listContainerRemotes({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listContainerRemotes({ limit: 100, offset }));
 }
 
 export function createContainerRemote(

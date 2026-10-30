@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { RepositoryOperationsHelp } from "../RepositoryOperationsHelp";
+
 import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
 
 export function AnsibleRepositoriesTopic() {
@@ -26,6 +28,7 @@ export function AnsibleRepositoriesTopic() {
         Use the Overview actions to sign or mark collections, <strong>Versions</strong> to
         copy a snapshot, and <strong>Access</strong> to grant permissions.
       </Content>
+      <RepositoryOperationsHelp copy />
       <DistributionBasePathConvention prefix="ansible" />
     </Content>
   );

@@ -19,6 +19,10 @@ class PolicyTests(unittest.TestCase):
     def setUpClass(cls):
         cls.folder = tempfile.TemporaryDirectory()
         os.environ["PULPIT_EGRESS_DIR"] = cls.folder.name
+        # A previous test class may already have installed the subprocess
+        # wrapper. Publish the new folder's policy before invoking openssl.
+        publish({"proxy_url": "", "ca_cert": None, "tls_validation": True,
+                 "bypass_hosts": ["localhost", "127.0.0.1"]})
         cls.cert = Path(cls.folder.name) / "cert.pem"
         key = Path(cls.folder.name) / "key.pem"
         subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-keyout", str(key), "-out", str(cls.cert), "-subj", "/CN=origin.test", "-addext", "subjectAltName=DNS:origin.test", "-addext", "basicConstraints=critical,CA:TRUE"], check=True, capture_output=True)

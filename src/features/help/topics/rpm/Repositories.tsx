@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { RepositoryOperationsHelp } from "../RepositoryOperationsHelp";
+
 import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
 
 export function RpmRepositoriesTopic() {
@@ -24,14 +26,17 @@ export function RpmRepositoriesTopic() {
         </Content>
       </Content>
       <Content component="p">
-        Use <strong>Packages</strong> to upload RPMs and <strong>Advisories</strong> to
-        upload advisory JSON. <strong>Versions</strong> shows snapshots;{" "}
-        <strong>Access</strong> controls permissions.
+        Use <strong>Packages → Upload package</strong> to select or drop several RPMs.
+        Retry failed files in the same form; accepted files are not uploaded again. Follow
+        signing and repository completion in <strong>Tasks</strong>. Use{" "}
+        <strong>Advisories</strong> to upload advisory JSON. <strong>Versions</strong>{" "}
+        shows snapshots; <strong>Access</strong> controls permissions.
       </Content>
       <Content component="p">
         For cleanup, start <strong>Prune packages…</strong> with <strong>Dry run</strong>{" "}
         enabled to preview removals.
       </Content>
+      <RepositoryOperationsHelp copy />
       <DistributionBasePathConvention prefix="rpm" />
     </Content>
   );

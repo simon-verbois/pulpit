@@ -6,7 +6,10 @@ content_size comment)."""
 
 import httpx
 import respx
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
+from app.core.database.base import Base
 from app.modules.content_size import service
 from app.modules.content_size.jobs import (
     refresh_content_sizes_job,
@@ -212,3 +215,41 @@ def test_component_with_no_repositories_left_is_removed_on_next_run(db):
     refresh_repository_counts_job(db, {})
 
     assert service.list_repository_counts(db) == []
+
+
+@respx.mock
+def test_repository_scan_allows_another_sqlite_writer(tmp_path):
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'scan.sqlite'}", connect_args={"timeout": 0.01}
+    )
+    try:
+        Base.metadata.create_all(engine)
+        with engine.begin() as connection:
+            connection.execute(text("CREATE TABLE concurrent_save (value INTEGER)"))
+        _mock_pulp(
+            artifacts=[{"pulp_href": "/pulp/api/v3/artifacts/a1/", "size": 100}],
+            content=[{
+                "pulp_href": "/pulp/api/v3/content/rpm/packages/c1/",
+                "artifacts": {"one.rpm": "/pulp/api/v3/artifacts/a1/"},
+            }],
+        )
+
+        def scan_repositories(request):
+            # Model an API settings write while the worker waits on Pulp.
+            # A writer lock held across this request would fail immediately.
+            with engine.begin() as connection:
+                connection.execute(text("INSERT INTO concurrent_save VALUES (1)"))
+            return httpx.Response(200, json={"count": 0, "next": None, "results": []})
+
+        respx.get(
+            "http://pulp:80/pulp/api/v3/repositories/",
+            params={"fields": "pulp_href,latest_version_href", "limit": 1000, "offset": 0},
+        ).mock(side_effect=scan_repositories)
+        with Session(engine) as session:
+            result = refresh_content_sizes_job(session, {})
+            session.commit()
+            assert result == {"components": ["rpm"], "repositories": 0}
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT COUNT(*) FROM concurrent_save")) == 1
+    finally:
+        engine.dispose()

@@ -7,15 +7,12 @@ import {
   FlexItem,
   FormSelect,
   FormSelectOption,
-  Pagination,
-  PageSection,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { ListToolbar } from "../../../components/ListToolbar";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -59,7 +56,7 @@ export function NamespacesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title="Namespaces"
         description="Galaxy namespace profiles (company, contact, avatar) for a distribution's collections."
         actions={
@@ -70,48 +67,39 @@ export function NamespacesPage() {
             Create namespace
           </Button>
         }
-      />
-      <PageSection hasBodyWrapper={false}>
+      >
         {/* The distribution picker isn't a filter on an existing list - it's
             the required first step before any namespace list can be fetched
             at all, so it stays visible even when the selected distribution
             has no namespaces yet. Pagination, which acts on the current
             list, is gated on it being non-empty. */}
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem style={{ width: "18rem" }}>
-              <FormSelect
-                aria-label="Distribution"
-                value={distributionBasePath}
-                onChange={(_event, value) => setDistributionBasePath(value)}
-              >
-                <FormSelectOption key="" value="" label="Select a distribution…" />
-                {(distributionsQuery.data ?? []).map((distribution) => (
-                  <FormSelectOption
-                    key={distribution.pulp_href}
-                    value={distribution.base_path}
-                    label={distribution.name}
-                  />
-                ))}
-              </FormSelect>
-            </ToolbarItem>
-            {distributionBasePath &&
+        <ListToolbar
+          pagination={
+            distributionBasePath &&
             namespacesQuery.isSuccess &&
-            namespacesQuery.data.results.length > 0 ? (
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={namespacesQuery.data?.count ?? 0}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
+            (namespacesQuery.data.results.length > 0 || pagination.page > 1)
+              ? pagination
+              : undefined
+          }
+          itemCount={namespacesQuery.data?.count ?? 0}
+        >
+          <ToolbarItem style={{ width: "18rem" }}>
+            <FormSelect
+              aria-label="Distribution"
+              value={distributionBasePath}
+              onChange={(_event, value) => setDistributionBasePath(value)}
+            >
+              <FormSelectOption key="" value="" label="Select a distribution…" />
+              {(distributionsQuery.data ?? []).map((distribution) => (
+                <FormSelectOption
+                  key={distribution.pulp_href}
+                  value={distribution.base_path}
+                  label={distribution.name}
                 />
-              </ToolbarItem>
-            ) : null}
-          </ToolbarContent>
-        </Toolbar>
+              ))}
+            </FormSelect>
+          </ToolbarItem>
+        </ListToolbar>
 
         {!distributionBasePath ? (
           <EmptyState
@@ -133,7 +121,8 @@ export function NamespacesPage() {
         ) : null}
         {distributionBasePath &&
         namespacesQuery.isSuccess &&
-        namespacesQuery.data.results.length === 0 ? (
+        namespacesQuery.data.results.length === 0 &&
+        pagination.page === 1 ? (
           <EmptyState
             title="No namespaces yet"
             body="Create a namespace profile for this distribution."
@@ -144,7 +133,7 @@ export function NamespacesPage() {
         ) : null}
         {distributionBasePath &&
         namespacesQuery.isSuccess &&
-        namespacesQuery.data.results.length > 0 ? (
+        (namespacesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <Table aria-label="Namespaces" variant="compact">
             <Thead>
               <Tr>
@@ -200,7 +189,7 @@ export function NamespacesPage() {
             </Tbody>
           </Table>
         ) : null}
-      </PageSection>
+      </PageLayout>
 
       {isCreateOpen ? (
         <CreateNamespaceModal

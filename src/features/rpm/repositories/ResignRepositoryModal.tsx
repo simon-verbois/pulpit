@@ -28,6 +28,7 @@ import { useResignRepositoryMutation } from "./useResignRepositoryMutation";
  * metadata-only policy runs `signing.publish_repository_metadata` instead,
  * whose result has none of these counts. */
 interface ResignResult {
+  engine?: string;
   evaluated?: number;
   candidates?: number;
   signed?: number;
@@ -109,9 +110,11 @@ export function ResignRepositoryModal({
                 variant={failedCount > 0 ? "warning" : "success"}
                 isInline
                 title={
-                  (result.candidates ?? 0) === 0
-                    ? `All ${plural(result.evaluated, "package")} already signed with the active key`
-                    : `Checked ${plural(result.evaluated, "package")}: ${result.signed ?? 0} re-signed, ${result.cache_hits ?? 0} reused${failedCount > 0 ? `, ${failedCount} failed` : ""}`
+                  result.engine === "pulp"
+                    ? `Checked ${plural(result.evaluated, "package")}: signed content is ready`
+                    : (result.candidates ?? 0) === 0
+                      ? `All ${plural(result.evaluated, "package")} already signed with the active key`
+                      : `Checked ${plural(result.evaluated, "package")}: ${result.signed ?? 0} re-signed, ${result.cache_hits ?? 0} reused${failedCount > 0 ? `, ${failedCount} failed` : ""}`
                 }
               >
                 {(result.skipped ?? 0) > 0 ? (
@@ -145,9 +148,10 @@ export function ResignRepositoryModal({
               <Content component="p">
                 Re-applies the current signing policy to this repository and checks every
                 package in it against the active signing key. Packages not signed with it
-                are <strong>re-signed</strong> (re-downloaded, re-signed, re-uploaded - a
-                new repository version, which can take a while for a large repository);
-                packages already signed correctly are left alone.
+                are <strong>signed before publication</strong>. On-demand packages are
+                downloaded for preparation. Pulp reuses existing signatures where
+                possible; a failure keeps the previous safe publication. No distribution
+                is needed.
               </Content>
             </StackItem>
           ) : null}

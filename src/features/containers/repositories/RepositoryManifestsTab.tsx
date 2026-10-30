@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { listContainerManifests } from "../../../api/client/container/manifests";
 import type { ContainerRepository } from "../../../api/client/container/types";
 import { LoadingState } from "../../../components/LoadingState";
@@ -55,30 +56,22 @@ export function RepositoryManifestsTab({
           onRetry={() => manifestsQuery.refetch()}
         />
       ) : null}
-      {manifestsQuery.isSuccess && manifestsQuery.data.results.length === 0 ? (
+      {manifestsQuery.isSuccess &&
+      manifestsQuery.data.results.length === 0 &&
+      pagination.page === 1 ? (
         <EmptyState
           variant="sm"
           title="No manifests in this repository yet"
           body="Sync a remote to add manifests to this repository."
         />
       ) : null}
-      {manifestsQuery.isSuccess && manifestsQuery.data.results.length > 0 ? (
+      {manifestsQuery.isSuccess &&
+      (manifestsQuery.data.results.length > 0 || pagination.page > 1) ? (
         <>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={manifestsQuery.data?.count ?? 0}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
-                />
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar
+            pagination={pagination}
+            itemCount={manifestsQuery.data?.count ?? 0}
+          />
           <Table aria-label="Manifests" variant="compact">
             <Thead>
               <Tr>

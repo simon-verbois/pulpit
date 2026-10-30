@@ -1,4 +1,4 @@
-export const distributionPathPrefixes = {
+const distributionPathPrefixes = {
   ansible: "ansible",
   container: "container",
   deb: "deb",

@@ -38,7 +38,7 @@ test("manual retention purge waits for Pulp and refreshes diagnostics", async ({
       headers,
       data: { enabled: false, retention_days: 3650 },
     });
-    expect(saved.ok()).toBeTruthy();
+    expect(saved.status()).toBe(200);
     const candidates = await page.request.get("/pulp/api/v3/tasks/", {
       params: {
         limit: 1,
@@ -91,7 +91,7 @@ test("manual retention purge waits for Pulp and refreshes diagnostics", async ({
       headers,
       data: { enabled: original.enabled, retention_days: original.retention_days },
     });
-    expect(restored.ok()).toBeTruthy();
+    expect(restored.status()).toBe(200);
   }
 });
 

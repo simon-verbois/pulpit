@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Flex, FlexItem, MenuToggle, Spinner } from "@patternfly/react-core";
+import { SyncRepositoryModal } from "./SyncRepositoryModal";
 import { ActionsColumn, type IAction } from "@patternfly/react-table";
 
 import { useActiveTaskForResource } from "../api/tasks/TasksContext";
@@ -26,10 +28,10 @@ interface RepositoryRowActionsProps {
 /**
  * Row actions for a repositories table, following PatternFly's table
  * guidance: the most frequent action (Sync) stays inline, everything else
- * goes in a kebab menu with the destructive action last, behind a separator.
+ * goes in an actions menu with the destructive action last, behind a separator.
  *
  * Like `TaskActionButton`, every action is disabled while a Pulp task is
- * running against the repository; the kebab toggle shows a spinner when that
+ * running against the repository; the menu toggle shows a spinner when that
  * task was launched from the menu (Sync shows its own).
  */
 export function RepositoryRowActions({
@@ -40,12 +42,20 @@ export function RepositoryRowActions({
   onEdit,
   onDelete,
 }: RepositoryRowActionsProps) {
+  const [syncOptionsOpen, setSyncOptionsOpen] = useState(false);
   const activeTask = useActiveTaskForResource(resourceHref);
   const isMenuTaskRunning = Boolean(activeTask && activeTask.action !== "sync");
 
   const items: IAction[] = [
     { itemKey: "edit", title: "Edit", onClick: onEdit, isDisabled: Boolean(activeTask) },
   ];
+  if (sync)
+    items.push({
+      itemKey: "sync-options",
+      title: "Sync with options…",
+      onClick: () => setSyncOptionsOpen(true),
+      isDisabled: Boolean(activeTask),
+    });
   if (publish) {
     items.push({
       itemKey: "publish",
@@ -67,50 +77,58 @@ export function RepositoryRowActions({
   );
 
   return (
-    <Flex
-      flexWrap={{ default: "nowrap" }}
-      spaceItems={{ default: "spaceItemsNone" }}
-      justifyContent={{ default: "justifyContentFlexEnd" }}
-      alignItems={{ default: "alignItemsCenter" }}
-    >
-      {sync ? (
+    <>
+      <Flex
+        flexWrap={{ default: "nowrap" }}
+        spaceItems={{ default: "spaceItemsNone" }}
+        justifyContent={{ default: "justifyContentFlexEnd" }}
+        alignItems={{ default: "alignItemsCenter" }}
+      >
+        {sync ? (
+          <FlexItem>
+            <TaskActionButton
+              resourceHref={resourceHref}
+              taskAction="sync"
+              variant="link"
+              isDisabled={sync.isDisabled}
+              title={sync.title}
+              onClick={sync.onClick}
+            >
+              Sync
+            </TaskActionButton>
+          </FlexItem>
+        ) : null}
         <FlexItem>
-          <TaskActionButton
-            resourceHref={resourceHref}
-            taskAction="sync"
-            variant="link"
-            isDisabled={sync.isDisabled}
-            title={sync.title}
-            onClick={sync.onClick}
-          >
-            Sync
-          </TaskActionButton>
+          <ActionsColumn
+            items={items}
+            actionsToggle={({ onToggle, isOpen, isDisabled, toggleRef }) => (
+              <MenuToggle
+                ref={toggleRef}
+                variant="plain"
+                aria-label={`Actions for ${repositoryName}`}
+                title={isMenuTaskRunning ? activeTask?.label : undefined}
+                aria-busy={isMenuTaskRunning || undefined}
+                onClick={onToggle}
+                isExpanded={isOpen}
+                isDisabled={isDisabled}
+                icon={
+                  isMenuTaskRunning ? (
+                    <Spinner isInline aria-hidden="true" />
+                  ) : (
+                    <UiIcon name="menu" size="1.125rem" strokeWidth={2.5} />
+                  )
+                }
+              />
+            )}
+          />
         </FlexItem>
-      ) : null}
-      <FlexItem>
-        <ActionsColumn
-          items={items}
-          actionsToggle={({ onToggle, isOpen, isDisabled, toggleRef }) => (
-            <MenuToggle
-              ref={toggleRef}
-              variant="plain"
-              aria-label={`Actions for ${repositoryName}`}
-              title={isMenuTaskRunning ? activeTask?.label : undefined}
-              aria-busy={isMenuTaskRunning || undefined}
-              onClick={onToggle}
-              isExpanded={isOpen}
-              isDisabled={isDisabled}
-              icon={
-                isMenuTaskRunning ? (
-                  <Spinner isInline aria-hidden="true" />
-                ) : (
-                  <UiIcon name="kebab" strokeWidth={3} />
-                )
-              }
-            />
-          )}
+      </Flex>
+      {syncOptionsOpen ? (
+        <SyncRepositoryModal
+          repositoryHref={resourceHref}
+          onClose={() => setSyncOptionsOpen(false)}
         />
-      </FlexItem>
-    </Flex>
+      ) : null}
+    </>
   );
 }

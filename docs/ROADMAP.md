@@ -49,8 +49,7 @@ Status legend: `[x]` implemented, `[~]` partially implemented / stubbed, `[ ]` n
 - [x] Alternate Content Sources (`/rpm/alternate-sources`) - local mirror-first sources Pulp checks
       before reaching a remote's real upstream (list/create/refresh/delete). VERIFIED live: only
       remotes with `policy: "on_demand"` are valid (a synchronous `400` otherwise) and refresh
-      returns `{task_group}`, not `{task}` - resolved to the group's first task and tracked
-      normally (see `getTaskGroup` in `src/api/client/tasks.ts`).
+      returns `{task_group}`, not `{task}` - tracked as a complete group through dispatch and child completion (see `getTaskGroup` in `src/api/client/tasks.ts`).
 - [x] ULN remotes (list/create/edit/delete; a second remote "flavor", toggled within the Remotes page, not a separate nav
       item) - VERIFIED live: same shape as a standard remote plus `uln_server_base_url`, but
       `username`/`password` are _required_ (unlike a standard remote, where they're optional
@@ -65,7 +64,7 @@ Status legend: `[x]` implemented, `[~]` partially implemented / stubbed, `[ ]` n
       A distribution pointing at a `repository` only ever serves a _publication_ of it, never
       repository content directly (VERIFIED live: a distribution 404'd on `repodata/repomd.xml`
       until its repository was published). Fixed with an `autopublish` checkbox on repository
-      create (on by default) and a manual "Publish now" action on the repository Overview tab
+      create (off by default) and a manual "Publish now" action on the repository Overview tab
       (`src/api/client/rpm/publications.ts`) for repos created before this or with autopublish
       off. Publications aren't independently listed/managed as their own object in the UI - only
       triggerable per-repository.
@@ -95,8 +94,7 @@ Status legend: `[x]` implemented, `[~]` partially implemented / stubbed, `[ ]` n
       live: like ACS refresh, returns `{task_group}`, not `{task}`.
 - [x] Copy repository-version content to another repository (`rpm/copy/`, a "Copy to…" action on
       the current version in the Versions tab). VERIFIED live: unlike ACS refresh/prune, returns a
-      plain `{task}`. Simplified: always copies the whole source version - the real `config`
-      payload supports per-content-type criteria, not built here.
+      plain `{task}`. Copy all content or select content units and dependency options from any retained source version.
 - [ ] Repository/package signing info (where supported by the target Pulp version) - deferred to
       Milestone 6 (Signing services UI), out of this milestone's scope
 
@@ -614,3 +612,12 @@ Tests (current): 97 backend tests, 426 frontend/vitest tests, 51 e2e tests.
   content, users, permissions, tasks), ever - see ADR 0006 for the one narrow, deliberate exception
   (signing key custody) and why it doesn't reopen this rule for anything else.
 - Reimplementing Pulp features Pulpit can already delegate to Pulp's API.
+
+## GUI capability completion — 2026-10-30
+
+- [x] Complete picker/catalog pagination, search reset and active-task recovery after reload.
+- [x] Native task groups with dispatch/child outcomes and links to their complete history.
+- [x] Selective RPM/Ansible/container copies from retained versions; partial submissions stay tracked.
+- [x] Shared advanced sync options with remote overrides, mirror confirmation and native filters.
+- [x] Shared distribution editing, version/publication targets, guards and orphan recovery across formats.
+- [x] Registry redirect-guard compatibility and deletion warnings based on native target/count semantics.

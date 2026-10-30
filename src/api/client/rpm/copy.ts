@@ -15,6 +15,11 @@ const BASE = apiPath("/rpm/copy/");
 export function copyRpmContent(
   sourceRepositoryVersionHref: string,
   destRepositoryHref: string,
+  options: {
+    content?: string[];
+    dependency_solving?: boolean;
+    dependency_upgrade?: boolean;
+  } = {},
 ): Promise<{ task: string }> {
   return pulpFetch<{ task: string }>(BASE, {
     method: "POST",
@@ -23,8 +28,15 @@ export function copyRpmContent(
         {
           source_repo_version: sourceRepositoryVersionHref,
           dest_repo: destRepositoryHref,
+          ...(options.content ? { content: options.content } : {}),
         },
       ],
+      ...(options.dependency_solving !== undefined
+        ? { dependency_solving: options.dependency_solving }
+        : {}),
+      ...(options.dependency_upgrade !== undefined
+        ? { dependency_upgrade: options.dependency_upgrade }
+        : {}),
     }),
   });
 }

@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type {
@@ -23,12 +24,9 @@ export function listAnsibleRepositories(
   return pulpFetch<PulpPage<AnsibleRepository>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every repository page - used to populate small "repository"
- * selects (e.g. the distribution create form), mirroring
- * src/api/client/rpm/repositories.ts's listAllRpmRepositories. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllAnsibleRepositories(): Promise<AnsibleRepository[]> {
-  const page = await listAnsibleRepositories({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listAnsibleRepositories({ limit: 100, offset }));
 }
 
 /**
@@ -80,16 +78,6 @@ export function syncAnsibleRepository(
   return pulpFetch<{ task: string }>(`${href}sync/`, {
     method: "POST",
     body: JSON.stringify(options),
-  });
-}
-
-export function modifyAnsibleRepository(
-  href: string,
-  body: { add_content_units?: string[]; remove_content_units?: string[] },
-): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(`${href}modify/`, {
-    method: "POST",
-    body: JSON.stringify(body),
   });
 }
 

@@ -1,11 +1,7 @@
+import { collectPulpPages } from "../../../api/client/pagination";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ExpandableSection,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { ExpandableSection, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 import {
@@ -19,6 +15,7 @@ import {
   listRpmModulemdObsoletes,
   listRpmModulemds,
 } from "../../../api/client/rpm/modulemd";
+import { ListToolbar } from "../../../components/ListToolbar";
 import { listRpmDistributionTrees } from "../../../api/client/rpm/distributionTrees";
 import { listRpmRepoMetadataFiles } from "../../../api/client/rpm/repoMetadataFiles";
 import type { RpmRepository } from "../../../api/client/rpm/types";
@@ -77,58 +74,83 @@ export function RepositoryContentTab({ repository }: { repository: RpmRepository
 
   const groupsQuery = useQuery({
     queryKey: ["pulp", "rpm", "packagegroups", params],
-    queryFn: () => listRpmPackageGroups(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmPackageGroups({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
   const categoriesQuery = useQuery({
     queryKey: ["pulp", "rpm", "packagecategories", params],
-    queryFn: () => listRpmPackageCategories(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmPackageCategories({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
   const environmentsQuery = useQuery({
     queryKey: ["pulp", "rpm", "packageenvironments", params],
-    queryFn: () => listRpmPackageEnvironments(params),
+    queryFn: () =>
+      collectPulpPages((offset) =>
+        listRpmPackageEnvironments({ ...params, offset }),
+      ).then((results) => ({ results, count: results.length })),
   });
   const langpacksQuery = useQuery({
     queryKey: ["pulp", "rpm", "packagelangpacks", params],
-    queryFn: () => listRpmPackageLangpacks(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmPackageLangpacks({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
   const modulemdsQuery = useQuery({
     queryKey: ["pulp", "rpm", "modulemds", params],
-    queryFn: () => listRpmModulemds(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmModulemds({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
   const modulemdDefaultsQuery = useQuery({
     queryKey: ["pulp", "rpm", "modulemd_defaults", params],
-    queryFn: () => listRpmModulemdDefaults(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmModulemdDefaults({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
   const modulemdObsoletesQuery = useQuery({
     queryKey: ["pulp", "rpm", "modulemd_obsoletes", params],
-    queryFn: () => listRpmModulemdObsoletes(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmModulemdObsoletes({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
   const distributionTreesQuery = useQuery({
     queryKey: ["pulp", "rpm", "distribution_trees", params],
-    queryFn: () => listRpmDistributionTrees(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmDistributionTrees({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
   const repoMetadataFilesQuery = useQuery({
     queryKey: ["pulp", "rpm", "repo_metadata_files", params],
-    queryFn: () => listRpmRepoMetadataFiles(params),
+    queryFn: () =>
+      collectPulpPages((offset) => listRpmRepoMetadataFiles({ ...params, offset })).then(
+        (results) => ({ results, count: results.length }),
+      ),
   });
 
   const langpackMatches = Object.entries(langpacksQuery.data?.results[0]?.matches ?? {});
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <TaskActionButton
-              resourceHref={repository.pulp_href}
-              taskAction="upload"
-              onClick={() => setIsUploadCompsOpen(true)}
-            >
-              Upload comps.xml
-            </TaskActionButton>
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
+      <ListToolbar>
+        <ToolbarItem>
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="upload"
+            onClick={() => setIsUploadCompsOpen(true)}
+          >
+            Upload comps.xml
+          </TaskActionButton>
+        </ToolbarItem>
+      </ListToolbar>
 
       <ContentSection
         columns={["ID", "Name", "Packages", "Default"]}

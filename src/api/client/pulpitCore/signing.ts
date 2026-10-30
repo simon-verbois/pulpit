@@ -29,10 +29,6 @@ export function listSigningKeys(state?: SigningKeyState): Promise<SigningKey[]> 
   return coreFetch<SigningKey[]>(`${BASE}/keys${query}`);
 }
 
-export function getSigningKey(id: string): Promise<SigningKey> {
-  return coreFetch<SigningKey>(`${BASE}/keys/${id}`);
-}
-
 export function getSigningKeyPulpServices(id: string): Promise<SigningKeyPulpService[]> {
   return coreFetch<SigningKeyPulpService[]>(`${BASE}/keys/${id}/pulp-services`);
 }
@@ -69,17 +65,6 @@ export function extendSigningKeyExpiration(
 
 export function getRepositorySigningPolicy(): Promise<RepositorySigningPolicy> {
   return coreFetch<RepositorySigningPolicy>(`${BASE}/repositories/policy`);
-}
-
-export function configureRepositorySigning(options: {
-  repository_href: string;
-  sign_packages?: boolean;
-  sign_metadata?: boolean;
-}): Promise<Job> {
-  return coreFetch<Job>(`${BASE}/repositories/configure`, {
-    method: "POST",
-    body: JSON.stringify(options),
-  });
 }
 
 /** Brings every EXISTING RPM repository into line with the current global

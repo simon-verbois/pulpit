@@ -6,9 +6,7 @@
  * content, signing services - only exact-match `name`/`relative_path`
  * filters exist there), so a partial-text search box can't be built the
  * way every other list page in this app does (a server-side query param).
- * Fetches the whole list once (bounded to a large single page - realistic
- * for a self-hosted instance, see CLAUDE.md "Stay 100% local") and
- * filters/paginates it here instead.
+ * Callers load every page before exposing local search and pagination.
  */
 export function useClientSideSearch<T>(
   items: T[] | undefined,

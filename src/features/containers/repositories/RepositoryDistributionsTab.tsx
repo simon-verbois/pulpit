@@ -1,14 +1,12 @@
+import { EditDistributionButton } from "../../../components/EditDistributionButton";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { containerDistributionDeletesRepository } from "../../../api/client/container/distributions";
 import { useNavigate } from "react-router-dom";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -32,6 +30,17 @@ export function RepositoryDistributionsTab({
   const [pendingDelete, setPendingDelete] = useState<ContainerDistribution | null>(null);
   const pagination = usePulpPagination();
   const deleteMutation = useDeleteContainerDistributionMutation();
+  const deleteImpact = useQuery({
+    queryKey: [
+      "pulp",
+      "container",
+      "distribution-delete-impact",
+      pendingDelete?.pulp_href,
+    ],
+    queryFn: () => containerDistributionDeletesRepository(pendingDelete!),
+    enabled: Boolean(pendingDelete),
+    staleTime: 0,
+  });
   const navigate = useNavigate();
 
   const distributionsQuery = useContainerDistributionsQuery({
@@ -54,7 +63,9 @@ export function RepositoryDistributionsTab({
           onRetry={() => distributionsQuery.refetch()}
         />
       ) : null}
-      {distributionsQuery.isSuccess && distributionsQuery.data.results.length === 0 ? (
+      {distributionsQuery.isSuccess &&
+      distributionsQuery.data.results.length === 0 &&
+      pagination.page === 1 ? (
         <EmptyState
           variant="sm"
           title="No distributions yet"
@@ -64,26 +75,14 @@ export function RepositoryDistributionsTab({
           }
         />
       ) : null}
-      {distributionsQuery.isSuccess && distributionsQuery.data.results.length > 0 ? (
+      {distributionsQuery.isSuccess &&
+      (distributionsQuery.data.results.length > 0 || pagination.page > 1) ? (
         <>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem>
-                <Button onClick={() => setIsCreateOpen(true)}>Create distribution</Button>
-              </ToolbarItem>
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={distributionsQuery.data.count}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
-                />
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar pagination={pagination} itemCount={distributionsQuery.data.count}>
+            <ToolbarItem>
+              <Button onClick={() => setIsCreateOpen(true)}>Create distribution</Button>
+            </ToolbarItem>
+          </ListToolbar>
           <Table aria-label="Distributions" variant="compact">
             <Thead>
               <Tr>
@@ -100,6 +99,11 @@ export function RepositoryDistributionsTab({
                   <Td dataLabel="Base path">{distribution.base_path}</Td>
                   <Td dataLabel="Pull command">{`podman pull ${distribution.registry_path}`}</Td>
                   <Td dataLabel="Actions" isActionCell hasAction>
+                    <EditDistributionButton
+                      distributionHref={distribution.pulp_href}
+                      repositoryHref={repository.pulp_href}
+                      repositoryName={repository.name}
+                    />
                     <TaskActionButton
                       resourceHref={distribution.pulp_href}
                       taskAction="delete"
@@ -128,26 +132,36 @@ export function RepositoryDistributionsTab({
         <ConfirmDeleteModal
           itemTypeLabel="distribution"
           itemLabel={pendingDelete.name}
-          // VERIFIED live: deleting a container distribution also deletes
-          // the repository it points at (unlike RPM/Ansible, where deleting
-          // a distribution never touches the repository) - since this tab
-          // only ever lists this repository's own distributions, that's
-          // always the consequence here, not a conditional one.
-          warning={`Deleting this distribution also deletes "${repository.name}" itself, including all its synced content.`}
+          warning={
+            deleteImpact.data
+              ? `Deleting this distribution also deletes "${repository.name}" itself, including all its synced content.`
+              : undefined
+          }
+          isConfirmDisabled={!deleteImpact.isSuccess}
           isDeleting={deleteMutation.isPending}
           onCancel={() => setPendingDelete(null)}
           onConfirm={() =>
             deleteMutation.mutate(
               { href: pendingDelete.pulp_href, name: pendingDelete.name },
               {
-                // The parent repository is gone too (see the warning above)
-                // - navigate back to the list rather than leaving the user
-                // on a now-nonexistent repository's page.
-                onSuccess: () => navigate("/containers/repositories"),
+                onSuccess: () => {
+                  setPendingDelete(null);
+                  if (deleteImpact.data) navigate("/containers/repositories");
+                },
               },
             )
           }
-        />
+        >
+          {deleteImpact.isPending ? (
+            <LoadingState label="Checking deletion impact" />
+          ) : null}
+          {deleteImpact.isError ? (
+            <ErrorState
+              error={deleteImpact.error}
+              onRetry={() => deleteImpact.refetch()}
+            />
+          ) : null}
+        </ConfirmDeleteModal>
       ) : null}
     </>
   );

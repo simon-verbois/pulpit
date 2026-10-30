@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, PageSection, Tab, TabTitleText, Tabs } from "@patternfly/react-core";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -24,49 +24,40 @@ export function GroupDetailPage() {
 
   if (groupQuery.isPending) {
     return (
-      <>
-        <PageHeader title={name} />
-        <PageSection hasBodyWrapper={false}>
-          <LoadingState label="Loading group" />
-        </PageSection>
-      </>
+      <PageLayout title={name}>
+        <LoadingState label="Loading group" />
+      </PageLayout>
     );
   }
 
   if (groupQuery.isError) {
     return (
-      <>
-        <PageHeader title={name} />
-        <PageSection hasBodyWrapper={false}>
-          <ErrorState error={groupQuery.error} onRetry={() => groupQuery.refetch()} />
-        </PageSection>
-      </>
+      <PageLayout title={name}>
+        <ErrorState error={groupQuery.error} onRetry={() => groupQuery.refetch()} />
+      </PageLayout>
     );
   }
 
   const group = groupQuery.data;
   if (!group) {
     return (
-      <>
-        <PageHeader title={name} />
-        <PageSection hasBodyWrapper={false}>
-          <EmptyState title="Group not found" body={`No group named "${name}" exists.`} />
-        </PageSection>
-      </>
+      <PageLayout title={name}>
+        <EmptyState title="Group not found" body={`No group named "${name}" exists.`} />
+      </PageLayout>
     );
   }
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title={group.name}
         actions={
           <Button variant="danger" onClick={() => setIsConfirmingDelete(true)}>
             Delete group
           </Button>
         }
-      />
-      <PageSection hasBodyWrapper={false} type="tabs">
+        type="tabs"
+      >
         <Tabs activeKey={activeTab} onSelect={(_event, key) => setActiveTab(key)}>
           <Tab eventKey="members" title={<TabTitleText>Members</TabTitleText>}>
             <PageSection hasBodyWrapper={false}>
@@ -79,7 +70,7 @@ export function GroupDetailPage() {
             </PageSection>
           </Tab>
         </Tabs>
-      </PageSection>
+      </PageLayout>
 
       {isConfirmingDelete ? (
         <ConfirmDeleteModal

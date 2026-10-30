@@ -10,13 +10,13 @@ import { EmptyState } from "../../components/EmptyState";
 import { TaskListItem } from "../../features/tasks/TaskListItem";
 
 export function TasksDrawer() {
-  const { trackedTasks, setIsDrawerOpen } = useTasksContext();
+  const { trackedTasks, activeTaskHrefs, setIsDrawerOpen } = useTasksContext();
 
   return (
     <NotificationDrawer>
       <NotificationDrawerHeader
         title="Tasks"
-        count={trackedTasks.length}
+        count={activeTaskHrefs.size}
         onClose={() => setIsDrawerOpen(false)}
       />
       <NotificationDrawerBody>

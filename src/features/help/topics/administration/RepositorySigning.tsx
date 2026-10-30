@@ -27,8 +27,9 @@ export function AdministrationRepositorySigningTopic() {
       </Content>
       <Content component="p">
         Use <strong>Sign all repositories…</strong> to apply signing to existing
-        repositories. Package re-signing needs a distribution. Checks that find everything
-        already signed do not republish.
+        repositories, or <strong>Re-sign</strong> on one repository. No distribution is
+        needed. On-demand packages are downloaded before signing. Failed signing keeps the
+        previous safe publication; an old unsigned URL is unavailable until repaired.
       </Content>
       <Content component="p">
         Use <strong>Extend expiration</strong> to keep the same key longer. If a

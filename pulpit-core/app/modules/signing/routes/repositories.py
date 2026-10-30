@@ -26,7 +26,12 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.jobs.models import JobStatus
 from app.core.jobs.schemas import JobRead
-from app.core.jobs.service import enqueue_job, find_matching_pending_job, mark_succeeded
+from app.core.jobs.service import (
+    enqueue_job,
+    find_matching_pending_job,
+    lock_job_submission,
+    mark_succeeded,
+)
 from app.modules.signing import service
 from app.modules.signing.jobs import configure_repository_signing as apply_repository_signing
 from app.modules.signing.models import PulpServicePurpose, PulpServiceStatus, SigningPulpService
@@ -186,22 +191,6 @@ def resign_repository(
 
     href = request.repository_href
     pulp = _caller_pulp_client(http_request)
-    if policy.package_signing_enabled and policy.package_signing_fingerprint:
-        # Resigning fetches existing packages through a distribution, so
-        # refuse now - before the PATCH and before queueing - rather than let
-        # the job fail later. A never-populated repository (version 0) has
-        # nothing to fetch and is fine without one.
-        try:
-            latest = pulp.get_rpm_repository(href).get("latest_version_href") or ""
-            has_distribution = bool(pulp.list_distributions_for_repository(href))
-        except PulpAdapterError as exc:
-            raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
-        if not has_distribution and not latest.rstrip("/").endswith("/versions/0"):
-            raise HTTPException(
-                status_code=409,
-                detail="Cannot resign packages: this repository has no distribution to fetch "
-                "existing packages from. Create a distribution for it first.",
-            )
     try:
         configured = apply_repository_signing(
             db,
@@ -221,23 +210,28 @@ def resign_repository(
     if policy.package_signing_enabled and policy.package_signing_fingerprint:
         job_type = "signing.resign_repository_packages"
         payload: dict = {"repository_href": href, "fingerprint": policy.package_signing_fingerprint}
-        existing = find_matching_pending_job(db, job_type, payload_subset=payload)
-        if existing is not None:
-            # Same dedup as `_enqueue_resign_job` (jobs.py). A still-queued
-            # incremental job from the post-sync detector is widened to a
-            # full pass instead of queueing a second one.
-            if existing.status == JobStatus.QUEUED:
-                existing.payload = {
-                    key: value for key, value in existing.payload.items()
-                    if key not in ("since_version", "target_version")
-                } | ({"configure_task": configure_task} if configure_task else {})
-            db.commit()
-            return JobRead.model_validate(existing)
+        if policy.metadata_signing_enabled:
+            payload["force_publish"] = True
     else:
         # Metadata-only policy: a publish is all it takes (Pulp signs
         # repomd.xml on every publish).
         job_type = "signing.publish_repository_metadata"
         payload = {"repository_href": href}
+    lock_job_submission(db, href)
+    match = {"repository_href": href}
+    if "fingerprint" in payload:
+        match["fingerprint"] = payload["fingerprint"]
+    existing = find_matching_pending_job(db, job_type, payload_subset=match)
+    if existing is not None:
+        if existing.status == JobStatus.QUEUED:
+            existing.payload = {
+                key: value for key, value in existing.payload.items()
+                if key not in ("since_version", "target_version")
+            } | ({"configure_task": configure_task} if configure_task else {}) | (
+                {"force_publish": True} if policy.metadata_signing_enabled else {}
+            )
+        db.commit()
+        return JobRead.model_validate(existing)
     if configure_task:
         payload["configure_task"] = configure_task
     job = enqueue_job(db, job_type, payload, requested_by=user.username)

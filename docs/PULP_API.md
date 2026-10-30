@@ -245,7 +245,11 @@ Captured against the live OpenAPI schema and a real sync while building Mileston
   to add the package to a repository in the same call, despite what its `overwrite` field's
   description text suggests. Adding the uploaded unit to a repository is a separate
   `POST <repository href>modify/` call with `{"add_content_units": ["<package href>"]}`
-  (async, `202` + task).
+  (async, `202` + task). Batch uploads send each file separately, then add accepted content
+  hrefs together in one modify task. VERIFIED live on 2026-10-30: a signing-configured
+  repository dispatches `pulp_rpm.app.tasks.signing.signed_add_and_remove`; the current
+  `--resign` script replaces a legacy vendor signature and downloaded RPMs verify against
+  the repository key. HTTP acceptance alone does not mean that task has completed.
 - **Advisory upload's `file` is JSON, not `updateinfo.xml`**: `POST .../content/rpm/advisories/`
   (multipart, field `file`) is parsed with `json.loads(data["file"].read())` server-side and
   merged into the advisory's own fields (`id`/`title`/`type`/`description`/`pkglist`/
@@ -254,10 +258,10 @@ Captured against the live OpenAPI schema and a real sync while building Mileston
   `src/api/client/rpm/advisories.ts`.
 - **Some async operations return `{"task_group": <href>}`, not `{"task": <href>}`**: an Alternate
   Content Source refresh and `rpm/prune/` both do this (VERIFIED live); `rpm/copy/` returns a
-  plain `{"task": <href>}` like everything else. Pulpit's task-tracking UI only understands single
-  tasks, so a task-group response is resolved to its first task href (`getTaskGroup` in
-  `src/api/client/tasks.ts`) and tracked normally — accurate for the common one-task-per-group
-  case, not a general task-group UI.
+  plain `{"task": <href>}`. The UI tracks the complete task group, including
+  `all_tasks_dispatched` and every child's state. A finished first child never completes
+  the operation while another child or dispatch remains active. Group links filter the
+  Tasks page by the native `task_group` query parameter.
 - **An Alternate Content Source's remote must have `policy: "on_demand"`**: any other policy is
   rejected with a synchronous `400` (VERIFIED live) - the Create ACS form only offers on-demand
   remotes for this reason.
@@ -607,3 +611,65 @@ The existing settings API still uses PATCH and synchronous JSON responses.
 with HTTP 410; no proxy secret needs to be returned to browser remote forms.
 `VERIFIED` tests must cover real HTTPS through a CONNECT proxy, separate XML-RPC
 login, policy rotation/removal, subprocesses and internal bypass.
+
+## RPM distribution recovery — VERIFIED 2026-10-29
+
+On the running dev instance, deleting an RPM repository does not delete its distribution.
+The surviving distribution has `repository: null` and `publication: null`; recreating the
+repository under the same name gives it a new href. Creating a distribution with the old name
+or base path returns HTTP 400 for uniqueness. `PATCH` on the surviving distribution with
+`repository: <new href>, publication: null` returns HTTP 202 and reconnects it after the task
+completes. The live RPM schema accepts both nullable target fields on update.
+
+Pulpit checks exact name and base-path matches before changing repository configuration or
+publishing. It offers explicit reconnection only for a single distribution with both target
+fields null. Multiple matches and distributions already attached to content remain conflicts.
+Pinned recovery updates the distribution with the new publication and `repository: null`.
+
+## RPM signing policy — VERIFIED 2026-10-29
+
+The dev image uses pulpcore 3.116.1 and pulp_rpm 3.38.5. Native package signing covers uploads
+and signed modify operations; synchronization explicitly leaves `Package.signing_keys` unknown.
+The derived `pulp-rpm-signing-policy` plugin prepares RPMs in `finalize_new_version`, checks
+`finalize_new_publication`, and checks delivery outside the content app's Redis cache.
+
+An empty `POST <rpm_repository_href>modify/` body returns 202 and invokes version finalization.
+This lets a re-sign job request native preparation without a distribution or unsigned publication.
+`Package` uses `checksum_type` / `pkgId` internally, rather than a `sha256` model field. The
+RemoteArtifact downloader validates expected digests and size, including on-demand packages.
+API package reads can select only `pulp_href,signing_keys`; fingerprints use `v4:` or issuer key IDs.
+
+The plugin uses Pulp's native signing cache and signer. Its integration test checks actual RPM
+signatures with rpmkeys, metadata signatures with GPG, published checksums, failure rollback,
+old pinned publications and responses already warmed in Redis. See `docs/signing.md`.
+
+## GUI capability checks — VERIFIED 2026-10-30
+
+The live schemas expose `repository_version` on distributions across all supported plugins,
+not only RPM. Publication-based plugins also accept a publication target; publishing a selected
+version finishes before the distribution is changed. Pinned distributions have `repository: null`
+and must be associated through their version/publication when listing a repository's URLs.
+
+RPM synchronization accepts `sync_policy` (`additive`, `mirror_complete`, `mirror_content_only`),
+`skip_types` (`srpm`, `treeinfo`) and `optimize`. Container sync accepts `mirror` and `signed_only`;
+the latter checks the presence of a signature, **not its validity**. Mirror modes can remove content.
+RPM/Ansible copy configuration accepts selected content hrefs; RPM additionally supports dependency
+solving/upgrades. Container tag copy accepts `names`; manifest copy accepts `digests`/`media_types`.
+
+**Container registry exception, VERIFIED with pulp_container 2.29.0:** distribution guards must be
+core ContentRedirectContentGuard objects, not arbitrary header/RBAC/certificate guards. The native
+serializer emits a core redirect-guard href but validates against the removed
+`contentguards-container/content-redirect-detail` route. The derived image's `pulpit-api-compat` plugin
+corrects that obsolete field view name on affected serializer instances, preserving its queryset
+and leaving upstream-corrected versions unchanged. A native serializer test and browser round trip
+verify custom-guard preservation. Empty descriptions must be sent as null, not an empty string.
+
+Native container deletion also depends on the target: pinned distributions do not delete a parent
+repository. A normal repository is removed with its last directly attached distribution; with
+several direct distributions it is preserved. The GUI queries the direct count before confirmation.
+
+**VERIFIED native RPM group dispatch:** pulp_rpm 3.38.5 prune and ACS refresh leave
+`all_tasks_dispatched: false` after every child has finished. `pulpit-api-compat` closes prune
+in its dispatcher finalizer and ACS after its synchronous dispatch returns. It reuses native
+`TaskGroup.finish()`, preserving child outcomes and any dispatch exception; already finalized
+upstream groups remain unchanged. Old malformed history is not rewritten automatically.

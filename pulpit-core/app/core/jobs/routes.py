@@ -1,10 +1,19 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
-from app.core.auth import FullUser, get_full_user, require_authenticated_user
+from app.adapters.pulp import PulpAdapterError, PulpClient
+from app.core.auth import (
+    CurrentUser,
+    FullUser,
+    forward_auth_headers,
+    get_full_user,
+    require_authenticated_user,
+)
+from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.jobs.models import Job, JobStatus
 from app.core.jobs.schemas import JobPage, JobRead
@@ -53,11 +62,43 @@ def list_jobs(
 
 
 @router.get("/{job_id}", response_model=JobRead)
-def read_job(job_id: uuid.UUID, db: Session = Depends(get_db)) -> JobRead:
+async def read_job(
+    job_id: uuid.UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_authenticated_user),
+    settings: Settings = Depends(get_settings),
+) -> JobRead:
     """Generic job status polling, usable by any module's async actions -
     the frontend's task-tracking pattern (src/api/tasks/) for Pulp tasks has
     a direct analogue here for pulpit-core jobs."""
     job = get_job(db, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
-    return JobRead.model_validate(job)
+    if job.requested_by == user.username:
+        return JobRead.model_validate(job)
+
+    try:
+        full_user = await get_full_user(request, user, settings)
+    except HTTPException as exc:
+        if exc.status_code != 403:
+            raise
+        # Minimal users may lack permission to read their own user record.
+        full_user = None
+    if full_user and full_user.is_staff:
+        return JobRead.model_validate(job)
+
+    # A repository action can return an already queued, shared signing job.
+    # Keep polling that job possible, but only after Pulp confirms this
+    # caller can read its repository. Never use service-account credentials.
+    href = job.repository_href
+    if href and href.startswith(f"{settings.pulp_api_base_path}/repositories/"):
+        pulp = PulpClient(settings, caller_headers=forward_auth_headers(request))
+        try:
+            await run_in_threadpool(pulp.get_repository, href)
+        except PulpAdapterError as exc:
+            if exc.status_code not in (403, 404):
+                raise HTTPException(status_code=502, detail="Unable to check repository access") from exc
+        else:
+            return JobRead.model_validate(job)
+    raise HTTPException(status_code=404, detail="Job not found")

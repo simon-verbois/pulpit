@@ -1,16 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Button,
-  Pagination,
-  PageSection,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, PageSection, SearchInput } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -27,7 +20,7 @@ export function GroupsPage() {
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Group | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, search);
   const deleteMutation = useDeleteGroupMutation();
 
   const groupsQuery = useGroupsQuery({
@@ -48,37 +41,23 @@ export function GroupsPage() {
   const isFiltered = search !== "";
 
   const toolbar = (
-    <Toolbar>
-      <ToolbarContent>
-        {/* Fixed width - without it, the bar grows/shrinks as the clear
-            ("x") button appears/disappears with typed text (VERIFIED:
-            SearchInput has no intrinsic width of its own). */}
-        <ToolbarItem style={{ width: "18rem" }}>
-          <SearchInput
-            aria-label="Search groups by name"
-            placeholder="Search by name…"
-            value={searchInput}
-            onChange={(_event, value) => setSearchInput(value)}
-            onSearch={() => setSearch(searchInput)}
-            onClear={() => {
-              setSearchInput("");
-              setSearch("");
-            }}
-          />
-        </ToolbarItem>
-        <ToolbarItem align={{ default: "alignEnd" }}>
-          <Pagination
-            itemCount={groupsQuery.data?.count ?? 0}
-            page={pagination.page}
-            perPage={pagination.perPage}
-            perPageOptions={pagination.perPageOptions}
-            onSetPage={pagination.onSetPage}
-            onPerPageSelect={pagination.onPerPageSelect}
-            isCompact
-          />
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+    <ListToolbar
+      search={
+        <SearchInput
+          aria-label="Search groups by name"
+          placeholder="Search by name…"
+          value={searchInput}
+          onChange={(_event, value) => setSearchInput(value)}
+          onSearch={() => setSearch(searchInput)}
+          onClear={() => {
+            setSearchInput("");
+            setSearch("");
+          }}
+        />
+      }
+      pagination={pagination}
+      itemCount={groupsQuery.data?.count ?? 0}
+    />
   );
 
   return (
@@ -90,14 +69,20 @@ export function GroupsPage() {
         {groupsQuery.isError ? (
           <ErrorState error={groupsQuery.error} onRetry={() => groupsQuery.refetch()} />
         ) : null}
-        {groupsQuery.isSuccess && groupsQuery.data.results.length === 0 && !isFiltered ? (
+        {groupsQuery.isSuccess &&
+        groupsQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        !isFiltered ? (
           <EmptyState
             variant="sm"
             title="No groups yet"
             body="Create a group above to manage roles for several users at once."
           />
         ) : null}
-        {groupsQuery.isSuccess && groupsQuery.data.results.length === 0 && isFiltered ? (
+        {groupsQuery.isSuccess &&
+        groupsQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        isFiltered ? (
           <>
             {toolbar}
             <EmptyState
@@ -107,7 +92,8 @@ export function GroupsPage() {
             />
           </>
         ) : null}
-        {groupsQuery.isSuccess && groupsQuery.data.results.length > 0 ? (
+        {groupsQuery.isSuccess &&
+        (groupsQuery.data.results.length > 0 || pagination.page > 1) ? (
           <>
             {toolbar}
             <Table aria-label="Groups" variant="compact">

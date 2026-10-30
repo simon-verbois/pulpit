@@ -85,10 +85,10 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await page.getByRole("tab", { name: "Overview" }).click();
     await expect(page.getByText("None yet").first()).toBeVisible();
     await page.getByRole("button", { name: "Actions", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Mark content…" }).click();
+    await page.getByRole("menuitem", { name: "Mark content…", exact: true }).click();
     const markDialog = page.getByRole("dialog");
     await markDialog.getByLabel("Value", { exact: false }).fill(`e2e-verified-${RUN_ID}`);
-    await markDialog.getByRole("button", { name: "Mark" }).click();
+    await markDialog.getByRole("button", { name: "Mark", exact: true }).click();
     await expect(markDialog).not.toBeVisible();
 
     // Marking is asynchronous (202 + task) - wait for it to actually
@@ -171,12 +171,14 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await expect(distRow).toBeVisible({ timeout: 15_000 });
     await expect(distRow).toContainText(new RegExp(`server_list = ${DIST_NAME}`));
 
-    // --- Namespace management is scoped to this (brand new, so empty) distribution
+    // --- Namespace management through this distribution's Galaxy API
     await page.goto("/ansible/namespaces");
     await page
       .getByRole("combobox", { name: "Distribution" })
       .selectOption({ label: DIST_NAME });
-    await expect(page.getByText("No namespaces yet")).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByRole("button", { name: "Create namespace" }).first(),
+    ).toBeEnabled();
 
     await page.getByRole("button", { name: "Create namespace" }).first().click();
     const createNsDialog = page.getByRole("dialog");
@@ -186,7 +188,11 @@ test.describe("Ansible: remote -> repository -> upload -> distribution -> namesp
     await expect(createNsDialog).not.toBeVisible();
     await expect(page.getByText(ROLE_NAMESPACE)).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole("button", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row")
+      .filter({ has: page.getByRole("gridcell", { name: ROLE_NAMESPACE, exact: true }) })
+      .getByRole("button", { name: "Edit", exact: true })
+      .click();
     await page.locator("#namespace-edit-company").fill("Pulpit E2E");
     await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();

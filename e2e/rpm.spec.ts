@@ -41,9 +41,6 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     await page.getByRole("button", { name: "Create repository" }).first().click();
     await page.locator("#repository-name").fill(REPO_NAME);
     await page.locator("#repository-remote").selectOption({ label: REMOTE_NAME });
-    // This scenario exercises the repository-detail creation flow below, so
-    // don't also create the same automatically named distribution here.
-    await page.getByLabel("Create a distribution for this repository").uncheck();
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
 
     // Synchronous create (VERIFIED: 201, no task) navigates straight to the
@@ -69,9 +66,24 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
 
     // --- Packages tab shows the synced content ----------------------------
     await page.getByRole("tab", { name: "Packages" }).click();
-    // The fixture repo has two "walrus" packages at different versions.
-    await expect(page.getByText("walrus").first()).toBeVisible();
+    // Native parallel signing and cached content can change creation order.
+    // Find the fixture through pagination instead of assuming its first page.
+    const packageTable = page.getByRole("grid", { name: "RPM packages" });
     await expect(page.getByRole("button", { name: /of 35/ })).toBeVisible();
+    const walrus = packageTable.getByRole("gridcell", { name: "walrus", exact: true });
+    for (let index = 0; index < 6 && !(await walrus.first().isVisible()); index++) {
+      const listing = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname.endsWith("/content/rpm/packages/") &&
+          response.request().method() === "GET",
+      );
+      await page.getByRole("button", { name: "Go to next page", exact: true }).click();
+      const contents = await (await listing).json();
+      await expect(packageTable.getByRole("row").nth(1)).toContainText(
+        contents.results[0].name,
+      );
+    }
+    await expect(walrus.first()).toBeVisible();
 
     // --- Versions tab shows the new version --------------------------------
     await page.getByRole("tab", { name: "Versions" }).click();
@@ -109,7 +121,7 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     await page.getByRole("button", { name: "Create distribution" }).first().click();
     await expect(
       page.getByRole("dialog").getByLabel("Base path", { exact: false }),
-    ).toHaveCount(0);
+    ).toHaveValue(DIST_BASE_PATH);
     await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
@@ -136,7 +148,9 @@ test.describe("RPM: remote -> repository -> sync -> packages -> versions -> uplo
     await pinnedDialog
       .getByLabel("Repository version", { exact: true })
       .selectOption(versionOneHref as string);
-    await expect(pinnedDialog.getByLabel("Base path", { exact: false })).toHaveCount(0);
+    await expect(pinnedDialog.getByLabel("Base path", { exact: false })).toHaveValue(
+      `rpm/${PINNED_DIST_NAME}`,
+    );
     await pinnedDialog.getByRole("button", { name: "Create" }).click();
     await expect(pinnedDialog).not.toBeVisible({ timeout: 30_000 });
 

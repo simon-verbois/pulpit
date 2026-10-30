@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type { PulpPage, DebRemote, DebRemoteCreate, DebRemoteUpdate } from "./types";
@@ -17,12 +18,9 @@ export function listDebRemotes(
   return pulpFetch<PulpPage<DebRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every remote page - used to populate the small "remote" select in
- * the repository create form, which isn't expected to have hundreds of
- * remotes in this bootstrap's scope. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllDebRemotes(): Promise<DebRemote[]> {
-  const page = await listDebRemotes({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listDebRemotes({ limit: 100, offset }));
 }
 
 export function createDebRemote(data: DebRemoteCreate): Promise<DebRemote> {

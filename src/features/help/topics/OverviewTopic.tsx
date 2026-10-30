@@ -24,7 +24,7 @@ export function OverviewTopic() {
       </Content>
       <Content component="p">
         Open <strong>Changelog</strong> at the bottom of the app to read release notes by
-        version. New-version notes appear automatically after signing in.
+        version. New-version notes appear once after signing in.
       </Content>
     </Content>
   );

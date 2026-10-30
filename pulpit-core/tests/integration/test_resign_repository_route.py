@@ -99,7 +99,7 @@ def test_queues_a_full_resign_behind_the_callers_configuration_patch(client, db,
     assert job.requested_by == "reader"
     # No since_version: a full pass over every package, not an incremental one.
     assert job.payload == {
-        "repository_href": repo_href, "fingerprint": FINGERPRINT, "configure_task": "/pulp/api/v3/tasks/cfg/",
+        "repository_href": repo_href, "fingerprint": FINGERPRINT, "force_publish": True, "configure_task": "/pulp/api/v3/tasks/cfg/",
     }
 
 
@@ -149,16 +149,15 @@ def test_metadata_only_policy_queues_a_republish(client, db, repo_href):
 
 
 @respx.mock
-def test_a_populated_repository_without_a_distribution_is_refused_before_the_patch(client, db, repo_href):
+def test_a_populated_repository_without_a_distribution_can_be_signed(client, db, repo_href):
     _enable(db, packages=True, metadata=True)
     patch = _mock_repo(repo_href, distributions=False)
 
     response = client.post("/api/v1/signing/repositories/resign", json={"repository_href": repo_href}, headers=AUTH)
 
-    assert response.status_code == 409
-    assert "no distribution" in response.json()["detail"]
-    assert not patch.called
-    assert db.query(Job).count() == 0
+    assert response.status_code == 202
+    assert patch.called
+    assert db.query(Job).count() == 1
 
 
 @respx.mock
@@ -169,3 +168,26 @@ def test_an_empty_repository_needs_no_distribution(client, db, repo_href):
     response = client.post("/api/v1/signing/repositories/resign", json={"repository_href": repo_href}, headers=AUTH)
 
     assert response.status_code == 202
+
+
+@respx.mock
+def test_concurrent_resign_requests_share_one_job(client, db, repo_href):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from sqlalchemy.orm import Session
+
+    _enable(db, packages=True, metadata=True)
+    _mock_repo(repo_href)
+
+    def separate_session():
+        with Session(bind=db.get_bind()) as session:
+            yield session
+
+    app.dependency_overrides[get_db] = separate_session
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        responses = list(executor.map(
+            lambda _: client.post("/api/v1/signing/repositories/resign",
+                json={"repository_href": repo_href}, headers=AUTH), range(2)))
+    assert [response.status_code for response in responses] == [202, 202]
+    assert responses[0].json()["id"] == responses[1].json()["id"]
+    assert db.query(Job).filter_by(job_type="signing.resign_repository_packages").count() == 1

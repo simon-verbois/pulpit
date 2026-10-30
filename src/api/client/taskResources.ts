@@ -154,19 +154,25 @@ export async function resolveTaskResources(
     groups.set(groupKey, [...(groups.get(groupKey) ?? []), ref]);
   }
 
-  const pages = await Promise.all(
-    [...groups.values()].map((group) => {
-      const { kind, by } = group[0];
-      const keys = [...new Set(group.map((ref) => ref.key))];
-      return pulpFetch<PulpPage<NamedResource>>(
-        `${apiPath(`/${ENDPOINTS[kind]}/`)}${buildQuery({
-          [by === "prn" ? "prn__in" : "pulp_href__in"]: keys.join(","),
-          fields: kind === "publication" ? "pulp_href,prn" : "pulp_href,prn,name",
-          limit: keys.length,
-        })}`,
+  const requests: Promise<PulpPage<NamedResource>>[] = [];
+  for (const group of groups.values()) {
+    const { kind, by } = group[0];
+    const keys = [...new Set(group.map((ref) => ref.key))];
+    // Keep PRN filters below proxy request-line limits during large recoveries.
+    for (let offset = 0; offset < keys.length; offset += 50) {
+      const batch = keys.slice(offset, offset + 50);
+      requests.push(
+        pulpFetch<PulpPage<NamedResource>>(
+          `${apiPath(`/${ENDPOINTS[kind]}/`)}${buildQuery({
+            [by === "prn" ? "prn__in" : "pulp_href__in"]: batch.join(","),
+            fields: kind === "publication" ? "pulp_href,prn" : "pulp_href,prn,name",
+            limit: batch.length,
+          })}`,
+        ),
       );
-    }),
-  );
+    }
+  }
+  const pages = await Promise.all(requests);
 
   const resolved: Record<string, ResolvedTaskResource> = {};
   for (const page of pages) {

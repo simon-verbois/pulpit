@@ -10,7 +10,7 @@ import {
   Tabs,
 } from "@patternfly/react-core";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -34,44 +34,32 @@ export function UserDetailPage() {
 
   if (userQuery.isPending) {
     return (
-      <>
-        <PageHeader title={username} />
-        <PageSection hasBodyWrapper={false}>
-          <LoadingState label="Loading user" />
-        </PageSection>
-      </>
+      <PageLayout title={username}>
+        <LoadingState label="Loading user" />
+      </PageLayout>
     );
   }
 
   if (userQuery.isError) {
     return (
-      <>
-        <PageHeader title={username} />
-        <PageSection hasBodyWrapper={false}>
-          <ErrorState error={userQuery.error} onRetry={() => userQuery.refetch()} />
-        </PageSection>
-      </>
+      <PageLayout title={username}>
+        <ErrorState error={userQuery.error} onRetry={() => userQuery.refetch()} />
+      </PageLayout>
     );
   }
 
   const user = userQuery.data;
   if (!user) {
     return (
-      <>
-        <PageHeader title={username} />
-        <PageSection hasBodyWrapper={false}>
-          <EmptyState
-            title="User not found"
-            body={`No user named "${username}" exists.`}
-          />
-        </PageSection>
-      </>
+      <PageLayout title={username}>
+        <EmptyState title="User not found" body={`No user named "${username}" exists.`} />
+      </PageLayout>
     );
   }
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title={user.username}
         actions={
           <Flex spaceItems={{ default: "spaceItemsSm" }}>
@@ -87,8 +75,8 @@ export function UserDetailPage() {
             </FlexItem>
           </Flex>
         }
-      />
-      <PageSection hasBodyWrapper={false} type="tabs">
+        type="tabs"
+      >
         <Tabs activeKey={activeTab} onSelect={(_event, key) => setActiveTab(key)}>
           <Tab eventKey="overview" title={<TabTitleText>Overview</TabTitleText>}>
             <PageSection hasBodyWrapper={false}>
@@ -101,7 +89,7 @@ export function UserDetailPage() {
             </PageSection>
           </Tab>
         </Tabs>
-      </PageSection>
+      </PageLayout>
 
       {isEditOpen ? (
         <EditUserModal user={user} onClose={() => setIsEditOpen(false)} />

@@ -1,18 +1,9 @@
 import { useState } from "react";
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Pagination,
-  PageSection,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, Flex, FlexItem, SearchInput } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { ListToolbar } from "../../../components/ListToolbar";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -31,7 +22,7 @@ export function RemotesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRemote, setEditingRemote] = useState<ContainerRemote | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ContainerRemote | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, search);
   const deleteMutation = useDeleteContainerRemoteMutation();
 
   const remotesQuery = useContainerRemotesQuery({
@@ -42,12 +33,11 @@ export function RemotesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title="Container remotes"
         description="External container registries Pulp can sync repositories from."
         actions={<Button onClick={() => setIsCreateOpen(true)}>Create remote</Button>}
-      />
-      <PageSection hasBodyWrapper={false}>
+      >
         {remotesQuery.isPending ? (
           <LoadingState
             columns={["Name", "URL", "Upstream name", "Policy", "Actions"]}
@@ -57,46 +47,35 @@ export function RemotesPage() {
         {remotesQuery.isError ? (
           <ErrorState error={remotesQuery.error} onRetry={() => remotesQuery.refetch()} />
         ) : null}
-        {remotesQuery.isSuccess && remotesQuery.data.results.length === 0 ? (
+        {remotesQuery.isSuccess &&
+        remotesQuery.data.results.length === 0 &&
+        pagination.page === 1 ? (
           <EmptyState
             title="No container remotes yet"
             body="Create a remote to point at an external registry you want to sync from."
             action={<Button onClick={() => setIsCreateOpen(true)}>Create remote</Button>}
           />
         ) : null}
-        {remotesQuery.isSuccess && remotesQuery.data.results.length > 0 ? (
+        {remotesQuery.isSuccess &&
+        (remotesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <>
-            <Toolbar>
-              <ToolbarContent>
-                {/* Fixed width - without it, the bar grows/shrinks as the clear
-                    ("x") button appears/disappears with typed text (VERIFIED:
-                    SearchInput has no intrinsic width of its own). */}
-                <ToolbarItem style={{ width: "18rem" }}>
-                  <SearchInput
-                    aria-label="Search remotes by name"
-                    placeholder="Search by name…"
-                    value={searchInput}
-                    onChange={(_event, value) => setSearchInput(value)}
-                    onSearch={() => setSearch(searchInput)}
-                    onClear={() => {
-                      setSearchInput("");
-                      setSearch("");
-                    }}
-                  />
-                </ToolbarItem>
-                <ToolbarItem align={{ default: "alignEnd" }}>
-                  <Pagination
-                    itemCount={remotesQuery.data?.count ?? 0}
-                    page={pagination.page}
-                    perPage={pagination.perPage}
-                    perPageOptions={pagination.perPageOptions}
-                    onSetPage={pagination.onSetPage}
-                    onPerPageSelect={pagination.onPerPageSelect}
-                    isCompact
-                  />
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
+            <ListToolbar
+              search={
+                <SearchInput
+                  aria-label="Search remotes by name"
+                  placeholder="Search by name…"
+                  value={searchInput}
+                  onChange={(_event, value) => setSearchInput(value)}
+                  onSearch={() => setSearch(searchInput)}
+                  onClear={() => {
+                    setSearchInput("");
+                    setSearch("");
+                  }}
+                />
+              }
+              pagination={pagination}
+              itemCount={remotesQuery.data?.count ?? 0}
+            />
             <Table aria-label="Container remotes" variant="compact">
               <Thead>
                 <Tr>
@@ -149,7 +128,7 @@ export function RemotesPage() {
             </Table>
           </>
         ) : null}
-      </PageSection>
+      </PageLayout>
 
       {isCreateOpen ? <CreateRemoteModal onClose={() => setIsCreateOpen(false)} /> : null}
       {editingRemote ? (

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { ToolbarItem } from "@patternfly/react-core";
 
 import type {
   ContainerRepository,
   ContainerTag,
 } from "../../../api/client/container/types";
+import { ListToolbar } from "../../../components/ListToolbar";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useContainerTagsQuery } from "../tags/useContainerTagsQuery";
 import { TagsTable } from "../tags/TagsTable";
@@ -41,30 +42,17 @@ export function RepositoryTagsTab({ repository }: { repository: ContainerReposit
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <TaskActionButton
-              resourceHref={repository.pulp_href}
-              taskAction="tag"
-              onClick={() => setIsTagOpen(true)}
-            >
-              Tag image…
-            </TaskActionButton>
-          </ToolbarItem>
-          <ToolbarItem align={{ default: "alignEnd" }}>
-            <Pagination
-              itemCount={tagsQuery.data?.count ?? 0}
-              page={pagination.page}
-              perPage={pagination.perPage}
-              perPageOptions={pagination.perPageOptions}
-              onSetPage={pagination.onSetPage}
-              onPerPageSelect={pagination.onPerPageSelect}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
+      <ListToolbar pagination={pagination} itemCount={tagsQuery.data?.count ?? 0}>
+        <ToolbarItem>
+          <TaskActionButton
+            resourceHref={repository.pulp_href}
+            taskAction="tag"
+            onClick={() => setIsTagOpen(true)}
+          >
+            Tag image…
+          </TaskActionButton>
+        </ToolbarItem>
+      </ListToolbar>
 
       <TagsTable
         isPending={tagsQuery.isPending}

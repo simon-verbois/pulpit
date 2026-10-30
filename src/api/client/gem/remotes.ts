@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type { PulpPage, GemRemote, GemRemoteCreate, GemRemoteUpdate } from "./types";
@@ -17,12 +18,9 @@ export function listGemRemotes(
   return pulpFetch<PulpPage<GemRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every remote page - used to populate the small "remote" select in
- * the repository create form, which isn't expected to have hundreds of
- * remotes in this bootstrap's scope. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllGemRemotes(): Promise<GemRemote[]> {
-  const page = await listGemRemotes({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listGemRemotes({ limit: 100, offset }));
 }
 
 export function createGemRemote(data: GemRemoteCreate): Promise<GemRemote> {

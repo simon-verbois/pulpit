@@ -99,6 +99,9 @@ ADR 0005, ADR 0006, ADR 0007, and `docs/DEPLOYMENT.md`.
 - The derived reference image also enforces Pulpit's cross-plugin distribution `base_path`
   namespaces at Pulp's serializer boundary (ADR 0012), so browser, proxied API, and internal API
   callers receive the same validation.
+- The derived image prepares configured RPM signatures before version/publication completion and
+  checks delivery before the response cache, including on-demand content. Pulpit owns key custody
+  and orchestration; Pulp owns package preparation and native signing reuse (ADR 0013).
 
 **Pulpit**:
 
@@ -223,3 +226,16 @@ and records success/failure in short transactions. Singleton initialization is
 committed before network waits. Automatic ORM autoflush is disabled during handlers.
 A restart marks interrupted RUNNING jobs failed instead of blindly repeating external
 signing effects. Inspect the actual key/repository state before manually resubmitting.
+
+## Shared repository operation controls
+
+Distribution creation/editing uses one editor with plugin capabilities, target resolution and
+explicit orphan recovery. Persistence/publish sequencing lives in `useSaveDistribution`; guard,
+visibility and target fields keep the same semantics across plugin tabs. Non-RPM create hooks
+superseded by this flow are removed. Native guard serializer compatibility remains in the Pulp
+image's `pulpit-api-compat` plugin, not a new core API. This also closes native RPM prune/ACS dispatch groups after their dispatchers finish.
+
+Task recovery reads active work from Pulp/core after reload, resolving Pulp PRNs through native
+list endpoints. All active tasks and 20 recent finished tasks are retained. A group is its own
+tracked operation: dispatch and every child must finish. Selective container copying records
+accepted requests immediately and retries only submissions missing from that dialog's attempt.

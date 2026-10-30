@@ -15,7 +15,7 @@ export interface TrackedTask {
   href: string;
   /** "job": a pulpit-core background job (polled via /jobs/{id}, shown on
    * the Tasks page's "Background jobs" tab) rather than a Pulp task. */
-  kind?: "pulp" | "job";
+  kind?: "pulp" | "job" | "group";
   /** Human label shown in the drawer/tasks page before the task itself reports a name. */
   label?: string;
   /** Query keys to invalidate once this task reaches "completed" - see useTrackedTask. */
@@ -35,7 +35,7 @@ interface TasksContextValue {
   /** Tasks tracked this session, most recently registered first. */
   trackedTasks: TrackedTask[];
   /** Call after a mutation returns a task href, to start tracking it. */
-  registerTask: (task: TrackedTask) => void;
+  registerTask: (task: TrackedTask, preserveExisting?: boolean) => void;
   activeTaskHrefs: ReadonlySet<string>;
   setTaskActive: (href: string, active: boolean) => void;
   isDrawerOpen: boolean;
@@ -44,30 +44,47 @@ interface TasksContextValue {
 
 const TasksContext = createContext<TasksContextValue | undefined>(undefined);
 
-// Ephemeral, in-memory only (docs/ARCHITECTURE.md: Pulpit holds no
-// persistent state of its own) - a page reload simply stops tracking
-// whatever was in-flight; the tasks themselves still exist in Pulp.
+function retainTasks(tasks: TrackedTask[], active: ReadonlySet<string>) {
+  let completed = 0;
+  return tasks.filter((task) => active.has(task.href) || completed++ < MAX_TRACKED_TASKS);
+}
+
+// Pulp remains authoritative. TaskRecovery re-discovers active server work
+// after reload; no browser credentials or task history are persisted.
 export function TasksProvider({ children }: { children: ReactNode }) {
-  const [trackedTasks, setTrackedTasks] = useState<TrackedTask[]>([]);
-  const [activeTaskHrefs, setActiveTaskHrefs] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
+  const [{ trackedTasks, activeTaskHrefs }, setTracking] = useState<{
+    trackedTasks: TrackedTask[];
+    activeTaskHrefs: ReadonlySet<string>;
+  }>({ trackedTasks: [], activeTaskHrefs: new Set() });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const registerTask = useCallback((task: TrackedTask) => {
-    setTrackedTasks((current) =>
-      [task, ...current.filter((t) => t.href !== task.href)].slice(0, MAX_TRACKED_TASKS),
-    );
-    setActiveTaskHrefs((current) => new Set(current).add(task.href));
+  const registerTask = useCallback((task: TrackedTask, preserveExisting = false) => {
+    setTracking((current) => {
+      const existing = current.trackedTasks.find((item) => item.href === task.href);
+      const active = new Set(current.activeTaskHrefs).add(task.href);
+      return {
+        activeTaskHrefs: active,
+        trackedTasks: retainTasks(
+          [
+            preserveExisting ? { ...task, ...existing } : { ...existing, ...task },
+            ...current.trackedTasks.filter((item) => item.href !== task.href),
+          ],
+          active,
+        ),
+      };
+    });
   }, []);
 
   const setTaskActive = useCallback((href: string, active: boolean) => {
-    setActiveTaskHrefs((current) => {
-      if (current.has(href) === active) return current;
-      const next = new Set(current);
+    setTracking((current) => {
+      if (current.activeTaskHrefs.has(href) === active) return current;
+      const next = new Set(current.activeTaskHrefs);
       if (active) next.add(href);
       else next.delete(href);
-      return next;
+      return {
+        activeTaskHrefs: next,
+        trackedTasks: retainTasks(current.trackedTasks, next),
+      };
     });
   }, []);
 

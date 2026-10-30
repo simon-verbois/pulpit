@@ -141,7 +141,7 @@ export const PULP_STATUS_FIXTURE = {
 // so these default handlers model "no session" (GET -> 401) rather than
 // trying to simulate cookie state; tests that need an authenticated GET
 // override it explicitly with server.use(...).
-export const TEST_USER = {
+const TEST_USER = {
   pulp_href: "/pulp/api/v3/users/1/",
   prn: "prn:auth.user:1",
   username: "admin",
@@ -1056,7 +1056,7 @@ export const FILE_REPO_FIXTURE = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const FILE_VERSION_FIXTURES = [
+const FILE_VERSION_FIXTURES = [
   {
     pulp_href: `${FILE_REPO_BASE}repo-1/versions/1/`,
     number: 1,
@@ -1455,7 +1455,7 @@ export const HF_REPO_FIXTURE = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const HF_VERSION_FIXTURES = [
+const HF_VERSION_FIXTURES = [
   {
     pulp_href: `${HF_REPO_BASE}repo-1/versions/1/`,
     number: 1,
@@ -1793,7 +1793,7 @@ export const GEM_REPO_FIXTURE = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const GEM_VERSION_FIXTURES = [
+const GEM_VERSION_FIXTURES = [
   {
     pulp_href: `${GEM_REPO_BASE}repo-1/versions/1/`,
     number: 1,
@@ -1818,7 +1818,7 @@ export const GEM_VERSION_FIXTURES = [
   },
 ];
 
-export const GEM_CONTENT_FIXTURE: GemContent = {
+const GEM_CONTENT_FIXTURE: GemContent = {
   pulp_href: `${GEM_CONTENT_BASE}content-1/`,
   name: "rails",
   version: "7.1.0",
@@ -2124,7 +2124,7 @@ export const MAVEN_REPO_FIXTURE = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const MAVEN_VERSION_FIXTURES = [
+const MAVEN_VERSION_FIXTURES = [
   {
     pulp_href: `${MAVEN_REPO_BASE}repo-1/versions/1/`,
     number: 1,
@@ -2149,7 +2149,7 @@ export const MAVEN_VERSION_FIXTURES = [
   },
 ];
 
-export const MAVEN_CONTENT_FIXTURE: MavenContent = {
+const MAVEN_CONTENT_FIXTURE: MavenContent = {
   pulp_href: `${MAVEN_CONTENT_BASE}content-1/`,
   group_id: "com.example",
   artifact_id: "my-lib",
@@ -2451,7 +2451,7 @@ export const NPM_REPO_FIXTURE = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const NPM_VERSION_FIXTURES = [
+const NPM_VERSION_FIXTURES = [
   {
     pulp_href: `${NPM_REPO_BASE}repo-1/versions/1/`,
     number: 1,
@@ -2476,7 +2476,7 @@ export const NPM_VERSION_FIXTURES = [
   },
 ];
 
-export const NPM_CONTENT_FIXTURE: NpmContent = {
+const NPM_CONTENT_FIXTURE: NpmContent = {
   pulp_href: `${NPM_CONTENT_BASE}content-1/`,
   relative_path: "my-package-1.0.0.tgz",
   name: "my-package",
@@ -2794,7 +2794,7 @@ export const PYTHON_REPO_FIXTURE = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const PYTHON_VERSION_FIXTURES = [
+const PYTHON_VERSION_FIXTURES = [
   {
     pulp_href: `${PYTHON_REPO_BASE}repo-1/versions/1/`,
     number: 1,
@@ -2819,7 +2819,7 @@ export const PYTHON_VERSION_FIXTURES = [
   },
 ];
 
-export const PYTHON_CONTENT_FIXTURE: PythonContent = {
+const PYTHON_CONTENT_FIXTURE: PythonContent = {
   pulp_href: `${PYTHON_CONTENT_BASE}content-1/`,
   name: "my-package",
   version: "1.0",
@@ -3159,7 +3159,7 @@ export const DEB_REPO_FIXTURE = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const DEB_VERSION_FIXTURES = [
+const DEB_VERSION_FIXTURES = [
   {
     pulp_href: `${DEB_REPO_BASE}repo-1/versions/1/`,
     number: 1,
@@ -3184,7 +3184,7 @@ export const DEB_VERSION_FIXTURES = [
   },
 ];
 
-export const DEB_CONTENT_FIXTURE: DebContent = {
+const DEB_CONTENT_FIXTURE: DebContent = {
   pulp_href: `${DEB_CONTENT_BASE}content-1/`,
   package: "my-package",
   version: "1.0",
@@ -3495,7 +3495,7 @@ export const ANSIBLE_REPO_FIXTURE: AnsibleRepository = {
   pulp_created: "2026-08-20T10:00:00.000000Z",
 };
 
-export const ANSIBLE_VERSION_FIXTURES = [
+const ANSIBLE_VERSION_FIXTURES = [
   {
     pulp_href: `${ANSIBLE_REPO_BASE}ansible-repo-1/versions/1/`,
     number: 1,
@@ -3519,7 +3519,7 @@ export const ANSIBLE_VERSION_FIXTURES = [
   },
 ];
 
-export const COLLECTION_REMOTE_FIXTURE: CollectionRemote = {
+const COLLECTION_REMOTE_FIXTURE: CollectionRemote = {
   pulp_href: `${COLLECTION_REMOTE_BASE}collection-remote-1/`,
   name: "test-collection-remote",
   url: "https://galaxy.ansible.com/api/",
@@ -4880,7 +4880,7 @@ const taskHistoryHandlers = [
 // docs/ARCHITECTURE.md "Derived content sizes and repository counts")
 // provides sizes for the populated RPM/Ansible/Container plugins; core has
 // no content units.
-export const COMPONENT_CONTENT_SIZES_FIXTURE = [
+const COMPONENT_CONTENT_SIZES_FIXTURE = [
   { component: "rpm", size_bytes: 200381, updated_at: "2026-01-01T00:00:00Z" },
   { component: "ansible", size_bytes: 2017, updated_at: "2026-01-01T00:00:00Z" },
   { component: "container", size_bytes: 52199, updated_at: "2026-01-01T00:00:00Z" },
@@ -4889,7 +4889,7 @@ export const COMPONENT_CONTENT_SIZES_FIXTURE = [
 // Same totals as above, keyed by the one seeded repository per plugin
 // (each fixture plugin seeds exactly one repository - RPM_REPO_FIXTURE etc.
 // above) rather than by component.
-export const REPOSITORY_CONTENT_SIZES_FIXTURE = [
+const REPOSITORY_CONTENT_SIZES_FIXTURE = [
   {
     repository_href: RPM_REPO_FIXTURE.pulp_href,
     size_bytes: 200381,
@@ -4908,7 +4908,7 @@ export const REPOSITORY_CONTENT_SIZES_FIXTURE = [
 ];
 
 // One repository per plugin fixture (see each plugin's own seed*Repositories()).
-export const COMPONENT_REPOSITORY_COUNTS_FIXTURE = [
+const COMPONENT_REPOSITORY_COUNTS_FIXTURE = [
   { component: "rpm", count: 1, updated_at: "2026-01-01T00:00:00Z" },
   { component: "ansible", count: 1, updated_at: "2026-01-01T00:00:00Z" },
   { component: "container", count: 1, updated_at: "2026-01-01T00:00:00Z" },
@@ -4936,7 +4936,7 @@ export const JOB_FIXTURE_RESIGN = {
   repository_href: `${REPO_BASE}repo-1/`,
 };
 
-export const JOB_FIXTURE_FAILED = {
+const JOB_FIXTURE_FAILED = {
   ...JOB_FIXTURE_RESIGN,
   id: "5b0c7a52-0000-4000-8000-000000000002",
   job_type: "ldap.apply_config",
@@ -5088,6 +5088,55 @@ const repositoryVersionHandlers = [
   ),
 ];
 
+// Shared distribution management reads real plugin objects through the generic list.
+function allDistributionFixtures() {
+  return [
+    ...distributions,
+    ...fileDistributions,
+    ...hfDistributions,
+    ...gemDistributions,
+    ...mavenDistributions,
+    ...npmDistributions,
+    ...pythonDistributions,
+    ...debDistributions,
+    ...ansibleDistributions,
+    ...containerDistributions,
+  ];
+}
+const distributionManagementHandlers = [
+  http.get("/pulp/api/v3/distributions/", ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const matches = allDistributionFixtures().filter(
+      (item) =>
+        (!params.get("name") || item.name === params.get("name")) &&
+        (!params.get("base_path") || item.base_path === params.get("base_path")),
+    );
+    return HttpResponse.json({
+      count: matches.length,
+      next: null,
+      previous: null,
+      results: matches,
+    });
+  }),
+  http.get("/pulp/api/v3/distributions/:plugin/:type/:id/", ({ request }) => {
+    const item = allDistributionFixtures().find(
+      (entry) => entry.pulp_href === new URL(request.url).pathname,
+    );
+    return item ? HttpResponse.json(item) : new HttpResponse(null, { status: 404 });
+  }),
+  http.patch("/pulp/api/v3/distributions/:plugin/:type/:id/", async ({ request }) => {
+    const item = allDistributionFixtures().find(
+      (entry) => entry.pulp_href === new URL(request.url).pathname,
+    );
+    if (!item) return new HttpResponse(null, { status: 404 });
+    Object.assign(item, await request.json());
+    return HttpResponse.json(
+      { task: registerTask("Update distribution") },
+      { status: 202 },
+    );
+  }),
+];
+
 export const handlers = [
   ...authHandlers,
   ...rpmHandlers,
@@ -5105,4 +5154,5 @@ export const handlers = [
   ...taskHistoryHandlers,
   ...pulpitCoreHandlers,
   ...repositoryVersionHandlers,
+  ...distributionManagementHandlers,
 ];

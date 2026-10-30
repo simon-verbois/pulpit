@@ -52,7 +52,8 @@ __pycache__/
 
 # pulpit-core (Python backend) - build/dev artifacts
 pulpit-core/.venv/
-pulpit-core/.pytest_cache/
+**/.pytest_cache/
+**/.mypy_cache/
 pulpit-core/*.egg-info/
 
 

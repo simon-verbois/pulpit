@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Button, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { Button, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../components/ListToolbar";
 import { LoadingState } from "../../components/LoadingState";
 import { ErrorState } from "../../components/ErrorState";
 import { EmptyState } from "../../components/EmptyState";
@@ -83,13 +84,11 @@ export function ObjectAccessTab({
       ) : null}
       {rolesQuery.isSuccess && rows.length > 0 ? (
         <>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem>
-                <Button onClick={() => setIsGrantOpen(true)}>Grant access…</Button>
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar>
+            <ToolbarItem>
+              <Button onClick={() => setIsGrantOpen(true)}>Grant access…</Button>
+            </ToolbarItem>
+          </ListToolbar>
           <Table aria-label="Access" variant="compact">
             <Thead>
               <Tr>

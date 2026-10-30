@@ -3,26 +3,40 @@ import { useMutation } from "@tanstack/react-query";
 import { copyRpmContent } from "../../../api/client/rpm/copy";
 import { useTasksContext } from "../../../api/tasks/TasksContext";
 import { rpmRepositoriesListRootKey } from "./queryKeys";
+import type { CopySelection } from "../../../components/CopyContentDialog";
 
 interface CopyContentArgs {
   sourceRepositoryVersionHref: string;
   destRepositoryHref: string;
   destRepositoryName: string;
+  selection?: CopySelection;
 }
 
 export function useCopyContentMutation() {
   const { registerTask } = useTasksContext();
 
   return useMutation({
-    mutationFn: ({ sourceRepositoryVersionHref, destRepositoryHref }: CopyContentArgs) =>
-      copyRpmContent(sourceRepositoryVersionHref, destRepositoryHref),
+    mutationFn: ({
+      sourceRepositoryVersionHref,
+      destRepositoryHref,
+      selection,
+    }: CopyContentArgs) =>
+      copyRpmContent(sourceRepositoryVersionHref, destRepositoryHref, {
+        ...(selection?.mode === "selected" ? { content: selection.values } : {}),
+        ...(selection && !selection.dependencySolving
+          ? { dependency_solving: false }
+          : {}),
+        ...(selection?.dependencySolving && selection.dependencyUpgrade
+          ? { dependency_upgrade: true }
+          : {}),
+      }),
     onSuccess: ({ task }, { destRepositoryHref, destRepositoryName }) => {
       registerTask({
         href: task,
         label: `Copy content to "${destRepositoryName}"`,
         resourceHrefs: [destRepositoryHref],
         action: "copy",
-        invalidateKeys: [rpmRepositoriesListRootKey],
+        invalidateKeys: [rpmRepositoriesListRootKey, ["pulp", "rpm"]],
       });
     },
   });

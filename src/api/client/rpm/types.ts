@@ -209,6 +209,9 @@ export interface RpmDistribution {
   repository: string | null;
   publication: string | null;
   pulp_created: string;
+  content_guard?: string | null;
+  hidden?: boolean;
+  repository_version?: string | null;
   /** Serves a Pulp-generated `config.repo` (dnf/yum-ready) at
    * `<base_url>config.repo` when true - VERIFIED live, built from
    * `RpmRepository.repo_config` at publish time (see RpmRepoConfig above).
@@ -230,6 +233,8 @@ export interface RpmDistributionCreate {
   repository?: string | null;
   publication?: string | null;
   generate_repo_config?: boolean;
+  content_guard?: string | null;
+  hidden?: boolean;
 }
 
 /** PATCH body - every field optional (partial update). */
@@ -237,7 +242,10 @@ export interface RpmDistributionUpdate {
   name?: string;
   base_path?: string;
   repository?: string | null;
+  publication?: string | null;
   generate_repo_config?: boolean;
+  content_guard?: string | null;
+  hidden?: boolean;
 }
 
 export interface ContentSummary {

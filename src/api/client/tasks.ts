@@ -45,6 +45,7 @@ export interface PulpTask {
   logging_cid?: string;
   /** Href of the user who triggered this task, or null for system-initiated ones. */
   created_by?: string | null;
+  task_group?: string | null;
   reserved_resources_record?: string[];
   created_resources?: string[];
   /** Per-stage counters the task itself reports as it runs (VERIFIED live:
@@ -115,17 +116,31 @@ export function listTasks(params: ListTasksParams): Promise<PulpPage<PulpTask>> 
   );
 }
 
-/** Some operations (e.g. an Alternate Content Source refresh) dispatch a
- * *group* of tasks and return `{task_group: <href>}` instead of a single
- * `{task: <href>}` (VERIFIED live). Pulpit's task-tracking UI only tracks
- * individual tasks, so callers resolve a task group to its first task href
- * via this and track that - accurate for the common case of one task per
- * group (e.g. a default-paths ACS refresh), not a general task-group UI. */
+/** A native group can keep dispatching children after its first task finishes. */
 export interface PulpTaskGroup {
   pulp_href: string;
-  tasks: { pulp_href: string }[];
+  all_tasks_dispatched?: boolean;
+  group_progress_reports?: PulpProgressReport[];
+  tasks: { pulp_href: string; state?: PulpTaskState }[];
 }
 
-export function getTaskGroup(href: string): Promise<PulpTaskGroup> {
+function getTaskGroup(href: string): Promise<PulpTaskGroup> {
   return pulpFetch<PulpTaskGroup>(href);
+}
+
+/** A group's state depends on every child and dispatch completion, never its first task. */
+export async function getTaskGroupSummary(href: string): Promise<PulpTask> {
+  const group = await getTaskGroup(href);
+  const pending =
+    group.all_tasks_dispatched === false ||
+    group.tasks.some((task) => !task.state || !TERMINAL_TASK_STATES.has(task.state));
+  const failed = group.tasks.find((task) => task.state === "failed");
+  const canceled = group.tasks.some((task) => task.state === "canceled");
+  const error = failed ? (await getTask(failed.pulp_href)).error : undefined;
+  return {
+    pulp_href: href,
+    state: pending ? "running" : failed ? "failed" : canceled ? "canceled" : "completed",
+    error,
+    progress_reports: group.group_progress_reports,
+  };
 }

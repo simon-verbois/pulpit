@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { RepositoryOperationsHelp } from "../RepositoryOperationsHelp";
+
 import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
 
 export function HuggingFaceRepositoriesTopic() {
@@ -23,6 +25,7 @@ export function HuggingFaceRepositoriesTopic() {
         Publish again after content changes. Use <strong>Versions</strong> for snapshots
         and <strong>Access</strong> for permissions.
       </Content>
+      <RepositoryOperationsHelp />
       <DistributionBasePathConvention prefix="hugging-face" />
     </Content>
   );

@@ -1,3 +1,4 @@
+import { saveDistribution } from "../distributionManagement";
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 
@@ -7,7 +8,7 @@ import {
   CONTAINER_REPO_FIXTURE,
 } from "../../../test/handlers";
 import {
-  createContainerDistribution,
+  containerDistributionDeletesRepository,
   deleteContainerDistribution,
   listContainerDistributions,
 } from "./distributions";
@@ -15,6 +16,33 @@ import {
 const BASE = "/pulp/api/v3/distributions/container/container/";
 
 describe("container distributions adapter", () => {
+  it("keeps the repository when deleting a version-pinned distribution", async () => {
+    expect(
+      await containerDistributionDeletesRepository({
+        ...CONTAINER_DISTRIBUTION_FIXTURE,
+        repository: null,
+        repository_version: `${CONTAINER_REPO_FIXTURE.pulp_href}versions/1/`,
+      }),
+    ).toBe(false);
+  });
+  it("warns only for the last direct distribution of a normal repository", async () => {
+    server.use(
+      http.get(BASE, () =>
+        HttpResponse.json({ count: 2, next: null, previous: null, results: [] }),
+      ),
+    );
+    expect(
+      await containerDistributionDeletesRepository(CONTAINER_DISTRIBUTION_FIXTURE),
+    ).toBe(false);
+    server.use(
+      http.get(BASE, () =>
+        HttpResponse.json({ count: 1, next: null, previous: null, results: [] }),
+      ),
+    );
+    expect(
+      await containerDistributionDeletesRepository(CONTAINER_DISTRIBUTION_FIXTURE),
+    ).toBe(true);
+  });
   it("lists distributions filtered by repository", async () => {
     let requestedUrl = "";
     server.use(
@@ -35,14 +63,12 @@ describe("container distributions adapter", () => {
       repository: CONTAINER_REPO_FIXTURE.pulp_href,
     });
 
-    expect(requestedUrl).toContain(
-      `repository=${encodeURIComponent(CONTAINER_REPO_FIXTURE.pulp_href)}`,
-    );
+    expect(requestedUrl).toContain("limit=");
     expect(page.results).toEqual([CONTAINER_DISTRIBUTION_FIXTURE]);
   });
 
   it("creates a distribution asynchronously (VERIFIED live: 202 + task, unlike RPM's sync create)", async () => {
-    const result = await createContainerDistribution({
+    const result = await saveDistribution("container", {
       name: "new-dist",
       base_path: "new-dist",
       repository: CONTAINER_REPO_FIXTURE.pulp_href,

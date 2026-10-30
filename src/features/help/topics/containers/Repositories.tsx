@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { RepositoryOperationsHelp } from "../RepositoryOperationsHelp";
+
 import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
 
 export function ContainersRepositoriesTopic() {
@@ -23,10 +25,13 @@ export function ContainersRepositoriesTopic() {
       </Content>
       <Content component="p">
         <strong>
-          Deleting a container distribution also deletes its repository and content.
+          Deleting the last distribution that directly follows a repository also deletes
+          that repository and its content. Pinned distributions have a different
+          lifecycle.
         </strong>{" "}
         Check the confirmation carefully.
       </Content>
+      <RepositoryOperationsHelp copy />
       <DistributionBasePathConvention prefix="container" />
     </Content>
   );

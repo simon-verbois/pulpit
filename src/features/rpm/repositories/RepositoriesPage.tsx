@@ -1,19 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Pagination,
-  PageSection,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, Flex, FlexItem, SearchInput } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { ListToolbar } from "../../../components/ListToolbar";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -43,7 +34,7 @@ export function RepositoriesPage() {
   const [isPruneOpen, setIsPruneOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<RpmRepository | null>(null);
   const [pendingEdit, setPendingEdit] = useState<RpmRepository | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, search);
   const sizesQuery = useRepositoryContentSizesQuery();
   const deleteMutation = useDeleteRpmRepositoryMutation();
   const syncMutation = useSyncRpmRepositoryMutation();
@@ -57,7 +48,7 @@ export function RepositoriesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title="RPM repositories"
         description="Repositories holding RPM package content, versioned on every change."
         actions={
@@ -72,8 +63,7 @@ export function RepositoriesPage() {
             </FlexItem>
           </Flex>
         }
-      />
-      <PageSection hasBodyWrapper={false}>
+      >
         {repositoriesQuery.isPending ? (
           <LoadingState
             columns={["Name", "Description", "Size", "Actions"]}
@@ -86,7 +76,9 @@ export function RepositoriesPage() {
             onRetry={() => repositoriesQuery.refetch()}
           />
         ) : null}
-        {repositoriesQuery.isSuccess && repositoriesQuery.data.results.length === 0 ? (
+        {repositoriesQuery.isSuccess &&
+        repositoriesQuery.data.results.length === 0 &&
+        pagination.page === 1 ? (
           <EmptyState
             title="No RPM repositories yet"
             body="Create a repository to start syncing or uploading RPM content."
@@ -95,39 +87,26 @@ export function RepositoriesPage() {
             }
           />
         ) : null}
-        {repositoriesQuery.isSuccess && repositoriesQuery.data.results.length > 0 ? (
+        {repositoriesQuery.isSuccess &&
+        (repositoriesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <>
-            <Toolbar>
-              <ToolbarContent>
-                {/* Fixed width - without it, the bar grows/shrinks as the clear
-                    ("x") button appears/disappears with typed text (VERIFIED:
-                    SearchInput has no intrinsic width of its own). */}
-                <ToolbarItem style={{ width: "18rem" }}>
-                  <SearchInput
-                    aria-label="Search repositories by name"
-                    placeholder="Search by name…"
-                    value={searchInput}
-                    onChange={(_event, value) => setSearchInput(value)}
-                    onSearch={() => setSearch(searchInput)}
-                    onClear={() => {
-                      setSearchInput("");
-                      setSearch("");
-                    }}
-                  />
-                </ToolbarItem>
-                <ToolbarItem align={{ default: "alignEnd" }}>
-                  <Pagination
-                    itemCount={repositoriesQuery.data?.count ?? 0}
-                    page={pagination.page}
-                    perPage={pagination.perPage}
-                    perPageOptions={pagination.perPageOptions}
-                    onSetPage={pagination.onSetPage}
-                    onPerPageSelect={pagination.onPerPageSelect}
-                    isCompact
-                  />
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
+            <ListToolbar
+              search={
+                <SearchInput
+                  aria-label="Search repositories by name"
+                  placeholder="Search by name…"
+                  value={searchInput}
+                  onChange={(_event, value) => setSearchInput(value)}
+                  onSearch={() => setSearch(searchInput)}
+                  onClear={() => {
+                    setSearchInput("");
+                    setSearch("");
+                  }}
+                />
+              }
+              pagination={pagination}
+              itemCount={repositoriesQuery.data?.count ?? 0}
+            />
             <Table aria-label="RPM repositories" variant="compact">
               <Thead>
                 <Tr>
@@ -195,7 +174,7 @@ export function RepositoriesPage() {
             </Table>
           </>
         ) : null}
-      </PageSection>
+      </PageLayout>
 
       {isCreateOpen ? (
         <CreateRepositoryModal onClose={() => setIsCreateOpen(false)} />
@@ -211,6 +190,7 @@ export function RepositoriesPage() {
       {pendingDelete ? (
         <ConfirmDeleteModal
           itemTypeLabel="repository"
+          warning="Distributions are kept. If you recreate this repository, you can reconnect its unused distributions."
           itemLabel={pendingDelete.name}
           isDeleting={deleteMutation.isPending}
           onCancel={() => setPendingDelete(null)}

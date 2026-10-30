@@ -103,3 +103,37 @@ def test_a_repository_with_a_resign_job_already_in_flight_is_not_enqueued_twice(
     assert first["enqueued"] == 1
     assert second["enqueued"] == 0
     assert db.query(Job).filter(Job.job_type == "signing.resign_repository_packages").count() == 1
+
+
+@respx.mock
+def test_paging_pulp_does_not_hold_sqlite_writer(tmp_path):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from app.core.database.base import Base
+    from app.core.jobs.service import enqueue_job
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'detect.sqlite'}", connect_args={"timeout": 0.01})
+    try:
+        Base.metadata.create_all(engine)
+        _mock_repositories(latest_version=1)
+        first = respx.get("http://pulp:80/pulp/api/v3/repositories/rpm/rpm/",
+            params={"limit": 100, "offset": 0})
+        first.respond(200, json={"results": [{"pulp_href": REPO_HREF,
+            "package_signing_service": SERVICE_HREF, "package_signing_fingerprint": FINGERPRINT,
+            "latest_version_href": f"{REPO_HREF}versions/1/"}], "next": "page2"})
+
+        def second_page(request):
+            with Session(engine) as other:
+                enqueue_job(other, "concurrent.request", {}, requested_by="reader")
+                other.commit()
+            return httpx.Response(200, json={"results": [], "next": None})
+
+        respx.get("http://pulp:80/pulp/api/v3/repositories/rpm/rpm/",
+            params={"limit": 100, "offset": 1}).mock(side_effect=second_page)
+        with Session(engine) as session:
+            assert signing_jobs.detect_repository_content_changes_job(session, {}) == {"checked": 1, "enqueued": 1}
+            session.commit()
+            assert session.query(Job).count() == 2
+    finally:
+        engine.dispose()

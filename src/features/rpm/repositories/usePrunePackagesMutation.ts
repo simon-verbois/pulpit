@@ -12,6 +12,7 @@ export function usePrunePackagesMutation() {
     onSuccess: ({ task }, { repo_hrefs, dry_run }) => {
       registerTask({
         href: task,
+        kind: "group",
         label: dry_run ? "Prune packages (dry run)" : "Prune packages",
         resourceHrefs: repo_hrefs,
         action: "prune",

@@ -124,9 +124,11 @@ def refresh_content_sizes_job(db: Session, payload: dict) -> dict:
     artifact_sizes = _fetch_all_artifact_sizes(pulp)
 
     component_totals = _sum_sizes_by_component(pulp, artifact_sizes)
-    service.replace_content_sizes(db, component_totals)
-
     repository_totals = _sum_sizes_by_repository(pulp, artifact_sizes)
+
+    # Finish network reads before taking SQLite's writer lock. A scan of
+    # many repositories can otherwise block unrelated settings saves.
+    service.replace_content_sizes(db, component_totals)
     service.replace_repository_sizes(db, repository_totals)
 
     return {"components": sorted(component_totals), "repositories": len(repository_totals)}

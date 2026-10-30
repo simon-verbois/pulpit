@@ -1,17 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Alert,
-  Button,
-  Pagination,
-  PageSection,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Alert, Button, PageSection, SearchInput } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -30,7 +22,7 @@ export function SigningPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [viewingService, setViewingService] = useState<SigningService | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, search);
 
   // No server-side `name__contains` exists for this endpoint (VERIFIED
   // live) - listAllSigningServices's own comment explains why this fetches
@@ -49,37 +41,23 @@ export function SigningPage() {
   const isFiltered = search !== "";
 
   const toolbar = (
-    <Toolbar>
-      <ToolbarContent>
-        {/* Fixed width - without it, the bar grows/shrinks as the clear
-            ("x") button appears/disappears with typed text (VERIFIED:
-            SearchInput has no intrinsic width of its own). */}
-        <ToolbarItem style={{ width: "18rem" }}>
-          <SearchInput
-            aria-label="Search signing services by name"
-            placeholder="Search by name…"
-            value={searchInput}
-            onChange={(_event, value) => setSearchInput(value)}
-            onSearch={() => setSearch(searchInput)}
-            onClear={() => {
-              setSearchInput("");
-              setSearch("");
-            }}
-          />
-        </ToolbarItem>
-        <ToolbarItem align={{ default: "alignEnd" }}>
-          <Pagination
-            itemCount={totalCount}
-            page={pagination.page}
-            perPage={pagination.perPage}
-            perPageOptions={pagination.perPageOptions}
-            onSetPage={pagination.onSetPage}
-            onPerPageSelect={pagination.onPerPageSelect}
-            isCompact
-          />
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+    <ListToolbar
+      search={
+        <SearchInput
+          aria-label="Search signing services by name"
+          placeholder="Search by name…"
+          value={searchInput}
+          onChange={(_event, value) => setSearchInput(value)}
+          onSearch={() => setSearch(searchInput)}
+          onClear={() => {
+            setSearchInput("");
+            setSearch("");
+          }}
+        />
+      }
+      pagination={pagination}
+      itemCount={totalCount}
+    />
   );
 
   const hasAnyServices = (servicesQuery.data?.length ?? 0) > 0;

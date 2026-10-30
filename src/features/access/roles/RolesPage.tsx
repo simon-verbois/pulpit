@@ -3,17 +3,15 @@ import {
   Button,
   Flex,
   FlexItem,
-  Pagination,
   PageSection,
   SearchInput,
   ToggleGroup,
   ToggleGroupItem,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -36,7 +34,7 @@ export function RolesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Role | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, JSON.stringify([search, filter]));
   const deleteMutation = useDeleteRoleMutation();
 
   const rolesQuery = useRolesQuery({
@@ -58,56 +56,43 @@ export function RolesPage() {
   const isFiltered = search !== "" || filter !== "all";
 
   const toolbar = (
-    <Toolbar>
-      <ToolbarContent>
-        <ToolbarItem>
-          <ToggleGroup aria-label="Role filter">
-            <ToggleGroupItem
-              text="All"
-              isSelected={filter === "all"}
-              onChange={() => setFilter("all")}
-            />
-            <ToggleGroupItem
-              text="Built-in"
-              isSelected={filter === "built-in"}
-              onChange={() => setFilter("built-in")}
-            />
-            <ToggleGroupItem
-              text="Custom"
-              isSelected={filter === "custom"}
-              onChange={() => setFilter("custom")}
-            />
-          </ToggleGroup>
-        </ToolbarItem>
-        {/* Fixed width - without it, the bar grows/shrinks as the clear
-            ("x") button appears/disappears with typed text (VERIFIED:
-            SearchInput has no intrinsic width of its own). */}
-        <ToolbarItem style={{ width: "18rem" }}>
-          <SearchInput
-            aria-label="Search roles by name"
-            placeholder="Search by name…"
-            value={searchInput}
-            onChange={(_event, value) => setSearchInput(value)}
-            onSearch={() => setSearch(searchInput)}
-            onClear={() => {
-              setSearchInput("");
-              setSearch("");
-            }}
+    <ListToolbar
+      search={
+        <SearchInput
+          aria-label="Search roles by name"
+          placeholder="Search by name…"
+          value={searchInput}
+          onChange={(_event, value) => setSearchInput(value)}
+          onSearch={() => setSearch(searchInput)}
+          onClear={() => {
+            setSearchInput("");
+            setSearch("");
+          }}
+        />
+      }
+      pagination={pagination}
+      itemCount={rolesQuery.data?.count ?? 0}
+    >
+      <ToolbarItem>
+        <ToggleGroup aria-label="Role filter">
+          <ToggleGroupItem
+            text="All"
+            isSelected={filter === "all"}
+            onChange={() => setFilter("all")}
           />
-        </ToolbarItem>
-        <ToolbarItem align={{ default: "alignEnd" }}>
-          <Pagination
-            itemCount={rolesQuery.data?.count ?? 0}
-            page={pagination.page}
-            perPage={pagination.perPage}
-            perPageOptions={pagination.perPageOptions}
-            onSetPage={pagination.onSetPage}
-            onPerPageSelect={pagination.onPerPageSelect}
-            isCompact
+          <ToggleGroupItem
+            text="Built-in"
+            isSelected={filter === "built-in"}
+            onChange={() => setFilter("built-in")}
           />
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+          <ToggleGroupItem
+            text="Custom"
+            isSelected={filter === "custom"}
+            onChange={() => setFilter("custom")}
+          />
+        </ToggleGroup>
+      </ToolbarItem>
+    </ListToolbar>
   );
 
   return (
@@ -123,14 +108,20 @@ export function RolesPage() {
         {rolesQuery.isError ? (
           <ErrorState error={rolesQuery.error} onRetry={() => rolesQuery.refetch()} />
         ) : null}
-        {rolesQuery.isSuccess && rolesQuery.data.results.length === 0 && !isFiltered ? (
+        {rolesQuery.isSuccess &&
+        rolesQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        !isFiltered ? (
           <EmptyState
             variant="sm"
             title="No roles found"
             body="Create a role above to grant a specific set of permissions to users or groups."
           />
         ) : null}
-        {rolesQuery.isSuccess && rolesQuery.data.results.length === 0 && isFiltered ? (
+        {rolesQuery.isSuccess &&
+        rolesQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        isFiltered ? (
           <>
             {toolbar}
             <EmptyState
@@ -140,7 +131,8 @@ export function RolesPage() {
             />
           </>
         ) : null}
-        {rolesQuery.isSuccess && rolesQuery.data.results.length > 0 ? (
+        {rolesQuery.isSuccess &&
+        (rolesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <>
             {toolbar}
             <Table aria-label="Roles" variant="compact" gridBreakPoint="grid-lg">

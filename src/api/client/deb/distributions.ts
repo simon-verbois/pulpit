@@ -1,6 +1,7 @@
+import { listRepositoryDistributions } from "../distributionManagement";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type { PulpPage, DebDistribution, DebDistributionCreate } from "./types";
+import type { PulpPage, DebDistribution } from "./types";
 
 const BASE = apiPath("/distributions/deb/apt/");
 
@@ -15,16 +16,14 @@ export interface ListDebDistributionsParams {
 export function listDebDistributions(
   params: ListDebDistributionsParams,
 ): Promise<PulpPage<DebDistribution>> {
+  if (params.repository)
+    return listRepositoryDistributions<DebDistribution>(
+      "deb",
+      params.repository,
+      params.limit,
+      params.offset,
+    );
   return pulpFetch<PulpPage<DebDistribution>>(`${BASE}${buildQuery(params)}`);
-}
-
-export function createDebDistribution(
-  data: DebDistributionCreate,
-): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 }
 
 export function deleteDebDistribution(href: string): Promise<{ task: string }> {

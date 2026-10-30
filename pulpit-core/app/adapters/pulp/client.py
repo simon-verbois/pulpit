@@ -86,6 +86,10 @@ class PulpClient:
     def get_rpm_repository(self, href: str) -> dict:
         return self._request("GET", href).json()
 
+    def get_repository(self, href: str) -> dict:
+        """Read a repository using this client's credentials to check object access."""
+        return self._request("GET", href).json()
+
     def list_rpm_repositories(self, *, limit: int = 100, offset: int = 0) -> dict:
         """VERIFIED live (docs/signing.md): `package_signing_service` and
         `metadata_signing_service` are NOT filterable query params on this
@@ -162,83 +166,23 @@ class PulpClient:
             "POST", f"{self._api_base}/publications/rpm/rpm/", json={"repository": repository_href}
         ).json()
 
-    # --- Distributions (needed to actually fetch package bytes - see
-    # resign_repository_packages_job / docs/signing.md "How resigning
-    # actually downloads a package") ---------------------------------------
-
-    def list_distributions_for_repository(self, repository_href: str) -> list[dict]:
-        response = self._request(
-            "GET", f"{self._api_base}/distributions/rpm/rpm/", params={"repository": repository_href}
-        )
-        return response.json()["results"]
-
-    # --- Raw content-app fetches (repodata, package files) - VERIFIED live
-    # (docs/signing.md): a package's real served path is NOT its own
-    # `location_href` field taken at face value for a repository using the
-    # default layout - it must be read from the repository's own published
-    # primary.xml.gz (`Packages/<letter>/<file>`), the same way a real dnf
-    # client resolves it. ---------------------------------------------------
-
-    def get_content_bytes(self, url: str) -> bytes:
-        # Pulp distributions advertise the public content origin. Route the
-        # known content path through the configured internal Pulp origin;
-        # never send service credentials to a host supplied in metadata.
-        parsed = urlsplit(url)
-        if parsed.path.startswith("/pulp/content/"):
-            url = parsed.path + (f"?{parsed.query}" if parsed.query else "")
-        with self._client() as client:
-            try:
-                response = client.get(self._url(url))
-            except httpx.HTTPError as exc:
-                raise PulpAdapterError(f"Pulp content request failed: {exc}") from exc
-        if response.status_code >= 400:
-            raise PulpAdapterError(
-                f"Pulp content request returned {response.status_code} for {url}",
-                status_code=response.status_code,
-            )
-        return response.content
-
     # --- RPM package content ---------------------------------------------
 
     def list_rpm_packages(
         self,
         *,
         repository_version: str | None = None,
-        repository_version_added: str | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> dict:
-        """`repository_version` returns every package present in that
-        version (the full set - used for a first-time/full pass, see
-        `signing.resign_repository_packages_job`'s `since_version=None`
-        case). `repository_version_added` instead scopes to packages whose
-        `version_added` is exactly that version - the same
-        RepositoryContent-backed filter pulpcore exposes on every content
-        endpoint for "what did this one version add" (mirrors
-        `repository_version`'s own already-relied-upon filter, see
-        app/modules/signing/jobs.py's incremental candidate lookup for how
-        this is walked one version at a time to cover a multi-version gap).
-        Exactly one of the two should be passed."""
-        params: dict[str, Any] = {"limit": limit, "offset": offset}
+        """Read authoritative signing metadata for the requested immutable version."""
+        params: dict[str, Any] = {"limit": limit, "offset": offset, "fields": "pulp_href,signing_keys"}
         if repository_version is not None:
             params["repository_version"] = repository_version
-        if repository_version_added is not None:
-            params["repository_version_added"] = repository_version_added
         response = self._request(
             "GET",
             f"{self._api_base}/content/rpm/packages/",
             params=params,
-        )
-        return response.json()
-
-    def upload_rpm_package(self, filename: str, content: bytes) -> dict:
-        """Sync (VERIFIED, docs/PULP_API.md): creates the content unit only,
-        no `repository` field - adding it to a repository is the separate
-        `modify_rpm_repository` call below."""
-        response = self._request(
-            "POST",
-            f"{self._api_base}/content/rpm/packages/upload/",
-            files={"file": (filename, content)},
         )
         return response.json()
 

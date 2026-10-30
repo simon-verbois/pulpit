@@ -64,6 +64,16 @@ test("logging in as admin reaches the app, and logging out returns to /login", a
   // The session is really gone, not just a client-side redirect.
   await page.goto("/admin?tab=repository-signing");
   await expect(page).toHaveURL(/\/login\?next=/);
+
+  // Logging back in to the same release must not announce it again.
+  await page.getByLabel("Username").fill("admin");
+  await page.getByLabel("Password").fill(adminPassword());
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(/\/admin/);
+  await expect(
+    page.getByRole("heading", { name: "Administration", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "What's new in PulpIT" })).toHaveCount(0);
 });
 
 test("login shows no version, release notes or license footer", async ({ page }) => {

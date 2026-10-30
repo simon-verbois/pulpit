@@ -1,6 +1,7 @@
+import { listRepositoryDistributions } from "../distributionManagement";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type { PulpPage, GemDistribution, GemDistributionCreate } from "./types";
+import type { PulpPage, GemDistribution } from "./types";
 
 const BASE = apiPath("/distributions/gem/gem/");
 
@@ -15,16 +16,14 @@ export interface ListGemDistributionsParams {
 export function listGemDistributions(
   params: ListGemDistributionsParams,
 ): Promise<PulpPage<GemDistribution>> {
+  if (params.repository)
+    return listRepositoryDistributions<GemDistribution>(
+      "gem",
+      params.repository,
+      params.limit,
+      params.offset,
+    );
   return pulpFetch<PulpPage<GemDistribution>>(`${BASE}${buildQuery(params)}`);
-}
-
-export function createGemDistribution(
-  data: GemDistributionCreate,
-): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 }
 
 export function deleteGemDistribution(href: string): Promise<{ task: string }> {

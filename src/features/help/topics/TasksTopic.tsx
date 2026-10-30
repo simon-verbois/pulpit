@@ -21,8 +21,9 @@ export function TasksTopic() {
         </Content>
       </Content>
       <Content component="p">
-        Large syncs can run for hours. If downloads stop progressing, check the source and
-        proxy.
+        Active operations are restored after reloading. A task group finishes only when
+        all its tasks finish; open it to see every child. If downloads stop progressing,
+        check the source and proxy.
       </Content>
       <Content component="p">
         History retention is set in{" "}

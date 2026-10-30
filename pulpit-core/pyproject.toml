@@ -22,6 +22,8 @@ dependencies = [
   # the default-settings proxy password, app/core/crypto.py) - Fernet only,
   # not a general crypto toolkit dependency.
   "cryptography>=50.0.1,<51",
+  # Exclude the compromised CA root removed from older certifi bundles.
+  "certifi>=2026.10.19",
   # LDAP module's own "test connection" check (app/modules/ldap/jobs.py) -
   # pure-Python, no libldap system headers needed to build (unlike
   # python-ldap, which pulpcore/django-auth-ldap use on the Pulp side where
@@ -33,6 +35,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pip-audit>=2.10.1,<3",
+  # Security floors for pip-audit's transitive cache dependencies.
+  "filelock>=4.2.1,<5",
+  "msgpack>=1.2.3,<2",
   "pytest>=9.1.1,<10",
   "pytest-asyncio>=1.4,<2",
   "respx>=0.21,<0.22",

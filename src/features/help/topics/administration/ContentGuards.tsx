@@ -23,8 +23,9 @@ export function AdministrationContentGuardsTopic() {
         </Content>
       </Content>
       <Content component="p">
-        Ask your Pulp administrator to attach the guard to a distribution. Creating it
-        alone does not protect downloads.
+        Attach the guard in <strong>Distributions → Edit → Access and visibility</strong>.
+        Creating it alone does not protect downloads. Registries accept redirect guards;
+        use <strong>Private</strong> for registry authentication.
       </Content>
     </Content>
   );

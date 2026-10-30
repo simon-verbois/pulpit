@@ -3,18 +3,15 @@ import {
   Button,
   Flex,
   FlexItem,
-  Pagination,
-  PageSection,
   SearchInput,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
   ToggleGroup,
   ToggleGroupItem,
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { ListToolbar } from "../../../components/ListToolbar";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -49,7 +46,7 @@ export function RemotesPage() {
   const [editingGitRemote, setEditingGitRemote] = useState<FileGitRemote | null>(null);
   const [pendingDelete, setPendingDelete] = useState<FileRemote | null>(null);
   const [pendingGitDelete, setPendingGitDelete] = useState<FileGitRemote | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, JSON.stringify([search, kind]));
   const deleteMutation = useDeleteFileRemoteMutation();
   const deleteGitMutation = useDeleteFileGitRemoteMutation();
 
@@ -68,7 +65,7 @@ export function RemotesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title="File remotes"
         description="External file sources Pulp can sync repositories from."
         actions={
@@ -76,62 +73,52 @@ export function RemotesPage() {
             {kind === "standard" ? "Create remote" : "Create Git remote"}
           </Button>
         }
-      />
-      <PageSection hasBodyWrapper={false}>
+      >
         {/* The Standard/Git toggle switches between two entirely different
             backing resources (not a filter on one list) - it's the only way
             to reach Git remotes at all, so it stays visible even when the
             active kind's list is empty. Search and pagination, which act on
             the current list, are gated on it being non-empty. */}
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem>
-              <ToggleGroup aria-label="Remote type">
-                <ToggleGroupItem
-                  text="Standard"
-                  isSelected={kind === "standard"}
-                  onChange={() => setKind("standard")}
-                />
-                <ToggleGroupItem
-                  text="Git"
-                  isSelected={kind === "git"}
-                  onChange={() => setKind("git")}
-                />
-              </ToggleGroup>
-            </ToolbarItem>
-            {activeQuery.isSuccess && activeQuery.data.results.length > 0 ? (
-              <>
-                {/* Fixed width - without it, the bar grows/shrinks as the clear
-                    ("x") button appears/disappears with typed text (VERIFIED:
-                    SearchInput has no intrinsic width of its own). */}
-                <ToolbarItem style={{ width: "18rem" }}>
-                  <SearchInput
-                    aria-label="Search remotes by name"
-                    placeholder="Search by name…"
-                    value={searchInput}
-                    onChange={(_event, value) => setSearchInput(value)}
-                    onSearch={() => setSearch(searchInput)}
-                    onClear={() => {
-                      setSearchInput("");
-                      setSearch("");
-                    }}
-                  />
-                </ToolbarItem>
-                <ToolbarItem align={{ default: "alignEnd" }}>
-                  <Pagination
-                    itemCount={activeQuery.data?.count ?? 0}
-                    page={pagination.page}
-                    perPage={pagination.perPage}
-                    perPageOptions={pagination.perPageOptions}
-                    onSetPage={pagination.onSetPage}
-                    onPerPageSelect={pagination.onPerPageSelect}
-                    isCompact
-                  />
-                </ToolbarItem>
-              </>
-            ) : null}
-          </ToolbarContent>
-        </Toolbar>
+        <ListToolbar
+          search={
+            activeQuery.isSuccess &&
+            (activeQuery.data.results.length > 0 || pagination.page > 1) ? (
+              <SearchInput
+                aria-label="Search remotes by name"
+                placeholder="Search by name…"
+                value={searchInput}
+                onChange={(_event, value) => setSearchInput(value)}
+                onSearch={() => setSearch(searchInput)}
+                onClear={() => {
+                  setSearchInput("");
+                  setSearch("");
+                }}
+              />
+            ) : undefined
+          }
+          pagination={
+            activeQuery.isSuccess &&
+            (activeQuery.data.results.length > 0 || pagination.page > 1)
+              ? pagination
+              : undefined
+          }
+          itemCount={activeQuery.data?.count ?? 0}
+        >
+          <ToolbarItem>
+            <ToggleGroup aria-label="Remote type">
+              <ToggleGroupItem
+                text="Standard"
+                isSelected={kind === "standard"}
+                onChange={() => setKind("standard")}
+              />
+              <ToggleGroupItem
+                text="Git"
+                isSelected={kind === "git"}
+                onChange={() => setKind("git")}
+              />
+            </ToggleGroup>
+          </ToolbarItem>
+        </ListToolbar>
 
         {activeQuery.isPending ? (
           <LoadingState
@@ -147,7 +134,9 @@ export function RemotesPage() {
         {activeQuery.isError ? (
           <ErrorState error={activeQuery.error} onRetry={() => activeQuery.refetch()} />
         ) : null}
-        {activeQuery.isSuccess && activeQuery.data.results.length === 0 ? (
+        {activeQuery.isSuccess &&
+        activeQuery.data.results.length === 0 &&
+        pagination.page === 1 ? (
           <EmptyState
             title={kind === "standard" ? "No File remotes yet" : "No Git remotes yet"}
             body="Create a remote to point at an external file source you want to sync from."
@@ -160,7 +149,7 @@ export function RemotesPage() {
         ) : null}
         {kind === "standard" &&
         remotesQuery.isSuccess &&
-        remotesQuery.data.results.length > 0 ? (
+        (remotesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <Table aria-label="File remotes" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
@@ -214,7 +203,7 @@ export function RemotesPage() {
         ) : null}
         {kind === "git" &&
         gitRemotesQuery.isSuccess &&
-        gitRemotesQuery.data.results.length > 0 ? (
+        (gitRemotesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <Table aria-label="Git remotes" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
@@ -266,7 +255,7 @@ export function RemotesPage() {
             </Tbody>
           </Table>
         ) : null}
-      </PageSection>
+      </PageLayout>
 
       {isCreateOpen && kind === "standard" ? (
         <CreateRemoteModal onClose={() => setIsCreateOpen(false)} />

@@ -11,6 +11,44 @@ import type {
 const BASE = apiPath("/distributions/rpm/rpm/");
 const DISTRIBUTION_SCAN_PAGE_SIZE = 100;
 
+export type RpmDistributionMatch = Pick<
+  RpmDistribution,
+  | "pulp_href"
+  | "name"
+  | "base_path"
+  | "repository"
+  | "publication"
+  | "repository_version"
+  | "content_guard"
+  | "hidden"
+>;
+
+/** Check both unique identifiers before changing repository configuration. */
+export async function findRpmDistributionMatches(
+  name: string,
+  basePath: string,
+): Promise<RpmDistributionMatch[]> {
+  const pages = await Promise.all(
+    [name ? { name } : {}, { base_path: basePath }].map((filter) =>
+      pulpFetch<PulpPage<RpmDistributionMatch>>(
+        `${BASE}${buildQuery({
+          ...filter,
+          limit: 2,
+          fields:
+            "pulp_href,name,base_path,repository,repository_version,publication,content_guard,hidden",
+        })}`,
+      ),
+    ),
+  );
+  return [
+    ...new Map(
+      pages
+        .flatMap((page) => page.results)
+        .map((distribution) => [distribution.pulp_href, distribution]),
+    ).values(),
+  ];
+}
+
 export interface ListRpmDistributionsParams {
   [key: string]: string | number | boolean | undefined;
   limit: number;
@@ -32,6 +70,7 @@ export function listRpmDistributions(
 export async function findRpmDistributionConflict(
   name: string,
   basePath: string,
+  ignoreHref?: string,
 ): Promise<string | undefined> {
   const [byName, byBasePath] = await Promise.all([
     pulpFetch<PulpPage<RpmDistribution>>(
@@ -41,8 +80,9 @@ export async function findRpmDistributionConflict(
       `${BASE}${buildQuery({ base_path: basePath, limit: 1, fields: "pulp_href" })}`,
     ),
   ]);
-  if (byName.count > 0) return `A distribution named "${name}" already exists.`;
-  if (byBasePath.count > 0) {
+  if (byName.results.some((distribution) => distribution.pulp_href !== ignoreHref))
+    return `A distribution named "${name}" already exists.`;
+  if (byBasePath.results.some((distribution) => distribution.pulp_href !== ignoreHref)) {
     return `A distribution already serves the base path "${basePath}".`;
   }
   return undefined;

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Alert,
   Button,
@@ -21,6 +22,8 @@ interface ConfirmDeleteModalProps {
    * cascade delete of something else the user might not expect. Rendered as
    * a prominent inline warning above the normal confirmation text. */
   warning?: string;
+  isConfirmDisabled?: boolean;
+  children?: ReactNode;
 }
 
 export function ConfirmDeleteModal({
@@ -30,6 +33,8 @@ export function ConfirmDeleteModal({
   onConfirm,
   onCancel,
   warning,
+  isConfirmDisabled,
+  children,
 }: ConfirmDeleteModalProps) {
   return (
     <Modal
@@ -40,6 +45,7 @@ export function ConfirmDeleteModal({
     >
       <ModalHeader title={`Delete ${itemTypeLabel}?`} labelId="confirm-delete-title" />
       <ModalBody>
+        {children}
         {warning ? (
           <Alert
             variant="warning"
@@ -65,7 +71,7 @@ export function ConfirmDeleteModal({
             <Button
               variant="danger"
               isLoading={isDeleting}
-              isDisabled={isDeleting}
+              isDisabled={isDeleting || isConfirmDisabled}
               onClick={onConfirm}
             >
               Delete

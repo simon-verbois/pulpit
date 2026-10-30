@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../../../api/client/pagination";
 import { useQuery } from "@tanstack/react-query";
 
 import { listAllCollectionRemotes } from "../../../api/client/ansible/collectionRemotes";
@@ -16,19 +17,19 @@ export function useAllRemotesForPicker() {
     queryFn: async () => {
       const [collections, gitResult, roles] = await Promise.all([
         listAllCollectionRemotes(),
-        listGitRemotes({ limit: 100, offset: 0 }),
-        listRoleRemotes({ limit: 100, offset: 0 }),
+        collectPulpPages((offset) => listGitRemotes({ limit: 100, offset })),
+        collectPulpPages((offset) => listRoleRemotes({ limit: 100, offset })),
       ]);
       return [
         ...collections.map((r) => ({
           href: r.pulp_href,
           label: `${r.name} (Collection)`,
         })),
-        ...gitResult.results.map((r) => ({
+        ...gitResult.map((r) => ({
           href: r.pulp_href,
           label: `${r.name} (Git)`,
         })),
-        ...roles.results.map((r) => ({ href: r.pulp_href, label: `${r.name} (Role)` })),
+        ...roles.map((r) => ({ href: r.pulp_href, label: `${r.name} (Role)` })),
       ];
     },
   });

@@ -19,11 +19,11 @@ strictly additive, never a hard requirement.
 """
 
 import json
-import os
 import shlex
 from pathlib import Path
 
 from app.adapters.pulp import PulpClient
+from app.core.files import atomic_write_text
 from app.modules.signing.models import PulpServicePurpose, SigningPulpService
 
 _SCRIPT_FILENAMES = {
@@ -108,9 +108,7 @@ def write_signing_services_manifest(entries: list[dict[str, str]], *, manifest_p
     pending entry, so a row that just became ACTIVE naturally drops out on
     the next write without any explicit removal step."""
     path = Path(manifest_path)
-    tmp_path = path.with_name(f"{path.name}.tmp")
-    tmp_path.write_text(json.dumps(entries, indent=2))
-    os.replace(tmp_path, path)
+    atomic_write_text(path, json.dumps(entries, indent=2), mode=0o644)
 
 
 def refresh_pulp_service_status(pulp: PulpClient, row: SigningPulpService) -> bool:

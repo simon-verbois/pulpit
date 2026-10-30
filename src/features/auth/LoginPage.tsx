@@ -12,6 +12,7 @@ import { PulpApiError } from "../../api/errors/PulpApiError";
 import { useCurrentUserQuery } from "../../hooks/useCurrentUserQuery";
 import { UiIcon } from "../../components/icons/UiIcon";
 import { useLoginMutation } from "./useLoginMutation";
+import { loginDestination } from "./loginDestination";
 
 function errorMessageFor(error: unknown): string {
   if (error instanceof PulpApiError && error.kind === "unauthenticated") {
@@ -28,13 +29,14 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const destination = loginDestination(searchParams.get("next"));
   const loginMutation = useLoginMutation();
 
   // Already have a session (e.g. navigated back to /login manually) -
   // don't show the form again, just continue on.
   const currentUserQuery = useCurrentUserQuery();
   if (currentUserQuery.data) {
-    return <Navigate to={searchParams.get("next") ?? "/"} replace />;
+    return <Navigate to={destination} replace />;
   }
 
   const handleSubmit = (event: { preventDefault: () => void }) => {
@@ -46,7 +48,7 @@ export function LoginPage() {
       { username, password },
       {
         onSuccess: () => {
-          navigate(searchParams.get("next") ?? "/", { replace: true });
+          navigate(destination, { replace: true });
         },
       },
     );

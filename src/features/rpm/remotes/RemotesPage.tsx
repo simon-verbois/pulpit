@@ -4,18 +4,15 @@ import {
   Button,
   Flex,
   FlexItem,
-  Pagination,
-  PageSection,
   SearchInput,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
   ToggleGroup,
   ToggleGroupItem,
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { ListToolbar } from "../../../components/ListToolbar";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -58,7 +55,7 @@ export function RemotesPage() {
   const [testingRemote, setTestingRemote] = useState<RpmRemote | RpmUlnRemote | null>(
     null,
   );
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, JSON.stringify([search, kind]));
   const deleteMutation = useDeleteRpmRemoteMutation();
   const deleteUlnMutation = useDeleteUlnRemoteMutation();
 
@@ -77,7 +74,7 @@ export function RemotesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title="RPM remotes"
         description="External RPM sources Pulp can sync repositories from."
         actions={
@@ -85,62 +82,52 @@ export function RemotesPage() {
             {kind === "standard" ? "Create remote" : "Create ULN remote"}
           </Button>
         }
-      />
-      <PageSection hasBodyWrapper={false}>
+      >
         {/* The Standard/ULN toggle switches between two entirely different
             backing resources (not a filter on one list) - it's the only way
             to reach ULN remotes at all, so it stays visible even when the
             active kind's list is empty. Search and pagination, which act on
             the current list, are gated on it being non-empty. */}
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem>
-              <ToggleGroup aria-label="Remote type">
-                <ToggleGroupItem
-                  text="Standard"
-                  isSelected={kind === "standard"}
-                  onChange={() => setKind("standard")}
-                />
-                <ToggleGroupItem
-                  text="ULN"
-                  isSelected={kind === "uln"}
-                  onChange={() => setKind("uln")}
-                />
-              </ToggleGroup>
-            </ToolbarItem>
-            {activeQuery.isSuccess && activeQuery.data.results.length > 0 ? (
-              <>
-                {/* Fixed width - without it, the bar grows/shrinks as the clear
-                    ("x") button appears/disappears with typed text (VERIFIED:
-                    SearchInput has no intrinsic width of its own). */}
-                <ToolbarItem style={{ width: "18rem" }}>
-                  <SearchInput
-                    aria-label="Search remotes by name"
-                    placeholder="Search by name…"
-                    value={searchInput}
-                    onChange={(_event, value) => setSearchInput(value)}
-                    onSearch={() => setSearch(searchInput)}
-                    onClear={() => {
-                      setSearchInput("");
-                      setSearch("");
-                    }}
-                  />
-                </ToolbarItem>
-                <ToolbarItem align={{ default: "alignEnd" }}>
-                  <Pagination
-                    itemCount={activeQuery.data?.count ?? 0}
-                    page={pagination.page}
-                    perPage={pagination.perPage}
-                    perPageOptions={pagination.perPageOptions}
-                    onSetPage={pagination.onSetPage}
-                    onPerPageSelect={pagination.onPerPageSelect}
-                    isCompact
-                  />
-                </ToolbarItem>
-              </>
-            ) : null}
-          </ToolbarContent>
-        </Toolbar>
+        <ListToolbar
+          search={
+            activeQuery.isSuccess &&
+            (activeQuery.data.results.length > 0 || pagination.page > 1) ? (
+              <SearchInput
+                aria-label="Search remotes by name"
+                placeholder="Search by name…"
+                value={searchInput}
+                onChange={(_event, value) => setSearchInput(value)}
+                onSearch={() => setSearch(searchInput)}
+                onClear={() => {
+                  setSearchInput("");
+                  setSearch("");
+                }}
+              />
+            ) : undefined
+          }
+          pagination={
+            activeQuery.isSuccess &&
+            (activeQuery.data.results.length > 0 || pagination.page > 1)
+              ? pagination
+              : undefined
+          }
+          itemCount={activeQuery.data?.count ?? 0}
+        >
+          <ToolbarItem>
+            <ToggleGroup aria-label="Remote type">
+              <ToggleGroupItem
+                text="Standard"
+                isSelected={kind === "standard"}
+                onChange={() => setKind("standard")}
+              />
+              <ToggleGroupItem
+                text="ULN"
+                isSelected={kind === "uln"}
+                onChange={() => setKind("uln")}
+              />
+            </ToggleGroup>
+          </ToolbarItem>
+        </ListToolbar>
 
         {activeQuery.isPending ? (
           <LoadingState
@@ -156,7 +143,9 @@ export function RemotesPage() {
         {activeQuery.isError ? (
           <ErrorState error={activeQuery.error} onRetry={() => activeQuery.refetch()} />
         ) : null}
-        {activeQuery.isSuccess && activeQuery.data.results.length === 0 ? (
+        {activeQuery.isSuccess &&
+        activeQuery.data.results.length === 0 &&
+        pagination.page === 1 ? (
           <EmptyState
             title={kind === "standard" ? "No RPM remotes yet" : "No ULN remotes yet"}
             body="Create a remote to point at an external RPM repository you want to sync from."
@@ -169,7 +158,7 @@ export function RemotesPage() {
         ) : null}
         {kind === "standard" &&
         remotesQuery.isSuccess &&
-        remotesQuery.data.results.length > 0 ? (
+        (remotesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <Table aria-label="RPM remotes" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
@@ -233,7 +222,7 @@ export function RemotesPage() {
         ) : null}
         {kind === "uln" &&
         ulnRemotesQuery.isSuccess &&
-        ulnRemotesQuery.data.results.length > 0 ? (
+        (ulnRemotesQuery.data.results.length > 0 || pagination.page > 1) ? (
           <Table aria-label="ULN remotes" variant="compact" gridBreakPoint="grid-lg">
             <Thead>
               <Tr>
@@ -297,7 +286,7 @@ export function RemotesPage() {
             </Tbody>
           </Table>
         ) : null}
-      </PageSection>
+      </PageLayout>
 
       {isCreateOpen && kind === "standard" ? (
         <CreateRemoteModal onClose={() => setIsCreateOpen(false)} />

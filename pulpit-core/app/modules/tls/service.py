@@ -1,12 +1,12 @@
 """TLS certificate metadata and atomic installation of certificate files."""
 
 from datetime import UTC, datetime
-from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.files import atomic_write_text
 from app.modules.tls.models import TlsCertificate, TlsCertificateHistory, TlsCertSource
 
 
@@ -78,18 +78,9 @@ def install_certificate(
 def _write_active_files(cert_pem: str, key_pem: str) -> None:
     active_dir = get_settings().tls_cert_dir / "active"
     active_dir.mkdir(parents=True, exist_ok=True)
-    _atomic_write(active_dir / "cert.pem", cert_pem, mode=0o644)
-    _atomic_write(active_dir / "key.pem", key_pem, mode=0o600)
+    atomic_write_text(active_dir / "cert.pem", cert_pem, mode=0o644)
+    atomic_write_text(active_dir / "key.pem", key_pem, mode=0o600)
 
-
-def _atomic_write(path: Path, content: str, *, mode: int) -> None:
-    # Same directory, same filesystem - os.replace()/Path.replace() is
-    # atomic there, so nginx (reading these paths directly) never observes a
-    # half-written file, only the complete old one or the complete new one.
-    tmp_path = path.with_name(path.name + ".tmp")
-    tmp_path.write_text(content)
-    tmp_path.chmod(mode)
-    tmp_path.replace(path)
 
 
 def _request_reload() -> None:

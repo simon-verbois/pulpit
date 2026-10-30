@@ -13,6 +13,7 @@ const BASE = apiPath("/ansible/copy/");
 export function copyAnsibleContent(
   sourceRepositoryVersionHref: string,
   destRepositoryHref: string,
+  content?: string[],
 ): Promise<{ task: string }> {
   return pulpFetch<{ task: string }>(BASE, {
     method: "POST",
@@ -21,6 +22,7 @@ export function copyAnsibleContent(
         {
           source_repo_version: sourceRepositoryVersionHref,
           dest_repo: destRepositoryHref,
+          ...(content ? { content } : {}),
         },
       ],
     }),

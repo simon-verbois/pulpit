@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type { PulpPage, FileRemote, FileRemoteCreate, FileRemoteUpdate } from "./types";
@@ -17,12 +18,9 @@ export function listFileRemotes(
   return pulpFetch<PulpPage<FileRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every remote page - used to populate the small "remote" select in
- * the repository create form, which isn't expected to have hundreds of
- * remotes in this bootstrap's scope. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllFileRemotes(): Promise<FileRemote[]> {
-  const page = await listFileRemotes({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listFileRemotes({ limit: 100, offset }));
 }
 
 export function createFileRemote(data: FileRemoteCreate): Promise<FileRemote> {

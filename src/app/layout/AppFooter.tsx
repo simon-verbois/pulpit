@@ -1,12 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Content } from "@patternfly/react-core";
 
 import { ReleaseNotesModal } from "../releases/ReleaseNotesModal";
 import { hasNewRelease, rememberRelease } from "../releases/seenRelease";
 
-export function AppFooter({ userId }: { userId: string }) {
-  const [isOpen, setIsOpen] = useState(() => hasNewRelease(userId, __APP_VERSION__));
+export function AppFooter({
+  userId,
+  legacyUserId,
+}: {
+  userId: string;
+  legacyUserId?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(() =>
+    hasNewRelease(userId, __APP_VERSION__, legacyUserId),
+  );
   const [selectedVersion, setSelectedVersion] = useState(__APP_VERSION__);
+
+  useEffect(() => {
+    rememberRelease(userId, __APP_VERSION__, legacyUserId);
+  }, [userId, legacyUserId]);
 
   function close() {
     rememberRelease(userId, __APP_VERSION__);

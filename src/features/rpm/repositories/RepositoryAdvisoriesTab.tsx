@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { ToolbarItem } from "@patternfly/react-core";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { TaskActionButton } from "../../../components/TaskActionButton";
 import type { RpmRepository } from "../../../api/client/rpm/types";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
@@ -22,31 +23,19 @@ export function RepositoryAdvisoriesTab({ repository }: { repository: RpmReposit
 
   return (
     <>
-      {advisoriesQuery.isSuccess && advisoriesQuery.data.results.length > 0 ? (
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem>
-              <TaskActionButton
-                resourceHref={repository.pulp_href}
-                taskAction="upload"
-                onClick={() => setIsUploadOpen(true)}
-              >
-                Upload advisory
-              </TaskActionButton>
-            </ToolbarItem>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Pagination
-                itemCount={advisoriesQuery.data?.count ?? 0}
-                page={pagination.page}
-                perPage={pagination.perPage}
-                perPageOptions={pagination.perPageOptions}
-                onSetPage={pagination.onSetPage}
-                onPerPageSelect={pagination.onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+      {advisoriesQuery.isSuccess &&
+      (advisoriesQuery.data.results.length > 0 || pagination.page > 1) ? (
+        <ListToolbar pagination={pagination} itemCount={advisoriesQuery.data?.count ?? 0}>
+          <ToolbarItem>
+            <TaskActionButton
+              resourceHref={repository.pulp_href}
+              taskAction="upload"
+              onClick={() => setIsUploadOpen(true)}
+            >
+              Upload advisory
+            </TaskActionButton>
+          </ToolbarItem>
+        </ListToolbar>
       ) : null}
 
       <AdvisoriesTable

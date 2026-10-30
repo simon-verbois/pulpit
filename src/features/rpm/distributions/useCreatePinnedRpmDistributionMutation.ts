@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   createRpmDistribution,
   findRpmDistributionConflict,
+  updateRpmDistribution,
 } from "../../../api/client/rpm/distributions";
 import { createRpmPublication } from "../../../api/client/rpm/publications";
 import type { RpmDistributionCreate } from "../../../api/client/rpm/types";
@@ -16,6 +17,7 @@ interface CreatePinnedDistributionArgs {
   repositoryName: string;
   repositoryVersionHref: string;
   distribution: Omit<RpmDistributionCreate, "repository" | "publication">;
+  existingDistributionHref?: string;
 }
 
 /** Waits for the publication task, then points the new distribution at the
@@ -23,7 +25,11 @@ interface CreatePinnedDistributionArgs {
  * in the Tasks drawer, which is where their progress and failures show. */
 async function finishPinnedDistribution(
   publicationTaskHref: string,
-  { repositoryHref, distribution }: CreatePinnedDistributionArgs,
+  {
+    repositoryHref,
+    distribution,
+    existingDistributionHref,
+  }: CreatePinnedDistributionArgs,
   registerTask: (task: TrackedTask) => void,
 ) {
   const publicationTask = await waitForTask(publicationTaskHref);
@@ -32,10 +38,13 @@ async function finishPinnedDistribution(
   );
   if (!publicationHref) return;
 
-  const result = await createRpmDistribution({
+  const data = {
     ...distribution,
     publication: publicationHref,
-  });
+  };
+  const result = existingDistributionHref
+    ? await updateRpmDistribution(existingDistributionHref, { ...data, repository: null })
+    : await createRpmDistribution(data);
   registerTask({
     href: result.task,
     label: `Create pinned distribution "${distribution.name}"`,
@@ -58,6 +67,7 @@ export function useCreatePinnedRpmDistributionMutation() {
       const conflict = await findRpmDistributionConflict(
         distribution.name,
         distribution.base_path,
+        args.existingDistributionHref,
       );
       if (conflict) throw new PulpApiError("validation", conflict);
 

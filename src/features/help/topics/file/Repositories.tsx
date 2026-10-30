@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { RepositoryOperationsHelp } from "../RepositoryOperationsHelp";
+
 import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
 
 export function FileRepositoriesTopic() {
@@ -26,6 +28,7 @@ export function FileRepositoriesTopic() {
         another name. If the download URL returns 404, check that the repository has been
         published.
       </Content>
+      <RepositoryOperationsHelp />
       <DistributionBasePathConvention prefix="file" />
     </Content>
   );

@@ -27,8 +27,13 @@ function currentViewportHeight(): number {
  * matching PatternFly's Pagination component. Unless a fixed initial size is
  * supplied, the default tracks the viewport height until the user explicitly
  * selects a page size. */
-export function usePulpPagination(initialPerPage?: number) {
+export function usePulpPagination(initialPerPage?: number, resetKey?: string) {
   const [page, setPage] = useState(1);
+  const [previousKey, setPreviousKey] = useState(resetKey);
+  if (previousKey !== resetKey) {
+    setPreviousKey(resetKey);
+    setPage(1);
+  }
   const isAutomatic = useRef(initialPerPage === undefined);
   const [perPage, setPerPage] = useState(() =>
     initialPerPage === undefined

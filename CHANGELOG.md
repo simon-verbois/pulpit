@@ -6,6 +6,71 @@ Add every change under **Unreleased**; `scripts/release.sh` assigns the version 
 
 ## Unreleased
 
+### Fixed
+
+- Load all picker/catalog pages, reset pagination when filters change, keep active tasks tracked,
+  track complete task groups and preserve successful submissions during partial container-copy errors.
+- Recover orphan distributions across formats after deleting and recreating a repository.
+- Finalize RPM prune and ACS task-group dispatch in Pulp so completed operations do not remain active.
+- Base container deletion warnings on the actual target and direct-distribution count; pinned URLs
+  do not imply repository deletion.
+- Preserve registry download guards when editing container distributions, correcting pulp_container's
+  obsolete redirect-guard route in the derived Pulp image.
+
+- Prepare RPM signatures inside Pulp before a repository version or publication becomes visible,
+  including on-demand syncs. Reject unsafe publications and cached downloads until signing succeeds;
+  preserve the previous safe publication on failure.
+- Replace existing legacy RPM signatures with the repository key instead of failing on --addsign.
+- Re-sign no longer needs a distribution or a preliminary unsigned publication. Track preparation
+  and publication failures explicitly, and serialize concurrent Re-sign submissions.
+- Reuse native cached signatures before reading source RPMs, stop unstarted signing work after a
+  failure, and avoid a second publication when native auto-publish already completed.
+- Release SQLite writes before paging Pulp in the signing detector, preventing long scans from
+  blocking manual Re-sign requests.
+
+- Removed the red line above the application header in production and development builds.
+- Page panels keep the same top position when navigating between pages with and without header
+  actions across content types and Administration. Sync warnings no longer break panel styling.
+- Long tabbed forms scroll within their panel without adding an unnecessary outer scrollbar.
+- Release notes are remembered as soon as they appear, including when the tab is closed with the
+  popup open. Keep the acknowledgement across logins with stable account keys and a cookie fallback.
+- Startup still works when browser storage is blocked; login return paths stay inside the app.
+- Reconnect an unused RPM distribution after deleting and recreating its repository, with explicit
+  confirmation; keep active distributions protected and explain conflicts before starting publication.
+- Keep Administration panels aligned on narrow screens and prevent tab headers from collapsing
+  over their content.
+- Keep SQLite writes short during background size scans so settings saves remain available.
+- Route the Ansible Galaxy API through the Vite development proxy, like the full app.
+- Correct obsolete RPM and Ansible browser-test assumptions, isolate network-policy test setup,
+  and exclude Python tool caches from source and formatting checks.
+
+### Security
+
+- Restrict job detail access to the requester, staff, or callers with Pulp-confirmed access to the
+  job's shared repository. Preserve authorized polling of existing signing jobs.
+- Write certificate keys and LDAP manifests through private, unique temporary files; remove the
+  custom RPM metadata parser and update vulnerable Python dependency security floors.
+- Share the same-origin API transport, reject external URLs and redirects, and preserve headers
+  supplied as a Headers object.
+
+### Changed
+
+- Upload several RPM files at once, add accepted packages in one repository task, show per-file
+  failures and retry rejected files without resending accepted uploads. Verify legacy-signed
+  manual uploads through native Pulp signing and cryptographic download checks.
+- Wait for web fonts before measuring Administration tabs in browser layout checks.
+
+- Share distribution creation/editing with version pinning and content guards; expose advanced
+  synchronization settings and selective repository-content copying in the existing GUI.
+- Document the shared controls in Help, remove superseded create hooks, and verify native Pulp
+  behavior with browser and serializer regression tests. Proxy core API calls in Vite development.
+- Repository action menus use a larger three-horizontal-line icon instead of three dots across
+  all content types.
+- Page headers, working panels, search widths and pagination now use shared layout components
+  across lists, repository details and Administration, keeping spacing consistent.
+- Remove unused API adapters and unnecessary fixture exports. Declare PostCSS directly
+  instead of relying on a transitive installation.
+
 ## 2026.44.6 — 2026-10-28
 
 ### Added

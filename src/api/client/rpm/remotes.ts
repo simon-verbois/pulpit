@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type {
@@ -24,12 +25,9 @@ export function listRpmRemotes(
   return pulpFetch<PulpPage<RpmRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every remote page - used to populate the small "remote" select in
- * the repository create form, which isn't expected to have hundreds of
- * remotes in this bootstrap's scope. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllRpmRemotes(): Promise<RpmRemote[]> {
-  const page = await listRpmRemotes({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listRpmRemotes({ limit: 100, offset }));
 }
 
 export interface RpmRemoteOption {
@@ -45,16 +43,16 @@ export interface RpmRemoteOption {
  * Not for ACS, which only accepts standard remotes. */
 export async function listAllRpmRemoteOptions(): Promise<RpmRemoteOption[]> {
   const [standard, uln] = await Promise.all([
-    listRpmRemotes({ limit: 100, offset: 0 }),
-    listRpmUlnRemotes({ limit: 100, offset: 0 }),
+    collectPulpPages((offset) => listRpmRemotes({ limit: 100, offset })),
+    collectPulpPages((offset) => listRpmUlnRemotes({ limit: 100, offset })),
   ]);
   return [
-    ...standard.results.map((r) => ({
+    ...standard.map((r) => ({
       pulp_href: r.pulp_href,
       name: r.name,
       kind: "standard" as const,
     })),
-    ...uln.results.map((r) => ({
+    ...uln.map((r) => ({
       pulp_href: r.pulp_href,
       name: r.name,
       kind: "uln" as const,

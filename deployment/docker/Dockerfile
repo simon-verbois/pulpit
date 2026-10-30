@@ -55,8 +55,7 @@ WORKDIR /app
 ARG TZ="UTC"
 ENV TZ=$TZ
 
-# gnupg + rpm: signing automation (app/modules/signing/rpm_resign.py docstring
-# - Debian's `rpm` package provides both `rpm` and `rpmsign`). nginx +
+# gnupg: signing-key lifecycle; RPM preparation now runs inside Pulp. nginx +
 # gettext-base (envsubst): the reverse proxy + its own config templating
 # (deployment/docker/pulpit/entrypoint.sh - no nginx.org Docker image here,
 # so its usual envsubst-on-templates machinery is reimplemented by hand
@@ -64,7 +63,7 @@ ENV TZ=$TZ
 # the TZ env var above against and silently falls back to UTC instead of
 # erroring - this package is what actually makes TZ take effect.
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y gnupg rpm nginx gettext-base curl tzdata \
+    && apt-get install --no-install-recommends -y gnupg nginx gettext-base curl tzdata \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/nginx/sites-enabled/default
 

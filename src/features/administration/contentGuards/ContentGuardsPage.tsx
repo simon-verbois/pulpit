@@ -1,17 +1,8 @@
 import { useMemo, useState } from "react";
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Pagination,
-  PageSection,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, Flex, FlexItem, PageSection, SearchInput } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -35,7 +26,7 @@ export function ContentGuardsPage() {
   const [managingAccessGuard, setManagingAccessGuard] =
     useState<ContentGuardSummary | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ContentGuardSummary | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, search);
   const deleteMutation = useDeleteContentGuardMutation();
 
   const guardsQuery = useContentGuardsQuery({
@@ -56,37 +47,23 @@ export function ContentGuardsPage() {
   const isFiltered = search !== "";
 
   const toolbar = (
-    <Toolbar>
-      <ToolbarContent>
-        {/* Fixed width - without it, the bar grows/shrinks as the clear
-            ("x") button appears/disappears with typed text (VERIFIED:
-            SearchInput has no intrinsic width of its own). */}
-        <ToolbarItem style={{ width: "18rem" }}>
-          <SearchInput
-            aria-label="Search content guards by name"
-            placeholder="Search by name…"
-            value={searchInput}
-            onChange={(_event, value) => setSearchInput(value)}
-            onSearch={() => setSearch(searchInput)}
-            onClear={() => {
-              setSearchInput("");
-              setSearch("");
-            }}
-          />
-        </ToolbarItem>
-        <ToolbarItem align={{ default: "alignEnd" }}>
-          <Pagination
-            itemCount={guardsQuery.data?.count ?? 0}
-            page={pagination.page}
-            perPage={pagination.perPage}
-            perPageOptions={pagination.perPageOptions}
-            onSetPage={pagination.onSetPage}
-            onPerPageSelect={pagination.onPerPageSelect}
-            isCompact
-          />
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+    <ListToolbar
+      search={
+        <SearchInput
+          aria-label="Search content guards by name"
+          placeholder="Search by name…"
+          value={searchInput}
+          onChange={(_event, value) => setSearchInput(value)}
+          onSearch={() => setSearch(searchInput)}
+          onClear={() => {
+            setSearchInput("");
+            setSearch("");
+          }}
+        />
+      }
+      pagination={pagination}
+      itemCount={guardsQuery.data?.count ?? 0}
+    />
   );
 
   return (
@@ -102,14 +79,20 @@ export function ContentGuardsPage() {
         {guardsQuery.isError ? (
           <ErrorState error={guardsQuery.error} onRetry={() => guardsQuery.refetch()} />
         ) : null}
-        {guardsQuery.isSuccess && guardsQuery.data.results.length === 0 && !isFiltered ? (
+        {guardsQuery.isSuccess &&
+        guardsQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        !isFiltered ? (
           <EmptyState
             variant="sm"
             title="No content guards yet"
             body="Create one above, then set it as a repository distribution's content guard to restrict who can pull from it."
           />
         ) : null}
-        {guardsQuery.isSuccess && guardsQuery.data.results.length === 0 && isFiltered ? (
+        {guardsQuery.isSuccess &&
+        guardsQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        isFiltered ? (
           <>
             {toolbar}
             <EmptyState
@@ -119,7 +102,8 @@ export function ContentGuardsPage() {
             />
           </>
         ) : null}
-        {guardsQuery.isSuccess && guardsQuery.data.results.length > 0 ? (
+        {guardsQuery.isSuccess &&
+        (guardsQuery.data.results.length > 0 || pagination.page > 1) ? (
           <>
             {toolbar}
             <Table aria-label="Content guards" variant="compact" gridBreakPoint="grid-lg">

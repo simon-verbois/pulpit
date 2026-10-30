@@ -66,7 +66,10 @@ breadcrumb trail - one was tried (a `PulpIT > <page>` row above every page's con
 `handle: {crumb}` route metadata) but removed per direct user feedback ("partout... retire les");
 each page's own `PageHeader` title already says where you are. `PageHeader` likewise renders no
 generic subtitle/tagline: sentences that merely restate the current section add noise without
-helping the user complete a task. Action-specific guidance, empty-state explanations, warnings,
+helping the user complete a task. Every page header reserves at least the height of a standard
+PatternFly action button, so the primary panel starts at the same position on pages with and
+without actions. This is a minimum, allowing long titles and action rows to wrap on small screens.
+Action-specific guidance, empty-state explanations, warnings,
 and resource data remain visible where they are useful. A nav group auto-expands whenever
 the current route lives inside it (`AppNav.tsx` passes `isExpanded` to `NavExpandable`, matching
 its existing `isActive`) so reloading a page never collapses its own section back to closed - the
@@ -93,6 +96,26 @@ interactive targets without giving them the visual weight of primary page action
 The sidebar stays open and the mark has no click, hover, focus, or collapse behavior.
 `.pulpit-brand-text` uses PatternFly's heading family and weight only; it inherits the masthead
 foreground instead of adding a brand color.
+
+### Shared page and list layouts
+
+- `PageLayout` composes `PageHeader`, the optional notice and one primary `PageSection`.
+  Use `type="tabs"` for tabbed pages and the `notice` slot for repository sync warnings. Loading,
+  error and not-found views use the same layout. Overview keeps its dashboard composition.
+- The explicit `pulpit-page-panel` class owns the panel's margins, surface, tables and tab bodies.
+  These styles never depend on the title being an adjacent sibling; a warning cannot make the
+  panel lose its layout. Page-specific actions remain in the shared header's `actions` slot.
+  Tabbed panels can shrink to the available space; tab bars keep their height and active tab bodies
+  scroll internally. This prevents overlapping tabs and an extra outer scrollbar on long forms.
+- Use `reserveActions` when switching tabs can remove all header actions, as in Administration.
+  The shared header reserves the action row on narrow screens as well as the button height on desktop.
+- `ListToolbar` owns `Toolbar`/`ToolbarContent`, the search width, pagination placement and compact
+  pagination props. Pass plugin-specific controls as children, the existing search input as
+  `search`, and `usePulpPagination()` state as `pagination`, with `itemCount`. Conditional controls
+  stay conditional in the caller. Keep filters and requests in their feature, outside layout code.
+- Apply spacing fixes to these shared components and classes. Do not duplicate toolbar markup or
+  add plugin-specific title/panel offsets. Check navigation between pages with and without actions,
+  tabbed pages, warnings, both themes and narrow screens before changing the shared layout.
 
 ## Authentication
 
@@ -169,7 +192,9 @@ class (`global.css`) adds `justify-content: flex-end` to actually push it to the
 - Long technical identifiers and URLs use PatternFly's compact clipboard-copy treatment with
   middle truncation. The complete value remains available in a tooltip and can be copied without
   selecting wrapped table text.
-- Row actions via a kebab/dropdown menu; destructive actions require confirmation (see below).
+- Repository row actions use a dropdown menu with a visible three-horizontal-line icon, rather
+  than three dots. Keep its accessible label specific to the repository and preserve the running
+  task spinner. Destructive actions require confirmation (see below).
 - Status is rendered through the shared `StatusIndicator` as a compact, rounded PatternFly label.
   Its text always carries the complete meaning; color reinforces success, failure, warning, or an
   in-progress state but is never the only signal. Category values and tags remain plain text or
@@ -446,8 +471,32 @@ the PatternFly dark-theme handbook), so Pulpit provides its own:
   are bundled from `CHANGELOG.md` during the build, including container builds; no runtime
   request or external website is needed. Unreleased notes are excluded.
 - On the first authenticated visit to a new version, open the current notes automatically.
-  Closing the modal acknowledges the running version, independently of the version being browsed.
-  Remember this UI preference in localStorage per Pulp account and browser. It contains only a
-  release version, never credentials. Reloads and later logins to the same version do not reopen
-  it; a newer version does. First-time visitors see the current notes too.
+  The first display acknowledges the running version, so leaving the tab while the popup is
+  open cannot cause another announcement on the next login. Store this UI preference per stable
+  Pulp account PRN and browser in localStorage, with a non-sensitive SameSite cookie fallback and
+  an in-memory fallback when persistence is blocked. Recognize the former user-href storage keys
+  during migration. The value is only a release version, never credentials. Reloads and later
+  logins to the same version do not reopen it; a newer version does. A rollback cannot overwrite
+  a newer acknowledgement. First-time visitors see the current notes too.
 - The modal supports Escape, focus restoration and scrolling by keyboard on small screens.
+
+## Complete catalogs and shared repository operations
+
+Pickers and client-side-search catalogs load every Pulp page. A rendering/search page size is not
+an API result cap. Search, flavor and status changes reset pagination; deleting the final row of a
+later page returns to a valid page. Active tasks are never evicted by the recent-history limit.
+On reload, discover active tasks/jobs from their own servers and resolve Pulp PRNs before locking
+repository actions. Keep browser-supplied labels and invalidation metadata when merging recovery.
+Task groups include dispatch completion and every child; failures still refresh partially changed
+resources. A partially accepted copy keeps each accepted task visible and retries missing requests.
+
+Keep Sync now as the quick action. Sync with options belongs in the existing action menu and uses
+a shared dialog. Mirror modes explain removal and require confirmation. Selective copy uses a
+searchable, paginated content table; selections survive page/type changes. Every retained version
+can be copied. Do not offer signature-presence filtering as cryptographic verification.
+
+Distribution creation/editing share target, access, visibility and orphan-reconnection controls.
+Names are independent of paths; existing publications and pinned versions remain visible in their
+owning repository. Require an explicit reconnect confirmation, re-check ownership before writing,
+and preserve access settings. For registries, offer native redirect guards and Private, not
+unsupported generic guards. Determine actual deletion impact before enabling confirmation.

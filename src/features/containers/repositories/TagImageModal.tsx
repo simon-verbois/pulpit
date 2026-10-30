@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../../../api/client/pagination";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -39,11 +40,13 @@ export function TagImageModal({
   const manifestsQuery = useQuery({
     queryKey: ["pulp", "container", "manifests", repository.latest_version_href],
     queryFn: () =>
-      listContainerManifests({
-        limit: 100,
-        offset: 0,
-        repository_version: repository.latest_version_href,
-      }),
+      collectPulpPages((offset) =>
+        listContainerManifests({
+          limit: 100,
+          offset,
+          repository_version: repository.latest_version_href,
+        }),
+      ).then((results) => ({ results, count: results.length })),
   });
 
   const handleSubmit = () => {

@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type { PulpPage, MavenContent } from "./types";
@@ -17,17 +18,9 @@ export function listMavenContent(
   return pulpFetch<PulpPage<MavenContent>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** VERIFIED live: this endpoint has no `group_id__contains`/
- * `group_id__icontains` at all - only an exact-match `group_id` filter -
- * so a partial-text search box can't be implemented as a server-side
- * query param the way every other list page in this app does. Fetches
- * every artifact in one large page instead, for client-side search
- * (src/hooks/useClientSideSearch.ts) - bounded, not a true
- * unbounded-catalog fetch, which is a realistic assumption at the
- * self-hosted scale this app targets (CLAUDE.md "Stay 100% local"). */
+/** Read all catalog pages for client-side substring search. */
 export async function listAllMavenContent(): Promise<MavenContent[]> {
-  const page = await listMavenContent({ limit: 10000, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listMavenContent({ limit: 10000, offset }));
 }
 
 /**

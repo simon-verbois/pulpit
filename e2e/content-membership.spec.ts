@@ -67,11 +67,12 @@ test("global content rows link to their current repositories", async ({ page }) 
   expect(membershipRequests.length).toBeGreaterThan(0);
   expect(membershipFailures).toEqual([]);
 
-  const repositoryName = await repositoryLink.textContent();
-  await repositoryLink.click();
-  await expect(page).toHaveURL(
-    new RegExp(`/rpm/repositories/${encodeURIComponent(repositoryName ?? "")}$`),
-  );
+  const destination = await repositoryLink.getAttribute("href");
+  expect(destination).toBeTruthy();
+  // Membership requests can complete in a different order. Keep the selected
+  // href fixed instead of clicking whichever link becomes first later.
+  await table.locator(`a[href="${destination}"]`).first().click();
+  await expect(page).toHaveURL(new URL(destination!, page.url()).href);
 });
 
 test("repository membership remains visible at a narrower viewport", async ({ page }) => {

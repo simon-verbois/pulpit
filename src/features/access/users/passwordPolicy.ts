@@ -75,7 +75,7 @@ function isTooSimilar(password: string, context: PasswordPolicyContext): boolean
   );
 }
 
-export const PASSWORD_POLICY_RULES: PasswordPolicyRule[] = [
+const PASSWORD_POLICY_RULES: PasswordPolicyRule[] = [
   {
     id: "min-length",
     label: "At least 8 characters",

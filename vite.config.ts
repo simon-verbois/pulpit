@@ -84,6 +84,11 @@ export default defineConfig({
     proxy: {
       "/pulp/": { target: PULP_DEV_TARGET, changeOrigin: true },
       "/v2": { target: PULP_DEV_TARGET, changeOrigin: true },
+      "/pulp_ansible/": { target: PULP_DEV_TARGET, changeOrigin: true },
+      "/pulpit-core/": {
+        target: `http://localhost:${process.env.PULPIT_HTTP_PORT ?? "8080"}`,
+        changeOrigin: true,
+      },
     },
   },
   build: {

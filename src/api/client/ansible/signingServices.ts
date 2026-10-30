@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type { PulpPage, SigningService } from "./types";
@@ -11,8 +12,7 @@ import type { PulpPage, SigningService } from "./types";
 const BASE = apiPath("/signing-services/");
 
 export async function listAllSigningServices(): Promise<SigningService[]> {
-  const page = await pulpFetch<PulpPage<SigningService>>(
-    `${BASE}${buildQuery({ limit: 100, offset: 0 })}`,
+  return collectPulpPages((offset) =>
+    pulpFetch<PulpPage<SigningService>>(`${BASE}${buildQuery({ limit: 100, offset })}`),
   );
-  return page.results;
 }

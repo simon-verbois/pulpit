@@ -17,7 +17,7 @@ const TERMINAL_JOB_STATUSES = new Set(["success", "failed"]);
  * nothing succeeded, so there's nothing new to reflect.
  */
 export function useTrackedTask(task: TrackedTask) {
-  const query = useTask(task.href);
+  const query = useTask(task.href, task.kind === "group");
   const queryClient = useQueryClient();
   const { setTaskActive } = useTasksContext();
   const invalidatedRef = useRef(false);
@@ -29,14 +29,20 @@ export function useTrackedTask(task: TrackedTask) {
   }, [query.data?.state, setTaskActive, task.href]);
 
   useEffect(() => {
-    if (query.data?.state === "completed" && !invalidatedRef.current) {
+    if (
+      (query.data?.state === "completed" ||
+        (task.kind === "group" &&
+          query.data?.state &&
+          TERMINAL_TASK_STATES.has(query.data.state))) &&
+      !invalidatedRef.current
+    ) {
       invalidatedRef.current = true;
       queryClient.invalidateQueries({ queryKey: contentSizeKeys.all });
       for (const queryKey of task.invalidateKeys ?? []) {
         queryClient.invalidateQueries({ queryKey });
       }
     }
-  }, [query.data?.state, queryClient, task.invalidateKeys]);
+  }, [query.data?.state, queryClient, task.invalidateKeys, task.kind]);
 
   return query;
 }

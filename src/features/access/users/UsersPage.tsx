@@ -1,18 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Pagination,
-  PageSection,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, Flex, FlexItem, PageSection, SearchInput } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -30,7 +21,7 @@ export function UsersPage() {
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<User | null>(null);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, search);
   const deleteMutation = useDeleteUserMutation();
 
   const usersQuery = useUsersQuery({
@@ -51,37 +42,23 @@ export function UsersPage() {
   const isFiltered = search !== "";
 
   const toolbar = (
-    <Toolbar>
-      <ToolbarContent>
-        {/* Fixed width - without it, the bar grows/shrinks as the clear
-            ("x") button appears/disappears with typed text (VERIFIED:
-            SearchInput has no intrinsic width of its own). */}
-        <ToolbarItem style={{ width: "18rem" }}>
-          <SearchInput
-            aria-label="Search users by username"
-            placeholder="Search by username…"
-            value={searchInput}
-            onChange={(_event, value) => setSearchInput(value)}
-            onSearch={() => setSearch(searchInput)}
-            onClear={() => {
-              setSearchInput("");
-              setSearch("");
-            }}
-          />
-        </ToolbarItem>
-        <ToolbarItem align={{ default: "alignEnd" }}>
-          <Pagination
-            itemCount={usersQuery.data?.count ?? 0}
-            page={pagination.page}
-            perPage={pagination.perPage}
-            perPageOptions={pagination.perPageOptions}
-            onSetPage={pagination.onSetPage}
-            onPerPageSelect={pagination.onPerPageSelect}
-            isCompact
-          />
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+    <ListToolbar
+      search={
+        <SearchInput
+          aria-label="Search users by username"
+          placeholder="Search by username…"
+          value={searchInput}
+          onChange={(_event, value) => setSearchInput(value)}
+          onSearch={() => setSearch(searchInput)}
+          onClear={() => {
+            setSearchInput("");
+            setSearch("");
+          }}
+        />
+      }
+      pagination={pagination}
+      itemCount={usersQuery.data?.count ?? 0}
+    />
   );
 
   return (
@@ -96,14 +73,20 @@ export function UsersPage() {
         {usersQuery.isError ? (
           <ErrorState error={usersQuery.error} onRetry={() => usersQuery.refetch()} />
         ) : null}
-        {usersQuery.isSuccess && usersQuery.data.results.length === 0 && !isFiltered ? (
+        {usersQuery.isSuccess &&
+        usersQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        !isFiltered ? (
           <EmptyState
             variant="sm"
             title="No users yet"
             body="Create a Pulp account above so someone else can log in."
           />
         ) : null}
-        {usersQuery.isSuccess && usersQuery.data.results.length === 0 && isFiltered ? (
+        {usersQuery.isSuccess &&
+        usersQuery.data.results.length === 0 &&
+        pagination.page === 1 &&
+        isFiltered ? (
           <>
             {toolbar}
             <EmptyState
@@ -113,7 +96,8 @@ export function UsersPage() {
             />
           </>
         ) : null}
-        {usersQuery.isSuccess && usersQuery.data.results.length > 0 ? (
+        {usersQuery.isSuccess &&
+        (usersQuery.data.results.length > 0 || pagination.page > 1) ? (
           <>
             {toolbar}
             <Table aria-label="Users" variant="compact">

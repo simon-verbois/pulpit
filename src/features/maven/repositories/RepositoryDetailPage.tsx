@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageSection, Tab, TabTitleText, Tabs } from "@patternfly/react-core";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -30,47 +30,38 @@ export function RepositoryDetailPage() {
 
   if (repositoryQuery.isPending) {
     return (
-      <>
-        <PageHeader title={name} />
-        <PageSection hasBodyWrapper={false}>
-          <LoadingState label="Loading repository" />
-        </PageSection>
-      </>
+      <PageLayout title={name}>
+        <LoadingState label="Loading repository" />
+      </PageLayout>
     );
   }
 
   if (repositoryQuery.isError) {
     return (
-      <>
-        <PageHeader title={name} />
-        <PageSection hasBodyWrapper={false}>
-          <ErrorState
-            error={repositoryQuery.error}
-            onRetry={() => repositoryQuery.refetch()}
-          />
-        </PageSection>
-      </>
+      <PageLayout title={name}>
+        <ErrorState
+          error={repositoryQuery.error}
+          onRetry={() => repositoryQuery.refetch()}
+        />
+      </PageLayout>
     );
   }
 
   const repository = repositoryQuery.data;
   if (!repository) {
     return (
-      <>
-        <PageHeader title={name} />
-        <PageSection hasBodyWrapper={false}>
-          <EmptyState
-            title="Repository not found"
-            body={`No Maven repository named "${name}" exists.`}
-          />
-        </PageSection>
-      </>
+      <PageLayout title={name}>
+        <EmptyState
+          title="Repository not found"
+          body={`No Maven repository named "${name}" exists.`}
+        />
+      </PageLayout>
     );
   }
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title={repository.name}
         description={repository.description ?? undefined}
         actions={
@@ -80,8 +71,8 @@ export function RepositoryDetailPage() {
             onDelete={() => setIsConfirmingDelete(true)}
           />
         }
-      />
-      <PageSection hasBodyWrapper={false} type="tabs">
+        type="tabs"
+      >
         <Tabs activeKey={activeTab} onSelect={(_event, key) => setActiveTab(key)}>
           <Tab eventKey="overview" title={<TabTitleText>Overview</TabTitleText>}>
             <PageSection hasBodyWrapper={false}>
@@ -118,7 +109,7 @@ export function RepositoryDetailPage() {
             </PageSection>
           </Tab>
         </Tabs>
-      </PageSection>
+      </PageLayout>
 
       {isEditOpen ? (
         <EditRepositoryModal

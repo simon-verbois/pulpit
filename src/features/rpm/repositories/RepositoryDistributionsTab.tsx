@@ -1,13 +1,9 @@
+import { EditDistributionButton } from "../../../components/EditDistributionButton";
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -98,7 +94,9 @@ export function RepositoryDistributionsTab({
           onRetry={() => distributionsQuery.refetch()}
         />
       ) : null}
-      {distributionsQuery.isSuccess && distributionsQuery.data.results.length === 0 ? (
+      {distributionsQuery.isSuccess &&
+      distributionsQuery.data.results.length === 0 &&
+      pagination.page === 1 ? (
         <EmptyState
           variant="sm"
           title="No distributions yet"
@@ -108,26 +106,14 @@ export function RepositoryDistributionsTab({
           }
         />
       ) : null}
-      {distributionsQuery.isSuccess && distributionsQuery.data.results.length > 0 ? (
+      {distributionsQuery.isSuccess &&
+      (distributionsQuery.data.results.length > 0 || pagination.page > 1) ? (
         <>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem>
-                <Button onClick={() => setIsCreateOpen(true)}>Create distribution</Button>
-              </ToolbarItem>
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={distributionsQuery.data.count}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
-                />
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar pagination={pagination} itemCount={distributionsQuery.data.count}>
+            <ToolbarItem>
+              <Button onClick={() => setIsCreateOpen(true)}>Create distribution</Button>
+            </ToolbarItem>
+          </ListToolbar>
           <Table
             aria-label="Distributions"
             variant="compact"
@@ -149,6 +135,11 @@ export function RepositoryDistributionsTab({
                     <RepoConfigCell distribution={distribution} repository={repository} />
                   </Td>
                   <Td dataLabel="Actions" isActionCell hasAction>
+                    <EditDistributionButton
+                      distributionHref={distribution.pulp_href}
+                      repositoryHref={repository.pulp_href}
+                      repositoryName={repository.name}
+                    />
                     <TaskActionButton
                       resourceHref={distribution.pulp_href}
                       taskAction="delete"

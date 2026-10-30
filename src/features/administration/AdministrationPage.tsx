@@ -8,7 +8,7 @@ import {
   Tabs,
 } from "@patternfly/react-core";
 
-import { PageHeader } from "../../components/PageHeader";
+import { PageLayout } from "../../components/PageLayout";
 import {
   AdministrationHeaderActionProvider,
   useAdministrationHeaderActionFor,
@@ -127,102 +127,98 @@ function AdministrationPageContent({
   );
 
   return (
-    <>
-      <PageHeader
-        title="Administration"
-        className="pulpit-administration-header"
-        description="Instance-wide configuration: what every user sees, users/groups/roles, LDAP authentication, repository signing, Pulp signing services, content guards, TLS, and a global outbound proxy and trusted CA certificates."
-        actions={headerAction}
-      />
-      <PageSection hasBodyWrapper={false} type="tabs">
-        {/* mountOnEnter - several tabs have their own list/settings
+    <PageLayout
+      title="Administration"
+      description="Instance-wide configuration: what every user sees, users/groups/roles, LDAP authentication, repository signing, Pulp signing services, content guards, TLS, and a global outbound proxy and trusted CA certificates."
+      actions={headerAction}
+      reserveActions
+      type="tabs"
+    >
+      {/* mountOnEnter - several tabs have their own list/settings
             queries; without this every one of them would fetch on every
             /admin visit regardless of which tab is actually shown. */}
-        <Tabs
-          activeKey={activeTab}
-          onSelect={(_event, key) => onSelectTab(String(key))}
-          mountOnEnter
-          tabListAriaLabel="Administration sections"
-          isOverflowHorizontal={{
-            showTabCount: true,
-            defaultTitleText: "More",
-            toggleAriaLabel: "More administration sections",
-          }}
+      <Tabs
+        activeKey={activeTab}
+        onSelect={(_event, key) => onSelectTab(String(key))}
+        mountOnEnter
+        tabListAriaLabel="Administration sections"
+        isOverflowHorizontal={{
+          showTabCount: true,
+          defaultTitleText: "More",
+          toggleAriaLabel: "More administration sections",
+        }}
+      >
+        <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
+          <PageSection hasBodyWrapper={false}>
+            <Grid hasGutter>
+              <GridItem span={12} xl={7}>
+                <NavVisibilitySettingsSection />
+              </GridItem>
+              <GridItem span={12} xl={5}>
+                <TaskRetentionSection />
+              </GridItem>
+            </Grid>
+          </PageSection>
+        </Tab>
+        <Tab eventKey="access" title={<TabTitleText>Access</TabTitleText>}>
+          <Tabs
+            activeKey={activeSubTab}
+            onSelect={(_event, key) => onSelectSubTab("access", String(key))}
+            mountOnEnter
+          >
+            <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+              <UsersPage />
+            </Tab>
+            <Tab eventKey="groups" title={<TabTitleText>Groups</TabTitleText>}>
+              <GroupsPage />
+            </Tab>
+            <Tab eventKey="roles" title={<TabTitleText>Roles</TabTitleText>}>
+              <RolesPage />
+            </Tab>
+            <Tab eventKey="ldap" title={<TabTitleText>LDAP</TabTitleText>}>
+              <LdapSettingsPage />
+            </Tab>
+          </Tabs>
+        </Tab>
+        <Tab
+          eventKey="repository-signing"
+          title={<TabTitleText>Repository Signing</TabTitleText>}
         >
-          <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
-            <PageSection hasBodyWrapper={false}>
-              <Grid hasGutter>
-                <GridItem span={12} xl={7}>
-                  <NavVisibilitySettingsSection />
-                </GridItem>
-                <GridItem span={12} xl={5}>
-                  <TaskRetentionSection />
-                </GridItem>
-              </Grid>
-            </PageSection>
-          </Tab>
-          <Tab eventKey="access" title={<TabTitleText>Access</TabTitleText>}>
-            <Tabs
-              activeKey={activeSubTab}
-              onSelect={(_event, key) => onSelectSubTab("access", String(key))}
-              mountOnEnter
+          <Tabs
+            activeKey={activeSubTab}
+            onSelect={(_event, key) => onSelectSubTab("repository-signing", String(key))}
+            mountOnEnter
+          >
+            <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
+              <RepositorySigningPage />
+            </Tab>
+            <Tab
+              eventKey="pulp-signing-services"
+              title={<TabTitleText>Pulp Signing Services</TabTitleText>}
             >
-              <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
-                <UsersPage />
-              </Tab>
-              <Tab eventKey="groups" title={<TabTitleText>Groups</TabTitleText>}>
-                <GroupsPage />
-              </Tab>
-              <Tab eventKey="roles" title={<TabTitleText>Roles</TabTitleText>}>
-                <RolesPage />
-              </Tab>
-              <Tab eventKey="ldap" title={<TabTitleText>LDAP</TabTitleText>}>
-                <LdapSettingsPage />
-              </Tab>
-            </Tabs>
-          </Tab>
-          <Tab
-            eventKey="repository-signing"
-            title={<TabTitleText>Repository Signing</TabTitleText>}
-          >
-            <Tabs
-              activeKey={activeSubTab}
-              onSelect={(_event, key) =>
-                onSelectSubTab("repository-signing", String(key))
-              }
-              mountOnEnter
-            >
-              <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
-                <RepositorySigningPage />
-              </Tab>
-              <Tab
-                eventKey="pulp-signing-services"
-                title={<TabTitleText>Pulp Signing Services</TabTitleText>}
-              >
-                <SigningPage />
-              </Tab>
-            </Tabs>
-          </Tab>
-          <Tab
-            eventKey="content-guards"
-            title={<TabTitleText>Content guards</TabTitleText>}
-          >
-            <ContentGuardsPage />
-          </Tab>
-          <Tab eventKey="tls" title={<TabTitleText>TLS</TabTitleText>}>
-            <TlsPage
-              activeSubTab={activeSubTab}
-              onSelectSubTab={(subtab) => onSelectSubTab("tls", subtab)}
-            />
-          </Tab>
-          <Tab
-            eventKey="default-settings"
-            title={<TabTitleText>Global Proxy Settings</TabTitleText>}
-          >
-            <DefaultSettingsPage />
-          </Tab>
-        </Tabs>
-      </PageSection>
-    </>
+              <SigningPage />
+            </Tab>
+          </Tabs>
+        </Tab>
+        <Tab
+          eventKey="content-guards"
+          title={<TabTitleText>Content guards</TabTitleText>}
+        >
+          <ContentGuardsPage />
+        </Tab>
+        <Tab eventKey="tls" title={<TabTitleText>TLS</TabTitleText>}>
+          <TlsPage
+            activeSubTab={activeSubTab}
+            onSelectSubTab={(subtab) => onSelectSubTab("tls", subtab)}
+          />
+        </Tab>
+        <Tab
+          eventKey="default-settings"
+          title={<TabTitleText>Global Proxy Settings</TabTitleText>}
+        >
+          <DefaultSettingsPage />
+        </Tab>
+      </Tabs>
+    </PageLayout>
   );
 }

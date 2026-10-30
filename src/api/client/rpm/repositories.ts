@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type {
@@ -23,12 +24,9 @@ export function listRpmRepositories(
   return pulpFetch<PulpPage<RpmRepository>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every repository page - used to populate small "repository"
- * selects (e.g. the distribution create form) - see the equivalent
- * listAllRpmRemotes for the same rationale. */
+/** Read all pages for repository and resource pickers. */
 export async function listAllRpmRepositories(): Promise<RpmRepository[]> {
-  const page = await listRpmRepositories({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listRpmRepositories({ limit: 100, offset }));
 }
 
 /**

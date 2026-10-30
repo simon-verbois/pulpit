@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type {
@@ -23,11 +24,9 @@ export function listContainerRepositories(
   return pulpFetch<PulpPage<ContainerRepository>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every repository page - used to populate small "repository"
- * selects (e.g. the distribution create form, the copy-content modal). */
+/** Read all pages for repository and resource pickers. */
 export async function listAllContainerRepositories(): Promise<ContainerRepository[]> {
-  const page = await listContainerRepositories({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listContainerRepositories({ limit: 100, offset }));
 }
 
 /**
@@ -126,19 +125,27 @@ export function untagContainerImage(
 export function copyContainerTags(
   destinationHref: string,
   sourceRepositoryVersionHref: string,
+  names?: string[],
 ): Promise<{ task: string }> {
   return pulpFetch<{ task: string }>(`${destinationHref}copy_tags/`, {
     method: "POST",
-    body: JSON.stringify({ source_repository_version: sourceRepositoryVersionHref }),
+    body: JSON.stringify({
+      source_repository_version: sourceRepositoryVersionHref,
+      ...(names ? { names } : {}),
+    }),
   });
 }
 
 export function copyContainerManifests(
   destinationHref: string,
   sourceRepositoryVersionHref: string,
+  options: { digests?: string[]; media_types?: string[] } = {},
 ): Promise<{ task: string }> {
   return pulpFetch<{ task: string }>(`${destinationHref}copy_manifests/`, {
     method: "POST",
-    body: JSON.stringify({ source_repository_version: sourceRepositoryVersionHref }),
+    body: JSON.stringify({
+      source_repository_version: sourceRepositoryVersionHref,
+      ...options,
+    }),
   });
 }

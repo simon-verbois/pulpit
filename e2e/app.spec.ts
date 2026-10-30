@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 test("task help explains how to follow progress and retry failures", async ({ page }) => {
   await page.goto("/tasks");
   await page.getByRole("button", { name: "Helper" }).click();
-  await expect(page.getByText(/Large syncs can run for hours/)).toBeVisible();
+  await expect(
+    page.getByText(/Active operations are restored after reloading/),
+  ).toBeVisible();
   await expect(page.getByText(/fix the reported problem and retry/)).toBeVisible();
   await expect(page.getByText(/Purged history cannot be recovered/)).toBeVisible();
 });
@@ -326,5 +328,50 @@ test("switching theme preserves the shell and Overview geometry", async ({ page 
     expect(darkBoxes[index]?.y).toBeCloseTo(lightBoxes[index]?.y ?? 0, 1);
     expect(darkBoxes[index]?.width).toBeCloseTo(lightBoxes[index]?.width ?? 0, 1);
     expect(darkBoxes[index]?.height).toBeCloseTo(lightBoxes[index]?.height ?? 0, 1);
+  }
+});
+
+test("repository and package panels keep the same top position across navigation", async ({
+  page,
+}) => {
+  for (const width of [1280, 2048]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("/rpm/repositories");
+    for (const theme of ["light", "dark"]) {
+      const isDark = await page
+        .locator("html")
+        .evaluate((element) => element.classList.contains("pf-v6-theme-dark"));
+      if (isDark !== (theme === "dark")) {
+        await page.getByRole("button", { name: `Switch to ${theme} theme` }).click();
+      }
+      const positions: { title: number; panel: number }[] = [];
+      for (const name of ["Repositories", "Packages", "Repositories"]) {
+        const nav = page.getByRole("navigation", { name: "PulpIT navigation" });
+        await nav.getByRole("link", { name, exact: true }).first().click();
+        await expect(
+          page.getByRole("grid", { name: `RPM ${name.toLowerCase()}` }),
+        ).toBeVisible();
+        const header = page.locator(".pulpit-page-header");
+        const title = await header.getByRole("heading", { level: 1 }).boundingBox();
+        const panel = await page.locator(".pulpit-page-panel").boundingBox();
+        expect(title).not.toBeNull();
+        expect(panel).not.toBeNull();
+        positions.push({ title: title!.y, panel: panel!.y });
+      }
+      for (const position of positions.slice(1)) {
+        expect(position.title).toBeCloseTo(positions[0].title, 1);
+        expect(position.panel).toBeCloseTo(positions[0].panel, 1);
+      }
+      const actions = page.getByRole("button", { name: /^Actions for / }).first();
+      await actions.click();
+      await expect(
+        page.getByRole("menuitem", { name: "Edit", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("menuitem", { name: "Delete", exact: true }),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(actions).toBeFocused();
+    }
   }
 });

@@ -22,13 +22,7 @@ export function listMavenRemotes(
   return pulpFetch<PulpPage<MavenRemote>>(`${BASE}${buildQuery(params)}`);
 }
 
-/** Fetches every remote page - used to populate the "remote" select in the
- * distribution create form (pull-through caching), which isn't expected to
- * have hundreds of remotes in this bootstrap's scope. */
-export async function listAllMavenRemotes(): Promise<MavenRemote[]> {
-  const page = await listMavenRemotes({ limit: 100, offset: 0 });
-  return page.results;
-}
+/** Read all pages for repository and resource pickers. */
 
 export function createMavenRemote(data: MavenRemoteCreate): Promise<MavenRemote> {
   return pulpFetch<MavenRemote>(BASE, {

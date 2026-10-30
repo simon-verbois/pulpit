@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { listRepositoryVersions } from "../../../api/client/deb/repositories";
 import type { DebRepository } from "../../../api/client/deb/types";
 import { LoadingState } from "../../../components/LoadingState";
@@ -42,30 +43,22 @@ export function RepositoryVersionsTab({ repository }: { repository: DebRepositor
       {versionsQuery.isError ? (
         <ErrorState error={versionsQuery.error} onRetry={() => versionsQuery.refetch()} />
       ) : null}
-      {versionsQuery.isSuccess && versionsQuery.data.results.length === 0 ? (
+      {versionsQuery.isSuccess &&
+      versionsQuery.data.results.length === 0 &&
+      pagination.page === 1 ? (
         <EmptyState
           variant="sm"
           title="No versions yet"
           body="A repository gets its first version once content is synced or added to it."
         />
       ) : null}
-      {versionsQuery.isSuccess && versionsQuery.data.results.length > 0 ? (
+      {versionsQuery.isSuccess &&
+      (versionsQuery.data.results.length > 0 || pagination.page > 1) ? (
         <>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={versionsQuery.data?.count ?? 0}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
-                />
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar
+            pagination={pagination}
+            itemCount={versionsQuery.data?.count ?? 0}
+          />
           <Table aria-label="Repository versions" variant="compact">
             <Thead>
               <Tr>

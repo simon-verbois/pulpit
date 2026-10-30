@@ -1,11 +1,27 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from hashlib import blake2b
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.jobs.models import Job, JobStatus
+
+
+def lock_job_submission(db: Session, resource: str) -> None:
+    """Serialize deduplication and insertion, after all external I/O.
+
+    The caller commits immediately after queuing; no network work belongs
+    between this lock and that commit.
+    """
+    db.commit()
+    dialect = db.get_bind().dialect.name
+    if dialect == "sqlite":
+        db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+    elif dialect == "postgresql":
+        key = int.from_bytes(blake2b(resource.encode(), digest_size=8).digest(), signed=True)
+        db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": key})
 
 
 def enqueue_job(

@@ -45,9 +45,7 @@ describe("Container RepositoryDistributionsTab", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Create distribution" })[0]);
 
     const dialog = await screen.findByRole("dialog");
-    expect(
-      within(dialog).queryByLabelText("Name", { exact: false }),
-    ).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Name", { exact: false })).toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Base path", { exact: false }), {
       target: { value: "new-dist-path" },
     });
@@ -76,7 +74,7 @@ describe("Container RepositoryDistributionsTab", () => {
       fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
       const dialog = await screen.findByRole("dialog");
-      expect(within(dialog).getByText(/also deletes/i)).toBeInTheDocument();
+      expect(await within(dialog).findByText(/also deletes/i)).toBeInTheDocument();
       fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

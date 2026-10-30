@@ -1,13 +1,8 @@
 import { useState } from "react";
-import {
-  Button,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, ToolbarItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../../components/ListToolbar";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -42,7 +37,9 @@ export function GroupRolesTab({ group }: { group: Group }) {
       {rolesQuery.isError ? (
         <ErrorState error={rolesQuery.error} onRetry={() => rolesQuery.refetch()} />
       ) : null}
-      {rolesQuery.isSuccess && rolesQuery.data.results.length === 0 ? (
+      {rolesQuery.isSuccess &&
+      rolesQuery.data.results.length === 0 &&
+      pagination.page === 1 ? (
         <EmptyState
           variant="sm"
           title="No roles assigned yet"
@@ -50,26 +47,14 @@ export function GroupRolesTab({ group }: { group: Group }) {
           action={<Button onClick={() => setIsAssignOpen(true)}>Assign role…</Button>}
         />
       ) : null}
-      {rolesQuery.isSuccess && rolesQuery.data.results.length > 0 ? (
+      {rolesQuery.isSuccess &&
+      (rolesQuery.data.results.length > 0 || pagination.page > 1) ? (
         <>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem>
-                <Button onClick={() => setIsAssignOpen(true)}>Assign role…</Button>
-              </ToolbarItem>
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={rolesQuery.data.count}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
-                />
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar pagination={pagination} itemCount={rolesQuery.data.count}>
+            <ToolbarItem>
+              <Button onClick={() => setIsAssignOpen(true)}>Assign role…</Button>
+            </ToolbarItem>
+          </ListToolbar>
           <Table aria-label="Assigned roles" variant="compact">
             <Thead>
               <Tr>

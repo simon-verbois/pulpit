@@ -48,6 +48,12 @@ test("new releases open once after login and dismissal survives reloads", async 
           localStorage.setItem(key, "2026.1.1");
         }
       }
+      for (const cookie of document.cookie.split(";")) {
+        const name = cookie.split("=")[0].trim();
+        if (name.startsWith("pulpit_release_seen_")) {
+          document.cookie = `${name}=2026.1.1; Path=/; SameSite=Lax`;
+        }
+      }
       sessionStorage.setItem("release-announcement-test", "started");
     }
   });
@@ -76,6 +82,16 @@ test("release popup is accessible in both themes and fits a narrow screen", asyn
     await page.getByRole("button", { name: "Changelog" }).click();
     const dialog = page.getByRole("dialog", { name: dialogName });
     await expect(dialog).toBeVisible();
+    // Theme and dialog transitions can briefly interpolate link colors.
+    // Measure the settled UI, including the footer behind the modal.
+    await page.evaluate(async () => {
+      await Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => undefined)),
+      );
+    });
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
@@ -97,4 +113,27 @@ test("release popup is accessible in both themes and fits a narrow screen", asyn
   expect(
     await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth),
   ).toBe(true);
+});
+
+test("reloading while the announcement is open does not announce it twice", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("release-open-reload")) return;
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("pulpit:last-seen-release:")) localStorage.removeItem(key);
+    }
+    for (const cookie of document.cookie.split(";")) {
+      const name = cookie.split("=")[0].trim();
+      if (name.startsWith("pulpit_release_seen_"))
+        document.cookie = `${name}=; Max-Age=0; Path=/`;
+    }
+    sessionStorage.setItem("release-open-reload", "started");
+  });
+  await page.goto("/");
+  const dialog = page.getByRole("dialog", { name: "What's new in PulpIT" });
+  await expect(dialog).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+  await expect(dialog).toHaveCount(0);
 });

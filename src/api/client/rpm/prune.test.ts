@@ -9,7 +9,7 @@ const BASE = "/pulp/api/v3/rpm/prune/";
 
 describe("rpm prune adapter", () => {
   it(
-    "resolves the returned task_group to its first task " +
+    "returns the task group for complete tracking " +
       "(VERIFIED live: prune returns {task_group}, not {task})",
     async () => {
       let requestBody: unknown;
@@ -40,11 +40,11 @@ describe("rpm prune adapter", () => {
         keep_days: 14,
         dry_run: true,
       });
-      expect(result.task).toBe("/pulp/api/v3/tasks/prune-task/");
+      expect(result.task).toBe("/pulp/api/v3/task-groups/prune-group/");
     },
   );
 
-  it("throws a clear error if the task group has no tasks to track", async () => {
+  it("keeps a group that has not dispatched any children yet", async () => {
     server.use(
       http.post(BASE, () =>
         HttpResponse.json(
@@ -63,6 +63,6 @@ describe("rpm prune adapter", () => {
         keep_days: 14,
         dry_run: true,
       }),
-    ).rejects.toThrow(/no task was found to track/);
+    ).resolves.toEqual({ task: "/pulp/api/v3/task-groups/empty/" });
   });
 });

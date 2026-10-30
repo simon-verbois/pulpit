@@ -16,6 +16,8 @@ RUN python3 /tmp/apply-download-timeouts.py && rm /tmp/apply-download-timeouts.p
 COPY global-network /tmp/pulpit-egress
 COPY distribution-path-policy /tmp/pulp-distribution-path-policy
 COPY remote-check /tmp/pulp-remote-check
+COPY signing-policy /tmp/pulp-rpm-signing-policy
+COPY api-compat /tmp/pulpit-api-compat
 COPY pulpit-signing-reconciler /usr/local/bin/pulpit-signing-reconciler
 COPY s6/pulpit-signing-reconciler /etc/s6-overlay/s6-rc.d/pulpit-signing-reconciler
 COPY pulpit-ldap-reconciler /usr/local/bin/pulpit-ldap-reconciler
@@ -26,8 +28,8 @@ COPY s6/pulpit-ldap-reconciler /etc/s6-overlay/s6-rc.d/pulpit-ldap-reconciler
 # ships instead of downloading it from PyPI - these three local packages
 # then install without any network access (a PyPI read timeout used to fail
 # the image build).
-RUN pip install --no-cache-dir --no-build-isolation /tmp/pulpit-egress /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check \
- && rm -rf /tmp/pulpit-egress /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check \
+RUN pip install --no-cache-dir --no-build-isolation /tmp/pulpit-egress /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check /tmp/pulp-rpm-signing-policy /tmp/pulpit-api-compat \
+ && rm -rf /tmp/pulpit-egress /tmp/pulp-distribution-path-policy /tmp/pulp-remote-check /tmp/pulp-rpm-signing-policy /tmp/pulpit-api-compat \
  && chmod 0755 /etc/s6-overlay/s6-rc.d/pulpit-egress-trust/run /usr/local/bin/pulpit-signing-reconciler \
       /etc/s6-overlay/s6-rc.d/pulpit-signing-reconciler/run \
       /usr/local/bin/pulpit-ldap-reconciler \

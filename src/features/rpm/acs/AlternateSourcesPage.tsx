@@ -1,17 +1,9 @@
 import { useState } from "react";
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Pagination,
-  PageSection,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, Flex, FlexItem } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { ListToolbar } from "../../../components/ListToolbar";
+import { PageLayout } from "../../../components/PageLayout";
 import { LoadingState } from "../../../components/LoadingState";
 import { ErrorState } from "../../../components/ErrorState";
 import { EmptyState } from "../../../components/EmptyState";
@@ -38,14 +30,13 @@ export function AlternateSourcesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title="RPM alternate content sources"
         description="Local mirror sources Pulp checks before reaching out to a remote's real upstream."
         actions={
           <Button onClick={() => setIsCreateOpen(true)}>Create alternate source</Button>
         }
-      />
-      <PageSection hasBodyWrapper={false}>
+      >
         {acsQuery.isPending ? (
           <LoadingState
             columns={["Name", "Paths", "Last refreshed", "Actions"]}
@@ -55,7 +46,9 @@ export function AlternateSourcesPage() {
         {acsQuery.isError ? (
           <ErrorState error={acsQuery.error} onRetry={() => acsQuery.refetch()} />
         ) : null}
-        {acsQuery.isSuccess && acsQuery.data.results.length === 0 ? (
+        {acsQuery.isSuccess &&
+        acsQuery.data.results.length === 0 &&
+        pagination.page === 1 ? (
           <EmptyState
             title="No alternate content sources yet"
             body="Create one to have Pulp check a local mirror before reaching a remote's real upstream."
@@ -66,23 +59,10 @@ export function AlternateSourcesPage() {
             }
           />
         ) : null}
-        {acsQuery.isSuccess && acsQuery.data.results.length > 0 ? (
+        {acsQuery.isSuccess &&
+        (acsQuery.data.results.length > 0 || pagination.page > 1) ? (
           <>
-            <Toolbar>
-              <ToolbarContent>
-                <ToolbarItem align={{ default: "alignEnd" }}>
-                  <Pagination
-                    itemCount={acsQuery.data?.count ?? 0}
-                    page={pagination.page}
-                    perPage={pagination.perPage}
-                    perPageOptions={pagination.perPageOptions}
-                    onSetPage={pagination.onSetPage}
-                    onPerPageSelect={pagination.onPerPageSelect}
-                    isCompact
-                  />
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
+            <ListToolbar pagination={pagination} itemCount={acsQuery.data?.count ?? 0} />
             <Table aria-label="RPM alternate content sources" variant="compact">
               <Thead>
                 <Tr>
@@ -145,7 +125,7 @@ export function AlternateSourcesPage() {
             </Table>
           </>
         ) : null}
-      </PageSection>
+      </PageLayout>
 
       {isCreateOpen ? <CreateAcsModal onClose={() => setIsCreateOpen(false)} /> : null}
       {pendingDelete ? (

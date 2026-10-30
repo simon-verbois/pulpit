@@ -4,3 +4,6 @@ playwright-report
 test-results
 src/api/generated
 package-lock.json
+
+**/.pytest_cache/
+**/.mypy_cache/

@@ -1,19 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Button,
-  Content,
-  Flex,
-  FlexItem,
-  Pagination,
-  PageSection,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from "@patternfly/react-core";
+import { Button, Content, Flex, FlexItem, SearchInput } from "@patternfly/react-core";
 
-import { PageHeader } from "../../../components/PageHeader";
+import { ListToolbar } from "../../../components/ListToolbar";
+import { PageLayout } from "../../../components/PageLayout";
 import { usePulpPagination } from "../../../hooks/usePulpPagination";
 import { useClientSideSearch } from "../../../hooks/useClientSideSearch";
 import { listAllCollectionVersions } from "../../../api/client/ansible/collectionVersions";
@@ -25,7 +15,7 @@ export function CollectionVersionsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [isDeprecateOpen, setIsDeprecateOpen] = useState(false);
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, search);
 
   // No server-side `name__contains` exists for this endpoint (VERIFIED
   // live) - listAllCollectionVersions's own comment explains why this
@@ -45,7 +35,7 @@ export function CollectionVersionsPage() {
 
   return (
     <>
-      <PageHeader
+      <PageLayout
         title="Collections"
         description="Collection versions across every Ansible repository Pulp knows about."
         actions={
@@ -53,9 +43,9 @@ export function CollectionVersionsPage() {
             Deprecate collection…
           </Button>
         }
-      />
-      <PageSection hasBodyWrapper={false}>
-        {deprecationsQuery.data && deprecationsQuery.data.results.length > 0 ? (
+      >
+        {deprecationsQuery.data &&
+        (deprecationsQuery.data.results.length > 0 || pagination.page > 1) ? (
           <Content component="p">
             <strong>Deprecated:</strong>{" "}
             <Flex
@@ -72,37 +62,23 @@ export function CollectionVersionsPage() {
           </Content>
         ) : null}
         {collectionVersionsQuery.isSuccess && (totalCount > 0 || isFiltered) ? (
-          <Toolbar>
-            <ToolbarContent>
-              {/* Fixed width - without it, the bar grows/shrinks as the clear
-                  ("x") button appears/disappears with typed text (VERIFIED:
-                  SearchInput has no intrinsic width of its own). */}
-              <ToolbarItem style={{ width: "18rem" }}>
-                <SearchInput
-                  aria-label="Search collections by name"
-                  placeholder="Search by name…"
-                  value={searchInput}
-                  onChange={(_event, value) => setSearchInput(value)}
-                  onSearch={() => setSearch(searchInput)}
-                  onClear={() => {
-                    setSearchInput("");
-                    setSearch("");
-                  }}
-                />
-              </ToolbarItem>
-              <ToolbarItem align={{ default: "alignEnd" }}>
-                <Pagination
-                  itemCount={totalCount}
-                  page={pagination.page}
-                  perPage={pagination.perPage}
-                  perPageOptions={pagination.perPageOptions}
-                  onSetPage={pagination.onSetPage}
-                  onPerPageSelect={pagination.onPerPageSelect}
-                  isCompact
-                />
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <ListToolbar
+            search={
+              <SearchInput
+                aria-label="Search collections by name"
+                placeholder="Search by name…"
+                value={searchInput}
+                onChange={(_event, value) => setSearchInput(value)}
+                onSearch={() => setSearch(searchInput)}
+                onClear={() => {
+                  setSearchInput("");
+                  setSearch("");
+                }}
+              />
+            }
+            pagination={pagination}
+            itemCount={totalCount}
+          />
         ) : null}
 
         <CollectionVersionsTable
@@ -119,7 +95,7 @@ export function CollectionVersionsPage() {
               : "Collections appear here once a repository has synced content or a collection has been uploaded."
           }
         />
-      </PageSection>
+      </PageLayout>
 
       {isDeprecateOpen ? (
         <DeprecateCollectionModal onClose={() => setIsDeprecateOpen(false)} />

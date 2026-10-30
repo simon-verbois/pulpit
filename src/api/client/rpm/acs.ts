@@ -1,6 +1,5 @@
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import { getTaskGroup } from "../tasks";
 import type {
   PulpPage,
   RpmAlternateContentSource,
@@ -47,15 +46,7 @@ export function deleteAlternateContentSource(href: string): Promise<{ task: stri
   return pulpFetch<{ task: string }>(href, { method: "DELETE" });
 }
 
-/**
- * Triggers a refresh (VERIFIED live: `POST {href}refresh/` returns
- * `{task_group: <href>}`, not `{task: <href>}` - a distinct response shape
- * from every other RPM mutation in this app). Resolves it to the group's
- * first task href, which the live instance already populates by the time
- * this call returns (VERIFIED: even immediately after the POST, the task
- * group's `tasks` array already has an entry in "running" state) - see
- * `getTaskGroup`.
- */
+/** Return the task-group href so every child and dispatch completion are tracked. */
 export async function refreshAlternateContentSource(
   href: string,
 ): Promise<{ task: string }> {
@@ -65,12 +56,5 @@ export async function refreshAlternateContentSource(
       method: "POST",
     },
   );
-  const taskGroup = await getTaskGroup(taskGroupHref);
-  const firstTask = taskGroup.tasks[0];
-  if (!firstTask) {
-    throw new Error(
-      "Alternate content source refresh started, but no task was found to track.",
-    );
-  }
-  return { task: firstTask.pulp_href };
+  return { task: taskGroupHref };
 }

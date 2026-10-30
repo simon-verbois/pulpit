@@ -7,18 +7,16 @@ import {
   FormSelect,
   FormSelectOption,
   PageSection,
-  Pagination,
   SearchInput,
   Tab,
   TabTitleText,
   Tabs,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
-import { PageHeader } from "../../components/PageHeader";
+import { ListToolbar } from "../../components/ListToolbar";
+import { PageLayout } from "../../components/PageLayout";
 import { LoadingState } from "../../components/LoadingState";
 import { ErrorState } from "../../components/ErrorState";
 import { EmptyState } from "../../components/EmptyState";
@@ -45,6 +43,7 @@ import { useTasksQuery } from "./useTasksQuery";
 import { JobsTab } from "./JobsTab";
 import { CancelTaskModal } from "./CancelTaskModal";
 import { TASK_TYPES } from "./taskTypes";
+import { TaskGroupNotice } from "./TaskGroupNotice";
 
 const STATE_OPTIONS: { value: PulpTaskState | ""; label: string }[] = [
   { value: "", label: "All states" },
@@ -68,30 +67,28 @@ export function TasksPage() {
   const [activeTab, setActiveTab] = useUrlTab("tasks");
 
   return (
-    <>
-      <PageHeader
-        title="Tasks"
-        description="The full history of asynchronous operations run by Pulp and by Pulpit."
-      />
-      <PageSection hasBodyWrapper={false} type="tabs">
-        <Tabs
-          activeKey={activeTab}
-          onSelect={(_event, key) => setActiveTab(key)}
-          mountOnEnter
-        >
-          <Tab eventKey="tasks" title={<TabTitleText>Pulp tasks</TabTitleText>}>
-            <PageSection hasBodyWrapper={false}>
-              <PulpTasksTab />
-            </PageSection>
-          </Tab>
-          <Tab eventKey="jobs" title={<TabTitleText>Background jobs</TabTitleText>}>
-            <PageSection hasBodyWrapper={false}>
-              <JobsTab />
-            </PageSection>
-          </Tab>
-        </Tabs>
-      </PageSection>
-    </>
+    <PageLayout
+      title="Tasks"
+      description="The full history of asynchronous operations run by Pulp and by Pulpit."
+      type="tabs"
+    >
+      <Tabs
+        activeKey={activeTab}
+        onSelect={(_event, key) => setActiveTab(key)}
+        mountOnEnter
+      >
+        <Tab eventKey="tasks" title={<TabTitleText>Pulp tasks</TabTitleText>}>
+          <PageSection hasBodyWrapper={false}>
+            <PulpTasksTab />
+          </PageSection>
+        </Tab>
+        <Tab eventKey="jobs" title={<TabTitleText>Background jobs</TabTitleText>}>
+          <PageSection hasBodyWrapper={false}>
+            <JobsTab />
+          </PageSection>
+        </Tab>
+      </Tabs>
+    </PageLayout>
   );
 }
 
@@ -116,7 +113,11 @@ function PulpTasksTab() {
   const taskType = TASK_TYPES.find((type) => type.value === searchParams.get("type"));
   const [taskToCancel, setTaskToCancel] = useState<PulpTask | null>(null);
   const viewingTaskId = searchParams.get("task");
-  const pagination = usePulpPagination();
+  const viewingGroup = searchParams.get("group");
+  const pagination = usePulpPagination(
+    undefined,
+    JSON.stringify([search, stateFilter, taskType?.value, viewingGroup]),
+  );
 
   const tasksQuery = useTasksQuery({
     limit: pagination.limit,
@@ -124,9 +125,11 @@ function PulpTasksTab() {
     state: stateFilter || undefined,
     name__contains: search || undefined,
     name__in: taskType?.names.join(","),
+    task_group: viewingGroup || undefined,
   });
 
-  const isFiltered = search !== "" || stateFilter !== "" || Boolean(taskType);
+  const isFiltered =
+    search !== "" || stateFilter !== "" || Boolean(taskType) || Boolean(viewingGroup);
 
   const setFilter = (key: "type" | "state", value: string) => {
     const next = new URLSearchParams(searchParams);
@@ -159,69 +162,69 @@ function PulpTasksTab() {
   };
 
   const toolbar = (
-    <Toolbar>
-      <ToolbarContent>
-        <ToolbarItem>
-          <FormSelect
-            aria-label="Filter by state"
-            value={stateFilter}
-            onChange={(_event, value) => setFilter("state", value)}
-          >
-            {STATE_OPTIONS.map((option) => (
-              <FormSelectOption
-                key={option.value}
-                value={option.value}
-                label={option.label}
-              />
-            ))}
-          </FormSelect>
-        </ToolbarItem>
-        <ToolbarItem>
-          <FormSelect
-            aria-label="Filter by task type"
-            value={taskType?.value ?? ""}
-            onChange={(_event, value) => setFilter("type", value)}
-          >
-            <FormSelectOption value="" label="All types" />
-            {TASK_TYPES.map((type) => (
-              <FormSelectOption key={type.value} value={type.value} label={type.label} />
-            ))}
-          </FormSelect>
-        </ToolbarItem>
-        <ToolbarItem style={{ width: "18rem" }}>
-          <SearchInput
-            aria-label="Search tasks by name"
-            placeholder="Search by task name…"
-            value={searchInput}
-            onChange={(_event, value) => setSearchInput(value)}
-            onSearch={() => {
-              setSearch(searchInput);
-              pagination.onSetPage(undefined, 1);
-            }}
-            onClear={() => {
-              setSearchInput("");
-              setSearch("");
-              pagination.onSetPage(undefined, 1);
-            }}
-          />
-        </ToolbarItem>
-        <ToolbarItem align={{ default: "alignEnd" }}>
-          <Pagination
-            itemCount={tasksQuery.data?.count ?? 0}
-            page={pagination.page}
-            perPage={pagination.perPage}
-            perPageOptions={pagination.perPageOptions}
-            onSetPage={pagination.onSetPage}
-            onPerPageSelect={pagination.onPerPageSelect}
-            isCompact
-          />
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+    <ListToolbar
+      search={
+        <SearchInput
+          aria-label="Search tasks by name"
+          placeholder="Search by task name…"
+          value={searchInput}
+          onChange={(_event, value) => setSearchInput(value)}
+          onSearch={() => {
+            setSearch(searchInput);
+            pagination.onSetPage(undefined, 1);
+          }}
+          onClear={() => {
+            setSearchInput("");
+            setSearch("");
+            pagination.onSetPage(undefined, 1);
+          }}
+        />
+      }
+      pagination={pagination}
+      itemCount={tasksQuery.data?.count ?? 0}
+    >
+      <ToolbarItem>
+        <FormSelect
+          aria-label="Filter by state"
+          value={stateFilter}
+          onChange={(_event, value) => setFilter("state", value)}
+        >
+          {STATE_OPTIONS.map((option) => (
+            <FormSelectOption
+              key={option.value}
+              value={option.value}
+              label={option.label}
+            />
+          ))}
+        </FormSelect>
+      </ToolbarItem>
+      <ToolbarItem>
+        <FormSelect
+          aria-label="Filter by task type"
+          value={taskType?.value ?? ""}
+          onChange={(_event, value) => setFilter("type", value)}
+        >
+          <FormSelectOption value="" label="All types" />
+          {TASK_TYPES.map((type) => (
+            <FormSelectOption key={type.value} value={type.value} label={type.label} />
+          ))}
+        </FormSelect>
+      </ToolbarItem>
+    </ListToolbar>
   );
 
   return (
     <>
+      {viewingGroup ? (
+        <TaskGroupNotice
+          href={viewingGroup}
+          onClear={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete("group");
+            setSearchParams(next, { replace: true });
+          }}
+        />
+      ) : null}
       {tasksQuery.isPending ? (
         <LoadingState
           gridBreakPoint="grid-lg"
@@ -240,13 +243,19 @@ function PulpTasksTab() {
       {tasksQuery.isError ? (
         <ErrorState error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />
       ) : null}
-      {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && !isFiltered ? (
+      {tasksQuery.isSuccess &&
+      tasksQuery.data.results.length === 0 &&
+      pagination.page === 1 &&
+      !isFiltered ? (
         <EmptyState
           title="No tasks found"
           body="Tasks appear here once an asynchronous Pulp operation runs, such as a repository sync."
         />
       ) : null}
-      {tasksQuery.isSuccess && tasksQuery.data.results.length === 0 && isFiltered ? (
+      {tasksQuery.isSuccess &&
+      tasksQuery.data.results.length === 0 &&
+      pagination.page === 1 &&
+      isFiltered ? (
         <>
           {toolbar}
           <EmptyState
@@ -256,7 +265,8 @@ function PulpTasksTab() {
           />
         </>
       ) : null}
-      {tasksQuery.isSuccess && tasksQuery.data.results.length > 0 ? (
+      {tasksQuery.isSuccess &&
+      (tasksQuery.data.results.length > 0 || pagination.page > 1) ? (
         <>
           {toolbar}
           <Table aria-label="Tasks" variant="compact" gridBreakPoint="grid-lg">

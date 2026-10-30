@@ -13,19 +13,17 @@ three, ADR 0008 for how the one Pulp-side administrative step this module needs 
   repository metadata (`repomd.xml`).
 - Talks to Pulp's own, already-supported signing mechanisms (`core.SigningService`,
   `rpm.RpmRepository.package_signing_service`/`package_signing_fingerprint`/
-  `metadata_signing_service`) for signing new content, and to Pulp's own content-serving/upload/
-  modify APIs (never `/var/lib/pulp` directly) to resign content that already exists — Pulp remains
-  authoritative for artifacts, content records, and checksums throughout.
+  `metadata_signing_service`) for signing new content, and to Pulp's modify/publish APIs to
+  re-sign existing content. Package preparation runs inside Pulp; pulpit-core never reads its
+  artifact storage. Pulp remains authoritative for artifacts, content records and checksums.
 - Maintains **exactly one active, published signing key** at a time. The public key URL always
   serves that one key — never an old-and-new mix.
 - **Publishing a key is mandatory, not a toggle**: it re-signs every already-existing package (in
   every repository with package signing enabled) and republishes metadata (in every repository with
   metadata signing enabled) under the new key. There is no setting to disable this.
-- **Detects new synced content and resigns it automatically**: a scheduled job notices when a
-  repository's Pulp repository version has moved on and incrementally resigns only what's new -
-  never a full repository re-scan for a normal sync (see "Incremental resigning after sync"). An
-  idempotency cache (`rpm_signing_cache`) and a per-repository watermark
-  (`signing_repository_sync_state`) make this, and every other resigning path, cheap to re-run,
+- **Signs content before it can be published** through the derived Pulp image's signing policy,
+  including on-demand synchronization. A scheduled detector also catches existing repositories
+  needing repair. Pulp's native cache and a per-repository processing watermark make this cheap to re-run,
   crash-resumable, and safe to call redundantly.
 - Runs all of this on a schedule and as background jobs — never inline in an HTTP request.
 - Automates the one Pulp-side administrative step it cannot do over Pulp's REST API (registering a
@@ -53,20 +51,20 @@ Browser --(session cookie)--> pulpit (nginx) --(same origin)--> pulpit-core API
                                                           /                          \
                                                     GPG (GNUPGHOME)                Pulp REST API
                                                           |                    (repo fields, signing-
-                                                          |                    services, upload/modify,
+                                                          |                    services, modify,
                                                           |                          publish)
                                                           |                              |
                                                            \                             |
                                                             \                            |
                                                                     pulp container (ADR 0008)
-                                                    (runs on-upload signing scripts; also runs the
+                                                    (prepares signed versions; also runs the
                                                      colocated signing-service reconciler, which
                                                      reads a manifest off the shared scripts volume
                                                      and registers services locally - no exec in)
 ```
 
 pulpit-core (the API process) never has the GPG volume mounted, never imports the GPG-executing
-code (`gpg_local.py`, `rpm_resign.py`), and never reaches into the `pulp` container at all (ADR
+code (`gpg_local.py`), and never reaches into the `pulp` container at all (ADR
 0008 removed that entirely) - see ADR 0006 and "Security model" below. GPG access lives only in
 pulpit-worker, a separate OS process (uid/gid 700) within the same container as pulpit-core since
 ADR 0007 - see that ADR for how the two stay isolated from each other despite sharing a
@@ -88,13 +86,8 @@ Six tables, owned entirely by this module (`pulpit-core/app/modules/signing/mode
   depends on, its bound `fingerprint`, and whether it's registered yet (see "Automating the manual
   Pulp step").
 - `signing_rotations` — an audit trail of key lifecycle events.
-- `rpm_signing_cache` — the `(source_sha256, fingerprint) -> signed_content_href` idempotency cache
-  used by `resign_repository_packages_job` (see "Incremental resigning after sync" below). Not a
-  second source of truth for repository content — Pulp's own repository version content and a
-  package's `signing_keys` field remain authoritative; this table only accelerates lookups, makes
-  the resign job idempotent, and lets a crash resume without redoing already-finished work. Not
-  scoped to a repository: the same upstream RPM (identical `source_sha256`) can appear in many
-  repositories, and a resign done once is reusable by every one of them.
+- `rpm_signing_cache` — historical cache retained only for database upgrade compatibility.
+  Current preparation uses Pulp's native `RpmPackageSigningResult` cache instead.
 - `signing_repository_sync_state` — one row per repository: the highest Pulp repository version
   number whose content has already been evaluated by a clean (zero-failure) resign run. This is the
   watermark both the post-sync detector and the `apply-to-all` sweep use to decide whether a
@@ -144,113 +137,65 @@ Steps 4 and 5 are jobs, never run inline with the publish itself - a slow resign
 never blocks activating the key or resigning any other repository, and each is independently
 retryable/trackable like any other job.
 
-### How resigning existing packages actually works
+### Preparing and re-signing package content
 
-Pulp has **no API to re-sign a package already in a repository in place** (package signing is
-on-upload only - see "Known limitations"). `resign_repository_packages_job` therefore, for every
-**candidate** package (see "Incremental resigning after sync" for how the candidate set is scoped
-down from "the whole repository"):
+The derived Pulp image includes `pulp-rpm-signing-policy`. It uses Pulp's own repository-version
+finalization hook, native RPM signing service and `RpmPackageSigningResult` cache. It prepares
+all RPMs requiring the configured fingerprint **before** a new repository version becomes
+complete. This covers sync, upload, copy and modify, including automatic publication.
 
-1. Confirms the repository actually has content (a repository at version 0 - never synced/uploaded
-   - is skipped immediately, not treated as an error).
-2. Lists candidate packages - either every package in the current latest version (a first-time pass
-   or a key rotation), or only what pulpcore's `repository_version_added` filter reports as added in
-   each version between the job's `since_version` and `target_version` (a normal post-sync delta,
-   see below) - and drops any whose own `signing_keys` field already lists the active fingerprint
-   (Pulp itself already signed them correctly, nothing to do).
-3. Looks up every remaining candidate's `(source_sha256, fingerprint)` in `rpm_signing_cache` in
-   **one** batched query. A `success` row with a `signed_content_href` is reused directly - no
-   download, no `rpmsign`, no re-upload, just a swap of that already-known content unit into the
-   repository. A `running` row younger than 15 minutes means another job/worker is already on this
-   exact source package (the cache is keyed by content, not by repository) and is left alone this
-   run. Anything else (a genuine miss, a `failed` row, or a stale `running` row from a crashed
-   worker) becomes a real candidate to sign.
-4. Only if packages need downloading, publishes the repository and waits for completion, then
-   reads the distribution's `repodata/repomd.xml` → `primary.xml.gz` to build a
-   checksum → real file path map for whatever still needs signing. **VERIFIED live**: a package's
-   own `location_href` field is **not** reliable for this - the default repository layout actually
-   serves packages at `Packages/<first-letter>/<filename>`, which only exists in the generated
-   metadata. This mirrors exactly what a real `dnf`/`createrepo`-compatible client does to resolve a
-   package's URL.
-5. Downloads, re-signs, and re-uploads each remaining candidate **in parallel** across
-   `settings.rpm_signing_workers` threads (default 8, see "Parallel resigning" below) - each result
-   is written to `rpm_signing_cache` and committed as soon as it completes, not batched, so a crash
-   partway through loses at most the in-flight work.
-6. Swaps every old unit for its resigned (or cache-reused) replacement in **one** `modify()` call
-   (one new repository version for the whole batch, not one per package), then republishes so the
-   distribution actually serves the resigned content. The repository served to clients therefore
-   only ever flips from "fully previous" to "fully current" - never a partially-resigned in-between
-   state.
-7. If every candidate this run covered succeeded, advances `signing_repository_sync_state`'s
-   watermark to `target_version` - a repository is never silently considered "fully signed" while
-   any of its candidates failed; the same version range is retried on the next detection/apply-to-all
-   pass instead.
+For on-demand content, the hook uses the original `RemoteArtifact` downloader with Pulp's
+configured authentication, proxy, CA and checksum/size validation. It materializes the artifact
+inside Pulp, then invokes native signing. RPM signatures change package bytes and checksums, so
+the RPMs to sign must be downloaded before generating metadata. The remote keeps its on-demand
+setting; signing deliberately requires the corresponding package bytes before publication.
 
-This necessarily gives every newly-resigned package a new checksum and creates a new repository
-version - not a lightweight operation. A run with no candidates, with cached signed units already
-present, or with all candidates being signed elsewhere creates no publication. A cache-only swap
-skips the preparatory publication and publishes once after modifying the repository; an uncached
-signing run still publishes before downloading and after swapping the resigned content. A repository
-requires at least one **distribution** for this to work (steps 4/5 need somewhere to fetch content); a repository
-with content but no distribution is **skipped** by this job (result `skipped_reason: "no_distribution"`,
-logged) rather than failed - a failure would keep the sync-state watermark in place and make every
-detection/apply-to-all sweep re-queue a failing job for it. The per-repository "Re-sign" action
-instead rejects it up front with a `409` (before the signing PATCH and before queueing), so the
-administrator gets immediate, actionable feedback: create a distribution first.
+Pulp signs the missing packages concurrently, using its `MAX_PACKAGE_SIGNING_WORKERS` setting.
+Already signed packages and native cached results are reused before reading source RPM files.
+The signing script uses `rpmsign --resign` to replace legacy vendor signatures, which RPM 6
+refuses to replace with `--addsign`. See the [RPM manual](https://rpm.org/docs/6.0.x/man/rpmsign.1). After the first error, unstarted signers are skipped. All in-flight signers finish before
+a failed version is discarded; successful signing results remain reusable for the next attempt.
+A signing/download failure aborts the new version and keeps the previous safe publication.
 
-**VERIFIED end-to-end** against a live instance: a real repository's 35 packages were downloaded,
-signed with a real key, and re-uploaded successfully; a downloaded resigned package showed a real,
-correctly-attributed `RSA/SHA256` signature under the new key's ID via `rpm -K`.
+`Re-sign` uses the caller's permissions to configure the repository, queues one job, then:
 
-## Incremental resigning after sync
+1. Checks that the required Pulp plugin and expected repository key are still configured.
+2. Evaluates Pulp's `signing_keys`, including prefixed fingerprints and legacy issuer key IDs.
+3. Requests an empty native repository modification when preparation is needed. The finalization
+   hook creates a new signed version without needing a public distribution.
+4. Verifies the resulting version and waits for the final publication task to complete.
+5. Advances the processing watermark only after successful preparation and publication.
 
-Repository sync (an RPM remote pulling new upstream content) happens entirely between Pulpit's
-frontend and Pulp directly (ADR 0005) - pulpit-core is never in that request path the way it is for
-signing-specific actions, so there is no request hook here to react to when a sync finishes. Two
-consequences follow directly from that:
+There is **no preliminary unsigned publication**, no download through public repodata and no
+package rewrite in pulpit-core. Unchanged automatic checks create no publication. An explicit
+metadata refresh can publish once, and task failure remains a failed job.
 
-- **Pulp's on-upload package signing does not cover synced content.** It only actually signs
-  content created through Pulp's upload pipeline - a package pulled in by a remote sync keeps
-  whatever signature it already had (e.g. a vendor/EPEL key), even on a repository with
-  `package_signing_service`/`package_signing_fingerprint` correctly configured. Resigning
-  already-existing content (the mechanism described above) is therefore not just a rotation-time
-  operation - it is also how newly-synced packages actually end up under Pulpit's key at all.
-- **A scheduled job has to detect the delta itself, on a poll.** `detect_repository_content_changes_job`
-  (`app/modules/signing/jobs.py`, `module.py`'s `scheduled_jobs`, every 60s) pages through every RPM
-  repository, and for each one that has package signing configured (`package_signing_service` and
-  `package_signing_fingerprint` both set), compares its current `latest_version_href` against
-  `signing_repository_sync_state`'s watermark. A repository that has moved on gets an incremental
-  `signing.resign_repository_packages` job enqueued with `since_version`/`target_version` set to
-  exactly the version range that needs evaluating - a repository synced from version 51 to 52 gets a
-  job scoped to "whatever `repository_version_added` reports for version 52", not a re-scan of the
-  whole repository. A repository the detector has never seen before (no watermark row at all) gets a
-  first, full pass instead - still cheap per-package thanks to the `signing_keys`/cache checks in
-  the mechanism above, just not scoped to a specific version.
+## Publication and download enforcement
 
-This means the workflow for a normal sync is: **sync completes on Pulp's side → within the next
-detection interval, Pulpit notices `latest_version_href` moved → an incremental resign job signs
-only what's new → the repository is modified and republished in one atomic step.** Trust-model note:
-resigning a synced package is not "laundering" its original vendor signature silently - it is a
-deliberate, logged, and cache-recorded consequence of that repository having package signing enabled
-at all (see "Trust model" below), the same policy `apply-to-all`/key publishing already apply to
-existing content.
+Before marking a publication complete, Pulp verifies the configured package signatures and
+checks its actual PublishedArtifacts as well as repository membership. When metadata signing is
+configured, `repodata/repomd.xml.asc` must also exist. Exact mirroring of upstream unsigned bytes
+is incompatible with signing; use content mirroring with regenerated metadata instead.
 
-`_enqueue_resign_job` (jobs.py) deduplicates by `(repository_href, fingerprint)` before enqueuing -
-`has_matching_pending_job` (`app/core/jobs/service.py`) checks every currently queued/running
-`signing.resign_repository_packages` job's payload, so a repository already awaiting or undergoing a
-resign never gets a second, redundant one queued on the next detection tick.
+The content handler checks the selected publication **before** Pulp's Redis response cache.
+Existing content guards still apply. An old unsigned publication, including a pinned version or
+checkpoint, returns HTTP 503 with a retry indication until an administrator repairs it. Previously
+cached RPMs cannot bypass this check. Successful checks are cached by immutable publication/version
+and signing configuration, not indefinitely by URL.
 
-### Parallel resigning
+Existing deployments must update **both Pulp and Pulpit images**. Safe re-signing refuses to fall
+back to the old publication-first workflow if the policy plugin is missing.
 
-The download/`rpmsign`/upload step for whatever isn't a cache hit runs across a
-`concurrent.futures.ThreadPoolExecutor` sized by `Settings.rpm_signing_workers`
-(`PULPIT_CORE_RPM_SIGNING_WORKERS`, default **8**, minimum **1** - enforced by a `ge=1` constraint,
-since a pool of size 0 would silently hang the job forever). Each worker only does I/O and a
-`subprocess.run` call - it never touches the database. All `rpm_signing_cache`/
-`signing_repository_sync_state` writes happen on the main thread as each worker's result comes back
-(`as_completed`), so there is never more than one write in flight and no `Session` is ever shared
-across threads. Raise this for a large repository (EPEL-sized, tens of thousands of packages) on a
-host with headroom; lower it if GPG or Pulp itself becomes the bottleneck instead.
+## Automatic detection and SQLite transactions
+
+The detector still notices repository-version changes and queues idempotent preparation jobs.
+It finishes all Pulp pagination before inserting jobs/events, so network delays never hold a
+SQLite writer lock. Re-sign deduplication and insertion use a short serialized transaction;
+concurrent requests receive the same job. Pulp task polling also runs without an open SQLite
+write transaction.
+
+The historical `rpm_signing_cache` table is retained for upgrade compatibility. Pulp's native
+cache now owns signing reuse. No existing cache table is dropped during deployment.
 
 ## Package signing vs. metadata signing
 
@@ -417,9 +362,9 @@ One additional value is a `pulpit-core`/`pulpit-worker` process config setting, 
 `signing_settings` field (it controls resource usage, not signing policy, so it isn't
 administrator-editable at runtime the way the table above is):
 
-| Setting               | Env var                           | Default | Notes                                                                              |
-| --------------------- | --------------------------------- | ------- | ---------------------------------------------------------------------------------- |
-| `rpm_signing_workers` | `PULPIT_CORE_RPM_SIGNING_WORKERS` | 8       | Thread pool size for parallel resigning (`ge=1`) - see "Parallel resigning" above. |
+| Setting                              | Env var                            | Default | Notes                                                                       |
+| ------------------------------------ | ---------------------------------- | ------- | --------------------------------------------------------------------------- |
+| Pulp's `MAX_PACKAGE_SIGNING_WORKERS` | `PULP_MAX_PACKAGE_SIGNING_WORKERS` | 5       | Concurrent native RPM preparation. Replaces the former core worker setting. |
 
 ## Security model
 
@@ -430,7 +375,7 @@ administrator-editable at runtime the way the table above is):
   rendered in the GUI, never logged, and never present in pulpit-core's own database — enforced by
   construction (no column, no import of the GPG-executing code outside pulpit-worker) and by tests
   (`tests/unit/test_schemas_no_private_key.py`).
-- **Subprocess safety** (`app/modules/signing/gpg_local.py`, `rpm_resign.py`): every `gpg`/`rpmsign`
+- **Subprocess safety** (`app/modules/signing/gpg_local.py` and the Pulp signing scripts): every `gpg`/`rpmsign`
   invocation is a fixed argument list (`subprocess.run([...], shell=False)`), never a shell string.
   Identity name/email, algorithm, and fingerprint are validated against strict allow-lists/regexes
   _before_ they reach an argument — an identity name containing shell metacharacters, newlines, or
@@ -552,29 +497,17 @@ turns out nothing in it actually needed touching.
 
 ### Re-signing a single repository
 
-When one repository didn't end up fully signed (a failed resign job, a
-signing-service hiccup, a PATCH that never landed), `POST
-/pulpit-core/api/v1/signing/repositories/resign` with `{"repository_href": ...}` ("Re-sign now"
-on the repository's Overview tab, shown whenever package or metadata signing is enabled globally)
-fixes just that one repository:
+Choose **Re-sign now** from the repository's actions menu, then confirm. The caller's Pulp
+permissions authorize the configuration PATCH; its credentials are never placed in the queue.
+A short transaction deduplicates queued/running jobs for the same repository/key.
 
-1. Re-applies the current policy's signing services/fingerprint to the repository with the
-   **caller's own** Pulp credentials, exactly like `/configure` - Pulp's object permissions decide
-   whether this user may change this repository at all. A refused PATCH queues nothing.
-2. Queues a **full** `signing.resign_repository_packages` pass (no `since_version`, ignoring the
-   sync-state watermark) whose payload carries the PATCH's Pulp task as `configure_task`; the job
-   waits for that task before doing anything, and fails if it didn't complete. Every package in
-   the latest version is checked against the active fingerprint; the result's `evaluated` count
-   is how many were checked, `candidates` how many weren't signed with it. A metadata-only policy
-   queues `signing.publish_repository_metadata` instead.
-3. If a resign job for this `(repository, fingerprint)` is already in flight, that job is returned
-   instead of a duplicate - and if it's still queued as an incremental (post-sync) pass, it is
-   widened to a full one.
+A distribution is not required. Pulp downloads and signs missing on-demand artifacts, keeps
+safe content available during preparation and publishes only after verification. A failed job
+shows the failure instead of claiming success. Existing unsigned pinned distributions remain
+unavailable until repointed explicitly to a signed publication; immutable versions are not edited.
 
-The job shows up in the Tasks drawer and on the Tasks page's **Background jobs** tab
-(`GET /pulpit-core/api/v1/jobs`: newest first, staff see every job, anyone else only their own,
-periodic heartbeat jobs hidden unless `include_scheduled=true`), with the repository it acts on and
-its final result counts.
+The Tasks drawer and Background jobs tab show the core job. Native Pulp preparation tasks include
+a **Preparing signed RPM packages** progress report. Already signed automatic checks do not publish.
 
 ## How to rotate/publish manually
 
@@ -585,57 +518,19 @@ Administration → Repository Signing.
 
 ## Known limitations
 
-- **RPM package signing (on-upload, native Pulp behavior) is Tech Preview** as of pulp_rpm 3.38.5 -
-  new content synced/uploaded after a repository is configured for package signing is signed by
-  Pulp itself as part of its normal ingest pipeline. Resigning _already-existing_ content (this
-  module's own `resign_repository_packages_job`) works around the lack of a native re-sign API by
-  downloading/re-signing/re-uploading, as described above - it is real and verified working, but is
-  not a Pulp-native operation and inherits pulp_rpm's own Tech Preview status for the underlying
-  signing mechanism.
-- **`package_signing_fingerprint` is normalized by Pulp**: VERIFIED live against pulpcore/pulp_rpm
-  in this project's reference versions — writing a plain 40-character hex fingerprint is accepted,
-  but Pulp echoes it back prefixed (`v4:<hex>`) on subsequent reads. This module always _writes_ the
-  plain form and treats the field as an opaque string otherwise (never string-compares it against a
-  freshly generated fingerprint), so this doesn't affect correctness, but don't assume the two
-  forms are interchangeable if you extend this code.
-- **Progress is logged, not exposed through the job API**: `resign_repository_packages_job` logs a
-  structured `RPM resign progress ...` line roughly every 5 seconds while workers are running
-  (repository, counts so far, rate) and a final structured summary, but a job's `result` field (and
-  therefore the GUI's Jobs view) still only shows the final counts once the job completes - there is
-  no live progress field on the `Job` row itself.
-- **Restart-safe at the package level, not at the in-flight-batch level**: a crash loses at most the
-  packages whose signing was still running in a worker thread at that moment (their `rpm_signing_cache`
-  row is a stale `running`, retried automatically next time) - every package that already reached
-  `success` or `failed` is never redone. What is _not_ preserved across a crash is the in-progress
-  `modify()`/publish step itself: if the worker dies after signing finishes but before the final
-  `modify()` call, the next run re-evaluates the same candidates (all now cache hits) and re-issues
-  `modify()`/publish cheaply - correct, just not literally free.
-- **A package with content not yet reflected in published metadata is skipped, not resigned** - the
-  job publishes once at the start specifically to minimize this window, but a package added between
-  that publish and the metadata read would still be skipped (counted, logged, not counted as a
-  _failure_ either) rather than blocking the rest of the batch. Because this isn't a failure, the
-  repository's sync-state watermark still advances past it - a future run scoped only to later
-  versions won't naturally re-examine it; a real, if narrow, gap that a manual `apply-to-all` run (or
-  the next key rotation, which always does a full pass) closes.
-- **The post-sync detector polls, it does not subscribe to a real "sync completed" signal**:
-  because repository sync is issued directly against Pulp by the frontend (ADR 0005), pulpit-core
-  has no request-time hook to react to. `detect_repository_content_changes_job` instead compares
-  `latest_version_href` on a 60-second interval (`module.py`), which means there is up to ~60s of
-  latency between a sync completing and its new packages actually being queued for resigning - not
-  instantaneous, but bounded and cheap (one repository listing per tick, no per-package work unless
-  something changed).
-- **`rpm_signing_cache` grows without bound**: every distinct `(source_sha256, fingerprint)` pair
-  ever resigned gets a permanent row; nothing here prunes rows for content that's since been removed
-  from every repository or for a fingerprint that's long retired. Harmless functionally (indexed
-  lookups stay fast at realistic scale), just worth knowing before assuming the table is small.
-- **Rescoping signing management to a specific Pulp role** (rather than "any authenticated Pulp
-  user") is not implemented — see "Identity and access."
-- **A single global signing identity**: this module manages one active key used across every
-  repository that opts in (task's own stated default: "one global repository signing identity by
-  default, not one private key per repository"). Per-repository distinct keys are not supported.
-- **Automatic registration needs the derived Pulp image**: a deployment running vanilla
-  `pulp/pulp:stable` instead of `docker.io/simonverbois/pulp-pulpit` gets the manual command flow
-  (fully functional, just not automatic) - see "Automating the manual Pulp step" and ADR 0008.
+- Signing requires the derived Pulp image, including `pulp-rpm-signing-policy`, in addition to
+  Pulpit. Vanilla Pulp's documented on-upload signing does not cover synchronization by itself.
+- Native package signing remains a Pulp RPM feature. The policy hooks are verified against
+  pulpcore 3.116.1 / pulp_rpm 3.38.5 and must be rechecked when upgrading these components.
+- A signed repository cannot retain fully lazy package downloads: changed checksums require
+  downloading and signing RPMs before publishing their metadata. An exact mirror of upstream
+  unsigned bytes is incompatible; choose content mirroring with regenerated metadata.
+- Signature preparation does not replace upstream/vendor verification or malware scanning.
+  Clients must trust the published repository key after a key replacement.
+- One global key lifecycle is managed by Pulpit. Repository-specific key lifecycle management
+  is not offered. Pulp still owns repository permissions and native signing-service records.
+- The legacy core cache table is retained but no longer written. It can be migrated away in a
+  separate schema change; this release does not delete historical data.
 
 ## Authorization and interrupted jobs
 
@@ -646,3 +541,17 @@ recorded as an already successful job. Credentials are not saved.
 A job interrupted by worker termination is reported failed at restart. Review the
 actual key and repository state before retrying; external effects may already exist.
 One worker per core database is enforced by a lifetime lock, including on PostgreSQL.
+
+## Signing regression checks
+
+Run `make test-signing-policy` against the derived dev image. It runs native policy unit tests and
+an isolated integration scenario with its own temporary GPG key, signing services, remotes and
+repositories. It verifies RPM and metadata signatures, metadata checksums, on-demand materialization,
+cached/pinned unsigned publication rejection, signing failure rollback and retry/cache reuse.
+Fixtures are removed through Pulp APIs/management commands; global signing settings are preserved.
+
+For a real core-worker orchestration check, the live test also accepts `PULPIT_TEST_CORE_JOB_PATH`.
+It writes a non-secret repository/fingerprint request to `<path>.request` and waits for a host runner
+to enqueue `signing.resign_repository_packages` and write the returned job ID to `<path>.id`. It polls
+the actual core API and verifies settings remain writable while the job runs. This optional mode
+requires a free worker or explicit fixture-job prioritization on a busy development instance.

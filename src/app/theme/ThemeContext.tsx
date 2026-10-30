@@ -21,9 +21,13 @@ const DARK_CLASS = "pf-v6-theme-dark";
 const DEFAULT_THEME: ColorTheme = "light";
 
 function getPreferredTheme(): ColorTheme {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
-    return stored;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
+  } catch {
+    // Storage can be disabled by the browser; the app must still start.
   }
   return DEFAULT_THEME;
 }
@@ -40,7 +44,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle(DARK_CLASS, theme === "dark");
-    localStorage.setItem(STORAGE_KEY, theme);
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      // Theme changes still work for the current session without persistence.
+    }
   }, [theme]);
 
   const toggleTheme = useCallback(() => {

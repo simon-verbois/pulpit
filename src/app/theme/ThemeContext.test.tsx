@@ -45,6 +45,25 @@ describe("ThemeContext", () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe("dark");
   });
 
+  it("still starts and switches theme when browser storage is blocked", () => {
+    const read = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+    try {
+      const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
+      expect(result.current.theme).toBe("light");
+      act(() => result.current.toggleTheme());
+      expect(result.current.theme).toBe("dark");
+      expect(document.documentElement.classList.contains(DARK_CLASS)).toBe(true);
+    } finally {
+      read.mockRestore();
+      write.mockRestore();
+    }
+  });
+
   it("throws if useTheme is called outside a ThemeProvider", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     function Bare() {

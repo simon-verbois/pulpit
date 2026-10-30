@@ -118,3 +118,17 @@ pulpit-logs: ## Tail pulpit (nginx + API + job queue worker, docs/adr/0007-merge
 
 pulpit-signing-exec: ## Run a pulpcore-manager command shown by the Signing GUI (usage: make pulpit-signing-exec CMD="add-signing-service ...")
 	$(COMPOSE_DEV) exec pulp pulpcore-manager $(CMD)
+
+# Requires the running derived development Pulp image; fixtures clean themselves up.
+.PHONY: test-signing-policy
+test-signing-policy: ## Verify RPM signing policy in real Pulp (native unit + live integration)
+	$(COMPOSE_DEV) exec -T pulp mkdir -p /tmp/pulpit-signing-policy-tests
+	$(COMPOSE_DEV) cp deployment/docker/pulp/signing-policy/tests/. pulp:/tmp/pulpit-signing-policy-tests/
+	$(COMPOSE_DEV) exec -T --user pulp -e PULPIT_TEST_LIVE_SIGNING=1 pulp python -m unittest discover -s /tmp/pulpit-signing-policy-tests -v
+
+.PHONY: test-distribution-policy
+test-distribution-policy: ## Verify distribution paths and native registry guard compatibility
+	$(COMPOSE_DEV) exec -T pulp mkdir -p /tmp/pulpit-distribution-policy-tests
+	$(COMPOSE_DEV) cp deployment/docker/pulp/distribution-path-policy/tests/. pulp:/tmp/pulpit-distribution-policy-tests/
+	$(COMPOSE_DEV) cp deployment/docker/pulp/api-compat/tests/. pulp:/tmp/pulpit-distribution-policy-tests/
+	$(COMPOSE_DEV) exec -T --user pulp pulp python -m unittest discover -s /tmp/pulpit-distribution-policy-tests -v

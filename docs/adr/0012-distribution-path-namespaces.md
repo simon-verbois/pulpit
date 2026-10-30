@@ -57,3 +57,10 @@ breaking client URLs during deployment.
   Pulp policy and the frontend prefix map.
 - Distribution names remain normal Pulp names. Pulpit's create forms continue to derive the name
   from the fully-prefixed base path to avoid asking for two identifiers.
+
+## Registry serializer compatibility — 2026-10-30
+
+The derived image's dedicated `pulpit-api-compat` plugin corrects pulp_container 2.29's obsolete redirect-guard
+view name on affected serializer instances. It preserves the native guard queryset and permissions;
+no new endpoint or guard kind is invented. Upstream-corrected field names are left unchanged.
+A native serializer round trip and browser tests cover preserving a custom redirect guard.

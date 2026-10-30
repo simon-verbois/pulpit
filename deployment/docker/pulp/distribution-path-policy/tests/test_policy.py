@@ -25,28 +25,38 @@ class DistributionPathPolicyTests(unittest.TestCase):
         for model_module, prefix in expected.items():
             with self.subTest(model_module=model_module):
                 model_name = model_module.rsplit(".", 1)[-1]
-                self.assertEqual(required_prefix_for_model(model_module, model_name), prefix)
+                self.assertEqual(
+                    required_prefix_for_model(model_module, model_name), prefix
+                )
 
     def test_maps_core_distribution_models(self):
         self.assertEqual(
-            required_prefix_for_model("pulpcore.app.models.openpgp", "OpenPGPDistribution"),
+            required_prefix_for_model(
+                "pulpcore.app.models.openpgp", "OpenPGPDistribution"
+            ),
             "openpgp/",
         )
         self.assertEqual(
-            required_prefix_for_model("pulpcore.app.models.publication", "ArtifactDistribution"),
+            required_prefix_for_model(
+                "pulpcore.app.models.publication", "ArtifactDistribution"
+            ),
             "artifact/",
         )
 
     def test_accepts_a_scoped_path_with_a_non_empty_suffix(self):
         self.assertIsNone(
-            distribution_path_error("pulp_rpm.app.models", "RpmDistribution", "rpm/rhel-9")
+            distribution_path_error(
+                "pulp_rpm.app.models", "RpmDistribution", "rpm/rhel-9"
+            )
         )
 
     def test_rejects_missing_wrong_or_empty_prefix(self):
         for path in ("rhel-9", "deb/rhel-9", "rpm/"):
             with self.subTest(path=path):
                 self.assertEqual(
-                    distribution_path_error("pulp_rpm.app.models", "RpmDistribution", path),
+                    distribution_path_error(
+                        "pulp_rpm.app.models", "RpmDistribution", path
+                    ),
                     "Base path must start with 'rpm/' and include a name after it.",
                 )
 

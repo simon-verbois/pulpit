@@ -1,54 +1,65 @@
+import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
-
 import {
   copyContainerManifests,
   copyContainerTags,
 } from "../../../api/client/container/repositories";
+import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { useTasksContext } from "../../../api/tasks/TasksContext";
-import { containerRepositoriesListRootKey } from "./queryKeys";
+import type { CopyDialogArgs } from "../../../components/CopyContentDialog";
 
-interface CopyContentArgs {
-  sourceRepositoryVersionHref: string;
-  destRepositoryHref: string;
-  destRepositoryName: string;
-}
-
-/**
- * Unlike RPM/Ansible's single "copy this whole version" endpoint,
- * pulp_container splits tags and manifests into two separate copy actions
- * (VERIFIED live schema) - this fires both (with no name/digest filters, so
- * "everything" from the source version) and tracks them as two tasks, the
- * closest equivalent to a whole-version copy.
- */
 export function useCopyContentMutation() {
   const { registerTask } = useTasksContext();
-
+  const accepted = useRef(new Map<string, string>());
   return useMutation({
     mutationFn: async ({
-      sourceRepositoryVersionHref,
-      destRepositoryHref,
-    }: CopyContentArgs) => {
-      const [tags, manifests] = await Promise.all([
-        copyContainerTags(destRepositoryHref, sourceRepositoryVersionHref),
-        copyContainerManifests(destRepositoryHref, sourceRepositoryVersionHref),
+      sourceRepositoryVersionHref: source,
+      destRepositoryHref: dest,
+      destRepositoryName,
+      selection,
+    }: CopyDialogArgs) => {
+      const mode = selection?.mode ?? "all";
+      const submit = async (type: "tags" | "manifests") => {
+        const key = JSON.stringify([type, source, dest, selection]);
+        if (accepted.current.has(key)) return;
+        const result =
+          type === "tags"
+            ? await copyContainerTags(
+                dest,
+                source,
+                mode === "tags" ? selection?.values : undefined,
+              )
+            : await copyContainerManifests(dest, source, {
+                ...(mode === "manifests" && selection?.values.length
+                  ? { digests: selection.values }
+                  : {}),
+                ...(mode === "manifests" && selection?.mediaTypes.length
+                  ? { media_types: selection.mediaTypes }
+                  : {}),
+              });
+        accepted.current.set(key, result.task);
+        registerTask({
+          href: result.task,
+          label: `Copy ${type} to "${destRepositoryName}"`,
+          resourceHrefs: [dest],
+          action: "copy",
+          invalidateKeys: [["pulp", "container"]],
+        });
+      };
+      const results = await Promise.allSettled([
+        ...(mode === "all" || mode === "tags" ? [submit("tags")] : []),
+        ...(mode === "all" || mode === "manifests" ? [submit("manifests")] : []),
       ]);
-      return { tags, manifests };
-    },
-    onSuccess: ({ tags, manifests }, { destRepositoryHref, destRepositoryName }) => {
-      registerTask({
-        href: tags.task,
-        label: `Copy tags to "${destRepositoryName}"`,
-        resourceHrefs: [destRepositoryHref],
-        action: "copy",
-        invalidateKeys: [containerRepositoriesListRootKey],
-      });
-      registerTask({
-        href: manifests.task,
-        label: `Copy manifests to "${destRepositoryName}"`,
-        resourceHrefs: [destRepositoryHref],
-        action: "copy",
-        invalidateKeys: [containerRepositoriesListRootKey],
-      });
+      const failure = results.find((result) => result.status === "rejected");
+      if (failure?.status === "rejected")
+        throw new PulpApiError(
+          "unknown",
+          `Some copy requests failed. Accepted requests continue in Tasks; retrying this form only resubmits missing requests. ${failure.reason instanceof Error ? failure.reason.message : "Check the Pulp error details."}`,
+          {
+            detail:
+              failure.reason instanceof PulpApiError ? failure.reason.detail : undefined,
+          },
+        );
     },
   });
 }

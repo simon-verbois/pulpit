@@ -12,6 +12,7 @@ import {
 
 import { TasksProvider, useTasksContext } from "../../api/tasks/TasksContext";
 import { TaskTrackers } from "../../features/tasks/TaskTrackers";
+import { TaskRecovery } from "../../features/tasks/TaskRecovery";
 import { useCurrentUserQuery } from "../../hooks/useCurrentUserQuery";
 import { AppFooter } from "./AppFooter";
 import { AppNav } from "./AppNav";
@@ -176,9 +177,16 @@ function AppShell() {
           <SkipToContent href={`#${MAIN_CONTAINER_ID}`}>Skip to content</SkipToContent>
         }
       >
+        <TaskRecovery />
         <Outlet />
         <TaskTrackers />
-        {user ? <AppFooter key={user.pulp_href} userId={user.pulp_href} /> : null}
+        {user ? (
+          <AppFooter
+            key={user.prn || user.username}
+            userId={user.prn || user.username}
+            legacyUserId={user.pulp_href}
+          />
+        ) : null}
       </Page>
     </>
   );

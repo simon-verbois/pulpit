@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { RepositoryOperationsHelp } from "../RepositoryOperationsHelp";
+
 import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
 
 export function DebRepositoriesTopic() {
@@ -24,6 +26,7 @@ export function DebRepositoriesTopic() {
         Use <strong>Versions</strong> for snapshots and <strong>Access</strong> for
         permissions.
       </Content>
+      <RepositoryOperationsHelp />
       <DistributionBasePathConvention prefix="deb" />
     </Content>
   );

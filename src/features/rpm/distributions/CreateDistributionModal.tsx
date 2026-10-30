@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Alert,
   Button,
   Flex,
   FlexItem,
@@ -21,7 +22,16 @@ import {
   TextInput,
 } from "@patternfly/react-core";
 
+import {
+  findRpmDistributionMatches,
+  type RpmDistributionMatch,
+} from "../../../api/client/rpm/distributions";
+import { PulpApiError } from "../../../api/errors/PulpApiError";
 import { BasePathField } from "../../../components/BasePathField";
+import {
+  DistributionOptionsFields,
+  type DistributionOptions,
+} from "../../../components/DistributionOptionsFields";
 import { ErrorState } from "../../../components/ErrorState";
 import { LoadingState } from "../../../components/LoadingState";
 import {
@@ -62,6 +72,16 @@ export function CreateDistributionModal({
   repository,
   onClose,
 }: CreateDistributionModalProps) {
+  const [checking, setChecking] = useState(false);
+  const [accessOptions, setAccessOptions] = useState<DistributionOptions>({
+    content_guard: "",
+    hidden: false,
+  });
+  const [submitError, setSubmitError] = useState<unknown>();
+  const [recovery, setRecovery] = useState<{
+    key: string;
+    distribution: RpmDistributionMatch;
+  }>();
   const [target, setTarget] = useState<DistributionTarget>("latest");
   const [selectedVersionHref, setSelectedVersionHref] = useState("");
   // undefined until edited, so the default keeps following the selected version.
@@ -94,53 +114,85 @@ export function CreateDistributionModal({
   // so a mirror can reproduce the layout of the upstream it replaces.
   const [customBasePath, setCustomBasePath] = useState<string>();
   const basePath = (customBasePath ?? defaultBasePath).trim().replace(/^\/+|\/+$/g, "");
+  const conflictKey = JSON.stringify([distributionName, basePath]);
+  const recoverable = recovery?.key === conflictKey ? recovery.distribution : undefined;
   const isSubmitting =
+    checking ||
     updateRepositoryMutation.isPending ||
     publishMutation.isPending ||
     createMutation.isPending ||
     createPinnedMutation.isPending;
-  const mutationError =
-    updateRepositoryMutation.error ??
-    publishMutation.error ??
-    createMutation.error ??
-    createPinnedMutation.error;
-
-  const handleSubmit = () => {
-    updateRepositoryMutation.mutate({
-      href: repository.pulp_href,
-      name: repository.name,
-      data: {
-        repo_config: computeRpmRepoConfig(
-          Boolean(repository.package_signing_service),
-          Boolean(repository.metadata_signing_service),
-          contentOrigin,
-        ),
-      },
-    });
-    const distribution = {
-      name: distributionName,
-      base_path: basePath,
-      generate_repo_config: true,
-    };
-
-    if (target === "version") {
-      createPinnedMutation.mutate(
-        {
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setChecking(true);
+    setSubmitError(undefined);
+    try {
+      const matches = await findRpmDistributionMatches(distributionName, basePath);
+      const unused =
+        matches.length === 1 &&
+        matches[0].repository === null &&
+        matches[0].publication === null
+          ? matches[0]
+          : undefined;
+      if (matches.length && !unused) {
+        throw new PulpApiError(
+          "validation",
+          "A distribution already exists with this name or base path and is still connected to content. Choose another name or path.",
+        );
+      }
+      if (unused && recoverable?.pulp_href !== unused.pulp_href) {
+        setRecovery({ key: conflictKey, distribution: unused });
+        setAccessOptions({
+          content_guard: unused.content_guard ?? "",
+          hidden: unused.hidden ?? false,
+        });
+        return;
+      }
+      await updateRepositoryMutation.mutateAsync({
+        href: repository.pulp_href,
+        name: repository.name,
+        data: {
+          repo_config: computeRpmRepoConfig(
+            Boolean(repository.package_signing_service),
+            Boolean(repository.metadata_signing_service),
+            contentOrigin,
+          ),
+        },
+      });
+      const distribution = {
+        name: distributionName,
+        base_path: basePath,
+        generate_repo_config: true,
+        ...(accessOptions.content_guard
+          ? { content_guard: accessOptions.content_guard }
+          : {}),
+        ...(accessOptions.hidden ? { hidden: true } : {}),
+      };
+      if (target === "version") {
+        await createPinnedMutation.mutateAsync({
           repositoryHref: repository.pulp_href,
           repositoryName: repository.name,
           repositoryVersionHref: effectiveVersionHref,
           distribution,
-        },
-        { onSuccess: () => onClose() },
-      );
-      return;
+          existingDistributionHref: unused?.pulp_href,
+        });
+      } else {
+        await publishMutation.mutateAsync({
+          href: repository.pulp_href,
+          name: repository.name,
+        });
+        await createMutation.mutateAsync({
+          ...distribution,
+          repository: repository.pulp_href,
+          existingHref: unused?.pulp_href,
+        });
+      }
+      onClose();
+    } catch (error) {
+      setSubmitError(error);
+    } finally {
+      setChecking(false);
     }
-
-    publishMutation.mutate({ href: repository.pulp_href, name: repository.name });
-    createMutation.mutate(
-      { ...distribution, repository: repository.pulp_href },
-      { onSuccess: () => onClose() },
-    );
   };
 
   return (
@@ -156,7 +208,17 @@ export function CreateDistributionModal({
       />
       <ModalBody>
         <Form>
-          {mutationError ? <ErrorState error={mutationError} /> : null}
+          {submitError ? <ErrorState error={submitError} /> : null}
+          {recoverable ? (
+            <Alert
+              isInline
+              variant="info"
+              title={`Reconnect distribution "${recoverable.name}"?`}
+            >
+              This distribution no longer serves any content. Reconnect it to this
+              repository using the name and path below. Nothing will be deleted.
+            </Alert>
+          ) : null}
           <FormGroup label="Content" isRequired role="group">
             <Stack hasGutter role="radiogroup" aria-label="Distribution content">
               <StackItem>
@@ -257,6 +319,7 @@ export function CreateDistributionModal({
               </HelperText>
             </FormHelperText>
           </FormGroup>
+          <DistributionOptionsFields value={accessOptions} onChange={setAccessOptions} />
         </Form>
       </ModalBody>
       <ModalFooter>
@@ -281,7 +344,7 @@ export function CreateDistributionModal({
               isLoading={isSubmitting}
               onClick={handleSubmit}
             >
-              Create
+              {recoverable ? "Reconnect" : "Create"}
             </Button>
           </FlexItem>
         </Flex>

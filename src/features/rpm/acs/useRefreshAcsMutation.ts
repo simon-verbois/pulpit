@@ -13,6 +13,7 @@ export function useRefreshAcsMutation() {
     onSuccess: ({ task }, { href, name }) => {
       registerTask({
         href: task,
+        kind: "group",
         label: `Refresh alternate content source "${name}"`,
         resourceHrefs: [href],
         action: "refresh",

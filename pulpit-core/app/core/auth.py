@@ -39,7 +39,7 @@ def get_auth_client() -> httpx.AsyncClient:
     and TLS when Pulp is https) is reused instead of re-opened per request.
 
     The cookie jar is disabled outright: each request forwards the *caller's*
-    own credentials explicitly (`_forward_headers`), so a Set-Cookie answered
+    own credentials explicitly (`forward_auth_headers`), so a Set-Cookie answered
     to one user must never be stored and replayed to another. A client is
     bound to the event loop it was first used on, so a different running loop
     (tests, mostly) gets a fresh one."""
@@ -84,7 +84,7 @@ class FullUser:
     is_staff: bool
 
 
-def _forward_headers(request: Request) -> dict[str, str]:
+def forward_auth_headers(request: Request) -> dict[str, str]:
     forward_headers = {}
     if cookie := request.headers.get("cookie"):
         forward_headers["cookie"] = cookie
@@ -105,7 +105,7 @@ def _check_csrf(request: Request) -> None:
 async def require_authenticated_user(
     request: Request, settings: Settings = Depends(get_settings)
 ) -> CurrentUser:
-    forward_headers = _forward_headers(request)
+    forward_headers = forward_auth_headers(request)
 
     if not forward_headers:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -137,7 +137,7 @@ async def get_full_user(
 ) -> FullUser:
     url = f"{settings.pulp_base_url}{current_user.pulp_href}"
     try:
-        response = await get_auth_client().get(url, headers=_forward_headers(request))
+        response = await get_auth_client().get(url, headers=forward_auth_headers(request))
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail="Pulp is currently unavailable") from exc
 

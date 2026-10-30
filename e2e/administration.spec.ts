@@ -17,6 +17,8 @@ test("Access tabs stay aligned when switching to and from LDAP", async ({ page }
     await expect(
       page.getByRole("button", { name: "Create user", exact: true }),
     ).toBeVisible();
+    // Cold-cache web fonts can move tab labels after the first visible paint.
+    await page.evaluate(() => document.fonts.ready);
     const selectors = ["General", "Access", "Users", "Groups", "Roles", "LDAP"];
     const positions = await Promise.all(
       selectors.map((name) => page.getByRole("tab", { name, exact: true }).boundingBox()),
@@ -36,8 +38,14 @@ test("Access tabs stay aligned when switching to and from LDAP", async ({ page }
       for (const [index, tab] of selectors.entries()) {
         const box = await page.getByRole("tab", { name: tab, exact: true }).boundingBox();
         expect(box).not.toBeNull();
-        expect(Math.abs(box!.x - positions[index]!.x)).toBeLessThan(1);
-        expect(Math.abs(box!.y - positions[index]!.y)).toBeLessThan(1);
+        expect(
+          Math.abs(box!.x - positions[index]!.x),
+          `${width}px: ${tab} x after ${name}`,
+        ).toBeLessThan(1);
+        expect(
+          Math.abs(box!.y - positions[index]!.y),
+          `${width}px: ${tab} y after ${name}`,
+        ).toBeLessThan(1);
       }
     }
   }

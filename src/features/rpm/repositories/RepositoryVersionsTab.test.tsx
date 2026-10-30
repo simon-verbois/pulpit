@@ -31,7 +31,7 @@ describe("RepositoryVersionsTab", () => {
     });
 
     await screen.findByText(/Version 1/);
-    fireEvent.click(screen.getByRole("button", { name: "Copy to…" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Copy to…" })[0]);
 
     const dialog = await screen.findByRole("dialog");
     const destSelect = await within(dialog).findByLabelText("Destination repository", {

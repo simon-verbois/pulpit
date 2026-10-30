@@ -14,13 +14,13 @@ const OTHER_REPO = {
 };
 
 describe("Container RepositoryVersionsTab", () => {
-  it("shows synced content per version, with a copy action only on the current version", async () => {
+  it("shows synced content per version, with copy actions on every retained version", async () => {
     renderApp(<RepositoryVersionsTab repository={CONTAINER_REPO_FIXTURE} />);
 
     expect(await screen.findByText(/Version 1/)).toBeInTheDocument();
     expect(screen.getByText(/Version 1/).closest("tr")).toHaveClass("pulpit-row-current");
     expect(screen.getByText(/1 tags, 1 manifests/)).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Copy to…" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Copy to…" })).toHaveLength(2);
   });
 
   it(
@@ -43,7 +43,7 @@ describe("Container RepositoryVersionsTab", () => {
       });
 
       await screen.findByText(/Version 1/);
-      fireEvent.click(screen.getByRole("button", { name: "Copy to…" }));
+      fireEvent.click(screen.getAllByRole("button", { name: "Copy to…" })[0]);
 
       const dialog = await screen.findByRole("dialog");
       const destSelect = await within(dialog).findByLabelText("Destination repository", {

@@ -1,5 +1,7 @@
 import { Content } from "@patternfly/react-core";
 
+import { RepositoryOperationsHelp } from "../RepositoryOperationsHelp";
+
 import { DistributionBasePathConvention } from "../DistributionBasePathConvention";
 
 export function MavenRepositoriesTopic() {
@@ -22,6 +24,7 @@ export function MavenRepositoriesTopic() {
         No sync or publish step is needed. Use <strong>Versions</strong> for snapshots and{" "}
         <strong>Access</strong> for permissions.
       </Content>
+      <RepositoryOperationsHelp sync={false} />
       <DistributionBasePathConvention prefix="maven" />
     </Content>
   );

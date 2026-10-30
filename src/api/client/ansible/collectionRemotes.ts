@@ -1,3 +1,4 @@
+import { collectPulpPages } from "../pagination";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
 import type {
@@ -25,8 +26,7 @@ export function listCollectionRemotes(
 /** Fetches every page - used to populate the repository create/edit form's
  * "default remote" select (mirrors RPM's listAllRpmRemotes). */
 export async function listAllCollectionRemotes(): Promise<CollectionRemote[]> {
-  const page = await listCollectionRemotes({ limit: 100, offset: 0 });
-  return page.results;
+  return collectPulpPages((offset) => listCollectionRemotes({ limit: 100, offset }));
 }
 
 export function createCollectionRemote(

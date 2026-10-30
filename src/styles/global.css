@@ -476,7 +476,6 @@ textarea.pf-v6-c-form-control:focus-visible {
 .pf-v6-c-masthead {
   --pf-v6-c-masthead--PaddingBlock: 0.5rem;
   --pf-v6-c-masthead--PaddingInline: 0.625rem;
-  border-block-start: 4px solid var(--pulpit-dev);
   border-block-end: 1px solid var(--pulpit-chrome-border);
   box-shadow: 0 1px 2px color-mix(in srgb, #23343b 6%, transparent);
 }
@@ -636,25 +635,30 @@ textarea.pf-v6-c-form-control:focus-visible {
   line-height: 1.2;
 }
 
-/* Tabs must keep their position when the selected settings page has no
-   header action. Reserve the same height as a default PatternFly button. */
-.pulpit-administration-header > .pf-v6-l-flex {
-  min-block-size: calc(
+/* Keep the panel below every page title at the same height, with or without
+   header actions. A minimum based on PatternFly's button tokens still lets
+   long titles and wrapped action rows grow naturally on narrow screens. */
+.pulpit-page-header {
+  --pulpit-header-action-height: calc(
     var(--pf-t--global--font--size--body--default) *
       var(--pf-t--global--font--line-height--body) + 2 *
       var(--pf-t--global--spacer--control--vertical--default)
   );
 }
 
-/* Every routed screen uses the same inset working surface as the dashboard.
-   PageHeader is the stable boundary: the PageSection immediately following
-   it is the page's primary functional block, whether that block is a list,
-   a settings form, or a tab set. Keeping the treatment here avoids dozens of
-   subtly different plugin-local wrappers and also gives future pages the
-   house style automatically. Overview is deliberately excluded because it
-   already composes several independent dashboard panels. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs) {
+.pulpit-page-header > .pf-v6-l-flex {
+  min-block-size: var(--pulpit-header-action-height);
+}
+
+.pulpit-page-header--reserve-actions .pulpit-page-actions {
+  min-block-size: var(--pulpit-header-action-height);
+}
+
+/* PageLayout explicitly owns the primary working surface. Its styles do not
+   depend on adjacent siblings: a sync warning between the title and panel
+   must not remove the panel's spacing, background, or tab/table treatment.
+   Overview composes independent dashboard panels and uses its own surface. */
+.pf-v6-c-page .pulpit-page-panel {
   margin: 0 1rem 1.75rem 1.625rem;
   inline-size: auto;
   padding: 1.25rem;
@@ -667,8 +671,7 @@ textarea.pf-v6-c-form-control:focus-visible {
 
 /* Tables own their horizontal rhythm and tab bodies contain their own
    PageSections, so these two page anatomies need a full-bleed outer panel. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-section:is(
+.pulpit-page-panel.pf-v6-c-page__main-section:is(
     :has(> .pf-v6-c-toolbar),
     :has(> .pf-v6-c-table),
     .pf-m-tabs
@@ -676,8 +679,11 @@ textarea.pf-v6-c-form-control:focus-visible {
   padding: 0;
 }
 
-.pulpit-page-header:not(.pulpit-overview-header) + .pf-v6-c-page__main-tabs {
+.pulpit-page-panel.pf-v6-c-page__main-tabs {
   padding: 0;
+  min-block-size: 0;
+  flex-shrink: 1;
+  overflow: hidden;
   /* Long settings forms should scroll inside their own controls only when
      necessary. A bottom margin participates in the Page main region's
      scroll height and created a needless page scrollbar on desktop; the
@@ -686,11 +692,15 @@ textarea.pf-v6-c-form-control:focus-visible {
   margin-block-end: 0;
 }
 
+/* Keep the search width stable when its clear button appears. */
+.pulpit-list-search {
+  inline-size: 18rem;
+  max-inline-size: 100%;
+}
+
 /* A list toolbar is the panel's calm control strip, not another floating
    block. Top-level lists and data tabs use exactly the same inset. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-section
-  > .pf-v6-c-toolbar {
+.pulpit-page-panel .pulpit-list-toolbar {
   --pf-v6-c-toolbar--BackgroundColor: transparent;
   --pf-v6-c-toolbar--PaddingBlockStart: 1rem;
   --pf-v6-c-toolbar--PaddingBlockEnd: 1rem;
@@ -703,8 +713,7 @@ textarea.pf-v6-c-form-control:focus-visible {
    padding. That leaves description lists and controls touching the panel's
    left edge even though the tab labels themselves are inset. Descriptive
    bodies inherit the same horizontal rhythm as the tab row. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-tabs
+.pulpit-page-panel.pf-v6-c-page__main-tabs
   .pf-v6-c-tab-content
   > .pf-v6-c-page__main-section {
   padding: 1rem 1.125rem;
@@ -713,32 +722,16 @@ textarea.pf-v6-c-form-control:focus-visible {
 /* Data tabs remain full-bleed so their table header reaches both panel
    edges. The toolbar supplies the inset for controls; removing the section
    row gap makes the table start immediately below that control strip. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-tabs
+.pulpit-page-panel.pf-v6-c-page__main-tabs
   .pf-v6-c-tab-content
   > .pf-v6-c-page__main-section:is(:has(> .pf-v6-c-toolbar), :has(> .pf-v6-c-table)) {
   padding: 0;
 }
 
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-tabs
-  .pf-v6-c-tab-content
-  > .pf-v6-c-page__main-section
-  > .pf-v6-c-toolbar {
-  --pf-v6-c-toolbar--BackgroundColor: transparent;
-  --pf-v6-c-toolbar--PaddingBlockStart: 1rem;
-  --pf-v6-c-toolbar--PaddingBlockEnd: 1rem;
-  --pf-v6-c-toolbar--PaddingInlineStart: 1.125rem;
-  --pf-v6-c-toolbar--PaddingInlineEnd: 1.125rem;
-  border-block-end: 1px solid var(--pulpit-table-rule);
-}
-
 /* Lists and tables nested in detail/admin tabs share the dashboard's table
    density and hierarchy. The scope stops at the primary page surface so
    drawers and modals retain PatternFly's native presentation. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
-  .pf-v6-c-table {
+.pulpit-page-panel .pf-v6-c-table {
   --pf-v6-c-table--BackgroundColor: transparent;
   --pf-v6-c-table--cell--PaddingBlockStart: 0.76rem;
   --pf-v6-c-table--cell--PaddingBlockEnd: 0.76rem;
@@ -747,64 +740,59 @@ textarea.pf-v6-c-form-control:focus-visible {
   font-size: 0.96rem;
 }
 
-.pulpit-page-header:not(.pulpit-overview-header)
-  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
-  .pf-v6-c-table__thead {
+.pulpit-page-panel .pf-v6-c-table__thead {
   background: var(--pulpit-table-head);
   text-transform: none;
   letter-spacing: 0;
   font-size: 0.86rem;
 }
 
-.pulpit-page-header:not(.pulpit-overview-header)
-  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
-  .pf-v6-c-table__tbody
-  .pf-v6-c-table__tr {
+.pulpit-page-panel .pf-v6-c-table__tbody .pf-v6-c-table__tr {
   border-block-end: 1px solid var(--pulpit-table-rule);
   transition: background-color var(--pf-t--global--motion--duration--fade--short)
     var(--pf-t--global--motion--timing-function--default);
 }
 
-.pulpit-page-header:not(.pulpit-overview-header)
-  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
-  .pf-v6-c-table__tbody
-  .pf-v6-c-table__tr:last-child {
+.pulpit-page-panel .pf-v6-c-table__tbody .pf-v6-c-table__tr:last-child {
   border-block-end: 0;
 }
 
-.pulpit-page-header:not(.pulpit-overview-header)
-  + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs)
-  .pf-v6-c-table__tbody
-  .pf-v6-c-table__tr:hover {
+.pulpit-page-panel .pf-v6-c-table__tbody .pf-v6-c-table__tr:hover {
   background: var(--pulpit-table-row-hover);
 }
 
 /* Tabs are the surface header. Their PageSection bodies keep normal
    PatternFly padding, while a second-level tab row remains visually nested
    rather than appearing to be another page-wide white band. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-tabs
-  > .pf-v6-c-tabs {
+.pulpit-page-panel.pf-v6-c-page__main-tabs > .pf-v6-c-tabs {
+  flex-shrink: 0;
   --pf-v6-c-tabs--BackgroundColor: transparent;
   padding-inline: 1.125rem;
+}
+
+.pulpit-page-panel.pf-v6-c-page__main-tabs .pf-v6-c-tabs {
+  flex-shrink: 0;
+}
+
+.pulpit-page-panel.pf-v6-c-page__main-tabs .pf-v6-c-tab-content:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: auto;
 }
 
 /* Pointer focus no longer paints the filled hover surface on tabs (see the
    `:focus` -> `:focus-visible` rewrite in vite.config.ts). Keyboard focus
    swaps that grey surface - which competes with the blue active underline -
    for an explicit brand outline, so operability never relies on color. */
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-tabs
-  .pf-v6-c-tabs__link:focus-visible {
+.pulpit-page-panel.pf-v6-c-page__main-tabs .pf-v6-c-tabs__link:focus-visible {
   --pf-v6-c-tabs__link--BackgroundColor: transparent;
   outline: 2px solid var(--pulpit-primary);
   outline-offset: -3px;
 }
 
-.pulpit-page-header:not(.pulpit-overview-header)
-  + .pf-v6-c-page__main-tabs
-  .pf-v6-c-tabs
-  .pf-v6-c-tabs {
+.pulpit-page-panel.pf-v6-c-page__main-tabs .pf-v6-c-tabs .pf-v6-c-tabs {
   padding-inline: 0;
   background: color-mix(in srgb, var(--pulpit-table-head) 42%, transparent);
 }
@@ -1090,19 +1078,22 @@ textarea.pf-v6-c-form-control:focus-visible {
     padding: 1.25rem 1rem 0.875rem;
   }
 
-  .pulpit-page-header:not(.pulpit-overview-header)
-    + :is(.pf-v6-c-page__main-section, .pf-v6-c-page__main-tabs) {
+  .pulpit-page-panel {
     margin-inline: 1rem;
     margin-block-end: 1.25rem;
     border-radius: 0.625rem;
   }
 
-  .pulpit-page-header:not(.pulpit-overview-header) + .pf-v6-c-page__main-tabs {
+  .pulpit-page-panel.pf-v6-c-page__main-tabs {
     margin-block-end: 0;
   }
 
   .pulpit-page-header .pf-v6-l-flex {
     row-gap: 0.75rem;
+  }
+
+  .pulpit-page-header--reserve-actions > .pf-v6-l-flex {
+    flex-direction: column;
   }
 
   .pf-v6-c-page__main-section.pulpit-overview-content {
@@ -1124,9 +1115,9 @@ textarea.pf-v6-c-form-control:focus-visible {
 }
 
 /* PatternFly top-aligns table cells, which is fine until a row holds a taller
-   control (kebab, text button, label): the text then hugs the row's top edge
+   control (menu, text button, label): the text then hugs the row's top edge
    while the control sits mid-row. Center every body cell instead so text,
-   buttons and kebabs share one line. */
+   buttons and menus share one line. */
 .pf-v6-c-table__tbody > .pf-v6-c-table__tr > :is(.pf-v6-c-table__td, .pf-v6-c-table__th) {
   vertical-align: middle;
 }

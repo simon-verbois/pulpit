@@ -1,6 +1,7 @@
+import { listRepositoryDistributions } from "../distributionManagement";
 import { apiPath, pulpFetch } from "../httpClient";
 import { buildQuery } from "../queryString";
-import type { PulpPage, NpmDistribution, NpmDistributionCreate } from "./types";
+import type { PulpPage, NpmDistribution } from "./types";
 
 const BASE = apiPath("/distributions/npm/npm/");
 
@@ -15,16 +16,14 @@ export interface ListNpmDistributionsParams {
 export function listNpmDistributions(
   params: ListNpmDistributionsParams,
 ): Promise<PulpPage<NpmDistribution>> {
+  if (params.repository)
+    return listRepositoryDistributions<NpmDistribution>(
+      "npm",
+      params.repository,
+      params.limit,
+      params.offset,
+    );
   return pulpFetch<PulpPage<NpmDistribution>>(`${BASE}${buildQuery(params)}`);
-}
-
-export function createNpmDistribution(
-  data: NpmDistributionCreate,
-): Promise<{ task: string }> {
-  return pulpFetch<{ task: string }>(BASE, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 }
 
 export function deleteNpmDistribution(href: string): Promise<{ task: string }> {

@@ -4,13 +4,11 @@ import {
   Button,
   FormSelect,
   FormSelectOption,
-  Pagination,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
+import { ListToolbar } from "../../components/ListToolbar";
 import type { JobStatus } from "../../api/client/pulpitCore/types";
 import { parseResourceRecord } from "../../api/client/taskResources";
 import { EmptyState } from "../../components/EmptyState";
@@ -46,7 +44,7 @@ export function JobsTab() {
   const [statusFilter, setStatusFilter] = useState<JobStatus | "">("");
   const [searchParams, setSearchParams] = useSearchParams();
   const viewingJobId = searchParams.get("job");
-  const pagination = usePulpPagination();
+  const pagination = usePulpPagination(undefined, statusFilter);
 
   const jobsQuery = useJobsQuery({
     limit: pagination.limit,
@@ -79,39 +77,27 @@ export function JobsTab() {
   };
 
   const toolbar = (
-    <Toolbar>
-      <ToolbarContent>
-        <ToolbarItem>
-          <FormSelect
-            aria-label="Filter by status"
-            value={statusFilter}
-            onChange={(_event, value) => setStatusFilter(value as JobStatus | "")}
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <FormSelectOption
-                key={option.value}
-                value={option.value}
-                label={option.label}
-              />
-            ))}
-          </FormSelect>
-        </ToolbarItem>
-        <ToolbarItem align={{ default: "alignEnd" }}>
-          <Pagination
-            itemCount={jobsQuery.data?.count ?? 0}
-            page={pagination.page}
-            perPage={pagination.perPage}
-            perPageOptions={pagination.perPageOptions}
-            onSetPage={pagination.onSetPage}
-            onPerPageSelect={pagination.onPerPageSelect}
-            isCompact
-          />
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+    <ListToolbar pagination={pagination} itemCount={jobsQuery.data?.count ?? 0}>
+      <ToolbarItem>
+        <FormSelect
+          aria-label="Filter by status"
+          value={statusFilter}
+          onChange={(_event, value) => setStatusFilter(value as JobStatus | "")}
+        >
+          {STATUS_OPTIONS.map((option) => (
+            <FormSelectOption
+              key={option.value}
+              value={option.value}
+              label={option.label}
+            />
+          ))}
+        </FormSelect>
+      </ToolbarItem>
+    </ListToolbar>
   );
 
-  const isEmpty = jobsQuery.isSuccess && jobsQuery.data.results.length === 0;
+  const isEmpty =
+    jobsQuery.isSuccess && jobsQuery.data.results.length === 0 && pagination.page === 1;
 
   return (
     <>

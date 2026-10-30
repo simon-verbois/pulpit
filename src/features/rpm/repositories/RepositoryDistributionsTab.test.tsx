@@ -245,3 +245,98 @@ describe("RepositoryDistributionsTab", () => {
     );
   });
 });
+
+it.each(["latest", "pinned"])(
+  "offers an explicit reconnect for an unused %s distribution",
+  async (mode) => {
+    const name = RPM_REPO_FIXTURE.name;
+    const unused = {
+      ...RPM_DISTRIBUTION_FIXTURE,
+      name,
+      base_path: `rpm/${name.replaceAll(" ", "-")}`,
+      repository: null,
+      publication: null,
+    };
+    let reconnect: unknown;
+    let creates = 0;
+    server.use(
+      http.get("/pulp/api/v3/distributions/rpm/rpm/", () =>
+        HttpResponse.json({ count: 1, next: null, previous: null, results: [unused] }),
+      ),
+      http.post("/pulp/api/v3/distributions/rpm/rpm/", () => {
+        creates++;
+        return HttpResponse.json({}, { status: 400 });
+      }),
+      http.patch(unused.pulp_href, async ({ request }) => {
+        reconnect = await request.json();
+        return HttpResponse.json(
+          { task: "/pulp/api/v3/tasks/reconnect/" },
+          { status: 202 },
+        );
+      }),
+      http.get("/pulp/api/v3/tasks/reconnect/", () =>
+        HttpResponse.json({
+          pulp_href: "/pulp/api/v3/tasks/reconnect/",
+          state: "completed",
+          name: "reconnect",
+          created_resources: [],
+        }),
+      ),
+    );
+    renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Create distribution" }));
+    const dialog = await screen.findByRole("dialog");
+    if (mode === "pinned") {
+      fireEvent.click(within(dialog).getByLabelText("Pin a repository version"));
+      await within(dialog).findByLabelText("Repository version");
+      fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
+        target: { value: name },
+      });
+    }
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
+    const button = await within(dialog).findByRole("button", {
+      name: "Reconnect",
+    });
+    expect(reconnect).toBeUndefined();
+    expect(creates).toBe(0);
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(reconnect).toMatchObject(
+        mode === "pinned"
+          ? { repository: null, publication: expect.any(String) }
+          : { repository: RPM_REPO_FIXTURE.pulp_href, publication: null },
+      ),
+    );
+    expect(creates).toBe(0);
+  },
+);
+
+it("does not take over a conflicting distribution that still serves content", async () => {
+  let writes = 0;
+  const occupied = {
+    ...RPM_DISTRIBUTION_FIXTURE,
+    name: RPM_REPO_FIXTURE.name,
+    repository: "/pulp/api/v3/repositories/rpm/rpm/another/",
+  };
+  server.use(
+    http.get("/pulp/api/v3/distributions/rpm/rpm/", () =>
+      HttpResponse.json({ count: 1, next: null, previous: null, results: [occupied] }),
+    ),
+    http.post("/pulp/api/v3/distributions/rpm/rpm/", () => {
+      writes++;
+      return HttpResponse.json({}, { status: 400 });
+    }),
+  );
+  renderApp(<RepositoryDistributionsTab repository={RPM_REPO_FIXTURE} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Create distribution" }));
+  const dialog = await screen.findByRole("dialog");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Create" }));
+  expect(
+    await within(dialog).findByText(/still connected to content/),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).queryByRole("button", { name: "Reconnect" }),
+  ).not.toBeInTheDocument();
+  expect(writes).toBe(0);
+});

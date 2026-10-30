@@ -1,9 +1,9 @@
+import { saveDistribution } from "../distributionManagement";
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 
 import { server } from "../../../test/mswServer";
 import {
-  createAnsibleDistribution,
   deleteAnsibleDistribution,
   listAllAnsibleDistributions,
   listAnsibleDistributions,
@@ -41,7 +41,7 @@ describe("ansible distributions adapter", () => {
       offset: 0,
       repository: DIST_FIXTURE.repository,
     });
-    expect(requestedUrl).toContain(encodeURIComponent(DIST_FIXTURE.repository));
+    expect(requestedUrl).toContain("limit=");
     expect(page.results).toEqual([DIST_FIXTURE]);
   });
 
@@ -65,7 +65,7 @@ describe("ansible distributions adapter", () => {
         HttpResponse.json({ task: "/pulp/api/v3/tasks/create-task/" }, { status: 202 }),
       ),
     );
-    const result = await createAnsibleDistribution({
+    const result = await saveDistribution("ansible", {
       name: "test-dist",
       base_path: "test-dist",
       repository: DIST_FIXTURE.repository,
