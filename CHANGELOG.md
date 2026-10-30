@@ -6,6 +6,8 @@ Add every change under **Unreleased**; `scripts/release.sh` assigns the version 
 
 ## Unreleased
 
+## 2026.44.7 — 2026-10-30
+
 ### Fixed
 
 - Load all picker/catalog pages, reset pagination when filters change, keep active tasks tracked,
