@@ -130,7 +130,7 @@ export interface GitRemote {
 export interface GitRemoteCreate extends AnsibleRemoteConnectionSettings {
   name: string;
   url: string;
-  git_ref?: string | null;
+  git_ref?: string;
   metadata_only?: boolean;
 }
 

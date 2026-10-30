@@ -16,7 +16,11 @@ export function useDeleteRpmRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [rpmRepositoriesListRootKey, rpmDistributionsListRootKey],
+        invalidateKeys: [
+          ["pulp"],
+          rpmRepositoriesListRootKey,
+          rpmDistributionsListRootKey,
+        ],
       });
     },
   });

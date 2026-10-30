@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function GemRemotesTopic() {
   return (
@@ -10,6 +11,7 @@ export function GemRemotesTopic() {
         Immediate downloads now; On demand downloads when requested; Streamed does not
         keep files. Add credentials if the source requires login.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

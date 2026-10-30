@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function PythonRemotesTopic() {
   return (
@@ -11,6 +12,7 @@ export function PythonRemotesTopic() {
         Immediate downloads now; On demand downloads when requested; Streamed does not
         keep files. Add credentials if the source requires login.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

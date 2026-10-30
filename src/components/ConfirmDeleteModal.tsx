@@ -22,6 +22,8 @@ interface ConfirmDeleteModalProps {
    * cascade delete of something else the user might not expect. Rendered as
    * a prominent inline warning above the normal confirmation text. */
   warning?: string;
+  /** Ordinary consequence text, without a separate warning banner. */
+  consequence?: string;
   isConfirmDisabled?: boolean;
   children?: ReactNode;
 }
@@ -33,6 +35,7 @@ export function ConfirmDeleteModal({
   onConfirm,
   onCancel,
   warning,
+  consequence,
   isConfirmDisabled,
   children,
 }: ConfirmDeleteModalProps) {
@@ -56,6 +59,7 @@ export function ConfirmDeleteModal({
         ) : null}
         Are you sure you want to delete <strong>{itemLabel}</strong>? This cannot be
         undone.
+        {consequence ? <p>{consequence}</p> : null}
       </ModalBody>
       <ModalFooter>
         <Flex

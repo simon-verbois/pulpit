@@ -201,7 +201,7 @@ export function RepositoryDetailPage() {
       {isConfirmingDelete ? (
         <ConfirmDeleteModal
           itemTypeLabel="repository"
-          warning="Distributions are kept. If you recreate this repository, you can reconnect its unused distributions."
+          consequence="Its distributions will also be deleted, including URLs pinned to a version or publication."
           itemLabel={repository.name}
           isDeleting={deleteMutation.isPending}
           onCancel={() => setIsConfirmingDelete(false)}

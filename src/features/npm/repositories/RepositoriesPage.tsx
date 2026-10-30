@@ -166,6 +166,7 @@ export function RepositoriesPage() {
       {pendingDelete ? (
         <ConfirmDeleteModal
           itemTypeLabel="repository"
+          consequence="Its distributions will also be deleted, including URLs pinned to a version or publication."
           itemLabel={pendingDelete.name}
           isDeleting={deleteMutation.isPending}
           onCancel={() => setPendingDelete(null)}

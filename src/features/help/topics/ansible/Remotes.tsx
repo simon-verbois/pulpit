@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function AnsibleRemotesTopic() {
   return (
@@ -20,6 +21,7 @@ export function AnsibleRemotesTopic() {
         Immediate downloads content now; On demand downloads when requested; Streamed does
         not keep files. Git remotes do not use this setting.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

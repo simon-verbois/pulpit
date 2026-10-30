@@ -17,8 +17,8 @@ export function RpmRepositoriesTopic() {
           <strong>Tasks</strong>.
         </Content>
         <Content component="li">
-          Choose <strong>Publish now</strong>. <strong>Automatically publish</strong> is
-          off by default.
+          <strong>Automatically publish</strong> is on by default. Turn it off to use
+          <strong> Publish now</strong> manually.
         </Content>
         <Content component="li">
           Open <strong>Distributions → Create distribution</strong>, then copy the client

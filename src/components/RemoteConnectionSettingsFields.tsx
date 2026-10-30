@@ -9,7 +9,10 @@ import {
   TextInput,
 } from "@patternfly/react-core";
 
+import { RemoteTlsSettingsFields } from "./RemoteTlsSettingsFields";
+
 export interface RemoteConnectionSettings {
+  tls_validation?: boolean;
   username?: string | null;
   password?: string | null;
 }
@@ -42,9 +45,14 @@ export function RemoteConnectionSettingsFields({
       onToggle={(_event, expanded) => setIsExpanded(expanded)}
     >
       <Content component="p">
-        Outbound proxy, TLS validation and trusted CA certificates are managed centrally
-        in Administration → Global Proxy Settings.
+        Outbound proxy and trusted CA certificates are managed centrally in Administration
+        → Global Proxy Settings.
       </Content>
+      <RemoteTlsSettingsFields
+        idPrefix={idPrefix}
+        value={value.tls_validation}
+        onChange={(tls_validation) => onChange({ ...value, tls_validation })}
+      />
       {(["username", "password"] as const).map((field) => (
         <FormGroup
           key={field}

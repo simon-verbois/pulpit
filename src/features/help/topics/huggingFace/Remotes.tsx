@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function HuggingFaceRemotesTopic() {
   return (
@@ -11,6 +12,7 @@ export function HuggingFaceRemotesTopic() {
         Set <strong>Hub URL</strong> only for a custom Hub. Leave a saved token blank when
         editing to keep it.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

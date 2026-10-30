@@ -1,4 +1,5 @@
 """Root-owned reconciliation of the public CA into the container trust store."""
+
 import logging
 import subprocess
 import time
@@ -22,7 +23,11 @@ def reconcile(certificate):
         _atomic(target, desired, 0o644)
     else:
         target.unlink(missing_ok=True)
-    command = ["update-ca-trust", "extract"] if redhat.exists() else ["update-ca-certificates"]
+    command = (
+        ["update-ca-trust", "extract"]
+        if redhat.exists()
+        else ["update-ca-certificates"]
+    )
     subprocess.run(command, check=True, capture_output=True)
     _last_applied = desired
 
@@ -35,5 +40,7 @@ def main():
             if policy:
                 reconcile(policy.get("ca_cert"))
         except Exception:
-            logging.exception("Could not reconcile the global CA into the container trust store")
+            logging.exception(
+                "Could not reconcile the global CA into the container trust store"
+            )
         time.sleep(2)

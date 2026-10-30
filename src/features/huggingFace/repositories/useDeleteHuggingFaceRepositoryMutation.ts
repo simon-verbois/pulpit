@@ -16,7 +16,7 @@ export function useDeleteHuggingFaceRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [huggingFaceRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], huggingFaceRepositoriesListRootKey],
       });
     },
   });

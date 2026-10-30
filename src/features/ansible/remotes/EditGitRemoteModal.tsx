@@ -34,6 +34,7 @@ export function EditGitRemoteModal({
   const [gitRef, setGitRef] = useState(remote.git_ref ?? "");
   const [metadataOnly, setMetadataOnly] = useState(remote.metadata_only);
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
+    tls_validation: remote.tls_validation,
     username: "",
     password: "",
   });
@@ -47,10 +48,13 @@ export function EditGitRemoteModal({
         data: {
           name: name !== remote.name ? name : undefined,
           url,
-          git_ref: gitRef || null,
+          // Pulp rejects null/blank refs. Preserve an unset ref; clearing an
+          // existing branch selects Git’s symbolic default instead.
+          git_ref: gitRef || (remote.git_ref ? "HEAD" : undefined),
           metadata_only: metadataOnly,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
+          tls_validation: connectionSettings.tls_validation ?? true,
         },
       },
       { onSuccess: () => onClose() },

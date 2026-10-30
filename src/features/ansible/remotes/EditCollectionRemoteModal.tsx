@@ -61,6 +61,7 @@ export function EditCollectionRemoteModal({
   // (VERIFIED live, see CollectionRemote.hidden_fields); blank on submit
   // means "leave unchanged", not "clear".
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
+    tls_validation: remote.tls_validation,
     username: "",
     password: "",
   });
@@ -84,6 +85,7 @@ export function EditCollectionRemoteModal({
           sync_highest_versions: syncHighestVersions ?? null,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
+          tls_validation: connectionSettings.tls_validation ?? true,
         },
       },
       { onSuccess: () => onClose() },

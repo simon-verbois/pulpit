@@ -132,3 +132,9 @@ test-distribution-policy: ## Verify distribution paths and native registry guard
 	$(COMPOSE_DEV) cp deployment/docker/pulp/distribution-path-policy/tests/. pulp:/tmp/pulpit-distribution-policy-tests/
 	$(COMPOSE_DEV) cp deployment/docker/pulp/api-compat/tests/. pulp:/tmp/pulpit-distribution-policy-tests/
 	$(COMPOSE_DEV) exec -T --user pulp pulp python -m unittest discover -s /tmp/pulpit-distribution-policy-tests -v
+
+.PHONY: test-egress-policy
+test-egress-policy: ## Verify global network policy and per-remote TLS exceptions in real Pulp
+	$(COMPOSE_DEV) exec -T pulp mkdir -p /tmp/pulpit-egress-policy-tests
+	$(COMPOSE_DEV) cp deployment/docker/pulp/global-network/tests/. pulp:/tmp/pulpit-egress-policy-tests/
+	$(COMPOSE_DEV) exec -T --user pulp pulp python -m unittest discover -s /tmp/pulpit-egress-policy-tests -v

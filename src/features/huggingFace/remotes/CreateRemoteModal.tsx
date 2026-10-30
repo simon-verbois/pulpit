@@ -51,6 +51,7 @@ export function CreateRemoteModal({ onClose }: { onClose: () => void }) {
         policy,
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
+        tls_validation: connectionSettings.tls_validation ?? true,
         // Both optional and plugin-specific (not part of the generic
         // RemoteConnectionSettingsFields shared by every plugin) - for
         // pointing at a self-hosted/private Hugging Face Hub instead of

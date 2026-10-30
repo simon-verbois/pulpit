@@ -8,8 +8,8 @@ export function PythonOverviewTopic() {
         publish, then create a distribution for clients.
       </Content>
       <Content component="p">
-        Autopublish is off by default; enable it if you want to publish after content
-        changes.
+        Autopublish is on by default. Disable it when you want to publish content changes
+        manually.
       </Content>
     </Content>
   );

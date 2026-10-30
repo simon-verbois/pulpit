@@ -163,20 +163,11 @@ export interface DefaultSettings {
   proxy_url: string;
   proxy_username: string;
   proxy_password_is_set: boolean;
-  /** Mirrors Remote.tls_validation exactly (true means validate) - Pulp has
-   * only one tls_validation flag per Remote, shared by the origin server
-   * AND the proxy connection, never two separate ones. There is no
-   * Pulp-side way to skip validation for only the proxy while still
-   * validating the origin (or vice versa). */
+  /** Global TLS validation default. A saved remote's explicit tls_validation=false
+   * opts that remote out. Pulp uses one flag for origin and HTTPS proxy validation. */
   proxy_tls_validation: boolean;
-  /** Public material (unlike proxy_password above) - returned in full, not
-   * behind an `is_set` indirection. Applied to every new Remote's own
-   * native `ca_cert` field (RemoteConnectionSettingsFields.tsx), the same
-   * per-remote-override pattern as proxy_tls_validation. Replaces the old
-   * trusted_ca module's docker-exec/update-ca-trust mechanism - Pulp's own
-   * aiohttp downloader already trusts a Remote's `ca_cert` IN ADDITION TO
-   * the system CA bundle (pulpcore's DownloaderFactory), so this needed no
-   * container-filesystem automation at all. */
+  /** Public global CA material, combined with system trust in the shared egress bundle.
+   * Per-remote TLS exceptions retain global proxy routing and CA configuration. */
   proxy_ca_cert: string | null;
   updated_at: string;
 }

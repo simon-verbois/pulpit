@@ -75,7 +75,7 @@ describe("HelpButton + HelpPanel", () => {
     // Deep-links to the Repositories page itself (not just the RPM
     // category's overview) - getHelpLocationForPath matches the most
     // specific page path available.
-    expect(screen.getByText(/is off by default/, { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(/is on by default/, { exact: false })).toBeInTheDocument();
   });
 
   it("expands a category's sub-pages and lets you pick one, without losing the others", () => {

@@ -100,6 +100,18 @@ for (const format of formats)
       expect((await editing).status()).toBe(202);
       await api.wait((await (await editing).json()).task);
       await expect(dialog).toBeHidden();
+      // Legacy orphan fixture: new repository deletions now remove attached URLs.
+      const detached = await page.request.patch(href, {
+        headers: api.headers,
+        data: {
+          repository: null,
+          content_guard: guard.pulp_href,
+          hidden: true,
+          ...(format.route === "containers" ? { private: true } : {}),
+        },
+      });
+      expect(detached.status()).toBe(202);
+      await api.wait((await detached.json()).task);
       await api.remove(repository.pulp_href);
       repository = await api.create(`/pulp/api/v3/repositories/${format.repository}/`, {
         name,

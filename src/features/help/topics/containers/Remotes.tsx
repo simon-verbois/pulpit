@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function ContainersRemotesTopic() {
   return (
@@ -16,6 +17,7 @@ export function ContainersRemotesTopic() {
         Immediate downloads now; On demand downloads when requested; Streamed does not
         keep files.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

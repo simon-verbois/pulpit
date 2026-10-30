@@ -15,7 +15,7 @@ export function useDeleteNpmRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [npmRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], npmRepositoriesListRootKey],
       });
     },
   });

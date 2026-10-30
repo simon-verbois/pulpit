@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pulpit-egress"
-version = "1.0.0"
+version = "1.1.0"
 description = "Shared global outbound HTTP proxy and TLS policy"
 requires-python = ">=3.11"
 

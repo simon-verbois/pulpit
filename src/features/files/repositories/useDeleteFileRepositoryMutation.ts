@@ -15,7 +15,7 @@ export function useDeleteFileRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [fileRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], fileRepositoriesListRootKey],
       });
     },
   });

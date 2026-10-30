@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function RpmRemotesTopic() {
   return (
@@ -21,6 +22,7 @@ export function RpmRemotesTopic() {
         Leave saved credentials blank when editing to keep them. Proxy and trusted
         certificates are set in <strong>Administration → Global Proxy Settings</strong>.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

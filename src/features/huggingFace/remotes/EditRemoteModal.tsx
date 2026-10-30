@@ -47,6 +47,7 @@ export function EditRemoteModal({
   // on the read side (see HuggingFaceRemoteCreate's own doc comment).
   const [hfToken, setHfToken] = useState("");
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
+    tls_validation: remote.tls_validation,
     username: "",
     password: "",
   });
@@ -63,6 +64,7 @@ export function EditRemoteModal({
           policy,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
+          tls_validation: connectionSettings.tls_validation ?? true,
           ...(hfToken ? { hf_token: hfToken } : {}),
         },
       },

@@ -120,6 +120,7 @@ export function RepositoryDetailPage() {
       {isConfirmingDelete ? (
         <ConfirmDeleteModal
           itemTypeLabel="repository"
+          consequence="Its distributions will also be deleted, including URLs pinned to a version or publication."
           itemLabel={repository.name}
           isDeleting={deleteMutation.isPending}
           onCancel={() => setIsConfirmingDelete(false)}

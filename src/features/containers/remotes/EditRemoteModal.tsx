@@ -49,6 +49,7 @@ export function EditRemoteModal({
   // never echoes them back (VERIFIED live, see ContainerRemote.hidden_fields);
   // blank on submit means "leave unchanged", not "clear".
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
+    tls_validation: remote.tls_validation,
     username: "",
     password: "",
   });
@@ -76,6 +77,7 @@ export function EditRemoteModal({
           excludes,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
+          tls_validation: connectionSettings.tls_validation ?? true,
         },
       },
       { onSuccess: () => onClose() },

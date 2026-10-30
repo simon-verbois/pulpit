@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function FileRemotesTopic() {
   return (
@@ -12,6 +13,7 @@ export function FileRemotesTopic() {
         Streamed does not keep files. Leave saved passwords blank when editing to keep
         them.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

@@ -182,6 +182,7 @@ export interface RpmUlnRemote {
 }
 
 export interface RpmUlnRemoteCreate {
+  tls_validation?: boolean;
   name: string;
   url: string;
   uln_server_base_url: string;
@@ -193,6 +194,7 @@ export interface RpmUlnRemoteCreate {
 /** PATCH body - credentials are optional so omitting either write-only field
  * preserves the value already stored by Pulp. */
 export interface RpmUlnRemoteUpdate {
+  tls_validation?: boolean;
   name?: string;
   url?: string;
   uln_server_base_url?: string | null;

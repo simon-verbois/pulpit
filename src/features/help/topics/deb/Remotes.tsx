@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function DebRemotesTopic() {
   return (
@@ -12,6 +13,7 @@ export function DebRemotesTopic() {
         keep files. Add source credentials if needed. The outgoing proxy is set under{" "}
         <strong>Administration → Global Proxy Settings</strong>.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

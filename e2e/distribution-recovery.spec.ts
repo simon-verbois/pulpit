@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("an RPM distribution can be reconnected after deleting and recreating its repository", async ({
+test("a legacy orphan RPM distribution can be reconnected to a recreated repository", async ({
   page,
 }) => {
   test.setTimeout(90000);
@@ -43,6 +43,13 @@ test("an RPM distribution can be reconnected after deleting and recreating its r
       params: { name },
     });
     distributionHref = (await list.json()).results[0].pulp_href;
+    // Simulate a legacy orphan without relying on the old repository-delete behavior.
+    const detached = await page.request.patch(distributionHref!, {
+      headers,
+      data: { repository: null, publication: null },
+    });
+    expect(detached.status()).toBe(202);
+    await wait((await detached.json()).task);
     const deletion = await page.request.delete(repositoryHref!, { headers });
     await wait((await deletion.json()).task);
     repositoryHref = undefined;

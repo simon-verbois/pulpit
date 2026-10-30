@@ -32,6 +32,7 @@ export function EditGitRemoteModal({
   const [url, setUrl] = useState(remote.url);
   const [gitRef, setGitRef] = useState(remote.git_ref);
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
+    tls_validation: remote.tls_validation,
     username: "",
     password: "",
   });
@@ -48,6 +49,7 @@ export function EditGitRemoteModal({
           git_ref: gitRef,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
+          tls_validation: connectionSettings.tls_validation ?? true,
         },
       },
       { onSuccess: () => onClose() },

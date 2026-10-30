@@ -167,3 +167,14 @@ size and checksum. Pulpit's worker never publishes unsigned content to fetch pac
 Re-sign requests finish external I/O before taking the short queue-submission lock. The detector
 also completes pagination before flushing queued jobs. Native task polling holds no core SQLite
 writer. Both Pulp and Pulpit images must be upgraded for this boundary to be present.
+
+## Per-remote certificate validation exceptions
+
+Remote forms keep TLS validation enabled by default. Users with Pulp permission to create or change a remote can explicitly choose
+Ignore SSL certificate errors, stored as native `tls_validation: false`. This disables both
+certificate and hostname checks for that remote’s HTTPS connections, including HTTPS proxy
+TLS. Existing native `tls_validation: false` values are honored too. Global proxy routing and
+trusted CA configuration remain enforced. The exception is scoped
+to the download and its child processes, including ULN authentication and Git; it must not
+change global settings or leak to concurrent remotes. See `PULP_API.md` and
+`make test-egress-policy`.

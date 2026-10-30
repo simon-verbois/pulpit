@@ -15,7 +15,7 @@ export function useDeleteGemRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [gemRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], gemRepositoriesListRootKey],
       });
     },
   });

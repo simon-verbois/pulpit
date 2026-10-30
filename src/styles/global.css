@@ -1182,3 +1182,10 @@ textarea.pf-v6-c-form-control:focus-visible {
 .pulpit-row-current > td:not(.pf-v6-c-table__action) {
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
+
+/* Center plain SVG icons without the inline text descender space. */
+.pulpit-repository-row-actions .pf-v6-c-menu-toggle__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

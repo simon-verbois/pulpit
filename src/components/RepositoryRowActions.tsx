@@ -79,6 +79,7 @@ export function RepositoryRowActions({
   return (
     <>
       <Flex
+        className="pulpit-repository-row-actions"
         flexWrap={{ default: "nowrap" }}
         spaceItems={{ default: "spaceItemsNone" }}
         justifyContent={{ default: "justifyContentFlexEnd" }}

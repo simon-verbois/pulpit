@@ -64,7 +64,7 @@ Status legend: `[x]` implemented, `[~]` partially implemented / stubbed, `[ ]` n
       A distribution pointing at a `repository` only ever serves a _publication_ of it, never
       repository content directly (VERIFIED live: a distribution 404'd on `repodata/repomd.xml`
       until its repository was published). Fixed with an `autopublish` checkbox on repository
-      create (off by default) and a manual "Publish now" action on the repository Overview tab
+      create (on by default) and a manual "Publish now" action on the repository Overview tab
       (`src/api/client/rpm/publications.ts`) for repos created before this or with autopublish
       off. Publications aren't independently listed/managed as their own object in the UI - only
       triggerable per-repository.

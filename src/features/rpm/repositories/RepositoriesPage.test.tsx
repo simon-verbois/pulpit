@@ -228,7 +228,7 @@ describe("RepositoriesPage", () => {
   });
 
   it.each([false, true])(
-    "creates a repository with autopublish=%s (off by default)",
+    "creates a repository with autopublish=%s (on by default)",
     async (autopublish) => {
       let requestBody: unknown;
       server.use(
@@ -254,8 +254,8 @@ describe("RepositoriesPage", () => {
 
       const dialog = await screen.findByRole("dialog");
       const autopublishCheckbox = within(dialog).getByLabelText(/Automatically publish/i);
-      expect(autopublishCheckbox).not.toBeChecked();
-      if (autopublish) fireEvent.click(autopublishCheckbox);
+      expect(autopublishCheckbox).toBeChecked();
+      if (!autopublish) fireEvent.click(autopublishCheckbox);
 
       fireEvent.change(within(dialog).getByLabelText("Name", { exact: false }), {
         target: { value: "new-repo" },

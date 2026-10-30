@@ -239,3 +239,7 @@ Task recovery reads active work from Pulp/core after reload, resolving Pulp PRNs
 list endpoints. All active tasks and 20 recent finished tasks are retained. A group is its own
 tracked operation: dispatch and every child must finish. Selective container copying records
 accepted requests immediately and retries only submissions missing from that dialog's attempt.
+
+Repository deletion in the derived Pulp image also removes its direct and pinned distributions
+inside the native transaction, through `pulpit-api-compat`. This is a repository lifecycle policy,
+not a frontend cleanup sequence; see ADR 0014 and `PULP_API.md`.

@@ -15,7 +15,7 @@ export function useDeleteDebRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [debRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], debRepositoriesListRootKey],
       });
     },
   });

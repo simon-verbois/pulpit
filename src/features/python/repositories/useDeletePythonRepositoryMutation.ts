@@ -16,7 +16,7 @@ export function useDeletePythonRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [pythonRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], pythonRepositoriesListRootKey],
       });
     },
   });

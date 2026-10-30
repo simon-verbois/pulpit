@@ -27,8 +27,7 @@ export function CreateRepositoryModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [remote, setRemote] = useState("");
-  // Publishing stays an explicit choice when creating a repository.
-  const [autopublish, setAutopublish] = useState(false);
+  const [autopublish, setAutopublish] = useState(true);
   const [manifest, setManifest] = useState("");
   const createMutation = useCreateFileRepositoryMutation();
   const navigate = useNavigate();

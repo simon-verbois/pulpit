@@ -18,7 +18,8 @@ export function RepositoryOperationsHelp({
       ) : null}
       In <strong>Distributions</strong>, <strong>Edit</strong> changes the target or
       access settings; <strong>Reconnect</strong> reuses an unused URL after recreating a
-      repository.
+      repository. Deleting a repository also deletes its distributions, including pinned
+      URLs.
       {copy ? (
         <>
           {" "}

@@ -16,7 +16,7 @@ export function useDeleteContainerRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [containerRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], containerRepositoriesListRootKey],
       });
     },
   });

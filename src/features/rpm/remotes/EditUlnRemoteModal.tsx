@@ -18,6 +18,7 @@ import {
 
 import type { RpmUlnRemote } from "../../../api/client/rpm/types";
 import { PulpApiError } from "../../../api/errors/PulpApiError";
+import { RemoteTlsSettingsFields } from "../../../components/RemoteTlsSettingsFields";
 import { useUpdateUlnRemoteMutation } from "./useUpdateUlnRemoteMutation";
 
 function credentialHint(remote: RpmUlnRemote, field: "username" | "password") {
@@ -33,6 +34,7 @@ export function EditUlnRemoteModal({
   remote: RpmUlnRemote;
   onClose: () => void;
 }) {
+  const [tlsValidation, setTlsValidation] = useState(remote.tls_validation ?? true);
   const [name, setName] = useState(remote.name);
   const [url, setUrl] = useState(remote.url);
   const [ulnServerBaseUrl, setUlnServerBaseUrl] = useState(remote.uln_server_base_url);
@@ -53,6 +55,7 @@ export function EditUlnRemoteModal({
           uln_server_base_url: ulnServerBaseUrl,
           username: username || undefined,
           password: password || undefined,
+          tls_validation: tlsValidation,
         },
       },
       { onSuccess: onClose },
@@ -136,6 +139,11 @@ export function EditUlnRemoteModal({
               </HelperText>
             </FormHelperText>
           </FormGroup>
+          <RemoteTlsSettingsFields
+            idPrefix="uln-remote"
+            value={tlsValidation}
+            onChange={setTlsValidation}
+          />
         </Form>
       </ModalBody>
       <ModalFooter>

@@ -3,6 +3,7 @@
 The private manifest is atomically published by pulpit-core. A missing manifest
 is a deployment error when PULPIT_EGRESS_REQUIRED is set, never a silent bypass.
 """
+
 import hashlib
 import ipaddress
 import json
@@ -24,11 +25,15 @@ def read_policy():
         data = json.loads((directory() / "policy.json").read_text())
     except FileNotFoundError:
         if os.environ.get("PULPIT_EGRESS_REQUIRED") == "true":
-            raise RuntimeError("Global network policy is unavailable; check the shared egress volume") from None
+            raise RuntimeError(
+                "Global network policy is unavailable; check the shared egress volume"
+            ) from None
         return None
     if data.get("version") != 1:
         raise RuntimeError("Unsupported global network policy version")
-    return data
+    from .remote_tls import effective_policy
+
+    return effective_policy(data)
 
 
 def _atomic(path, contents, mode):
@@ -51,6 +56,7 @@ def publish(policy):
     pristine = folder / "public-ca-bundle.pem"
     if not pristine.exists():
         import certifi
+
         base = ssl.get_default_verify_paths().cafile or certifi.where()
         _atomic(pristine, Path(base).read_text() if base else "", 0o644)
     bundle = pristine.read_text()
@@ -74,6 +80,7 @@ BUNDLE_GRACE_SECONDS = 3600
 
 def _prune_bundles(folder, keep):
     import time
+
     cutoff = time.time() - BUNDLE_GRACE_SECONDS
     for old in folder.glob("ca-*.pem"):
         try:
@@ -100,7 +107,9 @@ _contexts = {}
 
 
 def context(policy, client_key=None, client_cert=None):
-    identity = hashlib.sha256(((client_key or "") + (client_cert or "")).encode()).hexdigest()
+    identity = hashlib.sha256(
+        ((client_key or "") + (client_cert or "")).encode()
+    ).hexdigest()
     key = (policy["ca_bundle"], policy.get("tls_validation", True), identity)
     if key in _contexts:
         return _contexts[key]
@@ -109,7 +118,10 @@ def context(policy, client_key=None, client_cert=None):
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
     if client_key and client_cert:
-        with tempfile.NamedTemporaryFile() as key_file, tempfile.NamedTemporaryFile() as cert_file:
+        with (
+            tempfile.NamedTemporaryFile() as key_file,
+            tempfile.NamedTemporaryFile() as cert_file,
+        ):
             key_file.write(client_key.encode())
             cert_file.write(client_cert.encode())
             key_file.flush()
@@ -127,11 +139,18 @@ def proxy_url(policy):
     if not value or not policy.get("proxy_username"):
         return value
     parsed = urlsplit(value)
-    credentials = quote(policy["proxy_username"], safe="") + ":" + quote(policy.get("proxy_password") or "", safe="")
+    credentials = (
+        quote(policy["proxy_username"], safe="")
+        + ":"
+        + quote(policy.get("proxy_password") or "", safe="")
+    )
     return parsed._replace(netloc=credentials + "@" + parsed.netloc).geturl()
 
 
 def environment(policy, inherited=None):
+    from .remote_tls import child_environment, effective_policy
+
+    policy = effective_policy(policy, inherited)
     result = dict(os.environ if inherited is None else inherited)
     proxy = proxy_url(policy)
     for key in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"):
@@ -141,10 +160,17 @@ def environment(policy, inherited=None):
     result.pop("all_proxy", None)
     bypass = ",".join(policy.get("bypass_hosts", []))
     result["NO_PROXY"] = result["no_proxy"] = bypass
-    for key in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "GIT_SSL_CAINFO"):
+    for key in (
+        "SSL_CERT_FILE",
+        "REQUESTS_CA_BUNDLE",
+        "CURL_CA_BUNDLE",
+        "GIT_SSL_CAINFO",
+    ):
         result[key] = policy["ca_bundle"]
-    result["GIT_SSL_NO_VERIFY"] = "false" if policy.get("tls_validation", True) else "true"
-    return result
+    result["GIT_SSL_NO_VERIFY"] = (
+        "false" if policy.get("tls_validation", True) else "true"
+    )
+    return child_environment(result, inherited)
 
 
 _installed = False
@@ -157,6 +183,7 @@ def install():
         return
     _installed = True
     import subprocess
+
     original_popen = subprocess.Popen.__init__
 
     def popen(self, *args, **kwargs):
@@ -164,6 +191,7 @@ def install():
         if policy:
             kwargs["env"] = environment(policy, kwargs.get("env"))
         return original_popen(self, *args, **kwargs)
+
     subprocess.Popen.__init__ = popen
 
     try:
@@ -181,12 +209,35 @@ def install():
                 if not is_internal(url, policy):
                     kwargs["proxy"] = policy.get("proxy_url") or None
                     if kwargs["proxy"] and policy.get("proxy_username"):
-                        kwargs["proxy_auth"] = aiohttp.BasicAuth(policy["proxy_username"], policy.get("proxy_password") or "")
+                        kwargs["proxy_auth"] = aiohttp.BasicAuth(
+                            policy["proxy_username"], policy.get("proxy_password") or ""
+                        )
                     connector_context = getattr(self.connector, "_ssl", None)
                     revision = (policy["ca_bundle"], policy.get("tls_validation", True))
-                    credentials = getattr(connector_context, "_pulpit_client_credentials", (None, None))
-                    kwargs["ssl"] = connector_context if getattr(connector_context, "_pulpit_revision", None) == revision else context(policy, *credentials)
+                    credentials = getattr(
+                        connector_context, "_pulpit_client_credentials", (None, None)
+                    )
+                    kwargs["ssl"] = (
+                        connector_context
+                        if getattr(connector_context, "_pulpit_revision", None)
+                        == revision
+                        else context(policy, *credentials)
+                    )
+                else:
+                    from .remote_tls import skipping_validation
+
+                    if skipping_validation():
+                        # Local endpoints bypass proxy routing, but an explicit
+                        # remote TLS opt-out still covers ULN's separate login session.
+                        connector_context = getattr(self.connector, "_ssl", None)
+                        credentials = getattr(
+                            connector_context,
+                            "_pulpit_client_credentials",
+                            (None, None),
+                        )
+                        kwargs["ssl"] = context(policy, *credentials)
             return await original_request(self, method, url, **kwargs)
+
         aiohttp.ClientSession._request = request
 
     try:
@@ -203,8 +254,13 @@ def install():
                 if not is_internal(request.url, policy):
                     proxy = proxy_url(policy)
                     kwargs["proxies"] = {"http": proxy, "https": proxy} if proxy else {}
-                    kwargs["verify"] = policy["ca_bundle"] if policy.get("tls_validation", True) else False
+                    kwargs["verify"] = (
+                        policy["ca_bundle"]
+                        if policy.get("tls_validation", True)
+                        else False
+                    )
             return original_send(self, request, **kwargs)
+
         requests.Session.send = send
 
     try:
@@ -212,12 +268,19 @@ def install():
     except ImportError:
         pass
     else:
-        for client_class, transport_class in ((httpx.Client, httpx.HTTPTransport), (httpx.AsyncClient, httpx.AsyncHTTPTransport)):
+        for client_class, transport_class in (
+            (httpx.Client, httpx.HTTPTransport),
+            (httpx.AsyncClient, httpx.AsyncHTTPTransport),
+        ):
             original_transport = client_class._transport_for_url
 
-            def transport(self, url, _original=original_transport, _class=transport_class):
+            def transport(
+                self, url, _original=original_transport, _class=transport_class
+            ):
                 policy = read_policy()
-                if not policy or not isinstance(self._transport, httpx.HTTPTransport | httpx.AsyncHTTPTransport):
+                if not policy or not isinstance(
+                    self._transport, httpx.HTTPTransport | httpx.AsyncHTTPTransport
+                ):
                     return _original(self, url)
                 if is_internal(url, policy):
                     return self._transport
@@ -225,35 +288,48 @@ def install():
                 cache = getattr(self, "_pulpit_egress_transports", None)
                 if cache is None:
                     cache = self._pulpit_egress_transports = {}
-                key = hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
+                key = hashlib.sha256(
+                    json.dumps(policy, sort_keys=True).encode()
+                ).hexdigest()
                 if key not in cache:
-                    cache[key] = _class(proxy=proxy_url(policy) or None, verify=context(policy), trust_env=False)
+                    cache[key] = _class(
+                        proxy=proxy_url(policy) or None,
+                        verify=context(policy),
+                        trust_env=False,
+                    )
                 return cache[key]
+
             client_class._transport_for_url = transport
         original_close = httpx.Client.close
         original_aclose = httpx.AsyncClient.aclose
 
         def close(self):
             try:
-                for transport in getattr(self, "_pulpit_egress_transports", {}).values():
+                for transport in getattr(
+                    self, "_pulpit_egress_transports", {}
+                ).values():
                     transport.close()
             finally:
                 original_close(self)
 
         async def aclose(self):
             try:
-                for transport in getattr(self, "_pulpit_egress_transports", {}).values():
+                for transport in getattr(
+                    self, "_pulpit_egress_transports", {}
+                ).values():
                     await transport.aclose()
             finally:
                 await original_aclose(self)
+
         httpx.Client.close = close
         httpx.AsyncClient.aclose = aclose
 
 
 def install_pulp_factory():
-    """Preserve origin credentials and mTLS, replace obsolete per-remote policy."""
+    """Apply global proxy/CA while honoring an explicit per-remote TLS opt-out."""
     import copy
 
+    from .remote_tls import install_remote_tls
     from pulpcore.download.factory import DownloaderFactory
 
     original = DownloaderFactory._make_aiohttp_session_from_remote
@@ -269,11 +345,16 @@ def install_pulp_factory():
         remote.proxy_username = policy.get("proxy_username") or None
         remote.proxy_password = policy.get("proxy_password") or None
         remote.ca_cert = policy.get("ca_cert") or None
-        remote.tls_validation = policy.get("tls_validation", True)
+        policy = dict(
+            policy,
+            tls_validation=policy.get("tls_validation", True) and remote.tls_validation,
+        )
         result = original(factory)
         ctx = context(policy, remote.client_key, remote.client_cert)
         ctx._pulpit_revision = (policy["ca_bundle"], policy.get("tls_validation", True))
         result.connector._ssl = ctx
         return result
+
     session._pulpit_global = True
     DownloaderFactory._make_aiohttp_session_from_remote = session
+    install_remote_tls()

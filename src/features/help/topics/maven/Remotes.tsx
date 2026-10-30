@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function MavenRemotesTopic() {
   return (
@@ -10,6 +11,7 @@ export function MavenRemotesTopic() {
       <Content component="p">
         <strong>On demand</strong> downloads artifacts when clients request them.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

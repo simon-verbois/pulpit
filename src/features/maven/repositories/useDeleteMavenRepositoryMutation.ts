@@ -15,7 +15,7 @@ export function useDeleteMavenRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [mavenRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], mavenRepositoriesListRootKey],
       });
     },
   });

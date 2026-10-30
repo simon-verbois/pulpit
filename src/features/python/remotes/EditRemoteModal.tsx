@@ -82,6 +82,7 @@ export function EditRemoteModal({
   );
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
+    tls_validation: remote.tls_validation,
     username: "",
     password: "",
   });
@@ -115,6 +116,7 @@ export function EditRemoteModal({
           keep_latest_packages: keepLatestPackages ?? 0,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
+          tls_validation: connectionSettings.tls_validation ?? true,
         },
       },
       { onSuccess: () => onClose() },

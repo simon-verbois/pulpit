@@ -1,4 +1,5 @@
 import { Content } from "@patternfly/react-core";
+import { RemoteConnectionHelp } from "../RemoteConnectionHelp";
 
 export function NpmRemotesTopic() {
   return (
@@ -11,6 +12,7 @@ export function NpmRemotesTopic() {
         Select <strong>On demand</strong> to download packages only when requested. A
         distribution can use this remote as a cache.
       </Content>
+      <RemoteConnectionHelp />
     </Content>
   );
 }

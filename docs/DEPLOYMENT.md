@@ -516,3 +516,10 @@ Distribution editing and registry redirect-guard preservation require the curren
 image (`pulpit-api-compat` 1.0.0) alongside Pulpit. This compatibility fix corrects the
 obsolete registry guard route in pulp_container 2.29.0 without broadening accepted guard models.
 Upgrade both images; validate with `make test-distribution-policy` after upstream plugin changes.
+
+Repository distribution cascade deletion requires the derived Pulp image with
+`pulpit-api-compat >= 1.1.0` and the matching Pulpit UI. Deploy both images; updating only
+the frontend does not enable this deletion policy. See ADR 0014.
+
+Per-remote TLS exceptions require `pulpit-egress >= 1.1.0` in both derived Pulp and Pulpit
+images. Deploy both together and run `make test-egress-policy` against the dev stack.

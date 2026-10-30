@@ -16,7 +16,9 @@ export function DebRepositoriesTopic() {
           <strong>Content</strong>. Check its relative path.
         </Content>
         <Content component="li">
-          Choose <strong>Publish now</strong>. Autopublish is off by default.
+          Publication updates automatically by default. Disable{" "}
+          <strong>Automatically publish</strong>
+          to use <strong>Publish now</strong> manually.
         </Content>
         <Content component="li">
           Create a distribution under <strong>Distributions</strong> and copy its URL.

@@ -428,7 +428,7 @@ the exact expected image digest (Milestone 3).
     cascade specific to pulp_container.** A `DELETE` on a container distribution reserves _both_
     `container.containerdistribution` and `container.containerrepository` in the same task
     (confirmed via the task's `reserved_resources_record`), and the repository is genuinely gone
-    afterward (`404` on a subsequent `GET`). The reverse is not true: deleting the repository
+    afterward (`404` on a subsequent `GET`). In upstream Pulp, deleting the repository
     directly leaves the distribution behind with `repository: null`, which is exactly how a
     distribution ends up in the repository-less state the Ansible `Namespaces` picker filtering
     above guards against for a different plugin. Unlike RPM/Ansible (where a distribution is a
@@ -599,7 +599,7 @@ from earlier plugin versions.
 ## Global outbound network policy (2026-10-05)
 
 The derived Pulp image installs `pulpit-egress` at the remote-check plugin's
-Django startup. It replaces legacy per-remote proxy/CA/TLS values in the downloader
+Django startup. It replaces legacy per-remote proxy/CA values in the downloader
 factory's in-memory copy, without persisting invented Pulp settings. Origin
 credentials and mTLS remain intact. Request hooks enforce global proxy/CA for
 aiohttp (including the separate ULN XML-RPC session), requests and HTTPX.
@@ -614,7 +614,8 @@ login, policy rotation/removal, subprocesses and internal bypass.
 
 ## RPM distribution recovery — VERIFIED 2026-10-29
 
-On the running dev instance, deleting an RPM repository does not delete its distribution.
+On upstream Pulp and releases before the repository-deletion policy below, deleting an RPM
+repository does not delete its distribution.
 The surviving distribution has `repository: null` and `publication: null`; recreating the
 repository under the same name gives it a new href. Creating a distribution with the old name
 or base path returns HTTP 400 for uniqueness. `PATCH` on the surviving distribution with
@@ -673,3 +674,46 @@ several direct distributions it is preserved. The GUI queries the direct count b
 in its dispatcher finalizer and ACS after its synchronous dispatch returns. It reuses native
 `TaskGroup.finish()`, preserving child outcomes and any dispatch exception; already finalized
 upstream groups remain unchanged. Old malformed history is not rewritten automatically.
+
+## Repository deletion policy — VERIFIED 2026-10-30
+
+The derived image’s `pulpit-api-compat` 1.1.0 deliberately changes repository deletion:
+it removes distributions targeting the repository directly, through a repository version, or
+through a publication. This is Pulpit policy, not an upstream Pulp bug fix.
+
+The wrapper runs inside the native `Repository.delete()` transaction before versions and
+publications lose their associations. Each concrete distribution is deleted through its native
+model lifecycle so caches are invalidated. A failure rolls back the repository and distribution
+changes together. Existing sync/async DELETE tasks and authorization remain in use; closing
+the browser does not interrupt the cascade. Repository-delete permission includes this cascade.
+
+Matching is by actual target and domain, never by name/base-path prefix. Other repositories,
+unused legacy distributions and shared content guards are preserved. Content/artifact deletion
+continues to follow Pulp’s orphan cleanup rules; this policy does not force disk cleanup.
+
+Deletion of a single distribution retains its plugin’s native semantics. In particular,
+pulp_container may delete a normal repository when its last direct distribution is deleted;
+this also removes any remaining version-pinned URLs of that repository.
+
+## Per-remote TLS opt-out — VERIFIED 2026-10-30
+
+All exposed remote flavors accept native `tls_validation` on create and update, including
+RPM ULN, Ansible Git/Role/Collection and File Git. The shared UI maps the unchecked
+Ignore SSL certificate errors option to `true`; edits load the saved value. Create requests
+remain synchronous (201); update requests return native tasks (202).
+
+`pulpit-egress` 1.1.0 honors native `tls_validation: false` without changing global proxy/CA
+settings. Native downloader execution scopes the exception with a ContextVar so independent
+ULN XML-RPC login sessions share it; concurrent remotes remain isolated and reset on failure.
+Ansible Git uses the same scope. File Git marks its explicit child environment. Subprocess
+wrappers propagate the exception only to that operation’s children, including git/curl.
+Global TLS disable still applies to all remotes; native `true` follows that global policy.
+Use `make test-egress-policy` to verify real HTTPS through a CONNECT proxy, rejection and
+acceptance of untrusted certificates, native RPM/ULN probes and exception isolation.
+
+New RPM, File, Debian and Python repositories now send `autopublish: true` from the creation
+form by default. This is a Pulpit UI default; the native schema’s default remains false and
+existing repositories are unchanged. Python still marks this native field deprecated.
+
+Ansible Git remote `git_ref` writes reject null and empty strings (native patched schema:
+string, minLength 1). Edits omit an unset ref, and clearing an existing ref sends `HEAD`.

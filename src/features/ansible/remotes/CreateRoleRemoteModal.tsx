@@ -51,6 +51,7 @@ export function CreateRoleRemoteModal({ onClose }: { onClose: () => void }) {
         policy,
         username: connectionSettings.username || undefined,
         password: connectionSettings.password || undefined,
+        tls_validation: connectionSettings.tls_validation ?? true,
       },
       { onSuccess: () => onClose() },
     );

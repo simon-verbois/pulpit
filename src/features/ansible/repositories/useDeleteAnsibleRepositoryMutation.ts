@@ -16,7 +16,7 @@ export function useDeleteAnsibleRepositoryMutation() {
         label: `Delete repository "${name}"`,
         resourceHrefs: [href],
         action: "delete",
-        invalidateKeys: [ansibleRepositoriesListRootKey],
+        invalidateKeys: [["pulp"], ansibleRepositoriesListRootKey],
       });
     },
   });

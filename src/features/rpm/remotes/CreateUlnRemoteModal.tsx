@@ -14,12 +14,14 @@ import {
 } from "@patternfly/react-core";
 
 import { PulpApiError } from "../../../api/errors/PulpApiError";
+import { RemoteTlsSettingsFields } from "../../../components/RemoteTlsSettingsFields";
 import { useCreateUlnRemoteMutation } from "./useCreateUlnRemoteMutation";
 
 /** A separate modal, not a variant of CreateRemoteModal - VERIFIED live,
  * ULN genuinely requires different fields (username/password are
  * mandatory here, only optional advanced settings on a standard remote). */
 export function CreateUlnRemoteModal({ onClose }: { onClose: () => void }) {
+  const [tlsValidation, setTlsValidation] = useState(true);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [ulnServerBaseUrl, setUlnServerBaseUrl] = useState(
@@ -33,7 +35,14 @@ export function CreateUlnRemoteModal({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = () => {
     createMutation.mutate(
-      { name, url, uln_server_base_url: ulnServerBaseUrl, username, password },
+      {
+        name,
+        url,
+        uln_server_base_url: ulnServerBaseUrl,
+        username,
+        password,
+        tls_validation: tlsValidation,
+      },
       { onSuccess: () => onClose() },
     );
   };
@@ -108,6 +117,11 @@ export function CreateUlnRemoteModal({ onClose }: { onClose: () => void }) {
               onChange={(_event, value) => setPassword(value)}
             />
           </FormGroup>
+          <RemoteTlsSettingsFields
+            idPrefix="uln-remote"
+            value={tlsValidation}
+            onChange={setTlsValidation}
+          />
         </Form>
       </ModalBody>
       <ModalFooter>

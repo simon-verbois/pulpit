@@ -46,6 +46,7 @@ export function EditRemoteModal({
   const [architectures, setArchitectures] = useState(remote.architectures ?? "");
   const [policy, setPolicy] = useState<RemotePolicy>(remote.policy);
   const [connectionSettings, setConnectionSettings] = useState<RemoteConnectionSettings>({
+    tls_validation: remote.tls_validation,
     username: "",
     password: "",
   });
@@ -65,6 +66,7 @@ export function EditRemoteModal({
           policy,
           username: connectionSettings.username || undefined,
           password: connectionSettings.password || undefined,
+          tls_validation: connectionSettings.tls_validation ?? true,
         },
       },
       { onSuccess: () => onClose() },

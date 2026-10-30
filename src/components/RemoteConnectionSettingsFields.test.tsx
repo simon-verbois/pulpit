@@ -34,6 +34,14 @@ describe("remote connection settings", () => {
     const input = screen.getByLabelText("Origin server username");
     fireEvent.change(input, { target: { value: "oracle-user" } });
     expect(input).toHaveValue("oracle-user");
+    const ignoreTls = screen.getByLabelText("Ignore SSL certificate errors");
+    expect(ignoreTls).not.toBeChecked();
+    fireEvent.click(ignoreTls);
+    expect(ignoreTls).toBeChecked();
+    fireEvent.change(input, { target: { value: "other-user" } });
+    expect(ignoreTls).toBeChecked();
+    fireEvent.click(ignoreTls);
+    expect(ignoreTls).not.toBeChecked();
     expect(screen.getByLabelText("Origin server password")).toHaveAttribute(
       "type",
       "password",

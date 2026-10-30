@@ -6,6 +6,22 @@ Add every change under **Unreleased**; `scripts/release.sh` assigns the version 
 
 ## Unreleased
 
+### Changed
+
+- Enable Automatically publish by default when creating RPM, File, Debian and Python repositories;
+  keep the option editable and update Help.
+- Add a per-remote Ignore SSL certificate errors option at creation and edit, including Git and
+  ULN. Honor it during native downloads, probes, ULN login and Git subprocesses while retaining
+  global proxy routing and CA settings. TLS validation stays enabled by default.
+- Preserve unset Ansible Git refs when editing connection settings; clearing a selected ref
+  uses HEAD instead of sending a null value rejected by Pulp.
+- Center repository action-menu icons with the Sync text in the shared row controls.
+
+- Deleting a repository also deletes all its distributions, including version/publication-pinned
+  URLs, inside the same native Pulp transaction. Apply this across formats, update confirmations
+  and Help, and refresh distribution lists when the task completes. Preserve shared guards and
+  other repositories; retain legacy-orphan recovery.
+
 ## 2026.44.7 — 2026-10-30
 
 ### Fixed
