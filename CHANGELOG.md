@@ -6,6 +6,8 @@ Add every change under **Unreleased**; `scripts/release.sh` assigns the version 
 
 ## Unreleased
 
+## 2026.44.8 — 2026-10-30
+
 ### Changed
 
 - Enable Automatically publish by default when creating RPM, File, Debian and Python repositories;
